@@ -1,0 +1,69 @@
+<html>
+<head><title>File Format for Outlook PST files</title></head>
+<h2>Header</h2>
+<pre>
+        00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+0x00    <a href="#header_sig" title="File Signature">xx xx xx xx</a> 00 00 00 00 00 00 00 00 00 00 00 00
+...
+0xA0    00 00 00 00 00 00 00 00 <a href="#header_filesize" title="File Size">xx xx xx xx</a> 00 00 00 00
+0xB0    00 00 00 00 00 00 00 00 00 00 00 00 <a href="#header_index_control" title="Controlling items index">xx xx xx xx</a>
+0xC0    00 00 00 00 <a href="#header_index_items" title="Items index">xx xx xx xx</a> 00 00 00 00 00 00 00 00
+
+</pre>
+
+
+<h2 id="header_sig">Signature in Header</h2>
+<p>The first 4 bytes of the PST file <i>should</i> be 0x21 0x42 0x44 0x4E, or as an int 0x4E444221. This is the only signature I have come across and will probably work in nearly all situations.</p>
+
+<h2 id="header_filesize">Size of current PST file</h2>
+<p>This is the size of the file. If I understand correctly, then Outlook would appear to have a 2GB, or 4GB file limit. Actually, I am not sure that the whole file format could take more than 1GB.</p>
+
+<h2 id="header_index_control">Pointer to Index of Controlling Items</h2>
+<p>This is what is reffered to as the second index, or Descriptive index. These records contain pointers to the <a href="#glossary_item">item</a> description and a table of extra ids. These records also contain the id2# of its parent.</p>
+<h3>Table pointing to further tables</h3>
+<pre>
+    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+    <a href="#glossary_id2" title="Starting ID2 value in following table">xx xx xx xx</a> 00 00 00 00 <a href="#glossary_offset" title="File Offset">xx xx xx xx</a>
+</pre>
+<h3>Leaf node table (Actual Records)</h3>
+<pre>
+    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+    <a href="#glossary_id2" title="ID2 Value of record">xx xx xx xx</a> <a href="#glossary_desc" title="ID of Description Record">xx xx xx xx</a> <a href="#assoclist" title="ID of Association Table">xx xx xx xx</a> <a href="#glossary_id2" title="ID2 Parent Record">xx xx xx xx</a>
+</pre>
+
+<h2 id="header_index_items">Pointer to index of ID Offsets</h2>
+<p>This is what is reffered to as an ID. These just basically point to offsets in the file. The do not describe what they point to. Each ID2 record that needs data not stored in it, will have an ID value that is a pointer to some data.</p>
+<h3>Table pointing to further tables</h3>
+<pre>
+    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+    <a href="#glossary_id" title="Starting ID value in following table">xx xx xx xx</a> 00 00 00 00 <a href="#glossary_offset" title="File Offset">xx xx xx xx</a>
+</pre>
+<h3>Leaf node table (Actual Records)</h3>
+<pre>
+    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+    <a href="#glossary_id" title="ID Value of record">xx xx xx xx</a> <a href="#glossary_offset" title="File Offset">xx xx xx xx</a> <a href="#glossary_bl_size" title="Block Size">xx xx</a> 00 00 
+</pre>
+
+<h2 id="assoclist">Association Table</h2>
+<p>This is a simple record associating the <a href="#glossary_id">ID</a> records with the <a href="#glossary_id2">ID2</a> records. It is nearly always the case that an item record will refer to an ID2 value. This list, which should be pre-read, will allow the ID2 values to point to file offsets. We must keep a full list of ID values in memory so that we can lookup the file offsets when required.</p>
+<pre>
+    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+    <b>02 00</b> <a href="#assoc_count" title="Number of items following">xx xx</a>[<a href="#glossary_id2" title="ID2 Value">xx xx xx xx</a> <a href="#glossary_id" title="ID Value">xx xx xx xx</a> 00 00 00 00]...
+</pre>
+
+<h2 id="glossary_desc">Description Record</h2>
+<p>This is a record that lists attributes of an item together with the attribute's data. It is the main place where data is stored. All data in a PST file is stored as items - from emails, to contacts, to the layout of a folder.</p>
+
+<h3>Block Header</h3>
+<pre>
+    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+    <a href="#desc_block_index" title="Offset to Block Index">xx xx</a> <b>EC BC</b> <a href="#desc_sec1" title="IndexPos of Section1">xx xx xx xx</a>
+</pre>
+OR
+<pre>
+    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+    <a href="#desc_block_index" title="Offset to Block Index">xx xx</a> <b>EC 7C</b> <a href="#desc_sec1" title="IndexPos of 7C position">xx xx xx xx</a>
+</pre>
+
+
+</html>

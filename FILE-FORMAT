@@ -1,0 +1,170 @@
+File format for Outlook pst files
+=================================
+
+Basically, we work on two indexes. One index associates an ID with each item, and the second index associates a second ID with the original ID. I see no real purpose for this yet.
+
+0x00 - Signature [4 bytes] (0x4E444221)
+0xA8 - File Size [4 bytes]
+0xC4 - Pointer to Index of all Items in File, associating the first ID [4 bytes]
+0xBC - Pointer to Index of controlling Items in File [4 bytes]
+
+First All Items Index: - constists of a table of offsets pointing to the table of items.
+======================
+repeating:
+0x0  - First id in this table   [4 bytes]
+0x04 - Unknown                  [4 bytes]
+0x08 - Offset of table          [4 bytes]
+
+until "First id in this table" is zero
+
+Table Of Items: - Pointed to by above records.
+===============
+repeating:
+0x0  - Id1 of this item           [4 bytes]
+0x04 - Offset of this item        [4 bytes]
+0x08 - Size of data stored there  [2 bytes]
+0x0A - Unknown                    [2 bytes]
+
+until "Id1 of this item" is zero. When this is reached, you return to the above table and read the next record
+
+Second All Items Index: - Contains the descriptors for emails, and other items
+=======================
+repeating:
+0x0  - First id2 of this table  [4 bytes]
+0x04 - Unknown                  [4 bytes]
+0x08 - Offset of table          [4 bytes]
+
+until "First id2 of this table" is zero
+
+Second Table of Items: - Pointed to by above records
+======================
+repeats 0x1F times
+0x0  - Id2 of this item           [4 bytes]
+0x04 - Id1 of the descriptor item [4 bytes]
+0x08 - Id1 of the associated list [4 bytes] (this contains a list of id1 and id2 that are to with this controlling item)
+0x0C - Id2 of parent              [4 bytes]
+
+
+Associated List: - pointed to by the above record. Contains associations between id1 and id2 for the items controlled by the record
+================
+0x0  - Constant [2 bytes]  (0x0002)
+0x02 - Count    [2 bytes] (the number of items that are about to follow)
+
+repeating
+0x0 - Id2 of record   [4 bytes]
+0x04 - Id of record   [4 bytes] - This is an association between the two
+0x08 - Unknown        [4 bytes]
+until you have reached the "Count"
+
+
+Descriptor Item: - Referenced from "Second Table of Items" - contains information about the item (email, contact...)
+================
+0x0  - Block Offset to Block Index  [2 bytes]
+0x02 - Constant                     [2 bytes] (0xBCEC)
+0x04 - Index Pos of Section1        [4 bytes]
+
+NOTE: An index pos can be shifted left 4 times [ i_pos << 4 ] to get an index offset (ie, an offset from the start of the block index)
+
+
+Block Index: - contains offsets to points in the current block
+============
+0x0 - Count of offsets minus one. [2 bytes] (In effect, each offset must be taken with the following one so that the start and end of the referenced item can be established. Therefore there is one extra to show the end of the last item.)
+
+repeating
+0x0  - Block Offset [2 bytes]
+until you have one extra than the "Count"
+
+
+Section1: - Referenced from "Descriptor Item" - contains not much
+=========
+0x0  - Constant? [4 bytes] (0x0602B5)
+0x04 - Index Pos of Descriptor fields [4 bytes]
+
+
+Descriptor Fields: - Contain the information needed to access the details of the email
+==================
+repeats
+0x0  - Item type        [2 bytes] (subject, from, to ...)
+0x02 - Reference type   [2 bytes] (how to interpret the value)
+0x04 - Value            [4 bytes]
+until the alloted size of the record has been read. (The following Block Offset from the Index has been reached)
+
+Reference Types: - I don't know if I have interpreted this field correctly. It might have a completely different purpose
+===============
+0x0002 -
+0x0003 - Value following is a value in it's own right
+0x000B -
+0x001E - (STRING) Value following is a Index Position (must be shifted left 4 times)
+0x0040 - (DATE)       "         "              "              "              "
+0x0048 -
+0x0102 - (STRUCTURE)  "         "              "              "              "
+0x1003 - 
+0x101E - (ARRAY OF STRING)
+0x1102 -
+
+Value:
+======
+When the value is of type Index Position, you can left shift the value 4 times to get an offset into the Block Index. Some descriptor types can have Id2 values. This is recognised by using a bitwise AND with the number. ie val & 0x0000000F. if the result is 0xF, it is likely to be a Id2 reference.
+
+
+Descriptor Types: - Types that are in "Descriptor Fields"
+=================
+
+All Values are Hex
+
+Note: it appears that some types can have a IPOS value or a ID2 value depending on the size of the field in question. It is safer to check every field than for me to say what the "usually" contain. Absolute values though, are generally going to be constant.
+
+Type  Ref Type  Value   Desc
+----  --------  -----   ----
+001A  		[REF]	IPM Context. What type of message is this
+0037  001E      [REF]   Email Subject. The referenced item is of type "Subject Type"
+0039 		[REF]	Date. This is likely to be the arrival date
+003B		[REF]	Outlook Address of Sender
+003F		[REF]	Outlook structure describing the recipient
+0040		[REF]	Name of the Outlook recipient structure
+0041		[REF]	Outlook structure describing the sender
+0042		[REF]	Name of the Outlook sender structure
+0043		[REF]	Another structure describing the recipient
+0044		[REF]	Name of the second recipient structure
+004F		[REF]	Reply-To Outlook Structure
+0050		[REF]	Name of the Reply-To structure
+0051		[REF]	Outlook Name of recipient
+0052		[REF]	Second Outlook name of recipient
+0064		[REF]	Sender's Address access method (SMTP, EX)
+0065		[REF]	Sender's Address
+0070		[REF]	Processed Subject (with Fwd:, Re, ... removed)
+0071		[REF]	Date. Another date
+0075		[REF]	Recipient Address Access Method (SMTP, EX)
+0076		[REF]	Recipient's Address
+0077		[REF] 	Second Recipient Access Method (SMTP, EX)
+0078		[REF]	Second Recipient Address
+007D  001E      [REF]   Email Header. This is the header that was attached to the email
+0C19		[REF]	Second sender struct
+0C1A		[REF]	Name of second sender struct
+0C1D		[REF]	Second outlook name of sender
+0C1E		[REF]	Second sender access method (SMTP, EX)
+0C1F		[REF]	Second Sender Address
+0E03		[REF]	CC Address?
+0E04		[REF]	SentTo Address
+0E06		[REF]	Date.
+0E07		[REF]	Flag - contains IsSeen value
+0FF9		[REF]	binary record header
+1000  001E      [REF]   Plain Text Email Body. Does not exist if the email doesn't have a plain text version
+1013  001E      [REF]   HTML Email Body. Does not exist if the email doesn't have a HTML version
+1035		[REF]	Message ID
+1042		[REF]	In-Reply-To or Parent's Message ID
+1046		[REF]	Return Path
+3001		[REF]	Folder Name? I have seen this value used for the contacts record aswell
+3007		[REF]	Date.
+3008		[REF]	Date.
+300B		[REF]	binary record header
+35E0		[REF]	binary record found in first item. Contains the reference to "Top of Personal Folder" item
+35E3		[REF]	binary record with a reference to "Deleted Items" item
+35E7		[REF]	binary record with a refernece to "Search Root" item
+3602		[REF]	the number of emails stored in a folder
+3603		[REF]	the number of unread emails in a folder
+3613		[REF]	the folder content description
+8000-			Contain extra bits of information that have been taken from the email's header. I call them extra lines
+
+Key:
+[REF]  = Can be either Index Position, or an Id2 Reference
