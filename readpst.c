@@ -4,6 +4,7 @@
  * Written by David Smith
  *            dave.s@earthcorp.com
  */
+// Includes {{{1
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -36,12 +37,13 @@
 #include "common.h"
 #include "timeconv.h"
 #include "lzfu.h"
-
+// }}}1
+// Defines {{{1
 #define OUTPUT_TEMPLATE "%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
 #define KMAIL_INDEX ".%s.index"
 
-#define VERSION "0.5"
+#define VERSION "0.5.1"
 // max size of the c_time char*. It will store the date of the email
 #define C_TIME_SIZE 500
 #define PERM_DIRS 0777
@@ -52,7 +54,8 @@
 #else
 #define D_MKDIR(x) mkdir(x)
 #endif
-
+// }}}1
+// struct file_ll {{{1
 struct file_ll {
   char *name;
   char *dname;
@@ -63,8 +66,8 @@ struct file_ll {
   int32_t type;
   struct file_ll *next;
 };
-
-
+// }}}1
+// Function Declarations {{{1
 void  write_email_body(FILE *f, char *body);
 char *removeCR (char *c);
 int32_t   usage();
@@ -82,10 +85,14 @@ char *rfc2426_escape(char *str);
 int32_t chr_count(char *str, char x);
 char *rfc2425_datetime_format(FILETIME *ft);
 char *rfc2445_datetime_format(FILETIME *ft);
-
+char *skip_header_prologue(char *headers);
+// }}}1
+// Global Variables {{{1
 char *prog_name; 
 char *output_dir = "."; 
-
+char *kmail_chdir = NULL;
+// }}}1
+// More Defines {{{1
 // Normal mode just creates mbox format files in the current directory. Each file is named 
 // the same as the folder's name that it represents 
 #define MODE_NORMAL 0 
@@ -119,8 +126,10 @@ char *output_dir = ".";
 #define RTF_ATTACH_NAME "rtf-body.rtf"
 // mime type for the attachment
 #define RTF_ATTACH_TYPE "application/rtf"
-
+// }}}1
+// int main(int argc, char** argv) {{{1
 int main(int argc, char** argv) {
+  // declarations {{{2
   pst_item *item = NULL;
   pst_file pstfile;
   pst_desc_ll *d_ptr;
@@ -142,6 +151,7 @@ int main(int argc, char** argv) {
   int skip_child = 0;
   struct file_ll  *f, *head;
   prog_name = argv[0];
+  // }}}2
 
   while ((c = getopt(argc, argv, "d:hko:qrSVwc:"))!= -1) {
     switch (c) {
@@ -191,10 +201,14 @@ int main(int argc, char** argv) {
     }
   }
 
+#ifdef DEBUG_ALL
+  // initialize log file
   if (d_log == NULL)
     d_log = "readpst.log";
   DEBUG_INIT(d_log);
   DEBUG_REGISTER_CLOSE();
+#endif // defined DEBUG_ALL
+
   DEBUG_ENT("main");
 
   if (argc > optind) {
@@ -340,7 +354,9 @@ int main(int argc, char** argv) {
       }
 
       
-      if (item->folder != NULL) { //if this is a folder, we want to recurse into it
+      if (item->folder != NULL) {
+	// Process Folder item {{{2
+	// if this is a folder, we want to recurse into it
 	if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as);
 	//	f->email_count++;
 	DEBUG_MAIN(("main: I think I may try to go into folder \"%s\"\n", item->file_as));
@@ -430,7 +446,9 @@ int main(int argc, char** argv) {
 	_pst_freeItem(item);
 	item = NULL; // just for the odd situations!
 	goto check_parent;
+	// }}}2
       } else if (item->contact != NULL) {
+	// Process Contact item {{{2
 	// deal with a contact
 	// write them to the file, one per line in this format
 	// Desc Name <email@address>\n
@@ -558,8 +576,10 @@ int main(int argc, char** argv) {
 	    fprintf(f->output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
 	  }
         }
+	// }}}2
       } else if (item->email != NULL &&
 		 (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+	// Process Email item {{{2
 	if (mode == MODE_SEPERATE) {
 	  mk_seperate_file(f);
 	}
@@ -673,10 +693,11 @@ int main(int argc, char** argv) {
 	  }
 	  
 	  if (mode != MODE_SEPERATE) {
+	    char *soh = NULL;  // real start of headers.
 	    // don't put rubbish in if we are doing seperate
-	    fprintf(f->output, "From \"%s\" %s\n%s\n",
-		    item->email->outlook_sender_name, c_time, item->email->header);
-	    fprintf(f->output, "\n");
+	    fprintf(f->output, "From \"%s\" %s\n", item->email->outlook_sender_name, c_time);
+	    soh = skip_header_prologue(item->email->header);
+	    fprintf(f->output, "%s\n\n", soh);
 	  } else {
 	    fprintf(f->output, "%s\n", item->email->header);
 	  }
@@ -882,7 +903,9 @@ int main(int argc, char** argv) {
 	    fprintf(f->output, "\n--%s--\n", boundary);
 	  fprintf(f->output, "\n\n");
 	}
+	// }}}2
       } else if (item->type == PST_TYPE_JOURNAL) {
+	// Process Journal item {{{2
 	// deal with journal items
 	if (mode == MODE_SEPERATE) {
 	  mk_seperate_file(f);
@@ -906,7 +929,9 @@ int main(int argc, char** argv) {
 	if (item->journal->start != NULL)
 	  fprintf(f->output, "DTSTART;VALUE=DATE-TIME:%s\n", rfc2445_datetime_format(item->journal->start));
 	fprintf(f->output, "END:VJOURNAL\n\n");
+	// }}}2
       } else if (item->type == PST_TYPE_APPOINTMENT) {
+	// Process Calendar Appointment item {{{2
 	// deal with Calendar appointments
 	if (mode == MODE_SEPERATE) {
 	  mk_seperate_file(f);
@@ -971,6 +996,7 @@ int main(int argc, char** argv) {
 	  }
 	}
 	fprintf(f->output, "END:VEVENT\n\n");
+	// }}}2
       } else {
 	f->skip_count++;
 	DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n", 
@@ -980,11 +1006,13 @@ int main(int argc, char** argv) {
       f->skip_count++;
       DEBUG_MAIN(("main: A NULL item was seen\n"));
     }
+
     DEBUG_MAIN(("main: Going to next d_ptr\n"));
     if (boundary) {
       free(boundary);
       boundary = NULL;
     }
+
   check_parent:
     //    _pst_freeItem(item);
     while (!skip_child && d_ptr->next == NULL && d_ptr->parent != NULL) {
@@ -1019,6 +1047,7 @@ int main(int argc, char** argv) {
       _pst_freeItem(item);
       item = NULL;
     }
+
     if (!skip_child)
       d_ptr = d_ptr->next;
     else 
@@ -1029,8 +1058,9 @@ int main(int argc, char** argv) {
     }
   }	
   if (output_mode != OUTPUT_QUIET) printf("Finished.\n");
-
   DEBUG_MAIN(("main: Finished.\n"));
+
+  	// Cleanup {{{2
   pst_close(&pstfile);
   //  fclose(pstfile.fp);
   while (f != NULL) {
@@ -1052,9 +1082,12 @@ int main(int argc, char** argv) {
   }
 
   DEBUG_RET();
+	// }}}2
+
   return 0;
 }
-
+// }}}1
+// void write_email_body(FILE *f, char *body) {{{1
 void write_email_body(FILE *f, char *body) {
   char *n = body;
   //  DEBUG_MAIN(("write_email_body(): \"%s\"\n", body));
@@ -1072,8 +1105,9 @@ void write_email_body(FILE *f, char *body) {
   fwrite(body, strlen(body), 1, f);
   DEBUG_RET();
 }
-
-char * removeCR (char *c) {
+// }}}1
+// char *removeCR (char *c) {{{1
+char *removeCR (char *c) {
   // converts /r/n to /n
   char *a, *b;
   DEBUG_ENT("removeCR");
@@ -1088,7 +1122,8 @@ char * removeCR (char *c) {
   DEBUG_RET();
   return c;
 }
-    
+// }}}1
+// int usage() {{{1
 int usage() {
   DEBUG_ENT("usage");
   version();
@@ -1107,7 +1142,8 @@ int usage() {
   DEBUG_RET();
   return 0;
 }
-
+// }}}1
+// int version() {{{1
 int version() {
   DEBUG_ENT("version");
   printf("ReadPST v%s implementing LibPST v%s\n", VERSION, PST_VERSION);
@@ -1124,10 +1160,9 @@ int version() {
   DEBUG_RET();
   return 0;
 }
-
-char *kmail_chdir = NULL;
-
-char* mk_kmail_dir(char *fname) {
+// }}}1
+// char *mk_kmail_dir(char *fname) {{{1
+char *mk_kmail_dir(char *fname) {
   //change to that directory
   //make a directory based on OUTPUT_KMAIL_DIR_TEMPLATE
   //allocate space for OUTPUT_TEMPLATE and form a char* with fname
@@ -1164,7 +1199,8 @@ char* mk_kmail_dir(char *fname) {
   DEBUG_RET();
   return out_name;
 }
-
+// }}}1
+// int close_kmail_dir() {{{1
 int close_kmail_dir() {
   // change ..
   int x;
@@ -1181,10 +1217,12 @@ int close_kmail_dir() {
   DEBUG_RET();
   return 0;
 }
-
-char* mk_recurse_dir(char *dir) {
-  // this will create a directory by that name, then make an mbox file inside that dir.
-  // any subsequent dirs will be created by name, and they will contain mbox files
+// }}}1
+// char *mk_recurse_dir(char *dir) {{{1
+// this will create a directory by that name, then make an mbox file inside
+// that dir.  any subsequent dirs will be created by name, and they will
+// contain mbox files
+char *mk_recurse_dir(char *dir) {
   int x;
   char *out_name;
   DEBUG_ENT("mk_recurse_dir");
@@ -1204,7 +1242,8 @@ char* mk_recurse_dir(char *dir) {
   DEBUG_RET();
   return out_name;
 }
-
+// }}}1
+// int close_recurse_dir() {{{1
 int close_recurse_dir() {
   int x;
   DEBUG_ENT("close_recurse_dir");
@@ -1215,8 +1254,9 @@ int close_recurse_dir() {
   DEBUG_RET();
   return 0;
 }
-
-char* mk_seperate_dir(char *dir, int overwrite) {
+// }}}1
+// char *mk_seperate_dir(char *dir, int overwrite) {{{1
+char *mk_seperate_dir(char *dir, int overwrite) {
 #if !defined(WIN32) && !defined(__CYGWIN__)
   DIR * sdir = NULL;
   struct dirent *dirent = NULL;
@@ -1282,7 +1322,8 @@ char* mk_seperate_dir(char *dir, int overwrite) {
   DEBUG_RET();
   return NULL;
 }
-  
+// }}}1
+// int close_seperate_dir() {{{1
 int close_seperate_dir() {
   int x;
   DEBUG_ENT("close_seperate_dir");
@@ -1293,7 +1334,8 @@ int close_seperate_dir() {
   DEBUG_RET();
   return 0;
 }
-
+// }}}1
+// int mk_seperate_file(struct file_ll *f) {{{1
 int mk_seperate_file(struct file_ll *f) {
   DEBUG_ENT("mk_seperate_file");
   DEBUG_MAIN(("mk_seperate_file: opening next file to save email\n"));
@@ -1311,9 +1353,10 @@ int mk_seperate_file(struct file_ll *f) {
   DEBUG_RET();
   return 0;
 }
-
+// }}}1
+// char *my_stristr(char *haystack, char *needle) {{{1
+char *my_stristr(char *haystack, char *needle) {
 // my_stristr varies from strstr in that its searches are case-insensitive
-char * my_stristr(char *haystack, char *needle) { 
   char *x=haystack, *y=needle, *z = NULL;
   DEBUG_ENT("my_stristr");
   if (haystack == NULL || needle == NULL)
@@ -1334,7 +1377,8 @@ char * my_stristr(char *haystack, char *needle) {
   DEBUG_RET();
   return z;
 }
-
+// }}}1
+// char *check_filename(char *fname) {{{1
 char *check_filename(char *fname) {
   char *t = fname;
   DEBUG_ENT("check_filename");
@@ -1349,7 +1393,8 @@ char *check_filename(char *fname) {
   DEBUG_RET();
   return fname;
 }
-
+// }}}1
+// char *rfc2426_escape(char *str) {{{1
 char *rfc2426_escape(char *str) {
   static char* buf = NULL;
   char *ret, *a, *b;
@@ -1392,8 +1437,9 @@ char *rfc2426_escape(char *str) {
   }
   DEBUG_RET();
   return ret;
-}  
-
+}
+// }}}1
+// int chr_count(char *str, char x) {{{1
 int chr_count(char *str, char x) {
   int r = 0;
   while (*str != '\0') {
@@ -1403,7 +1449,8 @@ int chr_count(char *str, char x) {
   }
   return r;
 }
-
+// }}}1
+// char *rfc2425_datetime_format(FILETIME *ft) {{{1
 char *rfc2425_datetime_format(FILETIME *ft) {
   static char * buffer = NULL;
   struct tm *stm = NULL;
@@ -1419,6 +1466,8 @@ char *rfc2425_datetime_format(FILETIME *ft) {
   DEBUG_RET();
   return buffer;
 }
+// }}}1
+// char *rfc2445_datetime_format(FILETIME *ft) {{{1
 char *rfc2445_datetime_format(FILETIME *ft) {
   static char* buffer = NULL;
   struct tm *stm = NULL;
@@ -1432,3 +1481,25 @@ char *rfc2445_datetime_format(FILETIME *ft) {
   DEBUG_RET();
   return buffer;
 }
+// }}}1
+// char *skip_header_prologue(char *headers) {{{1
+// The sole purpose of this function is to bypass the pseudo-header prologue
+// that Microsoft Outlook inserts at the beginning of the internet email
+// headers for emails stored in their "Personal Folders" files.
+char *skip_header_prologue(char *headers) {
+	const char *bad = "Microsoft Mail Internet Headers";
+
+	if ( strncmp(headers, bad, strlen(bad)) == 0 ) {
+		// Found the offensive header prologue
+		char *pc;
+
+		pc = strchr(headers, '\n');
+		return pc + 1;
+	}
+
+	return headers;
+}
+// }}}1
+
+// vim:sw=4 ts=4:
+// vim600: set foldlevel=0 foldmethod=marker:

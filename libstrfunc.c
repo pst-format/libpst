@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include "libstrfunc.h"
 
 char *_sf_b64_buf=NULL;
 size_t _sf_b64_len=0;

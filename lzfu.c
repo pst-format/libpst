@@ -23,6 +23,8 @@
 #define uint32_t unsigned int
 #endif
 
+#include "lzfu.h"
+
 #define LZFU_COMPRESSED         0x75465a4c
 #define LZFU_UNCOMPRESSED       0x414c454d
 

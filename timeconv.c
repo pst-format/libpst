@@ -13,6 +13,7 @@
 
 #include <time.h>
 #include "common.h"
+#include "timeconv.h"
 
 time_t fileTimeToUnixTime( const FILETIME *filetime, DWORD *remainder );
 char * fileTimeToAscii (const FILETIME *filetime);

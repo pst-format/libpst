@@ -1,47 +1,78 @@
-GCC_FLAGS=-g ${CFLAGS}
+#!/usr/bin/make -f
 
-all: readpst getidblock readpstlog dumpblocks
+CFLAGS  ?= -g -Wall
+PREFIX ?= /usr/local
+INSTALL ?= install
 
-libpst.o: libpst.c libpst.h define.h
-	gcc ${GCC_FLAGS} -c libpst.c -o libpst.o
+#---------------- Do not modify below this point ------------------
 
-libstrfunc.o: libstrfunc.c libstrfunc.h
-	gcc ${GCC_FLAGS} -c libstrfunc.c -o libstrfunc.o
+INSTALL_DIR     := $(INSTALL) -p -d -o root -g root -m 0755
+INSTALL_FILE    := $(INSTALL) -p    -o root -g root -m 0644
+INSTALL_PROGRAM := $(INSTALL) -p    -o root -g root -m 0755 # -s
+INSTALL_SCRIPT  := $(INSTALL) -p    -o root -g root -m 0755
 
-debug.o: debug.c define.h
-	gcc ${GCC_FLAGS} -c debug.c -o debug.o
+VERSION = $(shell cat VERSION)
 
-lzfu.o: lzfu.c define.h
-	gcc ${GCC_FLAGS} -c lzfu.c -o lzfu.o
+DOCS := AUTHORS ChangeLog CREDITS FILE-FORMAT FILE-FORMAT.html LICENSE TODO \
+	VERSION
 
-readpst: readpst.c define.h libpst.o timeconv.o libstrfunc.o common.h debug.o lzfu.o
-#	ccmalloc gcc -Wall -Werror readpst.c -g -o readpst libpst.o timeconv.o libstrfunc.o debug.o
-#	gcc -Wall -Werror readpst.c -g -o readpst libpst.o timeconv.o libstrfunc.o debug.o lzfu.o -lefence
-	gcc ${GCC_FLAGS} readpst.c -o readpst libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
+DISTFILES := $(DOCS) Makefile setup1.vdproj XGetopt.c XGetopt.h common.h \
+	debug.c define.h dumpblocks.c getidblock.c libpst.c libpst.h \
+	libstrfunc.c libstrfunc.h lspst.c lzfu.c lzfu.h moz-script \
+	readlog.vcproj readpst.1 readpst.c readpstlog.1 readpstlog.c \
+	testdebug.c timeconv.c timeconv.h w32pst.sln w32pst.vcproj
 
-timeconv.o: timeconv.c timeconv.h common.h
-	gcc ${GCC_FLAGS} -c timeconv.c -o timeconv.o
+PROGS := lspst readpst readpstlog
+ALL_PROGS := $(PROGS) dumpblocks getidblock testdebug
 
-getidblock: getidblock.c define.h libpst.o common.h debug.o libstrfunc.o
-	gcc ${GCC_FLAGS} getidblock.c -o getidblock libpst.o debug.o timeconv.o libstrfunc.o
+all: $(PROGS)
 
-testdebug: testdebug.c define.h debug.o
-	gcc ${GCC_FLAGS} testdebug.c -o testdebug debug.o libstrfunc.o
+XGetopt.o: XGetopt.h
+debug.o: define.h
+dumpblocks.o: define.h
+getidblock.o: XGetopt.h define.h libpst.h
+libpst.o: define.h libstrfunc.h libpst.h timeconv.h
+libstrfunc.o: libstrfunc.h
+lspst.o: libpst.h timeconv.h
+lzfu.o: define.h libpst.h lzfu.h
+readpst.o: XGetopt.h libstrfunc.h define.h libpst.h common.h timeconv.h lzfu.h
+readpstlog.o: XGetopt.h define.h
+testdebug.o: define.h
+timeconv.o: timeconv.h common.h
 
-readpstlog: readpstlog.c define.h debug.o
-	gcc ${GCC_FLAGS} readpstlog.c -g -o readpstlog debug.o libstrfunc.o
-
-dumpblocks: dumpblocks.c define.h libpst.o debug.o
-	gcc ${GCC_FLAGS} dumpblocks.c -o dumpblocks libpst.o debug.o libstrfunc.o timeconv.o
+readpst: readpst.o libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
+lspst: debug.o libpst.o libstrfunc.o lspst.o timeconv.o
+getidblock: getidblock.o libpst.o debug.o libstrfunc.o
+testdebug: testdebug.o debug.o
+readpstlog: readpstlog.o debug.o
+dumpblocks: dumpblocks.o libpst.o debug.o libstrfunc.o
 
 clean: 
-	rm -f core readpst libpst.o timeconv.o libstrfunc.o debug.o getidblock readpstlog testdebug dumpblocks lzfu.o *~ 
+	rm -f core *.o readpst.log $(ALL_PROGS) *~ MANIFEST
 
-rebuild: clean all
+distclean: clean
+	rm -f libpst-*.tar.gz
 
 install: all
-	cp readpst /usr/local/bin
-	cp readpstlog /usr/local/bin/readpstlog
+	$(INSTALL_DIR) $(DESTDIR)$(PREFIX)/bin
+	$(INSTALL_PROGRAM) readpst{,log} $(DESTDIR)$(PREFIX)/bin
+	$(INSTALL_DIR) $(DESTDIR)$(PREFIX)/share/man/man1
+	$(INSTALL_FILE) readpst{,log}.1 $(DESTDIR)$(PREFIX)/share/man/man1/
+	$(INSTALL_DIR) $(DESTDIR)$(PREFIX)/share/doc/libpst
+	$(INSTALL_FILE) $(DOCS) $(DESTDIR)$(PREFIX)/share/doc/libpst/
+
 uninstall:
-	rm -f /usr/local/bin/readpst
-	rm -f /usr/local/bin/readpstlog
+	-rm -f $(DESTDIR)$(PREFIX)/bin/readpst{,log}
+	-rm -f $(DESTDIR)$(PREFIX)/share/man/man1/readpst{,log}.1
+
+# stolen from ESR's Software Release Practices HOWTO available at:
+# http://en.tldp.org/HOWTO/Software-Release-Practice-HOWTO/distpractice.html
+MANIFEST: Makefile
+	@ls $(DISTFILES) | sed s:^:libpst-$(VERSION)/: >MANIFEST
+tarball libpst-$(VERSION).tar.gz: MANIFEST $(DISTFILES)
+	@(cd ..; ln -s libpst libpst-$(VERSION))
+	(cd ..; tar -czvf libpst/libpst-$(VERSION).tar.gz `cat libpst/MANIFEST`)
+	@(cd ..; rm libpst-$(VERSION))
+	@rm -f MANIFEST
+
+.PHONY: clean distclean uninstall install tarball

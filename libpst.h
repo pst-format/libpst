@@ -29,7 +29,11 @@ typedef struct {
 
 // According to Jan Wolter, sys/param.h is the most portable source of endian
 // information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html
-#include <sys/param.h>
+#ifdef _MSC_VER
+  #define BYTE_ORDER LITTLE_ENDIAN
+#else
+  #include <sys/param.h>
+#endif // defined _MSC_VER
 
 #if BYTE_ORDER == BIG_ENDIAN
 #  define LE64_CPU(x) \
@@ -67,7 +71,7 @@ typedef struct {
 #endif // _MSC_VER
 
 
-#define PST_VERSION "0.5"
+#define PST_VERSION "0.5.1"
 
 #define PST_TYPE_NOTE 1
 #define PST_TYPE_APPOINTMENT 8
@@ -504,4 +508,5 @@ int32_t _pst_printDptr(pst_file *pf);
 int32_t _pst_printIDptr(pst_file* pf);
 int32_t _pst_printID2ptr(pst_index2_ll *ptr);
 void * xmalloc(size_t size);
-#endif
+
+#endif // defined LIBPST_H
