@@ -1,0 +1,82 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH READPST 1 "February 24, 2004"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+readpst \- convert PST (MS Outlook Personal Folders) files to mbox format
+.SH SYNOPSIS
+.B readpst
+.RI [ options ] " files" ...
+.SH DESCRIPTION
+This manual page documents briefly the
+.B readpst
+command.
+.PP
+.\" TeX users may be more comfortable with the \fB<whatever>\fP and
+.\" \fI<whatever>\fP escape sequences to invode bold face and italics, 
+.\" respectively.
+\fBreadpst\fP is a program that can read an Outlook PST (Personal Folders) file
+and convert it into an mbox file, a format suitable for KMail, a recursive mbox
+structure, or seperate emails.
+.SH OPTIONS
+A summary of options is included below.
+.TP
+.B \-d
+Specify name of debug log file. Defaults to "readpst.log". The log
+file isn\'t an ascii file, it is a binary file readable by \fBreadpstlog\fP.
+.TP
+.B \-h
+Show summary of options.
+.TP
+.B \-k
+Changes the output format to KMail.
+.TP
+.B \-o
+Specifies the output directory. The directory must already exist, and
+is entered after the PST file is opened, but before any processing of
+files commences.
+.TP
+.B \-q
+Changes to silent mode. No feedback is printed to the screen, except
+for error messages.
+.TP
+.B \-r
+Changes the output format to Recursive. This will create folders as
+named in the PST file, and will put all emails in a file called "mbox"
+inside each folder. These files are then compatible with all
+mbox\-compatible email clients.
+.TP
+.B \-S
+Output messages into seperate files. This will create folders as
+named in the PST file, and will put each email in its own file. These
+files will be numbered from 000000000 increasing in intervals of 1 (ie
+000000000, 000000001, 0000000002). Any attachments are saved alongside
+each email as 000000000\-attach0, or with the name of the attachment if
+one is present.
+.TP
+.B \-V
+Show version of program.
+.TP
+.B \-w
+Overwrite any previous output files. \fBBeware\fP: When used with the \-S
+switch, this will remove all files from the target folder before
+writing. This is to keep the count of emails and attachments correct.
+.SH SEE ALSO
+.BR readpstlog (1)
+.SH AUTHOR
+This manual page was written by Dave Smith <dave.s@earthcorp.com>, and updated
+by Joe Nahmias <joe@nahmias.net> for the Debian GNU/Linux system (but may be
+used by others).

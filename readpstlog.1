@@ -1,0 +1,87 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH READPSTLOG 1 "February 24, 2004"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+readpstlog \- convert a readpst logfile to text format
+.SH SYNOPSIS
+.B readpstlog
+.RI [ options ] " logfile"
+.SH DESCRIPTION
+This manual page documents briefly the
+.B readpstlog
+command.
+.PP
+.\" TeX users may be more comfortable with the \fB<whatever>\fP and
+.\" \fI<whatever>\fP escape sequences to invode bold face and italics, 
+.\" respectively.
+\fBreadpstlog\fP is a program that reads the \fIbinary\fP logfile generated
+by \fBreadpst\fP, and outputs it in a more desirable format (i.e. text).
+.SH OPTIONS
+This program follows the usual GNU command line syntax.
+A summary of options is included below.
+.TP
+.BR \-f " \fIformat\fP"
+Sets the format of the text log output.  Currently, the only valid output
+format is \fBT\fP, for text; anything else gives the default.
+.TP
+.BR \-t " \fItypes\fP"
+Tells \fBreadpstlog\fP to print only the specified types of log messages.
+Types are specified in a comma\-delimited list (e.g. 3,10,5,6).
+.TP
+.BR \-x " \fItypes\fP"
+Tells \fBreadpstlog\fP to exclude the specified types of log messages.
+Types are specified in a comma\-delimited list (e.g. 3,10,5,6).
+.SH LOG MESSAGE TYPES
+.PP
+\fBreadpstlog\fP understands the following types of log messages:
+.RS 15
+.TP
+.B 1
+File accesses
+.TP
+.B 2
+Index accesses
+.TP
+.B 3
+New email found
+.TP
+.B 4
+Warnings
+.TP
+.B 5
+Read accesses
+.TP
+.B 6
+Informational messages
+.TP
+.B 7
+Main function calls
+.TP
+.B 8
+Decrypting calls
+.TP
+.B 10
+Function calls
+.TP
+.B 11
+HexDump calls
+.RE
+.SH SEE ALSO
+.BR readpst (1)
+.SH AUTHOR
+This manual page was written by Joe Nahmias <joe@nahmias.net> for the Debian
+GNU/Linux system (but may be used by others).
