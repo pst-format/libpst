@@ -290,7 +290,7 @@ int usage() {
     printf("\t-h\t- Help. This screen\n");
     printf("\t-V\t- Version. Display program version\n");
     printf("\t-b ldapbase\t- set the ldap base value\n");
-    printf("\t-b ldapbase\t- set the ldap base value\n");
+    printf("\t-c class   \t- set the class of the ldap objects\n");
     return 0;
 }
 
