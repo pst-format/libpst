@@ -29,7 +29,11 @@ typedef struct {
 
 // According to Jan Wolter, sys/param.h is the most portable source of endian
 // information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html
-#include <sys/param.h>
+#ifdef _MSC_VER
+  #define BYTE_ORDER LITTLE_ENDIAN
+#else
+  #include <sys/param.h>
+#endif // defined _MSC_VER
 
 #if BYTE_ORDER == BIG_ENDIAN
 #  define LE64_CPU(x) \
@@ -67,7 +71,7 @@ typedef struct {
 #endif // _MSC_VER
 
 
-#define PST_VERSION "0.5"
+#define PST_VERSION "0.5.1"
 
 #define PST_TYPE_NOTE 1
 #define PST_TYPE_APPOINTMENT 8
@@ -237,7 +241,7 @@ typedef struct _pst_item_folder {
   int32_t  assoc_count;
   char subfolder;
 } pst_item_folder;
-  
+
 typedef struct _pst_item_message_store {
   pst_entryid *deleted_items_folder;
   pst_entryid *search_root_folder;
@@ -246,7 +250,7 @@ typedef struct _pst_item_message_store {
   int32_t valid_mask; // what folders the message store contains
   int32_t pwd_chksum;
 } pst_item_message_store;
-  
+
 typedef struct _pst_item_contact {
   char *access_method;
   char *account_name;
@@ -397,7 +401,7 @@ typedef struct _pst_item {
   int32_t  response_requested;
   FILETIME *create_date;
   FILETIME *modify_date;
-  int32_t private;
+  int32_t private_member;
 } pst_item;
 
 typedef struct _pst_x_attrib_ll {
@@ -467,7 +471,7 @@ pst_desc_ll* pst_getNextDptr(pst_desc_ll* d);
 int32_t pst_load_extended_attributes(pst_file *pf);
 
 int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t start_val, int32_t end_val);
-int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t *high_id, 
+int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t *high_id,
 			     int32_t start_id, int32_t end_val);
 pst_item* _pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 void * _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
@@ -499,9 +503,10 @@ int32_t pst_strincmp(char *a, char *b, int32_t x);
 int32_t pst_stricmp(char *a, char *b);
 size_t pst_fwrite(const void*ptr, size_t size, size_t nmemb, FILE*stream);
 char * _pst_wide_to_single(char *wt, int32_t size);
-// DEBUG functions 
+// DEBUG functions
 int32_t _pst_printDptr(pst_file *pf);
 int32_t _pst_printIDptr(pst_file* pf);
 int32_t _pst_printID2ptr(pst_index2_ll *ptr);
 void * xmalloc(size_t size);
-#endif
+
+#endif // defined LIBPST_H

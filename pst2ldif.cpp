@@ -8,6 +8,8 @@ Based on readpst.c by David Smith
 
 */
 
+using namespace std;
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -33,27 +35,19 @@ Based on readpst.c by David Smith
 # include "XGetopt.h"
 #endif
 
-#include "libstrfunc.h" // for base64_encoding
+// needed for std c++ collections
+#include <set>
 
-#include "define.h"
-#include "libpst.h"
-#include "common.h"
-#include "timeconv.h"
-#include "lzfu.h"
-
-#define OUTPUT_TEMPLATE "%s"
+extern "C" {
+    #include "libstrfunc.h" // for base64_encoding
+    #include "define.h"
+    #include "libpst.h"
+    #include "common.h"
+    #include "timeconv.h"
+    #include "lzfu.h"
+}
 
 #define VERSION "0.2"
-// max size of the c_time char*. It will store the date of the email
-#define C_TIME_SIZE 500
-#define PERM_DIRS 0777
-
-// macro used for creating directories
-#ifndef WIN32
-#define D_MKDIR(x) mkdir(x, PERM_DIRS)
-#else
-#define D_MKDIR(x) mkdir(x)
-#endif
 
 int32_t   usage();
 int32_t   version();
@@ -67,13 +61,67 @@ int32_t chr_count(char *str, char x);
 
 char *prog_name;
 pst_file pstfile;
-char *ldap_base  = NULL;  // 'o=some.domain.tld, c=US'
-char *ldap_class = NULL;  // 'newPerson'
-char *ldap_org   = NULL;  // 'o=some.domain.tld', computed from ldap_base
+char *ldap_base  = NULL;    // 'o=some.domain.tld, c=US'
+char *ldap_class = NULL;    // 'newPerson'
+char *ldap_org   = NULL;    // 'o=some.domain.tld', computed from ldap_base
 
 
-char *trim(char *name);
-char *trim(char *name) {
+////////////////////////////////////////////////
+// define our ordering
+struct ltstr {
+    bool operator()(char* s1, char* s2) const {
+        return strcasecmp(s1, s2) < 0;
+    }
+};
+// define our set
+typedef set<char *, ltstr>   string_set;
+// make a static set to hold the cn values
+static string_set all_strings;
+
+
+////////////////////////////////////////////////
+// helper to register a string in a string set
+//
+static char* register_string(string_set &s, char *name);
+static char* register_string(string_set &s, char *name) {
+    string_set::iterator i = s.find(name);
+    if (i != s.end()) return *i;
+    char *x = strdup(name);
+    s.insert(x);
+    return x;
+}
+
+////////////////////////////////////////////////
+// register a global string
+//
+static char* register_string(char *name);
+static char* register_string(char *name) {
+    return register_string(all_strings, name);
+}
+
+
+////////////////////////////////////////////////
+// make a unique string
+//
+static char* unique_string(char *name);
+static char* unique_string(char *name) {
+    int  unique = 2;
+    string_set::iterator i = all_strings.find(name);
+    if (i == all_strings.end()) return register_string(name);
+    while (true) {
+        char n[strlen(name)+10];
+        snprintf(n, sizeof(n), "%s %d", name, unique++);
+        string_set::iterator i = all_strings.find(n);
+        if (i == all_strings.end()) return register_string(n);
+    }
+}
+
+
+////////////////////////////////////////////////
+// remove leading and trailing blanks
+//
+static char *trim(char *name);
+static char *trim(char *name) {
     char *p;
     while (*name == ' ') name++;
     p = name + strlen(name) - 1;
@@ -82,12 +130,12 @@ char *trim(char *name) {
 }
 
 
-void process(pst_desc_ll *d_ptr);
-void process(pst_desc_ll *d_ptr) {
+static void process(pst_desc_ll *d_ptr);
+static void process(pst_desc_ll *d_ptr) {
     pst_item *item = NULL;
     while (d_ptr) {
         if (d_ptr->desc) {
-            item = _pst_parse_item(&pstfile, d_ptr);
+            item = (pst_item*)_pst_parse_item(&pstfile, d_ptr);
             if (item) {
                 if (item->message_store) {
                     // there should only be one message_store, and we have already done it
@@ -200,8 +248,9 @@ void process(pst_desc_ll *d_ptr) {
 //                            fprintf(stderr, "transmittable_display_name %s\n", item->contact->transmittable_display_name);
 //                            fprintf(stderr, "ttytdd_phone %s\n",               item->contact->ttytdd_phone);
                             // have a valid cn
-                            printf("dn: cn=%s, %s\n", trim(cn), ldap_base);
-                            printf("cn: %s\n", trim(cn));
+                            char *ucn = unique_string(folded(trim(cn)));
+                            printf("dn: cn=%s, %s\n", ucn, ldap_base);
+                            printf("cn: %s\n", ucn);
                             if (item->contact->first_name) {
                                 snprintf(cn, sizeof(cn), "%s %s",
                                     single(item->contact->display_name_prefix),
@@ -214,6 +263,12 @@ void process(pst_desc_ll *d_ptr) {
                                     single(item->contact->suffix));
                                 printf("sn: %s\n", trim(cn));
                             }
+                            else if (item->contact->company_name) {
+                                printf("sn: %s\n", single(item->contact->company_name));
+                            }
+                            else
+                                printf("sn: %s\n", ucn);    // use cn as sn if we cannot find something better
+
                             if (item->contact->job_title)
                                 printf("personalTitle: %s\n", single(item->contact->job_title));
                             if (item->contact->company_name)
@@ -346,7 +401,7 @@ int main(int argc, char** argv) {
     pst_load_extended_attributes(&pstfile);
 
     d_ptr = pstfile.d_head; // first record is main record
-    item  = _pst_parse_item(&pstfile, d_ptr);
+    item  = (pst_item*)_pst_parse_item(&pstfile, d_ptr);
     if (!item || !item->message_store) {
         DIE(("main: Could not get root record\n"));
     }
