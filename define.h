@@ -38,7 +38,7 @@
 #define DEBUG_FUNC_NO 10
 #define DEBUG_HEXDUMP_NO 11
 
-//variable number of arguments to this macro. will expand them into 
+//variable number of arguments to this macro. will expand them into
 // ## args, then exit with status of 1
 #include <stdio.h>
 #include <stdlib.h>

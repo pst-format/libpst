@@ -43,7 +43,7 @@ Based on readpst.c by David Smith
 
 #define OUTPUT_TEMPLATE "%s"
 
-#define VERSION "0.1"
+#define VERSION "0.2"
 // max size of the c_time char*. It will store the date of the email
 #define C_TIME_SIZE 500
 #define PERM_DIRS 0777
@@ -60,7 +60,8 @@ int32_t   version();
 char *my_stristr(char *haystack, char *needle);
 char *check_filename(char *fname);
 char *single(char *str);
-char *multi(char *fmt, char *str);
+char *folded(char *str);
+void  multi(char *fmt, char *str);
 char *rfc2426_escape(char *str);
 int32_t chr_count(char *str, char x);
 
@@ -93,7 +94,9 @@ void process(pst_desc_ll *d_ptr) {
                     DIE(("main: A second message_store has been found. Sorry, this must be an error.\n"));
                 }
 
-                if (item->folder) { //if this is a folder, we want to recurse into it
+                if (item->folder && d_ptr->child && strcasecmp(item->file_as, "Deleted Items")) {
+                    //if this is a non-empty folder other than deleted items, we want to recurse into it
+                    fprintf(stderr, "entering folder %s\n", item->file_as);
                     process(d_ptr->child);
                 } else if (item->contact) {
                     // deal with a contact
@@ -110,6 +113,92 @@ void process(pst_desc_ll *d_ptr) {
                             single(item->contact->surname),
                             single(item->contact->suffix));
                         if (strcmp(cn, "   ")) {
+//                            fprintf(stderr, "\n\n\n");
+//                            fprintf(stderr, "access_method %s\n",              item->contact->access_method);
+//                            fprintf(stderr, "account_name %s\n",               item->contact->account_name);
+//                            fprintf(stderr, "address1 %s\n",                   item->contact->address1);
+//                            fprintf(stderr, "address1_desc %s\n",              item->contact->address1_desc);
+//                            fprintf(stderr, "address1_transport %s\n",         item->contact->address1_transport);
+//                            fprintf(stderr, "address2 %s\n",                   item->contact->address2);
+//                            fprintf(stderr, "address2_desc %s\n",              item->contact->address2_desc);
+//                            fprintf(stderr, "address2_transport %s\n",         item->contact->address2_transport);
+//                            fprintf(stderr, "address3 %s\n",                   item->contact->address3);
+//                            fprintf(stderr, "address3_desc %s\n",              item->contact->address3_desc);
+//                            fprintf(stderr, "address3_transport %s\n",         item->contact->address3_transport);
+//                            fprintf(stderr, "assistant_name %s\n",             item->contact->assistant_name);
+//                            fprintf(stderr, "assistant_phone %s\n",            item->contact->assistant_phone);
+//                            fprintf(stderr, "billing_information %s\n",        item->contact->billing_information);
+//                            fprintf(stderr, "business_address %s\n",           item->contact->business_address);
+//                            fprintf(stderr, "business_city %s\n",              item->contact->business_city);
+//                            fprintf(stderr, "business_country %s\n",           item->contact->business_country);
+//                            fprintf(stderr, "business_fax %s\n",               item->contact->business_fax);
+//                            fprintf(stderr, "business_homepage %s\n",          item->contact->business_homepage);
+//                            fprintf(stderr, "business_phone %s\n",             item->contact->business_phone);
+//                            fprintf(stderr, "business_phone2 %s\n",            item->contact->business_phone2);
+//                            fprintf(stderr, "business_po_box %s\n",            item->contact->business_po_box);
+//                            fprintf(stderr, "business_postal_code %s\n",       item->contact->business_postal_code);
+//                            fprintf(stderr, "business_state %s\n",             item->contact->business_state);
+//                            fprintf(stderr, "business_street %s\n",            item->contact->business_street);
+//                            fprintf(stderr, "callback_phone %s\n",             item->contact->callback_phone);
+//                            fprintf(stderr, "car_phone %s\n",                  item->contact->car_phone);
+//                            fprintf(stderr, "company_main_phone %s\n",         item->contact->company_main_phone);
+//                            fprintf(stderr, "company_name %s\n",               item->contact->company_name);
+//                            fprintf(stderr, "computer_name %s\n",              item->contact->computer_name);
+//                            fprintf(stderr, "customer_id %s\n",                item->contact->customer_id);
+//                            fprintf(stderr, "def_postal_address %s\n",         item->contact->def_postal_address);
+//                            fprintf(stderr, "department %s\n",                 item->contact->department);
+//                            fprintf(stderr, "display_name_prefix %s\n",        item->contact->display_name_prefix);
+//                            fprintf(stderr, "first_name %s\n",                 item->contact->first_name);
+//                            fprintf(stderr, "followup %s\n",                   item->contact->followup);
+//                            fprintf(stderr, "free_busy_address %s\n",          item->contact->free_busy_address);
+//                            fprintf(stderr, "ftp_site %s\n",                   item->contact->ftp_site);
+//                            fprintf(stderr, "fullname %s\n",                   item->contact->fullname);
+//                            fprintf(stderr, "gov_id %s\n",                     item->contact->gov_id);
+//                            fprintf(stderr, "hobbies %s\n",                    item->contact->hobbies);
+//                            fprintf(stderr, "home_address %s\n",               item->contact->home_address);
+//                            fprintf(stderr, "home_city %s\n",                  item->contact->home_city);
+//                            fprintf(stderr, "home_country %s\n",               item->contact->home_country);
+//                            fprintf(stderr, "home_fax %s\n",                   item->contact->home_fax);
+//                            fprintf(stderr, "home_phone %s\n",                 item->contact->home_phone);
+//                            fprintf(stderr, "home_phone2 %s\n",                item->contact->home_phone2);
+//                            fprintf(stderr, "home_po_box %s\n",                item->contact->home_po_box);
+//                            fprintf(stderr, "home_postal_code %s\n",           item->contact->home_postal_code);
+//                            fprintf(stderr, "home_state %s\n",                 item->contact->home_state);
+//                            fprintf(stderr, "home_street %s\n",                item->contact->home_street);
+//                            fprintf(stderr, "initials %s\n",                   item->contact->initials);
+//                            fprintf(stderr, "isdn_phone %s\n",                 item->contact->isdn_phone);
+//                            fprintf(stderr, "job_title %s\n",                  item->contact->job_title);
+//                            fprintf(stderr, "keyword %s\n",                    item->contact->keyword);
+//                            fprintf(stderr, "language %s\n",                   item->contact->language);
+//                            fprintf(stderr, "location %s\n",                   item->contact->location);
+//                            fprintf(stderr, "manager_name %s\n",               item->contact->manager_name);
+//                            fprintf(stderr, "middle_name %s\n",                item->contact->middle_name);
+//                            fprintf(stderr, "mileage %s\n",                    item->contact->mileage);
+//                            fprintf(stderr, "mobile_phone %s\n",               item->contact->mobile_phone);
+//                            fprintf(stderr, "nickname %s\n",                   item->contact->nickname);
+//                            fprintf(stderr, "office_loc %s\n",                 item->contact->office_loc);
+//                            fprintf(stderr, "org_id %s\n",                     item->contact->org_id);
+//                            fprintf(stderr, "other_address %s\n",              item->contact->other_address);
+//                            fprintf(stderr, "other_city %s\n",                 item->contact->other_city);
+//                            fprintf(stderr, "other_country %s\n",              item->contact->other_country);
+//                            fprintf(stderr, "other_phone %s\n",                item->contact->other_phone);
+//                            fprintf(stderr, "other_po_box %s\n",               item->contact->other_po_box);
+//                            fprintf(stderr, "other_postal_code %s\n",          item->contact->other_postal_code);
+//                            fprintf(stderr, "other_state %s\n",                item->contact->other_state);
+//                            fprintf(stderr, "other_street %s\n",               item->contact->other_street);
+//                            fprintf(stderr, "pager_phone %s\n",                item->contact->pager_phone);
+//                            fprintf(stderr, "personal_homepage %s\n",          item->contact->personal_homepage);
+//                            fprintf(stderr, "pref_name %s\n",                  item->contact->pref_name);
+//                            fprintf(stderr, "primary_fax %s\n",                item->contact->primary_fax);
+//                            fprintf(stderr, "primary_phone %s\n",              item->contact->primary_phone);
+//                            fprintf(stderr, "profession %s\n",                 item->contact->profession);
+//                            fprintf(stderr, "radio_phone %s\n",                item->contact->radio_phone);
+//                            fprintf(stderr, "spouse_name %s\n",                item->contact->spouse_name);
+//                            fprintf(stderr, "suffix %s\n",                     item->contact->suffix);
+//                            fprintf(stderr, "surname %s\n",                    item->contact->surname);
+//                            fprintf(stderr, "telex %s\n",                      item->contact->telex);
+//                            fprintf(stderr, "transmittable_display_name %s\n", item->contact->transmittable_display_name);
+//                            fprintf(stderr, "ttytdd_phone %s\n",               item->contact->ttytdd_phone);
                             // have a valid cn
                             printf("dn: cn=%s, %s\n", trim(cn), ldap_base);
                             printf("cn: %s\n", trim(cn));
@@ -355,8 +444,23 @@ char *single(char *str) {
 }
 
 
-char *multi(char *fmt, char *str) {
+char *folded(char *str) {
     if (!str) return "";
+    char *ret = rfc2426_escape(str);
+    char *n = ret;
+    while (n = strchr(n, '\n')) {
+        *n = ' ';
+    }
+    n = ret;
+    while (n = strchr(n, ',')) {
+        *n = ' ';
+    }
+    return ret;
+}
+
+
+void multi(char *fmt, char *str) {
+    if (!str) return;
     char *ret = rfc2426_escape(str);
     char *n = ret;
     while (n = strchr(ret, '\n')) {

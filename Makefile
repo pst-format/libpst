@@ -44,12 +44,14 @@ timeconv.o: timeconv.h common.h
 
 readpst: readpst.o libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
 pst2ldif: pst2ldif.o libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
-nick2ldif: nick2ldif.o libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
 lspst: debug.o libpst.o libstrfunc.o lspst.o timeconv.o
 getidblock: getidblock.o libpst.o debug.o libstrfunc.o
 testdebug: testdebug.o debug.o
 readpstlog: readpstlog.o debug.o
 dumpblocks: dumpblocks.o libpst.o debug.o libstrfunc.o
+
+nick2ldif: nick2ldif.o libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
+	g++ ${CFLAGS} nick2ldif.cpp -o nick2ldif libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
 
 clean:
 	rm -f core *.o readpst.log $(ALL_PROGS) *~ MANIFEST
