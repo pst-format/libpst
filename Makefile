@@ -1,6 +1,6 @@
 GCC_FLAGS=-g ${CFLAGS}
 
-all: readpst getidblock readpstlog dumpblocks
+all: readpst pst2ldif nick2ldif getidblock readpstlog dumpblocks
 
 libpst.o: libpst.c libpst.h define.h
 	gcc ${GCC_FLAGS} -c libpst.c -o libpst.o
@@ -19,6 +19,12 @@ readpst: readpst.c define.h libpst.o timeconv.o libstrfunc.o common.h debug.o lz
 #	gcc -Wall -Werror readpst.c -g -o readpst libpst.o timeconv.o libstrfunc.o debug.o lzfu.o -lefence
 	gcc ${GCC_FLAGS} readpst.c -o readpst libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
 
+pst2ldif: pst2ldif.c define.h libpst.o timeconv.o libstrfunc.o common.h debug.o lzfu.o
+	gcc ${GCC_FLAGS} pst2ldif.c -o pst2ldif libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
+
+nick2ldif: nick2ldif.cpp define.h libpst.o timeconv.o libstrfunc.o common.h debug.o lzfu.o
+	g++ ${GCC_FLAGS} nick2ldif.cpp -o nick2ldif libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
+
 timeconv.o: timeconv.c timeconv.h common.h
 	gcc ${GCC_FLAGS} -c timeconv.c -o timeconv.o
 
@@ -34,14 +40,16 @@ readpstlog: readpstlog.c define.h debug.o
 dumpblocks: dumpblocks.c define.h libpst.o debug.o
 	gcc ${GCC_FLAGS} dumpblocks.c -o dumpblocks libpst.o debug.o libstrfunc.o timeconv.o
 
-clean: 
-	rm -f core readpst libpst.o timeconv.o libstrfunc.o debug.o getidblock readpstlog testdebug dumpblocks lzfu.o *~ 
+clean:
+	rm -f core readpst pst2ldif libpst.o timeconv.o libstrfunc.o debug.o getidblock readpstlog testdebug dumpblocks lzfu.o *~
 
 rebuild: clean all
 
 install: all
-	cp readpst /usr/local/bin
-	cp readpstlog /usr/local/bin/readpstlog
+	cp readpst    /usr/local/bin
+	cp pst2ldif   /usr/local/bin
+	cp readpstlog /usr/local/bin
 uninstall:
 	rm -f /usr/local/bin/readpst
+	rm -f /usr/local/bin/pst2ldif
 	rm -f /usr/local/bin/readpstlog
