@@ -2,10 +2,10 @@
  * define.h
  * Part of the LibPST project
  * Written by David Smith
- *            dave.s@earthcorp.com
+ *			  dave.s@earthcorp.com
  */
 
-//#define DEBUG_ALL
+#define DEBUG_ALL
 #ifndef DEFINEH_H
 #define DEFINEH_H
 
@@ -66,7 +66,7 @@ void _debug_write();
 void * xmalloc(size_t size);
 
 #define MESSAGEPRINT(x,y) {_debug_msg_info(__LINE__,__FILE__,y);\
-                           _debug_msg_text x;}
+						   _debug_msg_text x;}
 
 #define LOGSTOP() {MESSAGESTOP();DEBUGSTOP();}
 
@@ -101,7 +101,7 @@ void * xmalloc(size_t size);
 #ifdef DEBUG_MODE_EMAIL
 #define DEBUG_EMAIL(x) MESSAGEPRINT(x, DEBUG_EMAIL_NO);
 #define DEBUG_EMAIL_HEXPRINT(x,y) {_debug_msg_info(__LINE__, __FILE__, 11);\
-                                   _debug_hexdump(x, y, 0x10);}
+								   _debug_hexdump(x, y, 0x10);}
 #else
 #define DEBUG_EMAIL(x) {}
 #define DEBUG_EMAIL_HEXPRINT(x,y) {}
@@ -156,14 +156,14 @@ void * xmalloc(size_t size);
 #endif
 
 #define DEBUG_FILE(x) {_debug_msg_info(__LINE__, __FILE__, DEBUG_FILE_NO);\
-                       _debug_msg_text x;}
+					   _debug_msg_text x;}
 
 #ifdef DEBUG_MODE_FUNC
 # define DEBUG_ENT(x) \
   {MESSAGEPRINT(("Entering function %s\n",x),DEBUG_FUNC_NO);\
    _debug_func(x);}
 # define DEBUG_RET() {MESSAGEPRINT(("Leaving function\n"),DEBUG_FUNC_NO);\
-                      _debug_func_ret();}
+					  _debug_func_ret();}
 #else
 # define DEBUG_ENT(x) {}
 # define DEBUG_RET() {}
@@ -177,7 +177,7 @@ void * xmalloc(size_t size);
 	if (res) { DIE(x);}
 
 #define RET_ERROR(res, ret_val)\
-	if (res) {return ret_val;}	
+	if (res) {return ret_val;}
 
 #define DEBUG_VERSION 1
 struct _debug_file_rec_m {

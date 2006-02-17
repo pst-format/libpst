@@ -37,7 +37,9 @@ void debug_print(char *fmt, ...);
 char *rfc2426_escape(char *str);
 char *rfc2445_datetime_format(FILETIME *ft);
 // }}}1
-#define DEBUG_MAIN(x) debug_print x;
+#ifndef DEBUG_MAIN
+	#define DEBUG_MAIN(x) debug_print x;
+#endif
 // int main(int argc, char** argv) {{{1
 int main(int argc, char** argv) {
 
@@ -47,7 +49,7 @@ int main(int argc, char** argv) {
 	pst_desc_ll *d_ptr;
 	char *temp = NULL; //temporary char pointer
 	int skip_child = 0;
-	struct file_ll  *f, *head;
+	struct file_ll	*f, *head;
 	// }}}2
 
 	if (argc <= 1)
@@ -65,7 +67,7 @@ int main(int argc, char** argv) {
 	if ((item = _pst_parse_item(&pstfile, d_ptr)) == NULL || item->message_store == NULL) {
 		DIE(("main: Could not get root record\n"));
 	}
-	
+
 	// default the file_as to the same as the main filename if it doesn't exist
 	if (item->file_as == NULL) {
 		if ((temp = strrchr(argv[1], '/')) == NULL)
@@ -161,7 +163,7 @@ int main(int argc, char** argv) {
 					free(f->dname);
 					free(f->name);
 					free(f);
-		
+
 					f = head;
 				}
 				_pst_freeItem(item);
@@ -186,7 +188,7 @@ int main(int argc, char** argv) {
 				printf("\n");
 				// }}}3
 			} else if (item->email != NULL &&
-		 			(item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+					(item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
 				// Process Email item {{{3
 				printf("Email");
 				if (item->email->outlook_sender_name != NULL)
@@ -231,7 +233,7 @@ int main(int argc, char** argv) {
 		}
 
 		check_parent:
-		//    _pst_freeItem(item);
+		//	  _pst_freeItem(item);
 		while (!skip_child && d_ptr->next == NULL && d_ptr->parent != NULL) {
 			DEBUG_MAIN(("main: Going to Parent\n"));
 			head = f->next;
@@ -263,9 +265,9 @@ int main(int argc, char** argv) {
 
 		if (!skip_child)
 			d_ptr = d_ptr->next;
-		else 
+		else
 			skip_child = 0;
-		
+
 		if (d_ptr == NULL) { DEBUG_MAIN(("main: d_ptr is now NULL\n")); }
 
 	// }}}2
@@ -291,7 +293,7 @@ int main(int argc, char** argv) {
 }
 // }}}1
 // void canonicalize_filename(char *fname) {{{1
-// This function will make sure that a filename is in cannonical form.  That
+// This function will make sure that a filename is in cannonical form.	That
 // is, it will replace any slashes, backslashes, or colons with underscores.
 void canonicalize_filename(char *fname) {
 	DEBUG_ENT("canonicalize_filename");
@@ -398,11 +400,11 @@ char *rfc2426_escape(char *str) {
 			default:
 				*b = *a;
 		}
-	*b = '\0';	// NUL-terminate the string
+	*b = '\0';  // NUL-terminate the string
 
 	DEBUG_RET();
 	return buf;
-}  
+}
 // }}}1
 // char *rfc2445_datetime_format(FILETIME *ft) {{{1
 char *rfc2445_datetime_format(FILETIME *ft) {

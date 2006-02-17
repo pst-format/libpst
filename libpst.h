@@ -2,7 +2,7 @@
  * libpst.h
  * Part of LibPST project
  * Written by David Smith
- *            dave.s@earthcorp.com
+ *			  dave.s@earthcorp.com
  */
 // LibPST - Library for Accessing Outlook .pst files
 // Dave Smith - davesmith@users.sourceforge.net
@@ -38,21 +38,21 @@ typedef struct {
 #if BYTE_ORDER == BIG_ENDIAN
 #  define LE64_CPU(x) \
   x = ((((x) & 0xff00000000000000) >> 56) | \
-       (((x) & 0x00ff000000000000) >> 40) | \
-       (((x) & 0x0000ff0000000000) >> 24) | \
-       (((x) & 0x000000ff00000000) >> 8 ) | \
-       (((x) & 0x00000000ff000000) << 8 ) | \
-       (((x) & 0x0000000000ff0000) << 24) | \
-       (((x) & 0x000000000000ff00) << 40) | \
-       (((x) & 0x00000000000000ff) << 56));
+	   (((x) & 0x00ff000000000000) >> 40) | \
+	   (((x) & 0x0000ff0000000000) >> 24) | \
+	   (((x) & 0x000000ff00000000) >> 8 ) | \
+	   (((x) & 0x00000000ff000000) << 8 ) | \
+	   (((x) & 0x0000000000ff0000) << 24) | \
+	   (((x) & 0x000000000000ff00) << 40) | \
+	   (((x) & 0x00000000000000ff) << 56));
 #  define LE32_CPU(x) \
   x = ((((x) & 0xff000000) >> 24) | \
-       (((x) & 0x00ff0000) >> 8 ) | \
-       (((x) & 0x0000ff00) << 8 ) | \
-       (((x) & 0x000000ff) << 24));
+	   (((x) & 0x00ff0000) >> 8 ) | \
+	   (((x) & 0x0000ff00) << 8 ) | \
+	   (((x) & 0x000000ff) << 24));
 #  define LE16_CPU(x) \
   x = ((((x) & 0xff00) >> 8) | \
-       (((x) & 0x00ff) << 8));
+	   (((x) & 0x00ff) << 8));
 #elif BYTE_ORDER == LITTLE_ENDIAN
 #  define LE64_CPU(x) {}
 #  define LE32_CPU(x) {}
@@ -105,15 +105,15 @@ typedef struct {
 #define PST_FREEBUSY_OUT_OF_OFFICE 3
 
 // defines labels for appointment->label
-#define PST_APP_LABEL_NONE        0 // None
+#define PST_APP_LABEL_NONE		  0 // None
 #define PST_APP_LABEL_IMPORTANT   1 // Important
-#define PST_APP_LABEL_BUSINESS    2 // Business
-#define PST_APP_LABEL_PERSONAL    3 // Personal
-#define PST_APP_LABEL_VACATION    4 // Vacation
+#define PST_APP_LABEL_BUSINESS	  2 // Business
+#define PST_APP_LABEL_PERSONAL	  3 // Personal
+#define PST_APP_LABEL_VACATION	  4 // Vacation
 #define PST_APP_LABEL_MUST_ATTEND 5 // Must Attend
 #define PST_APP_LABEL_TRAVEL_REQ  6 // Travel Required
 #define PST_APP_LABEL_NEEDS_PREP  7 // Needs Preparation
-#define PST_APP_LABEL_BIRTHDAY    8 // Birthday
+#define PST_APP_LABEL_BIRTHDAY	  8 // Birthday
 #define PST_APP_LABEL_ANNIVERSARY 9 // Anniversary
 #define PST_APP_LABEL_PHONE_CALL  10// Phone Call
 
@@ -423,11 +423,7 @@ typedef struct _pst_file {
   int32_t index2_count;
   FILE * fp;
   size_t size;
-  unsigned char index1_depth;
-  unsigned char index2_depth;
   unsigned char encryption;
-  unsigned char id_depth_ok;
-  unsigned char desc_depth_ok;
   unsigned char ind_type;
 } pst_file;
 
@@ -470,9 +466,8 @@ int32_t pst_load_index (pst_file *pf);
 pst_desc_ll* pst_getNextDptr(pst_desc_ll* d);
 int32_t pst_load_extended_attributes(pst_file *pf);
 
-int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t start_val, int32_t end_val);
-int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t *high_id,
-			     int32_t start_id, int32_t end_val);
+int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, int32_t start_val, int32_t end_val);
+int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, int32_t *high_id, int32_t start_id, int32_t end_val);
 pst_item* _pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 void * _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
 pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll *i2_head);
@@ -483,7 +478,7 @@ int32_t _pst_free_id2(pst_index2_ll * head);
 int32_t _pst_free_id (pst_index_ll *head);
 int32_t _pst_free_desc (pst_desc_ll *head);
 int32_t _pst_free_xattrib(pst_x_attrib_ll *x);
-int32_t _pst_getBlockOffset(char *buf, int32_t i_offset, int32_t offset, pst_block_offset *p);
+int32_t _pst_getBlockOffset(char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset *p);
 pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* head_ptr);
 pst_index_ll * _pst_getID(pst_file* pf, u_int32_t id);
 pst_index_ll * _pst_getID2(pst_index2_ll * ptr, u_int32_t id);
