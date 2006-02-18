@@ -20,7 +20,8 @@ DISTFILES := $(DOCS) Makefile setup1.vdproj XGetopt.c XGetopt.h common.h \
 	debug.c define.h dumpblocks.c getidblock.c libpst.c libpst.h \
 	libstrfunc.c libstrfunc.h lspst.c lzfu.c lzfu.h moz-script \
 	readlog.vcproj readpst.1 readpst.c readpstlog.1 readpstlog.c \
-	testdebug.c timeconv.c timeconv.h w32pst.sln w32pst.vcproj
+	testdebug.c timeconv.c timeconv.h w32pst.sln w32pst.vcproj \
+	nick2ldif.cpp pst2ldif.cpp
 
 PROGS := lspst readpst readpstlog pst2ldif nick2ldif
 ALL_PROGS := $(PROGS) dumpblocks getidblock testdebug

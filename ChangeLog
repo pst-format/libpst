@@ -1,3 +1,16 @@
+LibPST 0.5.2 (2006-02-17)
+===============================
+
+        * Added pst2ldif to convert the contacts to ldif format for import
+        into ldap databases.
+
+        * Major changes to libpst.c to properly use the node depth values
+        from the b-tree nodes. We also use the item count values in the nodes
+        rather than trying to guess how many items are active.
+
+        * Cleanup whitespace - using tabs for every four columns.
+
+
 LibPST 0.5.1 (17 November 2004)
 ===============================
 
@@ -5,38 +18,38 @@ Well, alot has happened since the last release of libpst.
 
 Release / Management:
 
-	* The project has forked! The new maintainer is Joseph Nahmias.
-	* We have changed hosting sites, thanks to sourceforge for hosting
-	to this point.  From this point forward we will be using
-	alioth.debian.org.
-	* The project is now using SubVersioN for source control.  You can
-	get the latest code by running:
-		svn co svn://svn.debian.org/svn/libpst/trunk .
-	* See
-	<http://lists.alioth.debian.org/pipermail/libpst-devel/2004-November/000000.html>
-	for more information.
+        * The project has forked! The new maintainer is Joseph Nahmias.
+        * We have changed hosting sites, thanks to sourceforge for hosting
+        to this point.  From this point forward we will be using
+        alioth.debian.org.
+        * The project is now using SubVersioN for source control.  You can
+        get the latest code by running:
+                svn co svn://svn.debian.org/svn/libpst/trunk .
+        * See
+        <http://lists.alioth.debian.org/pipermail/libpst-devel/2004-November/000000.html>
+        for more information.
 
 Code Changes:
 
-	* Added lspst program to list items in a PST.  Still incomplete.
-	* Added vim folding markers to readpst.c
-	* avoid the pseudo-prologue that MS prepends to the email headers
-	* fix build on msvc, since it doesn't have sys/param.h
-	* Re-vamped Makefile:
-		* Only define CFLAGS in Makefileif missing
-		* fixed {un,}install targets in Makefile
-		* Fixed up build process in Makefile
-	* Added mozilla conversion script from David Binard
-	* Fixed bogus creation of readpst.log on every invocation
-	* escaped dashes and apostrophe in manpages
-	* Updated TODO
-	* added manpages from debian pkg
-	* fix escaped-string length count to consider '\n',
-		thanks to Paul Bakker <bakker@fox-it.com>.
-	* ensure there's a blank line between header and body
-		patch from <johnh@aproposretail.com> (SourceForge #890745).
-	* Apply accumulated endian-related patches
-	* Removed unused files, upstream's debian/ dir
+        * Added lspst program to list items in a PST.  Still incomplete.
+        * Added vim folding markers to readpst.c
+        * avoid the pseudo-prologue that MS prepends to the email headers
+        * fix build on msvc, since it doesn't have sys/param.h
+        * Re-vamped Makefile:
+                * Only define CFLAGS in Makefileif missing
+                * fixed {un,}install targets in Makefile
+                * Fixed up build process in Makefile
+        * Added mozilla conversion script from David Binard
+        * Fixed bogus creation of readpst.log on every invocation
+        * escaped dashes and apostrophe in manpages
+        * Updated TODO
+        * added manpages from debian pkg
+        * fix escaped-string length count to consider '\n',
+                thanks to Paul Bakker <bakker@fox-it.com>.
+        * ensure there's a blank line between header and body
+                patch from <johnh@aproposretail.com> (SourceForge #890745).
+        * Apply accumulated endian-related patches
+        * Removed unused files, upstream's debian/ dir
 
 -- Joe Nahmias <joe@nahmias.net>
 
@@ -132,11 +145,11 @@ Another output method has been added which is called "Seperate". It is
 activated with the -S switch. It operates in the following manor:
 
   |--Inbox-->000000
-  |	     000001
-  |	     000002
+  |          000001
+  |          000002
   |--Sentmail-->0000000
-  |		0000001
-  |		0000002
+  |             0000001
+  |             0000002
 
 All the emails are stored in seperate files counting from 0 upwards,
 in a folder named as the PST folder.
@@ -183,7 +196,7 @@ LibPST v0.3.3
 Fixed several items. Mainly memory leaks. Loads of them! oops..
 
 I have added a new program, mainly of debugging, which when passed
-an ID value and a pst file, will extract and decrypt that ID from 
+an ID value and a pst file, will extract and decrypt that ID from
 the pst file. I don't see it being a huge attraction, or of much use
 to most people, but it is another example of writing an application
 to use the libpst interface.
@@ -244,7 +257,7 @@ LibPST v0.3 beta1
 
 Again, a shed load of enhancements. More work has been done on the
 mime creation. A bug has been fixed that was letting part of the
-attachments that were created disappear. 
+attachments that were created disappear.
 
 A major enhancement is that "compressible encryption" support has been
 added. This was an incredibly simple method to use. It is basically a
@@ -303,7 +316,7 @@ readpst program is not finished yet. It needs to convert these binary
 structs into mime data. At present it just saves them to the current
 directory, overwriting any previous files with the attachment name.
 
-Improvements over previous version: 
+Improvements over previous version:
 * KMail output is supported - if the "-k" flag is specified, all the
   directory hierarchy is created using the KMail standard
 * Lots of bugs and memory leaks fixed

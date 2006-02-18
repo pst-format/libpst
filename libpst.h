@@ -255,12 +255,15 @@ typedef struct _pst_item_contact {
   char *access_method;
   char *account_name;
   char *address1;
+  char *address1a;
   char *address1_desc;
   char *address1_transport;
   char *address2;
+  char *address2a;
   char *address2_desc;
   char *address2_transport;
   char *address3;
+  char *address3a;
   char *address3_desc;
   char *address3_transport;
   char *assistant_name;
@@ -467,7 +470,7 @@ pst_desc_ll* pst_getNextDptr(pst_desc_ll* d);
 int32_t pst_load_extended_attributes(pst_file *pf);
 
 int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, int32_t start_val, int32_t end_val);
-int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, int32_t *high_id, int32_t start_id, int32_t end_val);
+int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t *high_id, int32_t start_id, int32_t end_val);
 pst_item* _pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 void * _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
 pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll *i2_head);

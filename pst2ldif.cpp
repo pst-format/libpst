@@ -273,12 +273,18 @@ static void process(pst_desc_ll *d_ptr) {
 								printf("personalTitle: %s\n", single(item->contact->job_title));
 							if (item->contact->company_name)
 								printf("company: %s\n", single(item->contact->company_name));
-							if (item->contact->address1)
+							if (item->contact->address1  && *item->contact->address1)
 								printf("mail: %s\n", single(item->contact->address1));
-							if (item->contact->address2)
+							if (item->contact->address2  && *item->contact->address2)
 								printf("mail: %s\n", single(item->contact->address2));
-							if (item->contact->address3)
+							if (item->contact->address3  && *item->contact->address3)
 								printf("mail: %s\n", single(item->contact->address3));
+							if (item->contact->address1a && *item->contact->address1a)
+								printf("mail: %s\n", single(item->contact->address1a));
+							if (item->contact->address2a && *item->contact->address2a)
+								printf("mail: %s\n", single(item->contact->address2a));
+							if (item->contact->address3a && *item->contact->address3a)
+								printf("mail: %s\n", single(item->contact->address3a));
 							if (item->contact->business_address) {
 								if (item->contact->business_po_box)
 									printf("postalAddress: %s\n", single(item->contact->business_po_box));
