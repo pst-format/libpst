@@ -5,7 +5,10 @@
  *			  dave.s@earthcorp.com
  */
 
+// last one wins
 #define DEBUG_ALL
+#undef DEBUG_ALL
+
 #ifndef DEFINEH_H
 #define DEFINEH_H
 

@@ -136,6 +136,7 @@ static void process(pst_desc_ll *d_ptr) {
 	while (d_ptr) {
 		if (d_ptr->desc) {
 			item = (pst_item*)_pst_parse_item(&pstfile, d_ptr);
+			DEBUG_INFO(("item pointer is %p\n", item));
 			if (item) {
 				if (item->message_store) {
 					// there should only be one message_store, and we have already done it
@@ -346,6 +347,9 @@ static void process(pst_desc_ll *d_ptr) {
 						}
 					}
 				}
+				else {
+					DEBUG_INFO(("item is not a contact\n"));
+				}
 			}
 			_pst_freeItem(item);
 		}
@@ -409,11 +413,13 @@ int main(int argc, char** argv) {
 	d_ptr = pstfile.d_head; // first record is main record
 	item  = (pst_item*)_pst_parse_item(&pstfile, d_ptr);
 	if (!item || !item->message_store) {
+		DEBUG_RET();
 		DIE(("main: Could not get root record\n"));
 	}
 
 	d_ptr = pst_getTopOfFolders(&pstfile, item);
 	if (!d_ptr) {
+		DEBUG_RET();
 		DIE(("Top of folders record not found. Cannot continue\n"));
 	}
 
@@ -429,6 +435,7 @@ int main(int argc, char** argv) {
 
 	process(d_ptr->child);	// do the children of TOPF
 	pst_close(&pstfile);
+	DEBUG_RET();
 	return 0;
 }
 

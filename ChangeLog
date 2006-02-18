@@ -1,4 +1,4 @@
-LibPST 0.5.2 (2006-02-17)
+LibPST 0.5.2 (2006-02-18)
 ===============================
 
         * Added pst2ldif to convert the contacts to ldif format for import

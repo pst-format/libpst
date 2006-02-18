@@ -127,7 +127,7 @@ int32_t pst_open(pst_file *pf, char *name, char *mode) {
 	_fmode = _O_BINARY;
 #endif //_MSC_VER
 
-	if (pf == NULL) {
+	if (!pf) {
 		WARN (("cannot be passed a NULL pst_file\n"));
 		DEBUG_RET();
 		return -1;
@@ -189,7 +189,7 @@ int32_t pst_open(pst_file *pf, char *name, char *mode) {
 
 int32_t pst_close(pst_file *pf) {
 	DEBUG_ENT("pst_close");
-	if (pf->fp == NULL) {
+	if (!pf->fp) {
 		WARN(("cannot close NULL fp\n"));
 		DEBUG_RET();
 		return -1;
@@ -214,10 +214,10 @@ pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
 	//	char *a, *b;
 	//	int x,z;
 	DEBUG_ENT("pst_getTopOfFolders");
-	if (root == NULL || root->message_store == NULL) {
+	if (!root || !root->message_store) {
 		DEBUG_INDEX(("There isn't a top of folder record here.\n"));
 		ret = NULL;
-	} else if (root->message_store->top_of_personal_folder == NULL) {
+	} else if (!root->message_store->top_of_personal_folder) {
 		// this is the OST way
 		// ASSUMPTION: Top Of Folders record in PST files is *always* descid 0x2142
 		ret = _pst_getDptr(pf, 0x2142);
@@ -236,8 +236,8 @@ int32_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, unsigned char *
 	DEBUG_ENT("pst_attach_to_mem");
 	if (attach->id_val != -1) {
 		ptr = _pst_getID(pf, attach->id_val);
-		if (ptr != NULL) {
-			size = _pst_ff_getID2data(pf,ptr, &h);
+		if (ptr) {
+			size = _pst_ff_getID2data(pf, ptr, &h);
 		} else {
 			DEBUG_WARN(("Couldn't find ID pointer. Cannot handle attachment\n"));
 		}
@@ -257,7 +257,7 @@ int32_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
 	DEBUG_ENT("pst_attach_to_file");
 	if (attach->id_val != -1) {
 		ptr = _pst_getID(pf, attach->id_val);
-		if (ptr != NULL) {
+		if (ptr) {
 			size = _pst_ff_getID2data(pf, ptr, &h);
 		} else {
 			DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
@@ -281,7 +281,7 @@ int32_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* f
 	DEBUG_ENT("pst_attach_to_file_base64");
 	if (attach->id_val != -1) {
 		ptr = _pst_getID(pf, attach->id_val);
-		if (ptr != NULL) {
+		if (ptr) {
 			size = _pst_ff_getID2data(pf, ptr, &h);
 			// will need to encode any bytes left over
 			c = base64_encode(h.base64_extra_chars, h.base64_extra);
@@ -305,7 +305,7 @@ int32_t pst_load_index (pst_file *pf) {
 	int32_t   x;
 	u_int32_t y;
 	DEBUG_ENT("pst_load_index");
-	if (pf == NULL) {
+	if (!pf) {
 		WARN(("Cannot load index for a NULL pst_file\n"));
 		DEBUG_RET();
 		return -1;
@@ -327,9 +327,9 @@ int32_t pst_load_index (pst_file *pf) {
 pst_desc_ll* pst_getNextDptr(pst_desc_ll* d) {
 	pst_desc_ll* r = NULL;
 	DEBUG_ENT("pst_getNextDptr");
-	if (d != NULL) {
+	if (d) {
 		if ((r = d->child) == NULL) {
-			while (d->next == NULL && d->parent != NULL) d = d->parent;
+			while (!d->next && d->parent) d = d->parent;
 			r = d->next;
 		}
 	}
@@ -364,10 +364,10 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 		DEBUG_RET();
 		return 0;
 	}
-	if (p->list_index != NULL) {
+	if (p->list_index) {
 		list2 = _pst_build_id2(pf, p->list_index, NULL);
 	}
-	if (p->desc == NULL) {
+	if (!p->desc) {
 		DEBUG_WARN(("desc is NULL for item 0x61. Cannot load Extended Attributes\n"));
 		DEBUG_RET();
 		return 0;
@@ -389,7 +389,7 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 		x++;
 	}
 
-	if (buffer == NULL) {
+	if (!buffer) {
 		DEBUG_WARN(("No extended attributes buffer found. Not processing\n"));
 		DEBUG_RET();
 		return 0;
@@ -439,11 +439,11 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 			// add it to the list
 			p_sh = p_head;
 			p_sh2 = NULL;
-			while (p_sh != NULL && ptr->map > p_sh->map) {
+			while (p_sh && ptr->map > p_sh->map) {
 				p_sh2 = p_sh;
 				p_sh = p_sh->next;
 			}
-			if (p_sh2 == NULL) {
+			if (!p_sh2) {
 				// needs to go before first item
 				ptr->next = p_head;
 				p_head = ptr;
@@ -557,8 +557,8 @@ int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t l
 			i_ptr->u1	  = index.u1;
 			i_ptr->size   = index.size;
 			i_ptr->next   = NULL;
-			if (pf->i_tail != NULL) pf->i_tail->next = i_ptr;
-			if (pf->i_head == NULL) pf->i_head = i_ptr;
+			if (pf->i_tail)  pf->i_tail->next = i_ptr;
+			if (!pf->i_head) pf->i_head = i_ptr;
 			pf->i_tail = i_ptr;
 		}
 	} else {
@@ -693,7 +693,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 				DEBUG_INDEX(("\tdesc = %#x\tlist_index=%#x\n",
 						(d_ptr->desc==NULL?0:d_ptr->desc->id),
 						(d_ptr->list_index==NULL?0:d_ptr->list_index->id)));
-				if (d_ptr->parent != NULL && desc_rec.parent_id != d_ptr->parent->id) {
+				if (d_ptr->parent && desc_rec.parent_id != d_ptr->parent->id) {
 					DEBUG_INDEX(("WARNING -- Parent of record has changed. Moving it\n"));
 					//hmmm, we must move the record.
 					// first we must remove from current location
@@ -703,16 +703,16 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 					//	 change next's prev to our prev
 					//	   if no next then change parent's child_tail
 					//	   if no parent then change pf->d_tail
-					if (d_ptr->prev != NULL)
+					if (d_ptr->prev)
 						d_ptr->prev->next = d_ptr->next;
-					else if (d_ptr->parent != NULL)
+					else if (d_ptr->parent)
 						d_ptr->parent->child = d_ptr->next;
 					else
 						pf->d_head = d_ptr->next;
 
-					if (d_ptr->next != NULL)
+					if (d_ptr->next)
 						d_ptr->next->prev = d_ptr->prev;
-					else if (d_ptr->parent != NULL)
+					else if (d_ptr->parent)
 						d_ptr->parent->child_tail = d_ptr->prev;
 					else
 						pf->d_tail = d_ptr->prev;
@@ -725,30 +725,30 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 					DEBUG_INDEX(("Searching for parent\n"));
 					if (desc_rec.parent_id == 0) {
 						DEBUG_INDEX(("No Parent\n"));
-						if (pf->d_tail != NULL) pf->d_tail->next = d_ptr;
-						if (pf->d_head == NULL) pf->d_head = d_ptr;
+						if (pf->d_tail)  pf->d_tail->next = d_ptr;
+						if (!pf->d_head) pf->d_head = d_ptr;
 						d_ptr->prev = pf->d_tail;
 						pf->d_tail	= d_ptr;
 					} else {
 						// check in the quick list
 						d_ptr_ptr = d_ptr_head;
-						while (d_ptr_ptr != NULL && d_ptr_ptr->ptr->id != desc_rec.parent_id) {
+						while (d_ptr_ptr && (d_ptr_ptr->ptr->id != desc_rec.parent_id)) {
 							d_ptr_ptr = d_ptr_ptr->next;
 						}
 
-						if (d_ptr_ptr == NULL && (d_par = _pst_getDptr(pf, desc_rec.parent_id)) == NULL) {
+						if (!d_ptr_ptr && (d_par = _pst_getDptr(pf, desc_rec.parent_id)) == NULL) {
 							// check in the lost/found list
 							lf_ptr = lf_head;
-							while (lf_ptr != NULL && lf_ptr->ptr->id != desc_rec.parent_id) {
+							while (lf_ptr && lf_ptr->ptr->id != desc_rec.parent_id) {
 								lf_ptr = lf_ptr->next;
 							}
-							if (lf_ptr == NULL) {
+							if (!lf_ptr) {
 								DEBUG_WARN(("ERROR -- not found parent with id %#x. Adding to lost/found\n", desc_rec.parent_id));
 								lf_ptr = (struct _pst_d_ptr_ll*) xmalloc(sizeof(struct _pst_d_ptr_ll));
-								lf_ptr->prev = NULL;
-								lf_ptr->next = lf_head;
+								lf_ptr->prev   = NULL;
+								lf_ptr->next   = lf_head;
 								lf_ptr->parent = desc_rec.parent_id;
-								lf_ptr->ptr = d_ptr;
+								lf_ptr->ptr    = d_ptr;
 								lf_head = lf_ptr;
 							} else {
 								d_par = lf_ptr->ptr;
@@ -756,8 +756,8 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 							}
 						}
 
-						if (d_ptr_ptr != NULL || d_par != NULL) {
-							if (d_ptr_ptr != NULL)
+						if (d_ptr_ptr || d_par) {
+							if (d_ptr_ptr)
 								d_par = d_ptr_ptr->ptr;
 							else {
 								//add the d_par to the cache
@@ -767,7 +767,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 								d_ptr_ptr->next = d_ptr_head;
 								d_ptr_ptr->ptr	= d_par;
 								d_ptr_head = d_ptr_ptr;
-								if (d_ptr_tail == NULL) d_ptr_tail = d_ptr_ptr;
+								if (!d_ptr_tail) d_ptr_tail = d_ptr_ptr;
 								d_ptr_count++;
 								if (d_ptr_count > 100) {
 									//remove on from the end
@@ -780,8 +780,8 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 							DEBUG_INDEX(("Found a parent\n"));
 							d_par->no_child++;
 							d_ptr->parent = d_par;
-							if (d_par->child_tail != NULL) d_par->child_tail->next = d_ptr;
-							if (d_par->child == NULL)	   d_par->child = d_ptr;
+							if (d_par->child_tail)	d_par->child_tail->next = d_ptr;
+							if (!d_par->child)		d_par->child = d_ptr;
 							d_ptr->prev = d_par->child_tail;
 							d_par->child_tail = d_ptr;
 						}
@@ -811,28 +811,28 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 					} else {
 						DEBUG_INDEX(("Record is its own parent. What is this world coming to?\n"));
 					}
-					if (pf->d_tail != NULL) pf->d_tail->next = d_ptr;
-					if (pf->d_head == NULL) pf->d_head = d_ptr;
+					if (pf->d_tail)  pf->d_tail->next = d_ptr;
+					if (!pf->d_head) pf->d_head = d_ptr;
 					d_ptr->prev = pf->d_tail;
 					pf->d_tail	= d_ptr;
 				} else {
 					d_ptr_ptr = d_ptr_head;
-					while (d_ptr_ptr != NULL && d_ptr_ptr->ptr->id != desc_rec.parent_id) {
+					while (d_ptr_ptr && (d_ptr_ptr->ptr->id != desc_rec.parent_id)) {
 						d_ptr_ptr = d_ptr_ptr->next;
 					}
-					if (d_ptr_ptr == NULL && (d_par = _pst_getDptr(pf, desc_rec.parent_id)) == NULL) {
+					if (!d_ptr_ptr && (d_par = _pst_getDptr(pf, desc_rec.parent_id)) == NULL) {
 						// check in the lost/found list
 						lf_ptr = lf_head;
-						while (lf_ptr != NULL && lf_ptr->ptr->id != desc_rec.parent_id) {
+						while (lf_ptr && (lf_ptr->ptr->id != desc_rec.parent_id)) {
 							lf_ptr = lf_ptr->next;
 						}
-						if (lf_ptr == NULL) {
+						if (!lf_ptr) {
 							DEBUG_WARN(("ERROR -- not found parent with id %#x. Adding to lost/found\n", desc_rec.parent_id));
 							lf_ptr = (struct _pst_d_ptr_ll*) xmalloc(sizeof(struct _pst_d_ptr_ll));
-							lf_ptr->prev = NULL;
-							lf_ptr->next = lf_head;
+							lf_ptr->prev   = NULL;
+							lf_ptr->next   = lf_head;
 							lf_ptr->parent = desc_rec.parent_id;
-							lf_ptr->ptr = d_ptr;
+							lf_ptr->ptr    = d_ptr;
 							lf_head = lf_ptr;
 						} else {
 							d_par = lf_ptr->ptr;
@@ -840,8 +840,8 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 						}
 					}
 
-					if (d_ptr_ptr != NULL || d_par != NULL) {
-						if (d_ptr_ptr != NULL)
+					if (d_ptr_ptr || d_par) {
+						if (d_ptr_ptr)
 							d_par = d_ptr_ptr->ptr;
 						else {
 							//add the d_par to the cache
@@ -851,7 +851,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 							d_ptr_ptr->next = d_ptr_head;
 							d_ptr_ptr->ptr	= d_par;
 							d_ptr_head = d_ptr_ptr;
-							if (d_ptr_tail == NULL) d_ptr_tail = d_ptr_ptr;
+							if (!d_ptr_tail) d_ptr_tail = d_ptr_ptr;
 							d_ptr_count++;
 							if (d_ptr_count > 100) {
 								//remove one from the end
@@ -865,8 +865,8 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 						DEBUG_INDEX(("Found a parent\n"));
 						d_par->no_child++;
 						d_ptr->parent = d_par;
-						if (d_par->child_tail != NULL) d_par->child_tail->next = d_ptr;
-						if (d_par->child == NULL)	   d_par->child = d_ptr;
+						if (d_par->child_tail)	d_par->child_tail->next = d_ptr;
+						if (!d_par->child)		d_par->child = d_ptr;
 						d_ptr->prev = d_par->child_tail;
 						d_par->child_tail = d_ptr;
 					}
@@ -875,18 +875,18 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 			// check here to see if d_ptr is the parent of any of the items in the lost / found list
 			lf_ptr = lf_head;
 			lf_shd = NULL;
-			while (lf_ptr != NULL) {
+			while (lf_ptr) {
 				if (lf_ptr->parent == d_ptr->id) {
 					DEBUG_INDEX(("Found a child  (%#x) of the current record. Joining to main structure.\n", lf_ptr->ptr->id));
 					d_par = d_ptr;
 					d_ptr = lf_ptr->ptr;
 					d_par->no_child++;
 					d_ptr->parent = d_par;
-					if (d_par->child_tail != NULL) d_par->child_tail->next = d_ptr;
-					if (d_par->child == NULL)	   d_par->child = d_ptr;
+					if (d_par->child_tail) d_par->child_tail->next = d_ptr;
+					if (!d_par->child)	   d_par->child = d_ptr;
 					d_ptr->prev = d_par->child_tail;
 					d_par->child_tail = d_ptr;
-					if (lf_shd == NULL)
+					if (!lf_shd)
 						lf_head = lf_ptr->next;
 					else
 						lf_shd->next = lf_ptr->next;
@@ -945,7 +945,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 		}
 	}
 	// ok, lets try freeing the d_ptr_head cache here
-	while (d_ptr_head != NULL) {
+	while (d_ptr_head) {
 		d_ptr_ptr = d_ptr_head->next;
 		free(d_ptr_head);
 		d_ptr_head = d_ptr_ptr;
@@ -966,20 +966,20 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 	pst_item_attach *attach = NULL;
 	int x;
 	DEBUG_ENT("_pst_parse_item");
-	if (d_ptr == NULL) {
+	if (!d_ptr) {
 		DEBUG_WARN(("you cannot pass me a NULL! I don't want it!\n"));
 		DEBUG_RET();
 		return NULL;
 	}
 
-	if (d_ptr->list_index != NULL) {
+	if (d_ptr->list_index) {
 		id2_head = _pst_build_id2(pf, d_ptr->list_index, NULL);
 		_pst_printID2ptr(id2_head);
 	} else {
 		DEBUG_WARN(("Have not been able to fetch any id2 values for this item. Brace yourself!\n"));
 	}
 
-	if (d_ptr->desc == NULL) {
+	if (!d_ptr->desc) {
 		DEBUG_WARN(("why is d_ptr->desc == NULL? I don't want to do anything else with this record\n"));
 		DEBUG_RET();
 		return NULL;
@@ -1004,9 +1004,9 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 		list = NULL; //_pst_process will free the items in the list
 	}
 
-	if ((id_ptr = _pst_getID2(id2_head, 0x671)) != NULL) {
+	if ((id_ptr = _pst_getID2(id2_head, 0x671))) {
 		// attachements exist - so we will process them
-		while (item->attach != NULL) {
+		while (item->attach) {
 			attach = item->attach->next;
 			free(item->attach);
 			item->attach = attach;
@@ -1015,60 +1015,62 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 		DEBUG_EMAIL(("ATTACHEMENT processing attachement\n"));
 		if ((list = _pst_parse_block(pf, id_ptr->id, id2_head)) == NULL) {
 			DEBUG_WARN(("ERROR error processing main attachment record\n"));
-			DEBUG_RET();
-			return NULL;
+		  //  DEBUG_RET();
+		  //  return NULL;
 		}
-		x = 0;
-		while (x < list->count_array) {
-			attach = (pst_item_attach*) xmalloc (sizeof(pst_item_attach));
-			memset (attach, 0, sizeof(pst_item_attach));
-			attach->next = item->attach;
-			item->attach = attach;
-			x++;
-		}
-		item->current_attach = item->attach;
+		else {
+			x = 0;
+			while (x < list->count_array) {
+				attach = (pst_item_attach*) xmalloc (sizeof(pst_item_attach));
+				memset (attach, 0, sizeof(pst_item_attach));
+				attach->next = item->attach;
+				item->attach = attach;
+				x++;
+			}
+			item->current_attach = item->attach;
 
-		if (_pst_process(list, item)) {
-			DEBUG_WARN(("ERROR _pst_process() failed with attachments\n"));
+			if (_pst_process(list, item)) {
+				DEBUG_WARN(("ERROR _pst_process() failed with attachments\n"));
+				_pst_free_list(list);
+				DEBUG_RET();
+				return NULL;
+			}
 			_pst_free_list(list);
-			DEBUG_RET();
-			return NULL;
-		}
-		_pst_free_list(list);
 
-		// now we will have initial information of each attachment stored in item->attach...
-		// we must now read the secondary record for each based on the id2 val associated with
-		// each attachment
-		attach = item->attach;
-		while (attach != NULL) {
-		  if ((id_ptr = _pst_getID2(id2_head, attach->id2_val)) != NULL) {
-			  // id_ptr is a record describing the attachment
-			  // we pass NULL instead of id2_head cause we don't want it to
-			  // load all the extra stuff here.
-			  if ((list = _pst_parse_block(pf, id_ptr->id, NULL)) == NULL) {
-				  DEBUG_WARN(("ERROR error processing an attachment record\n"));
-				  attach = attach->next;
-				  continue;
-			  }
-			  item->current_attach = attach;
-			  if (_pst_process(list, item)) {
-				  DEBUG_WARN(("ERROR _pst_process() failed with an attachment\n"));
+			// now we will have initial information of each attachment stored in item->attach...
+			// we must now read the secondary record for each based on the id2 val associated with
+			// each attachment
+			attach = item->attach;
+			while (attach) {
+			  if ((id_ptr = _pst_getID2(id2_head, attach->id2_val))) {
+				  // id_ptr is a record describing the attachment
+				  // we pass NULL instead of id2_head cause we don't want it to
+				  // load all the extra stuff here.
+				  if ((list = _pst_parse_block(pf, id_ptr->id, NULL)) == NULL) {
+					  DEBUG_WARN(("ERROR error processing an attachment record\n"));
+					  attach = attach->next;
+					  continue;
+				  }
+				  item->current_attach = attach;
+				  if (_pst_process(list, item)) {
+					  DEBUG_WARN(("ERROR _pst_process() failed with an attachment\n"));
+					  _pst_free_list(list);
+					  attach = attach->next;
+					  continue;
+				  }
 				  _pst_free_list(list);
-				  attach = attach->next;
-				  continue;
-			  }
-			  _pst_free_list(list);
-			  if ((id_ptr = _pst_getID2(id2_head, attach->id2_val)) != NULL) {
-				  // id2_val has been updated to the ID2 value of the datablock containing the
-				  // attachment data
-				  attach->id_val = id_ptr->id;
+				  if ((id_ptr = _pst_getID2(id2_head, attach->id2_val))) {
+					  // id2_val has been updated to the ID2 value of the datablock containing the
+					  // attachment data
+					  attach->id_val = id_ptr->id;
+				  } else {
+					  DEBUG_WARN(("have not located the correct value for the attachment [%#x]\n", attach->id2_val));
+				  }
 			  } else {
-				  DEBUG_WARN(("have not located the correct value for the attachment [%#x]\n", attach->id2_val));
+				  DEBUG_WARN(("ERROR cannot locate id2 value %#x\n", attach->id2_val));
 			  }
-		  } else {
-			  DEBUG_WARN(("ERROR cannot locate id2 value %#x\n", attach->id2_val));
-		  }
-		  attach = attach->next;
+			  attach = attach->next;
+			}
 		}
 		item->current_attach = item->attach; //reset back to first
 	}
@@ -1216,10 +1218,10 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		}
 
 		if (table_rec.value == 0) { // this is for the 2nd index offset
-		  WARN(("reference to second index block is zero. ERROR\n"));
-		  if (buf) free(buf);
-		  DEBUG_RET();
-		  return NULL;
+			DEBUG_INFO(("reference to second index block is zero. ERROR\n"));
+			if (buf) free(buf);
+			DEBUG_RET();
+			return NULL;
 		}
 
 		_pst_getBlockOffset(buf, read_size, ind_ptr, table_rec.value, &block_offset);
@@ -1293,8 +1295,8 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 
 			// check here to see if the id of the attribute is a mapped one
 			mapptr = pf->x_head;
-			while (mapptr != NULL && mapptr->map < table_rec.type) mapptr = mapptr->next;
-			if (mapptr != NULL && mapptr->map == table_rec.type) {
+			while (mapptr && (mapptr->map < table_rec.type)) mapptr = mapptr->next;
+			if (mapptr && (mapptr->map == table_rec.type)) {
 				if (mapptr->mytype == PST_MAP_ATTRIB) {
 					na_ptr->items[x]->id = *((int*)mapptr->data);
 					DEBUG_EMAIL(("Mapped attrib %#x to %#x\n", table_rec.type, na_ptr->items[x]->id));
@@ -1421,19 +1423,19 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		ind2_ptr += rec_size;
 		count_rec++;
 	}
-	if (buf != NULL) free(buf);
+	if (buf) free(buf);
 	DEBUG_RET();
 	return na_head;
 }
 
 
 // check if item->email is NULL, and init if so
-#define MALLOC_EMAIL(x) { if (x->email == NULL) { x->email = (pst_item_email*) xmalloc(sizeof(pst_item_email)); memset (x->email, 0, sizeof(pst_item_email));} }
-#define MALLOC_FOLDER(x) { if (x->folder == NULL) { x->folder = (pst_item_folder*) xmalloc(sizeof(pst_item_folder)); memset (x->folder, 0, sizeof(pst_item_folder));} }
-#define MALLOC_CONTACT(x) { if (x->contact == NULL) { x->contact = (pst_item_contact*) xmalloc(sizeof(pst_item_contact)); memset(x->contact, 0, sizeof(pst_item_contact));} }
-#define MALLOC_MESSAGESTORE(x) { if (x->message_store == NULL) { x->message_store = (pst_item_message_store*) xmalloc(sizeof(pst_item_message_store)); memset(x->message_store, 0, sizeof(pst_item_message_store)); } }
-#define MALLOC_JOURNAL(x) { if (x->journal == NULL) { x->journal = (pst_item_journal*) xmalloc(sizeof(pst_item_journal)); memset(x->journal, 0, sizeof(pst_item_journal));} }
-#define MALLOC_APPOINTMENT(x) { if (x->appointment == NULL) { x->appointment = (pst_item_appointment*) xmalloc(sizeof(pst_item_appointment)); memset(x->appointment, 0, sizeof(pst_item_appointment)); } }
+#define MALLOC_EMAIL(x) 	   { if (!x->email) 		{ x->email		   = (pst_item_email*)		   xmalloc(sizeof(pst_item_email)); 		memset(x->email,		 0, sizeof(pst_item_email)		  );} }
+#define MALLOC_FOLDER(x)	   { if (!x->folder)		{ x->folder 	   = (pst_item_folder*) 	   xmalloc(sizeof(pst_item_folder));		memset(x->folder,		 0, sizeof(pst_item_folder) 	  );} }
+#define MALLOC_CONTACT(x)	   { if (!x->contact)		{ x->contact	   = (pst_item_contact*)	   xmalloc(sizeof(pst_item_contact));		memset(x->contact,		 0, sizeof(pst_item_contact)	  );} }
+#define MALLOC_MESSAGESTORE(x) { if (!x->message_store) { x->message_store = (pst_item_message_store*) xmalloc(sizeof(pst_item_message_store)); memset(x->message_store, 0, sizeof(pst_item_message_store));} }
+#define MALLOC_JOURNAL(x)	   { if (!x->journal)		{ x->journal	   = (pst_item_journal*)	   xmalloc(sizeof(pst_item_journal));		memset(x->journal,		 0, sizeof(pst_item_journal)	  );} }
+#define MALLOC_APPOINTMENT(x)  { if (!x->appointment)	{ x->appointment   = (pst_item_appointment*)   xmalloc(sizeof(pst_item_appointment));	memset(x->appointment,	 0, sizeof(pst_item_appointment)  );} }
 // malloc space and copy the current item's data -- plus one on the size for good luck (and string termination)
 #define LIST_COPY(targ, type) { \
 	targ = type realloc(targ, list->items[x]->size+1); \
@@ -1446,16 +1448,16 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 	list->items[x]->data=NULL; \*/
 
 //#define INC_CHECK_X() { if (++x >= list->count_item) break; }
-#define NULL_CHECK(x) { if (x == NULL) { DEBUG_EMAIL(("NULL_CHECK: Null Found\n")); break;} }
+#define NULL_CHECK(x) { if (!x) { DEBUG_EMAIL(("NULL_CHECK: Null Found\n")); break;} }
 
 #define MOVE_NEXT(targ) { \
 	if (next){\
-		if ((char*)targ == NULL) {\
+		if (!targ) {\
 			DEBUG_EMAIL(("MOVE_NEXT: Target is NULL. Will stop processing this option\n"));\
 			break;\
 		}\
 		targ = targ->next;\
-		if ((char*)targ == NULL) {\
+		if (!targ) {\
 			DEBUG_EMAIL(("MOVE_NEXT: Target is NULL after next. Will stop processing this option\n"));\
 			break;\
 		}\
@@ -1471,7 +1473,7 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 	pst_item_extra_field *ef;
 
 	DEBUG_ENT("_pst_process");
-	if (item == NULL) {
+	if (!item) {
 		DEBUG_EMAIL(("item cannot be NULL.\n"));
 		DEBUG_RET();
 		return -1;
@@ -1479,7 +1481,7 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 
 	attach = item->current_attach; // a working variable
 
-	while (list != NULL) {
+	while (list) {
 		x = 0;
 		while (x < list->count_item) {
 			// check here to see if the id is one that is mapped.
@@ -2222,7 +2224,7 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					DEBUG_EMAIL(("Binary Data [Size %i] - ", list->items[x]->size));
 					NULL_CHECK(attach);
 					MOVE_NEXT(attach);
-					if (list->items[x]->data == NULL) { //special case
+					if (!list->items[x]->data) { //special case
 						attach->id2_val = list->items[x]->type;
 						DEBUG_EMAIL(("Seen a Reference. The data hasn't been loaded yet. [%#x][%#x]\n",
 								 attach->id2_val, list->items[x]->type));
@@ -2803,7 +2805,7 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					break;
 				case 0x67F2: // ID2 value of the attachments proper record
 					DEBUG_EMAIL(("Attachment ID2 value - "));
-					if (attach != NULL){
+					if (attach){
 						MOVE_NEXT(attach);
 						memcpy(&(attach->id2_val), list->items[x]->data, sizeof(attach->id2_val));
 						LE32_CPU(attach->id2_val);
@@ -3130,7 +3132,7 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("Unknown Not Printable [%#x]\n",
 								list->items[x]->type));
 					}
-					if (list->items[x]->data != NULL) {
+					if (list->items[x]->data) {
 						free(list->items[x]->data);
 						list->items[x]->data = NULL;
 					}
@@ -3151,17 +3153,17 @@ int32_t _pst_free_list(pst_num_array *list) {
 	int32_t x = 0;
 	pst_num_array *l;
 	DEBUG_ENT("_pst_free_list");
-	while (list != NULL) {
+	while (list) {
 		while (x < list->count_item) {
-			if (list->items[x]->data != NULL) {
+			if (list->items[x]->data) {
 				free (list->items[x]->data);
 			}
-			if (list->items[x] != NULL) {
+			if (list->items[x]) {
 				free (list->items[x]);
 			}
 			x++;
 		}
-		if (list->items != NULL) {
+		if (list->items) {
 			free(list->items);
 		}
 		l = list;
@@ -3177,7 +3179,7 @@ int32_t _pst_free_list(pst_num_array *list) {
 int32_t _pst_free_id2(pst_index2_ll * head) {
 	pst_index2_ll *t;
 	DEBUG_ENT("_pst_free_id2");
-	while (head != NULL) {
+	while (head) {
 		t = head->next;
 		free (head);
 		head = t;
@@ -3190,7 +3192,7 @@ int32_t _pst_free_id2(pst_index2_ll * head) {
 int32_t _pst_free_id (pst_index_ll *head) {
 	pst_index_ll *t;
 	DEBUG_ENT("_pst_free_id");
-	while (head != NULL) {
+	while (head) {
 		t = head->next;
 		free(head);
 		head = t;
@@ -3203,23 +3205,20 @@ int32_t _pst_free_id (pst_index_ll *head) {
 int32_t _pst_free_desc (pst_desc_ll *head) {
 	pst_desc_ll *t;
 	DEBUG_ENT("_pst_free_desc");
-	while (head != NULL) {
-		while (head->child != NULL) {
+	while (head) {
+		while (head->child) {
 			head = head->child;
 		}
 
 		// point t to the next item
 		t = head->next;
-		if (t == NULL && head->parent != NULL) {
+		if (!t && head->parent) {
 			t = head->parent;
 			t->child = NULL; // set the child to NULL so we don't come back here again!
 		}
 
-		if (head != NULL)
-			free(head);
-		else {
-			DIE(("head is NULL"));
-		}
+		if (head) free(head);
+		else	  DIE(("head is NULL"));
 
 		head = t;
 	}
@@ -3231,7 +3230,7 @@ int32_t _pst_free_desc (pst_desc_ll *head) {
 int32_t _pst_free_xattrib(pst_x_attrib_ll *x) {
 	pst_x_attrib_ll *t;
 	DEBUG_ENT("_pst_free_xattrib");
-	while (x != NULL) {
+	while (x) {
 		if (x->data) free(x->data);
 		t = x->next;
 		free(x);
@@ -3303,13 +3302,13 @@ pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* 
 				}
 				else {
 					DEBUG_INDEX(("\tGoing deeper for table2 [%#x]\n", id2_rec.table2));
-					if ((i2_ptr = _pst_build_id2(pf, i_ptr, head)) != NULL) {
+					if ((i2_ptr = _pst_build_id2(pf, i_ptr, head))) {
 					//	DEBUG_INDEX(("_pst_build_id2(): \t\tAdding new list onto end of current\n"));
-					//	if (head == NULL)
+					//	if (!head)
 					//	  head = i2_ptr;
-					//	if (tail != NULL)
+					//	if (tail)
 					//	  tail->next = i2_ptr;
-					//	while (i2_ptr->next != NULL)
+					//	while (i2_ptr->next)
 					//	  i2_ptr = i2_ptr->next;
 					//	  tail = i2_ptr;
 					}
@@ -3330,14 +3329,14 @@ pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* 
 
 
 // This version of free does NULL check first
-#define SAFE_FREE(x) {if (x != NULL) free(x);}
+#define SAFE_FREE(x) {if (x) free(x);}
 
 void _pst_freeItem(pst_item *item) {
 	pst_item_attach *t;
 	pst_item_extra_field *et;
 
 	DEBUG_ENT("_pst_freeItem");
-	if (item != NULL) {
+	if (item) {
 		if (item->email) {
 			SAFE_FREE(item->email->arrival_date);
 			SAFE_FREE(item->email->body);
@@ -3370,7 +3369,7 @@ void _pst_freeItem(pst_item *item) {
 			SAFE_FREE(item->email->sent_date);
 			SAFE_FREE(item->email->sentmail_folder);
 			SAFE_FREE(item->email->sentto_address);
-			if (item->email->subject != NULL)
+			if (item->email->subject)
 				SAFE_FREE(item->email->subject->subj);
 			SAFE_FREE(item->email->subject);
 			free(item->email);
@@ -3478,7 +3477,7 @@ void _pst_freeItem(pst_item *item) {
 			SAFE_FREE(item->contact->wedding_anniversary);
 			free(item->contact);
 		}
-		while (item->attach != NULL) {
+		while (item->attach) {
 			SAFE_FREE(item->attach->filename1);
 			SAFE_FREE(item->attach->filename2);
 			SAFE_FREE(item->attach->mimetype);
@@ -3487,7 +3486,7 @@ void _pst_freeItem(pst_item *item) {
 			free(item->attach);
 			item->attach = t;
 		}
-		while (item->extra_fields != NULL) {
+		while (item->extra_fields) {
 			SAFE_FREE(item->extra_fields->field_name);
 			SAFE_FREE(item->extra_fields->value);
 			et = item->extra_fields->next;
@@ -3524,7 +3523,7 @@ void _pst_freeItem(pst_item *item) {
 int32_t _pst_getBlockOffset(char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset *p) {
 	int32_t of1 = offset>>4;
 	DEBUG_ENT("_pst_getBlockOffset");
-	if ((p == NULL) || (buf == NULL) || (i_offset == 0) || (i_offset+2+of1+sizeof(*p) > read_size)) {
+	if (!p || !buf || (i_offset == 0) || (i_offset+2+of1+sizeof(*p) > read_size)) {
 		DEBUG_WARN(("p is NULL or buf is NULL or offset is 0 (%p, %p, %#x, %i, %i)\n", p, buf, offset, read_size, i_offset));
 		DEBUG_RET();
 		return -1;
@@ -3556,18 +3555,12 @@ pst_index_ll * _pst_getID(pst_file* pf, u_int32_t id) {
 	id &= 0xFFFFFFFE; // remove least sig. bit. seems that it might work if I do this
 
 	DEBUG_INDEX(("Trying to find %#x\n", id));
-	if (ptr == NULL) ptr = pf->i_head;
+	if (!ptr) ptr = pf->i_head;
 	while (ptr && (ptr->id != id)) {
 		ptr = ptr->next;
-		if (ptr == NULL) {
-			break;
-		}
 	}
-	if (ptr) {
-		DEBUG_INDEX(("Found Value %#x\n", ptr->id));
-	} else {
-		DEBUG_INDEX(("ERROR: Value not found\n"));
-	}
+	if (ptr) {DEBUG_INDEX(("Found Value %#x\n", ptr->id));}
+	else	 {DEBUG_INDEX(("ERROR: Value not found\n"));  }
 	DEBUG_RET();
 	return ptr;
 }
@@ -3581,11 +3574,8 @@ pst_index_ll * _pst_getID2(pst_index2_ll *ptr, u_int32_t id) {
 		ptr = ptr->next;
 	}
 	if (ptr) {
-		if (ptr->id) {
-			DEBUG_INDEX(("Found value %#x\n", ptr->id->id));
-		} else {
-			DEBUG_INDEX(("Found value, though it is NULL!\n"));
-		}
+		if (ptr->id) {DEBUG_INDEX(("Found value %#x\n", ptr->id->id));   }
+		else		 {DEBUG_INDEX(("Found value, though it is NULL!\n"));}
 		DEBUG_RET();
 		return ptr->id;
 	}
@@ -3603,7 +3593,7 @@ pst_desc_ll * _pst_getDptr(pst_file *pf, u_int32_t id) {
 			ptr = ptr->child;
 			continue;
 		}
-		while (ptr->next == NULL && ptr->parent != NULL) {
+		while (!ptr->next && ptr->parent) {
 			ptr = ptr->parent;
 		}
 		ptr = ptr->next;
@@ -3620,16 +3610,16 @@ int32_t _pst_printDptr(pst_file *pf) {
 	DEBUG_ENT("_pst_printDptr");
 	memset(spaces, ' ', 99);
 	spaces[99] = '\0';
-	while (ptr != NULL) {
+	while (ptr) {
 		DEBUG_INDEX(("%s%#x [%i] desc=%#x, list=%#x\n", &(spaces[(99-depth<0?0:99-depth)]), ptr->id, ptr->no_child,
 			(ptr->desc==NULL?0:ptr->desc->id),
 			(ptr->list_index==NULL?0:ptr->list_index->id)));
-		if (ptr->child != NULL) {
+		if (ptr->child) {
 			depth++;
 			ptr = ptr->child;
 			continue;
 		}
-		while (ptr->next == NULL && ptr->parent != NULL) {
+		while (!ptr->next && ptr->parent) {
 			depth--;
 			ptr = ptr->parent;
 		}
@@ -3643,7 +3633,7 @@ int32_t _pst_printDptr(pst_file *pf) {
 int32_t _pst_printIDptr(pst_file* pf) {
 	pst_index_ll *ptr = pf->i_head;
 	DEBUG_ENT("_pst_printIDptr");
-	while (ptr != NULL) {
+	while (ptr) {
 		DEBUG_INDEX(("%#x offset=%#x size=%#x\n", ptr->id, ptr->offset, ptr->size));
 		ptr = ptr->next;
 	}
@@ -3654,7 +3644,7 @@ int32_t _pst_printIDptr(pst_file* pf) {
 
 int32_t _pst_printID2ptr(pst_index2_ll *ptr) {
 	DEBUG_ENT("_pst_printID2ptr");
-	while (ptr != NULL) {
+	while (ptr) {
 		DEBUG_INDEX(("%#x id=%#x\n", ptr->id2, (ptr->id!=NULL?ptr->id->id:0)));
 		ptr = ptr->next;
 	}
@@ -3673,7 +3663,7 @@ size_t _pst_read_block(FILE *fp, int32_t offset, void **buf) {
 	fread(&size, sizeof(int16_t), 1, fp);
 	fseek(fp, offset, SEEK_SET);
 	DEBUG_READ(("Allocating %i bytes\n", size));
-	if (*buf != NULL) {
+	if (*buf) {
 		DEBUG_READ(("Freeing old memory\n"));
 		free(*buf);
 	}
@@ -3700,7 +3690,7 @@ size_t _pst_read_block_size(pst_file *pf, int32_t offset, size_t size, char ** b
 	DEBUG_READ(("Reading block from %#x, %i bytes\n", offset, size));
 	fpos = ftell(pf->fp);
 	fseek(pf->fp, offset, SEEK_SET);
-	if (*buf != NULL) {
+	if (*buf) {
 		DEBUG_READ(("Freeing old memory\n"));
 		free(*buf);
 	}
@@ -3765,9 +3755,8 @@ size_t _pst_read_block_size(pst_file *pf, int32_t offset, size_t size, char ** b
 			y++;
 		}
 		free(*buf);
-		if (buf2 != NULL)
-			free(buf2);
-		if (buf3 == NULL) {
+		if (buf2) free(buf2);
+		if (!buf3) {
 			// this can happen if count == 0. We should create an empty buffer so we don't
 			// confuse any clients
 			buf3 = (char*) xmalloc(1);
@@ -3787,7 +3776,7 @@ int32_t _pst_decrypt(unsigned char *buf, size_t size, int32_t type) {
 	size_t x = 0;
 	unsigned char y;
 	DEBUG_ENT("_pst_decrypt");
-	if (buf == NULL) {
+	if (!buf) {
 		DEBUG_RET();
 		return -1;
 	}
@@ -3860,7 +3849,7 @@ size_t _pst_ff_getIDblock(pst_file *pf, u_int32_t id, unsigned char** b) {
 		return 0;
 	}
 	fseek(pf->fp, rec->offset, SEEK_SET);
-	if (*b != NULL) {
+	if (*b) {
 		DEBUG_INDEX(("freeing old memory in b\n"));
 		free(*b);
 	}
@@ -3891,7 +3880,7 @@ size_t _pst_ff_getID2block(pst_file *pf, u_int32_t id2, pst_index2_ll *id2_head,
 	DEBUG_ENT("_pst_ff_getID2block");
 	ptr = _pst_getID2(id2_head, id2);
 
-	if (ptr == NULL) {
+	if (!ptr) {
 		DEBUG_INDEX(("Cannot find id2 value %#x\n", id2));
 		DEBUG_RET();
 		return 0;
@@ -3908,13 +3897,13 @@ size_t _pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, struct holder *h) {
 	DEBUG_ENT("_pst_ff_getID2data");
 	if (!(ptr->id & 0x02)) {
 		ret = _pst_ff_getIDblock_dec(pf, ptr->id, &b);
-		if (h->buf != NULL) {
+		if (h->buf) {
 			*(h->buf) = b;
-		} else if (h->base64 == 1 && h->fp != NULL) {
+		} else if ((h->base64 == 1) && h->fp) {
 			t = base64_encode(b, ret);
 			pst_fwrite(t, 1, strlen(t), h->fp);
 			free(b);
-		} else if (h->fp != NULL) {
+		} else if (h->fp) {
 			pst_fwrite(b, 1, ret, h->fp);
 			free(b);
 		}
@@ -3926,7 +3915,7 @@ size_t _pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, struct holder *h) {
 		DEBUG_READ(("Assuming it is a multi-block record because of it's id\n"));
 		ret = _pst_ff_compile_ID(pf, ptr->id, h, 0);
 	}
-	if (h->buf != NULL && *h->buf != NULL)
+	if (h->buf && *h->buf)
 		(*(h->buf))[ret]='\0';
 	DEBUG_RET();
 	return ret;
@@ -3947,15 +3936,14 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 		//	if ((buf3)[0] != 0x1 && (buf3)[1] > 4) {
 		DEBUG_WARN(("WARNING: buffer doesn't start with 0x1, but I expected it to or doesn't have it's two-bit set!\n"));
 		DEBUG_WARN(("Treating as normal buffer\n"));
-		if (pf->encryption)
-			_pst_decrypt(buf3, a, pf->encryption);
-		if (h->buf != NULL)
+		if (pf->encryption) _pst_decrypt(buf3, a, pf->encryption);
+		if (h->buf)
 			*(h->buf) = buf3;
-		else if (h->base64 == 1 && h->fp != NULL) {
+		else if (h->base64 == 1 && h->fp) {
 			t = base64_encode(buf3, a);
 			pst_fwrite(t, 1, strlen(t), h->fp);
 			free(buf3);
-		} else if (h->fp != NULL) {
+		} else if (h->fp) {
 			pst_fwrite(buf3, 1, a, h->fp);
 			free(buf3);
 		}
@@ -3975,18 +3963,17 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 		if (fdepth == 0x1) {
 			if ((z = _pst_ff_getIDblock(pf, x, &buf2)) == 0) {
 				DEBUG_WARN(("call to getIDblock returned zero %i\n", z));
-				if (buf2 != NULL)
-					free(buf2);
+				if (buf2) free(buf2);
 				free(buf3);
 				return z;
 			}
 			if (pf->encryption) _pst_decrypt(buf2, z, pf->encryption);
-			if (h->buf != NULL) {
+			if (h->buf) {
 				*(h->buf) = realloc(*(h->buf), size+z+1);
 				DEBUG_READ(("appending read data of size %i onto main buffer from pos %i\n", z, size));
 				memcpy(&((*(h->buf))[size]), buf2, z);
 			}
-			else if (h->base64 == 1 && h->fp != NULL) {
+			else if ((h->base64 == 1) && h->fp) {
 				// include any byte left over from the last one encoding
 				buf2 = (char*)realloc(buf2, z+h->base64_extra);
 				memmove(buf2+h->base64_extra, buf2, z);
@@ -4002,7 +3989,7 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 				DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n",
 						z, strlen(t), size));
 			}
-			else if (h->fp != NULL) {
+			else if (h->fp) {
 				DEBUG_READ(("writing %i bytes to file. Currently %i\n", z, size));
 				pst_fwrite(buf2, 1, z, h->fp);
 			}
@@ -4021,8 +4008,7 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 		}
 	}
 	free(buf3);
-	if (buf2 != NULL)
-		free(buf2);
+	if (buf2) free(buf2);
 	DEBUG_RET();
 	return size;
 }
@@ -4101,7 +4087,7 @@ int32_t pst_strincmp(char *a, char *b, int32_t x) {
 size_t pst_fwrite(const void*ptr, size_t size, size_t nmemb, FILE*stream) {
 	size_t r;
 	DEBUG_ENT("pst_fwrite");
-	if (ptr != NULL)
+	if (ptr)
 		r = fwrite(ptr, size, nmemb, stream);
 	else {
 		r = 0;

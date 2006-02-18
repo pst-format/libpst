@@ -1,0 +1,22 @@
+#!/bin/bash
+
+pst=outlook.pst
+
+cp /home/ldap/$pst .
+chown --recursive root:root *
+make clean
+make all
+chown --recursive carl:carl *
+
+if [ -f pst2ldif ]; then
+    ./pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif
+    ./readpstlog pst2ldif.log | less >my.log
+    hexdump -C $pst >pst.dump
+
+    grep '^dn:' ams.ldif            | sort >aaa
+    grep '^dn:' /home/ldap/ams.ldif | sort >bbb
+    echo 'differences from nightly ldap'
+    diff aaa bbb
+    echo 'end differences'
+    rm -f aaa bbb
+fi
