@@ -9,6 +9,7 @@ make all
 chown --recursive carl:carl *
 
 if [ -f pst2ldif ]; then
+    rm -f pst2ldif.log my.log
     ./pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif
     ./readpstlog pst2ldif.log | less >my.log
     hexdump -C $pst >pst.dump

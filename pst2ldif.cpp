@@ -400,8 +400,10 @@ int main(int argc, char** argv) {
 		exit(2);
 	}
 
-	DEBUG_INIT("pst2ldif.log");
-	DEBUG_REGISTER_CLOSE();
+	#ifdef DEBUG_ALL
+		DEBUG_INIT("pst2ldif.log");
+		DEBUG_REGISTER_CLOSE();
+	#endif
 	DEBUG_ENT("main");
 	RET_DERROR(pst_open(&pstfile, fname, "r"), 1, ("Error opening File\n"));
 	RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
