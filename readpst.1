@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH READPST 1 "February 24, 2004"
+.TH READPST 1 "15 January 2005"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -34,12 +34,16 @@ structure, or seperate emails.
 .SH OPTIONS
 A summary of options is included below.
 .TP
+.B \-c
+Set the Contact output mode. Use -cv for vcard format or -cl for
+an email list
+.TP
 .B \-d
 Specify name of debug log file. Defaults to "readpst.log". The log
 file isn\'t an ascii file, it is a binary file readable by \fBreadpstlog\fP.
 .TP
 .B \-h
-Show summary of options.
+Show summary of options. Subsequent options are then ignored.
 .TP
 .B \-k
 Changes the output format to KMail.
@@ -68,7 +72,7 @@ each email as 000000000\-attach0, or with the name of the attachment if
 one is present.
 .TP
 .B \-V
-Show version of program.
+Show version of program. Subsequent options are then ignored.
 .TP
 .B \-w
 Overwrite any previous output files. \fBBeware\fP: When used with the \-S
@@ -76,7 +80,8 @@ switch, this will remove all files from the target folder before
 writing. This is to keep the count of emails and attachments correct.
 .SH SEE ALSO
 .BR readpstlog (1)
-.SH AUTHOR
-This manual page was written by Dave Smith <dave.s@earthcorp.com>, and updated
-by Joe Nahmias <joe@nahmias.net> for the Debian GNU/Linux system (but may be
-used by others).
+.SH AUTHORS
+This manual page was originally written by Dave Smith
+<dave.s@earthcorp.com>, and updated by Joe Nahmias <joe@nahmias.net>
+for the Debian GNU/Linux system (but may be used by others). It was
+subsequently updated by Brad Hards <bradh@frogmouth.net>.

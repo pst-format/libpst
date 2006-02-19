@@ -47,8 +47,6 @@ extern "C" {
 	#include "lzfu.h"
 }
 
-#define VERSION "0.2"
-
 int32_t   usage();
 int32_t   version();
 char *my_stristr(char *haystack, char *needle);

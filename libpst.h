@@ -70,9 +70,6 @@ typedef struct {
 #define u_int16_t unsigned short int
 #endif // _MSC_VER
 
-
-#define PST_VERSION "0.5.1"
-
 #define PST_TYPE_NOTE 1
 #define PST_TYPE_APPOINTMENT 8
 #define PST_TYPE_CONTACT 9
