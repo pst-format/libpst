@@ -12,6 +12,7 @@ INSTALL_PROGRAM := $(INSTALL) -p    -o root -g root -m 0755 # -s
 INSTALL_SCRIPT  := $(INSTALL) -p    -o root -g root -m 0755
 
 VERSION = $(shell cat VERSION)
+CFLAGS += -DVERSION=\"$(VERSION)\"
 
 DOCS := AUTHORS ChangeLog CREDITS FILE-FORMAT FILE-FORMAT.html LICENSE TODO \
 	VERSION

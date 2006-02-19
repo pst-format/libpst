@@ -453,7 +453,7 @@ int usage() {
 
 
 int version() {
-	printf("pst2ldif v%s using LibPST v%s\n", VERSION, PST_VERSION);
+	printf("pst2ldif v%s\n", VERSION);
 #if BYTE_ORDER == BIG_ENDIAN
 	printf("Big Endian implementation being used.\n");
 #elif BYTE_ORDER == LITTLE_ENDIAN
