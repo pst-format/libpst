@@ -1,0 +1,20 @@
+AC_INIT(configure.in)
+
+AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE(libpst,0.5.3)
+AC_PATH_PROGS(BASH, bash)
+
+AC_LANG_CPLUSPLUS
+AC_PROG_CXX
+AC_PROG_LIBTOOL
+
+AC_OUTPUT(                  \
+    Makefile                \
+    libpst.spec             \
+    html/Makefile           \
+    info/Makefile           \
+    man/Makefile            \
+    src/Makefile            \
+    xml/Makefile            \
+    xml/libpst              \
+    )

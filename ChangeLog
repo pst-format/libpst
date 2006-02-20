@@ -1,3 +1,11 @@
+LibPST 0.5.3 (2006-02-19)
+===============================
+
+        * switch to gnu autoconf/automake
+        * documentation switched to xml, building man pages and html
+        from the master xml copy.
+
+
 LibPST 0.5.2 (2006-02-18)
 ===============================
 

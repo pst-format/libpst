@@ -1,7 +1,0 @@
-1) _pst_build_desc_ptr used 0x21 as the fixed starting value for these
-ids, but _pst_build_id_ptr had no lower bound, so used -1.  We switch to
--1 for both, since it may just be coincidence that 0x21 is the lowest
-value seen in .pst files.
-
-3) In _pst_getBlockOffset, offset may be zero. i_offset should probably
-not be zero.

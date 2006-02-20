@@ -1,0 +1,77 @@
+%define localstatedir   /var/lib
+
+Summary:            @PACKAGE@ Libpst utilities
+Name:               @PACKAGE@
+Version:            @VERSION@
+Release:            %{?custom_release}%{!?custom_release:1}
+Copyright:          GPL
+Group:              System Environment/Daemons
+Source:             http://www.five-ten-sg.com/@PACKAGE@/packages/@PACKAGE@-@VERSION@.tar.gz
+BuildRoot:          %{_tmppath}/%{name}-%{version}-buildroot
+URL:                http://www.five-ten-sg.com/@PACKAGE@/
+Vendor:             Libpst team
+Packager:           510 Software Group
+AutoReqProv:        no
+
+%description
+The Libpst utilities include readpst which can extract mail messages from an Outlook .pst file, and pst2ldif which can convert the contacts to .ldif format for import into ldap databases.
+
+
+%prep
+
+
+%setup
+
+
+%build
+./configure --prefix=%{_prefix} \
+    --bindir=%{_bindir} --mandir=%{_mandir} \
+    --localstatedir=%{localstatedir} --libdir=%{_libdir} \
+    --datadir=%{_datadir} --includedir=%{_includedir} \
+    --sysconfdir=%{_sysconfdir}
+make
+
+
+%install
+if [ "$RPM_BUILD_ROOT" = "/" -o -z "$RPM_BUILD_ROOT" ] ; then
+        echo sorry, you probably do not want me to delete the old buildroot at $RPM_BUILD_ROOT
+        exit 1
+fi
+rm -rf $RPM_BUILD_ROOT
+make prefix=$RPM_BUILD_ROOT%{_prefix} bindir=$RPM_BUILD_ROOT%{_bindir} \
+    mandir=$RPM_BUILD_ROOT%{_mandir} libdir=$RPM_BUILD_ROOT%{_libdir} \
+    localstatedir=$RPM_BUILD_ROOT%{localstatedir} \
+    datadir=$RPM_BUILD_ROOT%{_datadir} \
+    includedir=$RPM_BUILD_ROOT%{_includedir} \
+    sysconfdir=$RPM_BUILD_ROOT%{_sysconfdir} install
+mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
+mkdir -p $RPM_BUILD_ROOT%{_datadir}/doc/@PACKAGE@-@VERSION@
+mv -f $RPM_BUILD_ROOT%{_sysconfdir}/dnsbl/dnsbl      $RPM_BUILD_ROOT/etc/rc.d/init.d
+mv AUTHORS COPYING ChangeLog NEWS README             $RPM_BUILD_ROOT%{_datadir}/doc/@PACKAGE@-@VERSION@
+mkdir -p %{buildroot}/var/run/@PACKAGE@
+
+
+%pre
+
+%post
+
+%preun
+
+%postun
+
+%clean
+
+%files
+%defattr(-,root,root)
+%{_sbindir}/*
+%doc %{_mandir}/*
+%docdir %{_datadir}/doc/@PACKAGE@-@VERSION@
+%{_datadir}/doc/@PACKAGE@-@VERSION@
+%config(noreplace) %{_sysconfdir}/@PACKAGE@
+%config(noreplace) %{_sysconfdir}/@PACKAGE@/*.conf
+/etc/rc.d/init.d/@PACKAGE@
+%dir %attr(0750,@PACKAGE@,root) /var/run/@PACKAGE@
+
+
+%changelog
+* Sun Feb 19 2006 Carl Byington 1.0
