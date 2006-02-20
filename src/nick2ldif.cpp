@@ -10,6 +10,7 @@ http://www.fsf.org/licenses/gpl.txt
 #include <iostream>
 //#include <fstream>
 #include <unistd.h>
+#include "version.h"
 
 char *ldap_base  = NULL;
 char *ldap_org	 = NULL;

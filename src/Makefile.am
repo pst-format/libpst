@@ -1,8 +1,9 @@
+hfiles = $(wildcard *.h)
 bin_PROGRAMS = lspst readpst readpstlog pst2ldif
-lspst_SOURCES      = debug.c libpst.c libstrfunc.c lspst.c timeconv.c
-readpst_SOURCES    = readpst.c libpst.c timeconv.c libstrfunc.c debug.c lzfu.c
-readpstlog_SOURCES = readpstlog.c debug.c
-pst2ldif_SOURCES   = pst2ldif.cpp libpst.c timeconv.c libstrfunc.c debug.c lzfu.c
+lspst_SOURCES      = $(hfiles) debug.c libpst.c libstrfunc.c lspst.c timeconv.c
+readpst_SOURCES    = $(hfiles) readpst.c libpst.c timeconv.c libstrfunc.c debug.c lzfu.c
+readpstlog_SOURCES = $(hfiles) readpstlog.c debug.c
+pst2ldif_SOURCES   = $(hfiles) pst2ldif.cpp libpst.c timeconv.c libstrfunc.c debug.c lzfu.c
 EXTRA_DIST = dumpblocks.c getidblock.c testdebug.c
 
 # set the include path found by configure

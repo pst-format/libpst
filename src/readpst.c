@@ -31,6 +31,7 @@
 
 #include "libstrfunc.h" // for base64_encoding
 
+#include "version.h"
 #include "define.h"
 #include "libpst.h"
 #include "common.h"

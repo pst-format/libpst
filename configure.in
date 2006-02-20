@@ -15,6 +15,7 @@ AC_OUTPUT(                  \
     info/Makefile           \
     man/Makefile            \
     src/Makefile            \
+    src/version.h           \
     xml/Makefile            \
     xml/libpst              \
     )

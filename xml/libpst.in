@@ -65,8 +65,8 @@
                 <varlistentry>
                     <term>-d <replaceable class="parameter">debug-file</replaceable></term>
                     <listitem><para>
-                        Specify name of debug log file. Defaults to &quot;readpst.log&quot;. The log
-                        file isn't an ascii file, it is a binary file readable by <command>readpstlog</command>.
+                        Specify name of debug log file. Defaults to "readpst.log". The log
+                        file is not an ascii file, it is a binary file readable by <command>readpstlog</command>.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -100,7 +100,7 @@
                     <term>-r</term>
                     <listitem><para>
                         Changes the output format to Recursive. This will create folders as
-                        named in the PST file, and will put all emails in a file called &quot;mbox&quot;
+                        named in the PST file, and will put all emails in a file called "mbox"
                         inside each folder. These files are then compatible with all
                         mbox-compatible email clients.
                     </para></listitem>
@@ -209,8 +209,7 @@
         <refsect1 id='readpstlog.description.1'>
             <title>Description</title>
             <para>This manual page briefly documents the <command>readpstlog</command> command.</para>
-            <para>
-                <command>readpstlog</command>
+            <para><command>readpstlog</command>
                 is a program that reads the binary logfile generated
                 by <command>readpst</command>, and outputs it in a more desirable format (i.e. text).
             </para>
