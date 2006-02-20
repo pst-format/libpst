@@ -44,11 +44,8 @@ make prefix=$RPM_BUILD_ROOT%{_prefix} bindir=$RPM_BUILD_ROOT%{_bindir} \
     datadir=$RPM_BUILD_ROOT%{_datadir} \
     includedir=$RPM_BUILD_ROOT%{_includedir} \
     sysconfdir=$RPM_BUILD_ROOT%{_sysconfdir} install
-mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
 mkdir -p $RPM_BUILD_ROOT%{_datadir}/doc/@PACKAGE@-@VERSION@
-mv -f $RPM_BUILD_ROOT%{_sysconfdir}/dnsbl/dnsbl      $RPM_BUILD_ROOT/etc/rc.d/init.d
-mv AUTHORS COPYING ChangeLog NEWS README             $RPM_BUILD_ROOT%{_datadir}/doc/@PACKAGE@-@VERSION@
-mkdir -p %{buildroot}/var/run/@PACKAGE@
+mv AUTHORS COPYING ChangeLog NEWS README        $RPM_BUILD_ROOT%{_datadir}/doc/@PACKAGE@-@VERSION@
 
 
 %pre
@@ -63,15 +60,13 @@ mkdir -p %{buildroot}/var/run/@PACKAGE@
 
 %files
 %defattr(-,root,root)
-%{_sbindir}/*
+%{_bindir}/*
 %doc %{_mandir}/*
 %docdir %{_datadir}/doc/@PACKAGE@-@VERSION@
 %{_datadir}/doc/@PACKAGE@-@VERSION@
-%config(noreplace) %{_sysconfdir}/@PACKAGE@
-%config(noreplace) %{_sysconfdir}/@PACKAGE@/*.conf
-/etc/rc.d/init.d/@PACKAGE@
-%dir %attr(0750,@PACKAGE@,root) /var/run/@PACKAGE@
 
 
 %changelog
 * Sun Feb 19 2006 Carl Byington 1.0
+- initial spec file using autoconf and http://www.fedora.us/docs/rpm-packaging-guidelines.html
+

@@ -472,7 +472,7 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 
 
 #define BLOCK_SIZE			   516		// index blocks
-#define DESC_BLOCK_SIZE 	   520		// descriptor blocks
+#define DESC_BLOCK_SIZE 	   516		// descriptor blocks was 520 but bogus
 #define ITEM_COUNT_OFFSET	   0x1f0	// count byte
 #define LEVEL_INDICATOR_OFFSET 0x1f3	// node or leaf
 #define BACKLINK_OFFSET 	   0x1f8	// backlink u1 value
@@ -1310,43 +1310,40 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 			}
 			na_ptr->items[x]->type = 0; // checked later before it is set
 			/* Reference Types
-
-				  2 - 0x0002 - Signed 16bit value
-			  3 - 0x0003 - Signed 32bit value
-			  4 - 0x0004 - 4-byte floating point
-			  5 - 0x0005 - Floating point double
-			  6 - 0x0006 - Signed 64-bit int
-			  7 - 0x0007 - Application Time
-			 10 - 0x000A - 32-bit error value
-			 11 - 0x000B - Boolean (non-zero = true)
-			 13 - 0x000D - Embedded Object
-			 20 - 0x0014 - 8-byte signed integer (64-bit)
-			 30 - 0x001E - Null terminated String
-			 31 - 0x001F - Unicode string
-			 64 - 0x0040 - Systime - Filetime structure
-			 72 - 0x0048 - OLE Guid
-				258 - 0x0102 - Binary data
-
-				- 0x1003 - Array of 32bit values
-				- 0x1014 - Array of 64bit values
-				- 0x101E - Array of Strings
-				- 0x1102 - Array of Binary data
+				0x0002 - Signed 16bit value
+				0x0003 - Signed 32bit value
+				0x0004 - 4-byte floating point
+				0x0005 - Floating point double
+				0x0006 - Signed 64-bit int
+				0x0007 - Application Time
+				0x000A - 32-bit error value
+				0x000B - Boolean (non-zero = true)
+				0x000D - Embedded Object
+				0x0014 - 8-byte signed integer (64-bit)
+				0x001E - Null terminated String
+				0x001F - Unicode string
+				0x0040 - Systime - Filetime structure
+				0x0048 - OLE Guid
+				0x0102 - Binary data
+				0x1003 - Array of 32bit values
+				0x1014 - Array of 64bit values
+				0x101E - Array of Strings
+				0x1102 - Array of Binary data
 			*/
 
-			if (table_rec.ref_type == 0x0003 || table_rec.ref_type == 0x000b
-				|| table_rec.ref_type == 0x0002) { //contains data
+			if (table_rec.ref_type == 0x0002 || table_rec.ref_type == 0x0003 || table_rec.ref_type == 0x000b) {
+				//contains data
 				na_ptr->items[x]->data = xmalloc(sizeof(int32_t));
 				memcpy(na_ptr->items[x]->data, &(table_rec.value), sizeof(int32_t));
-
 				na_ptr->items[x]->size = sizeof(int32_t);
 				na_ptr->items[x]->type = table_rec.ref_type;
 
 			} else if (table_rec.ref_type == 0x0005 || table_rec.ref_type == 0x000D
-				|| table_rec.ref_type == 0x1003 || table_rec.ref_type == 0x0014
-				|| table_rec.ref_type == 0x001E || table_rec.ref_type == 0x0102
-				|| table_rec.ref_type == 0x0040 || table_rec.ref_type == 0x101E
-				|| table_rec.ref_type == 0x0048 || table_rec.ref_type == 0x1102
-				|| table_rec.ref_type == 0x1014) {
+					|| table_rec.ref_type == 0x1003 || table_rec.ref_type == 0x0014
+					|| table_rec.ref_type == 0x001E || table_rec.ref_type == 0x0102
+					|| table_rec.ref_type == 0x0040 || table_rec.ref_type == 0x101E
+					|| table_rec.ref_type == 0x0048 || table_rec.ref_type == 0x1102
+					|| table_rec.ref_type == 0x1014) {
 				//contains index_ref to data
 				LE32_CPU(table_rec.value);
 				if ((table_rec.value & 0x0000000F) == 0xF) {
@@ -1399,12 +1396,9 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 					}
 				} else {
 					DEBUG_EMAIL(("Ignoring 0 value in offset\n"));
-					if (na_ptr->items[x]->data)
-					  free (na_ptr->items[x]->data);
+					if (na_ptr->items[x]->data) free (na_ptr->items[x]->data);
 					na_ptr->items[x]->data = NULL;
-
 					free(na_ptr->items[x]);
-
 					na_ptr->count_item--; // remove this item from the destination list
 					continue;
 				}
@@ -2265,6 +2259,14 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 									   (t==5?"Embedded Message":"OLE")))))),t));
 					//INC_CHECK_X();
 					break;
+				case 0x3707: // PR_ATTACH_LONG_FILENAME Attachment filename (long?)
+					DEBUG_EMAIL(("Attachment Filename long - "));
+					NULL_CHECK(attach);
+					MOVE_NEXT(attach);
+					LIST_COPY(attach->filename2, (char*));
+					DEBUG_EMAIL(("%s\n", attach->filename2));
+					//INC_CHECK_X();
+					break;
 				case 0x370B: // PR_RENDERING_POSITION
 					// position in characters that the attachment appears in the plain text body
 					DEBUG_EMAIL(("Attachment Position - "));
@@ -2273,14 +2275,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(attach->position), list->items[x]->data, sizeof(attach->position));
 					LE32_CPU(attach->position);
 					DEBUG_EMAIL(("%i [%#x]\n", attach->position));
-					//INC_CHECK_X();
-					break;
-				case 0x3707: // PR_ATTACH_LONG_FILENAME Attachment filename (long?)
-					DEBUG_EMAIL(("Attachment Filename long - "));
-					NULL_CHECK(attach);
-					MOVE_NEXT(attach);
-					LIST_COPY(attach->filename2, (char*));
-					DEBUG_EMAIL(("%s\n", attach->filename2));
 					//INC_CHECK_X();
 					break;
 				case 0x370E: // PR_ATTACH_MIME_TAG Mime type of encoding

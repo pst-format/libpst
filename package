@@ -1,8 +1,5 @@
 #!/bin/bash
 
-pst=outlook.pst
-cp /home/ldap/$pst .
-
 T=`grep AM_INIT_AUTOMAKE configure.in | cut -d'(' -f2`
 NAME=`echo $T | cut -d, -f1`
 VER=`echo $T | cut -d, -f2 | cut -d')' -f1`
@@ -10,25 +7,68 @@ BALL=$NAME-$VER.tar.gz
 web=/home/httpd/html/510sg/$NAME
 distlog=/tmp/distcheck
 
-echo $web $BALL
-
 chown --recursive root:root *
 make -f *cvs
 ./configure >/dev/null
 (cd xml; make; make distclean)
-chown --recursive carl:carl *
+cp -a html/*html $web
+##  make
+##  pst=/home/ldap/outlook.pst
+##  rm -f pst2ldif.log my.log
+##  src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif
+##  src/readpstlog pst2ldif.log | less >my.log
+##  hexdump -C -v $pst >pst.dump
+##  chown --recursive carl:carl *
+##  exit
 make distcheck >$distlog 2>&1
 
-exit
+if [ $? -eq 0 ]; then
+    if [ -f $BALL ]; then
+        # expand locally to see the tarball
+        rm -rf junk
+        mkdir junk
+        cd junk
+            tar xfz ../$BALL
+            cd $NAME-$VER
+                ./configure >/dev/null
+                make >/dev/null
+                make install >/dev/null
+            cd ..
+        cd ..
 
-if [ -f pst2ldif ]; then
-    rm -f pst2ldif.log my.log
-    ./pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif
-    ./readpstlog pst2ldif.log | less >my.log
-    hexdump -C $pst >pst.dump
+        # build rpm on target
+        target=host62
+        scp $BALL $target:/tmp
+        ssh $target "cd /tmp; rpmbuild -ta $BALL"
 
-    grep '^dn:' ams.ldif            | sort >aaa
-    grep '^dn:' /home/ldap/ams.ldif | sort >bbb
+        # add packages to the web site
+        wp=$web/packages
+        wp4=$wp/centos4
+        mkdir -p $wp4
+        rp=/usr/src/redhat
+        mv -f $BALL $wp
+        scp $target:$rp/SRPMS/$NAME-$VER*rpm $wp
+        scp $target:$rp/RPMS/i386/$NAME-$VER*rpm $wp4
+        (cd $web; chown --recursive web:web .; ls -alR)
+        rpm -ql -p $wp4/$NAME-$VER*6.rpm
+    fi
+else
+    tail -10 $distlog
+fi
+chown --recursive carl:carl *
+args="-z -e ssh --times --perms --links --relative --owner --group --numeric-ids --delete"
+echo rcync $args $web ns1:/
+
+if [ -f /usr/local/bin/pst2ldif ]; then
+    pushd /home/ldap
+    pst=outlook.pst
+    #rm -f pst2ldif.log my.log
+    /usr/local/bin/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif2
+    #./readpstlog pst2ldif.log | less >my.log
+    #hexdump -C $pst >pst.dump
+
+    grep '^dn:' ams.ldif2 | sort >aaa
+    grep '^dn:' ams.ldif  | sort >bbb
     echo 'differences from nightly ldap'
     diff aaa bbb
     echo 'end differences'

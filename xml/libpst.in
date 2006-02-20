@@ -7,12 +7,12 @@
         The most recent documentation is available at <ulink
         url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/</ulink>
         </para>
-
     </partintro>
+
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2006-02-19</date>
+            <date>2006-02-20</date>
         </refentryinfo>
 
         <refmeta>
@@ -40,13 +40,12 @@
                 <arg><option>-S</option></arg>
                 <arg><option>-V</option></arg>
                 <arg><option>-w</option></arg>
-                <arg>files...</arg>
+                <arg rep='repeat' choice='plain'>files</arg>
             </cmdsynopsis>
         </refsynopsisdiv>
 
         <refsect1 id='readpst.description.1'>
             <title>Description</title>
-            <para>This manual page briefly documents the <command>readpst</command> command.</para>
             <para><command>readpst</command> is a program that can read an Outlook PST (Personal Folders) file
                 and convert it into an mbox file, a format suitable for KMail, a recursive mbox
                 structure, or separate emails.
@@ -72,7 +71,7 @@
                 <varlistentry>
                     <term>-h</term>
                     <listitem><para>
-                        Show summary of options.
+                        Show summary of options. Subsequent options are then ignored.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -119,7 +118,7 @@
                 <varlistentry>
                     <term>-V</term>
                     <listitem><para>
-                        Show version of program. Subsequent options are then ignored.
+                        Show program version. Subsequent options are then ignored.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -181,7 +180,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2006-02-19</date>
+            <date>2006-02-20</date>
         </refentryinfo>
 
         <refmeta>
@@ -192,26 +191,25 @@
 
         <refnamediv id='readpstlog.name.1'>
             <refname>readpstlog</refname>
-            <refpurpose>convert a readpst logfile to text format</refpurpose>
+            <refpurpose>convert a <command>readpst</command> logfile to text format</refpurpose>
         </refnamediv>
 
         <refsynopsisdiv id='readpstlog.synopsis.1'>
             <title>Synopsis</title>
             <cmdsynopsis>
-                <command>readpst</command>
+                <command>readpstlog</command>
                 <arg><option>-f <replaceable class="parameter">format</replaceable></option></arg>
                 <arg><option>-t <replaceable class="parameter">include-types</replaceable></option></arg>
                 <arg><option>-x <replaceable class="parameter">exclude-types</replaceable></option></arg>
-                <arg>logfile</arg>
+                <arg choice='plain'>logfile</arg>
             </cmdsynopsis>
         </refsynopsisdiv>
 
         <refsect1 id='readpstlog.description.1'>
             <title>Description</title>
-            <para>This manual page briefly documents the <command>readpstlog</command> command.</para>
             <para><command>readpstlog</command>
-                is a program that reads the binary logfile generated
-                by <command>readpst</command>, and outputs it in a more desirable format (i.e. text).
+                is a program that converts the binary logfile generated
+                by <command>readpst</command> to a more desirable text format.
             </para>
         </refsect1>
 
@@ -244,8 +242,8 @@
 
         <refsect1 id='readpstlog.message.types.1'>
             <title>Message Types</title>
-            <para>
-                <command>readpstlog</command> understands the following types of log messages:
+            <para><command>readpstlog</command> understands the following types of log
+                messages:
             </para>
             <variablelist>
                 <varlistentry>
@@ -345,5 +343,818 @@
                 $Id$
             </para>
         </refsect1>
+    </refentry>
+
+
+    <refentry id="pst2ldif.1">
+        <refentryinfo>
+            <date>2006-02-20</date>
+        </refentryinfo>
+
+        <refmeta>
+            <refentrytitle>pst2ldif</refentrytitle>
+            <manvolnum>1</manvolnum>
+            <refmiscinfo>pst2ldif @VERSION@</refmiscinfo>
+        </refmeta>
+
+        <refnamediv id='pst2ldif.name.1'>
+            <refname>pst2ldif</refname>
+            <refpurpose>extract contacts from a MS Outlook .pst file in .ldif format</refpurpose>
+        </refnamediv>
+
+        <refsynopsisdiv id='pst2ldif.synopsis.1'>
+            <title>Synopsis</title>
+            <cmdsynopsis>
+                <command>pst2ldif</command>
+                <arg><option>-h</option></arg>
+                <arg><option>-V</option></arg>
+                <arg><option>-b <replaceable class="parameter">ldap-base</replaceable></option></arg>
+                <arg><option>-c <replaceable class="parameter">class</replaceable></option></arg>
+                <arg choice='plain'>pstfilename</arg>
+            </cmdsynopsis>
+        </refsynopsisdiv>
+
+        <refsect1 id='pst2ldif.options.1'>
+            <title>Options</title>
+            <variablelist>
+                <varlistentry>
+                    <term>-h</term>
+                    <listitem><para>
+                        Show summary of options. Subsequent options are then ignored.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-V <replaceable class="parameter">include-types</replaceable></term>
+                    <listitem><para>
+                        Show program version. Subsequent options are then ignored.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-b <replaceable class="parameter">ldap-base</replaceable></term>
+                    <listitem><para>
+                        Sets the ldap base value used in the dn records. You probably want to
+                        use something like "o=organization, c=US".
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-c <replaceable class="parameter">class</replaceable></term>
+                    <listitem><para>
+                        Sets the objectClass values for the contact items. This class needs to be
+                        defined in the schema used by your LDAP server, and at a minimum it must
+                        contain the ldap attributes given below.
+                    </para></listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect1>
+
+        <refsect1 id='pst2ldif.description.1'>
+            <title>Description</title>
+            <para><command>pst2ldif</command>
+                reads the contact information from a MS Outlook .pst file
+                and produces a .ldif file that may be used to import those contacts
+                into an LDAP database. The following ldap attributes are generated:
+                <simplelist>
+                    <member>cn </member>
+                    <member>givenName </member>
+                    <member>sn </member>
+                    <member>personalTitle </member>
+                    <member>company </member>
+                    <member>mail </member>
+                    <member>postalAddress </member>
+                    <member>l </member>
+                    <member>st </member>
+                    <member>postalCode </member>
+                    <member>c </member>
+                    <member>homePhone </member>
+                    <member>telephoneNumber </member>
+                    <member>facsimileTelephoneNumber </member>
+                    <member>mobile </member>
+                    <member>description </member>
+                </simplelist>
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst2ldif.copyright.1'>
+            <title>Copyright</title>
+            <para>
+                Copyright (C) 2006 by 510 Software Group &lt;carl@five-ten-sg.com&gt;
+            </para>
+            <para>
+                This program is free software; you can redistribute it and/or modify it
+                under the terms of the GNU General Public License as published by the
+                Free Software Foundation; either version 2, or (at your option) any
+                later version.
+            </para>
+            <para>
+                You should have received a copy of the GNU General Public License along
+                with this program; see the file COPYING.  If not, please write to the
+                Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst2ldif.version.1'>
+            <title>CVS Version</title>
+            <para>
+                $Id$
+            </para>
+        </refsect1>
+    </refentry>
+
+
+    <refentry id="pst.5">
+        <refentryinfo>
+            <date>2006-02-20</date>
+        </refentryinfo>
+
+        <refmeta>
+            <refentrytitle>outlook.pst</refentrytitle>
+            <manvolnum>5</manvolnum>
+        </refmeta>
+
+        <refnamediv id='pst.name.1'>
+            <refname>outlook.pst</refname>
+            <refpurpose>format of MS Outlook .pst file</refpurpose>
+        </refnamediv>
+
+        <refsynopsisdiv id='pst.synopsis.1'>
+            <title>Synopsis</title>
+            <cmdsynopsis>
+                <command>outlook.pst</command>
+            </cmdsynopsis>
+        </refsynopsisdiv>
+
+        <refsect1 id='pst.file.overview.5'>
+            <title>Overview</title>
+            <para>
+                Each item in a .pst file is identified by two id values ID1 and ID2.
+                There are two separate b-trees indexed by these ID1 and ID2 values.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst.file.header.5'>
+            <title>File Header</title>
+            <para>
+                The file header is located at offset 0 in the .pst file.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  21 42 44 4e 49 f8 64 d9  53 4d 0e 00 13 00 01 01
+0010  00 00 00 00 00 00 00 00  50 d6 03 00 bd 1e 02 00
+0020  08 4c 00 00 00 04 00 00  00 04 00 00 0f 04 00 00
+0030  0d 40 00 00 99 0a 01 00  18 04 00 00 0d 40 00 00
+0040  0d 40 00 00 11 80 00 00  02 04 00 00 0a 04 00 00
+0050  00 04 00 00 00 04 00 00  0f 04 00 00 0f 04 00 00
+0060  0f 04 00 00 0d 40 00 00  00 04 00 00 00 04 00 00
+0070  04 40 00 00 00 04 00 00  00 04 00 00 00 04 00 00
+0080  00 04 00 00 00 04 00 00  00 04 00 00 00 04 00 00
+0090  00 04 00 00 00 04 00 00  00 04 00 00 00 04 00 00
+00a0  0c 09 00 00 00 00 00 00  00 04 27 00 00 24 23 00
+00b0  c0 09 0a 00 00 c8 00 00  bc 1e 02 00 00 7e 0c 00
+00c0  b4 1e 02 00 00 54 00 00  01 00 00 00 23 55 44 d1
+00d0  5a 4f ce 6b 80 ff ff ff  00 00 00 00 00 00 00 00
+00e0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+00f0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0100  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0110  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0120  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0130  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0140  00 00 00 00 00 00 00 00  00 00 00 00 3f ff ff ff
+0150  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+0160  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+0170  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+0180  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+0190  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+01a0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+01b0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+01c0  ff ff ff ff ff ff ff ff  ff ff ff ff 80 01 00 00
+01d0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+01e0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+01f0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+
+0000  signature       [4 bytes] 0x4e444221 constant
+000a  index type      [1 byte]  0x0e       constant
+01cd  encryption type [1 byte]  0x01       constant
+00a8  total file size [4 bytes] 0x270400   in this case
+00c0  back-pointer-1  [4 bytes] 0x021eb4   in this case
+00c4  offset-index-1  [4 bytes] 0x005400   in this case
+00b8  back-pointer-2  [4 bytes] 0x021ebc   in this case
+00bc  offset-index-2  [4 bytes] 0x0c7e00   in this case
+]]></literallayout>
+            <para>
+                We only support index type 0x0E and encryption type 0x01.
+            </para>
+            <para>
+                offset-index-1 is the file offset of the root of the
+                index1 b-tree, which contains (ID1, offset, size, unknown) tuples
+                for each item in the file. back-pointer-1 is the value that should
+                appear in the parent pointer of that root node.
+            </para>
+            <para>
+                offset-index-2 is the file offset of the root of the
+                index2 b-tree, which contains (ID2, DESC-ID1, LIST-ID1, PARENT-ID2)
+                tuples for each item in the file. back-pointer-2 is the value that should
+                appear in the parent pointer of that root node.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst.file.node1.5'>
+            <title>Index 1 Node</title>
+            <para>
+                The index1 b-tree nodes are 516 byte blocks with the following format.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  04 00 00 00  8a 1e 02 00  00 1c 0b 00
+000c  58 27 03 00  b3 1e 02 00  00 52 00 00
+0018  00 00 00 00  00 00 00 00  00 00 00 00
+0024  00 00 00 00  00 00 00 00  00 00 00 00
+0030  00 00 00 00  00 00 00 00  00 00 00 00
+003c  00 00 00 00  00 00 00 00  00 00 00 00
+0048  00 00 00 00  00 00 00 00  00 00 00 00
+0054  00 00 00 00  00 00 00 00  00 00 00 00
+0060  00 00 00 00  00 00 00 00  00 00 00 00
+006c  00 00 00 00  00 00 00 00  00 00 00 00
+0078  00 00 00 00  00 00 00 00  00 00 00 00
+0084  00 00 00 00  00 00 00 00  00 00 00 00
+0090  00 00 00 00  00 00 00 00  00 00 00 00
+009c  00 00 00 00  00 00 00 00  00 00 00 00
+00a8  00 00 00 00  00 00 00 00  00 00 00 00
+00b4  00 00 00 00  00 00 00 00  00 00 00 00
+00c0  00 00 00 00  00 00 00 00  00 00 00 00
+00cc  00 00 00 00  00 00 00 00  00 00 00 00
+00d8  00 00 00 00  00 00 00 00  00 00 00 00
+00e4  00 00 00 00  00 00 00 00  00 00 00 00
+00f0  00 00 00 00  00 00 00 00  00 00 00 00
+00fc  00 00 00 00  00 00 00 00  00 00 00 00
+0108  00 00 00 00  00 00 00 00  00 00 00 00
+0114  00 00 00 00  00 00 00 00  00 00 00 00
+0120  00 00 00 00  00 00 00 00  00 00 00 00
+012c  00 00 00 00  00 00 00 00  00 00 00 00
+0138  00 00 00 00  00 00 00 00  00 00 00 00
+0144  00 00 00 00  00 00 00 00  00 00 00 00
+0150  00 00 00 00  00 00 00 00  00 00 00 00
+015c  00 00 00 00  00 00 00 00  00 00 00 00
+0168  00 00 00 00  00 00 00 00  00 00 00 00
+0174  00 00 00 00  00 00 00 00  00 00 00 00
+0180  00 00 00 00  00 00 00 00  00 00 00 00
+018c  00 00 00 00  00 00 00 00  00 00 00 00
+0198  00 00 00 00  00 00 00 00  00 00 00 00
+01a4  00 00 00 00  00 00 00 00  00 00 00 00
+01b0  00 00 00 00  00 00 00 00  00 00 00 00
+01bc  00 00 00 00  00 00 00 00  00 00 00 00
+01c8  00 00 00 00  00 00 00 00  00 00 00 00
+01d4  00 00 00 00  00 00 00 00  00 00 00 00
+01e0  00 00 00 00  00 00 00 00  00 00 00 00
+01ec  00 00 00 00  02 29 0c 02  80 80 b6 4a
+01f8  b4 1e 02 00  27 9c cc 56  58 27 03 00
+
+01f0  item-count      [1 byte]  0x02       in this case
+01f1  max-item-count  [1 byte]  0x29       constant
+01f3  node-level      [1 byte]  0x02       in this case
+01f8  back-pointer    [4 bytes] 0x021eb4   in this case
+]]></literallayout>
+            <para>
+                The item-count specifies the number of 12 byte records that
+                are active. The node-level is non-zero for this style of nodes.
+                The leaf nodes have a different format. The back-pointer must
+                match the back-pointer from the triple that pointed to this node.
+            </para>
+            <para>
+                Each item in this node is a triple of (ID, back-pointer, offset)
+                where the offset points to the next deeper node in the tree, the
+                back-pointer value must match the back-pointer in that deeper node,
+                and ID is the lowest ID value in the subtree.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst.file.leaf1.5'>
+            <title>Index 1 Leaf Node</title>
+            <para>
+                The index1 b-tree leaf nodes are 516 byte blocks with the following format.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  04 00 00 00  00 58 00 00  64 00  0f 00
+000c  08 00 00 00  80 58 00 00  ac 00  06 00
+0018  0c 00 00 00  40 59 00 00  ac 00  06 00
+0024  10 00 00 00  00 5a 00 00  bc 00  03 00
+0030  14 00 00 00  00 5b 00 00  a4 00  02 00
+003c  18 00 00 00  c0 5b 00 00  64 00  02 00
+0048  1c 00 00 00  40 5c 00 00  5c 00  02 00
+0054  50 00 00 00  80 62 00 00  60 00  02 00
+0060  74 00 00 00  00 77 00 00  5e 00  02 00
+006c  7c 00 00 00  80 77 00 00  66 00  02 00
+0078  84 00 00 00  00 76 00 00  ca 00  02 00
+0084  88 00 00 00  00 63 00 00  52 00  02 00
+0090  90 00 00 00  00 79 00 00  58 00  02 00
+009c  cc 00 00 00  c0 61 00 00  76 00  02 00
+00a8  e0 00 00 00  00 61 00 00  74 00  02 00
+00b4  f4 00 00 00  80 65 00 00  6e 00  02 00
+00c0  8c 01 00 00  40 60 00 00  70 00  02 00
+00cc  ea 01 00 00  80 61 00 00  10 00  02 00
+00d8  ec 01 00 00  40 8a 00 00  f3 01  02 00
+00e4  f0 01 00 00  80 93 00 00  f4 1f  02 00
+00f0  fa 01 00 00  c0 7f 00 00  10 00  02 00
+00fc  00 02 00 00  00 89 00 00  34 01  02 00
+0108  1c 02 00 00  40 ec 00 00  12 06  02 00
+0114  22 02 00 00  00 84 00 00  10 00  02 00
+0120  24 02 00 00  c0 ea 00 00  3c 01  02 00
+012c  40 02 00 00  00 f4 00 00  0a 06  02 00
+0138  46 02 00 00  40 8c 00 00  10 00  02 00
+0144  48 02 00 00  80 f2 00 00  36 01  02 00
+0150  64 02 00 00  80 fb 00 00  bf 07  02 00
+015c  6a 02 00 00  80 63 00 00  10 00  02 00
+0168  6c 02 00 00  40 fa 00 00  2a 01  02 00
+0174  6c 02 00 00  40 fa 00 00  2a 01  02 00
+0180  6c 02 00 00  40 fa 00 00  2a 01  02 00
+018c  6c 02 00 00  40 fa 00 00  2a 01  02 00
+0198  6c 02 00 00  40 fa 00 00  2a 01  02 00
+01a4  6c 02 00 00  40 fa 00 00  2a 01  02 00
+01b0  64 02 00 00  80 fb 00 00  bf 07  02 00
+01bc  64 02 00 00  80 fb 00 00  bf 07  02 00
+01c8  64 02 00 00  80 fb 00 00  bf 07  02 00
+01d4  64 02 00 00  80 fb 00 00  bf 07  02 00
+01e0  64 02 00 00  80 fb 00 00  bf 07  02 00
+01ec  00 00 00 00  1f 29 0c 00  80 80  5b b3
+01f8  5a 67 01 00  4f ae 70 a7  92 06  00 00
+
+01f0  item-count      [1 byte]  0x1f       in this case
+01f1  max-item-count  [1 byte]  0x29       constant
+01f3  node-level      [1 byte]  0x00       in this case
+01f8  back-pointer    [4 bytes] 0x01675a   in this case
+]]></literallayout>
+            <para>
+                The item-count specifies the number of 12 byte records that
+                are active. The node-level is zero for these leaf nodes.
+                The back-pointer must match the back-pointer from the triple
+                that pointed to this node.
+            </para>
+            <para>
+                Each item in this node is a tuple of (ID1, offset, size, unknown)
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst.file.node2.5'>
+            <title>Index 2 Node</title>
+            <para>
+                The index2 b-tree nodes are 516 byte blocks with the following format.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  21 00 00 00  bb 1e 02 00  00 e2 0b 00
+000c  64 78 20 00  8c 1e 02 00  00 dc 0b 00
+0018  00 00 00 00  00 00 00 00  00 00 00 00
+0024  00 00 00 00  00 00 00 00  00 00 00 00
+0030  00 00 00 00  00 00 00 00  00 00 00 00
+003c  00 00 00 00  00 00 00 00  00 00 00 00
+0048  00 00 00 00  00 00 00 00  00 00 00 00
+0054  00 00 00 00  00 00 00 00  00 00 00 00
+0060  00 00 00 00  00 00 00 00  00 00 00 00
+006c  00 00 00 00  00 00 00 00  00 00 00 00
+0078  00 00 00 00  00 00 00 00  00 00 00 00
+0084  00 00 00 00  00 00 00 00  00 00 00 00
+0090  00 00 00 00  00 00 00 00  00 00 00 00
+009c  00 00 00 00  00 00 00 00  00 00 00 00
+00a8  00 00 00 00  00 00 00 00  00 00 00 00
+00b4  00 00 00 00  00 00 00 00  00 00 00 00
+00c0  00 00 00 00  00 00 00 00  00 00 00 00
+00cc  00 00 00 00  00 00 00 00  00 00 00 00
+00d8  00 00 00 00  00 00 00 00  00 00 00 00
+00e4  00 00 00 00  00 00 00 00  00 00 00 00
+00f0  00 00 00 00  00 00 00 00  00 00 00 00
+00fc  00 00 00 00  00 00 00 00  00 00 00 00
+0108  00 00 00 00  00 00 00 00  00 00 00 00
+0114  00 00 00 00  00 00 00 00  00 00 00 00
+0120  00 00 00 00  00 00 00 00  00 00 00 00
+012c  00 00 00 00  00 00 00 00  00 00 00 00
+0138  00 00 00 00  00 00 00 00  00 00 00 00
+0144  00 00 00 00  00 00 00 00  00 00 00 00
+0150  00 00 00 00  00 00 00 00  00 00 00 00
+015c  00 00 00 00  00 00 00 00  00 00 00 00
+0168  00 00 00 00  00 00 00 00  00 00 00 00
+0174  00 00 00 00  00 00 00 00  00 00 00 00
+0180  00 00 00 00  00 00 00 00  00 00 00 00
+018c  00 00 00 00  00 00 00 00  00 00 00 00
+0198  00 00 00 00  00 00 00 00  00 00 00 00
+01a4  00 00 00 00  00 00 00 00  00 00 00 00
+01b0  00 00 00 00  00 00 00 00  00 00 00 00
+01bc  00 00 00 00  00 00 00 00  00 00 00 00
+01c8  00 00 00 00  00 00 00 00  00 00 00 00
+01d4  00 00 00 00  00 00 00 00  00 00 00 00
+01e0  00 00 00 00  00 00 00 00  00 00 00 00
+01ec  00 00 00 00  02 29 0c 02  81 81 b2 60
+01f8  bc 1e 02 00  7e 70 dc e3  21 00 00 00
+
+01f0  item-count      [1 byte]  0x02       in this case
+01f1  max-item-count  [1 byte]  0x29       constant
+01f3  node-level      [1 byte]  0x02       in this case
+01f8  back-pointer    [4 bytes] 0x021ebc   in this case
+]]></literallayout>
+            <para>
+                The item-count specifies the number of 12 byte records that
+                are active. The node-level is non-zero for this style of nodes.
+                The leaf nodes have a different format. The back-pointer must
+                match the back-pointer from the triple that pointed to this node.
+            </para>
+            <para>
+                Each item in this node is a triple of (ID2, back-pointer, offset)
+                where the offset points to the next deeper node in the tree, the
+                back-pointer value must match the back-pointer in that deeper node,
+                and ID2 is the lowest ID2 value in the subtree.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst.file.leaf2.5'>
+            <title>Index 2 Leaf Node</title>
+            <para>
+                The index2 b-tree leaf nodes are 516 byte blocks with the following format.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  21 00 00 00  38 e6 00 00  00 00 00 00  00 00 00 00
+0010  61 00 00 00  2c a8 02 00  36 a8 02 00  00 00 00 00
+0020  22 01 00 00  20 a2 02 00  00 00 00 00  22 01 00 00
+0030  2d 01 00 00  88 7b 03 00  00 00 00 00  00 00 00 00
+0040  2e 01 00 00  08 00 00 00  00 00 00 00  00 00 00 00
+0050  2f 01 00 00  0c 00 00 00  00 00 00 00  00 00 00 00
+0060  e1 01 00 00  00 00 00 00  00 00 00 00  00 00 00 00
+0070  01 02 00 00  b4 e4 02 00  00 00 00 00  00 00 00 00
+0080  61 02 00 00  a0 e4 02 00  00 00 00 00  00 00 00 00
+0090  0d 06 00 00  04 00 00 00  00 00 00 00  00 00 00 00
+00A0  0e 06 00 00  08 00 00 00  00 00 00 00  00 00 00 00
+00B0  0f 06 00 00  0c 00 00 00  00 00 00 00  00 00 00 00
+00C0  10 06 00 00  10 00 00 00  00 00 00 00  00 00 00 00
+00D0  2b 06 00 00  84 00 00 00  00 00 00 00  00 00 00 00
+00E0  4c 06 00 00  1c 00 00 00  00 00 00 00  00 00 00 00
+00F0  71 06 00 00  18 00 00 00  00 00 00 00  00 00 00 00
+0100  92 06 00 00  14 00 00 00  00 00 00 00  00 00 00 00
+0110  23 22 00 00  14 a0 02 00  00 00 00 00  22 01 00 00
+0120  26 22 00 00  00 00 00 00  00 00 00 00  00 00 00 00
+0130  27 22 00 00  1c a0 02 00  00 00 00 00  00 00 00 00
+0140  22 80 00 00  50 00 00 00  00 00 00 00  22 01 00 00
+0150  2d 80 00 00  f8 9f 02 00  00 00 00 00  00 00 00 00
+0160  2e 80 00 00  08 00 00 00  00 00 00 00  00 00 00 00
+0170  2f 80 00 00  34 e6 00 00  00 00 00 00  00 00 00 00
+0180  42 80 00 00  3c 6d 02 00  00 00 00 00  22 80 00 00
+0190  4d 80 00 00  04 00 00 00  00 00 00 00  00 00 00 00
+01A0  4e 80 00 00  10 6d 02 00  00 00 00 00  00 00 00 00
+01B0  4f 80 00 00  ec 23 00 00  00 00 00 00  00 00 00 00
+01C0  62 80 00 00  38 78 02 00  00 00 00 00  22 01 00 00
+01D0  6d 80 00 00  34 78 02 00  00 00 00 00  00 00 00 00
+01E0  6e 80 00 00  08 00 00 00  00 00 00 00  00 00 00 00
+01F0  10 1f 10 00  81 81 a0 9a  ae 1e 02 00  89 44 6a 0f
+0200  b8 b1 03 00
+
+01f0  item-count      [1 byte]  0x10       in this case
+01f1  max-item-count  [1 byte]  0x1f       constant
+01f3  node-level      [1 byte]  0x00       in this case
+01f8  back-pointer    [4 bytes] 0x021eae   in this case
+]]></literallayout>
+            <para>
+                The item-count specifies the number of 16 byte records that
+                are active. The node-level is zero for these leaf nodes.
+                The back-pointer must match the back-pointer from the triple
+                that pointed to this node.
+            </para>
+            <para>
+                Each item in this node is a tuple of (ID2, DESC-ID1, LIST-ID1, PARENT-ID2)
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst.file.list.5'>
+            <title>Associated List Item</title>
+            <para>
+                Contains associations between id1 and id2 for the items controlled by the record.
+                In the above leaf node, we have a tuple of (0x61, 0x02a82c, 0x02a836, 0)
+                0x02a836 is the ID1 of the associated list, and we can lookup that ID1 value
+                in the index1 b-tree to find the (offset,size) of the data in the .pst file.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  02 00  01 00  9f 81 00 00  30 a8 02 00  00 00 00 00
+
+0000  unknown         [2 bytes] 0x0002     constant
+0002  count           [2 bytes] 0x0001     in this case
+  repeating
+0004  id2             [4 bytes] 0x00819f   in this case
+0008  id              [4 bytes] 0x02a830   in this case
+000c  unknown         [4 bytes] 0          in this case
+]]></literallayout>
+        </refsect1>
+
+        <refsect1 id='pst.file.desc.5'>
+            <title>Associated Descriptor Item</title>
+            <para>
+                Contains information about the item, which may be email, contact, or other outlook types.
+                In the above leaf node, we have a tuple of (0x21, 0x00e638, 0, 0)
+                0x00e638 is the ID1 of the associated descriptor, and we can lookup that ID1 value
+                in the index1 b-tree to find the (offset,size) of the data in the .pst file.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  3c 01 ec bc  20 00 00 00  00 00 00 00  b5 02 06 00
+0010  40 00 00 00  f9 0f 02 01  60 00 00 00  01 30 1e 00
+0020  80 00 00 00  04 30 1e 00  00 00 00 00  df 35 03 00
+0030  ff 00 00 00  e0 35 02 01  a0 00 00 00  e2 35 02 01
+0040  e0 00 00 00  e3 35 02 01  c0 00 00 00  e4 35 02 01
+0050  00 01 00 00  e5 35 02 01  20 01 00 00  e6 35 02 01
+0060  40 01 00 00  e7 35 02 01  60 01 00 00  1e 66 0b 00
+0070  00 00 00 00  ff 67 03 00  00 00 00 00  d2 7f 17 d8
+0080  64 8c d5 11  83 24 00 50  04 86 95 45  53 74 61 6e
+0090  6c 65 79 00  00 00 00 d2  7f 17 d8 64  8c d5 11 83
+00A0  24 00 50 04  86 95 45 22  80 00 00 00  00 00 00 d2
+00B0  7f 17 d8 64  8c d5 11 83  24 00 50 04  86 95 45 42
+00C0  80 00 00 00  00 00 00 d2  7f 17 d8 64  8c d5 11 83
+00D0  24 00 50 04  86 95 45 a2  80 00 00 00  00 00 00 d2
+00E0  7f 17 d8 64  8c d5 11 83  24 00 50 04  86 95 45 c2
+00F0  80 00 00 00  00 00 00 d2  7f 17 d8 64  8c d5 11 83
+0100  24 00 50 04  86 95 45 e2  80 00 00 00  00 00 00 d2
+0110  7f 17 d8 64  8c d5 11 83  24 00 50 04  86 95 45 02
+0120  81 00 00 00  00 00 00 d2  7f 17 d8 64  8c d5 11 83
+0130  24 00 50 04  86 95 45 62  80 00 00 00  0b 00 00 00
+0140  0c 00 14 00  7c 00 8c 00  93 00 ab 00  c3 00 db 00
+0150  f3 00 0b 01  23 01 3b 01
+
+0000  index-offset    [2 bytes] 0x013c     in this case
+0002  signature       [2 bytes] 0xbcec     constant
+0004  offset          [2 bytes] 0x0020     in this case
+]]></literallayout>
+            <para>
+                Note the index-offset of 0x013c - starting at that position in the
+                descriptor block, we have an array of two byte integers. The first
+                integer (0x000b) is a count of the number of overlapping pairs
+                following the count. The first pair is (0, 0xc), the next pair is (0xc, 0x14)
+                and the last (11th) pair is (0x10b, 0x123). These pairs are (start,end+1)
+                offsets of items in this block. So we have count+1 integers following
+                the count value.
+            </para>
+            <para>
+                Note the offset of 0x0020, which needs to be right shifted by 4 bits
+                to become 0x0002, which is then a byte offset to be added to the above
+                index-offset plus two (to skip the count), so it points to the (0xc, 0x14)
+                pair. Finally, we have the offset and size of the "b5" block located at offset 0xc
+                with a size of 8 bytes in this descriptor block. The "b5" block has the
+                following format:
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  signature       [2 bytes] 0x02b5     constant
+0002  unknown         [2 bytes] 0x0006     in this case
+0004  offset          [4 bytes] 0x0040     in this case
+]]></literallayout>
+            <para>
+                Note the "b5" offset of 0x0040, which needs to be right shifted by 4 bits
+                to become 0x0004, which is then a byte offset to be added to the above
+                index-offset plus two (to skip the count), so it points to the (0x14, 0x7c)
+                pair. We now have the offset 0x14 of the descriptor array, composed of 8 byte
+                entries. Each descriptor entry has the following format:
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  item-type       [2 bytes]
+0002  reference-type  [2 bytes]
+0004  value           [4 bytes]
+]]></literallayout>
+            <para>
+                For some reference types (2, 3, 0xb) the value is used directly. Otherwise,
+                the value is generally a non-zero offset, to be right shifted by 4 bits and used to fetch
+                a pair from the index table to find the offset and size of the item in this
+                descriptor block. However, if (value AND 0xf) == 0xf, then the value is an ID2 index.
+            </para>
+            <para>
+                The following reference types are known, but not all of these
+                are implemented in the code yet.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0x0002 - Signed 16bit value
+0x0003 - Signed 32bit value
+0x0004 - 4-byte floating point
+0x0005 - Floating point double
+0x0006 - Signed 64-bit int
+0x0007 - Application Time
+0x000A - 32-bit error value
+0x000B - Boolean (non-zero = true)
+0x000D - Embedded Object
+0x0014 - 8-byte signed integer (64-bit)
+0x001E - Null terminated String
+0x001F - Unicode string
+0x0040 - Systime - Filetime structure
+0x0048 - OLE Guid
+0x0102 - Binary data
+0x1003 - Array of 32bit values
+0x1014 - Array of 64bit values
+0x101E - Array of Strings
+0x1102 - Array of Binary data
+]]></literallayout>
+            <para>
+                The following item types are known, but not all of these
+                are implemented in the code yet.
+                Note:  it appears that some types can have a IPOS value or a ID2 value
+                depending on the size of the field in question.  It is safer to check
+                every field than for me to say what the "usually" contain.  Absolute
+                values though, are generally going to be constant.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0002  AutoForward allowed
+0003  Extended Attributes Table
+0017  Importance Level
+001a  IPM Context. What type of message is this
+0023  Global Delivery Report
+0026  Priority
+0029  Read Receipt
+002b  Reassignment Prohibited
+002e  Original Sensitivity
+0036  Sensitivity
+0037  Email Subject. The referenced item is of type "Subject Type"
+0039  Date. This is likely to be the arrival date
+003b  Outlook Address of Sender
+003f  Outlook structure describing the recipient
+0040  Name of the Outlook recipient structure
+0041  Outlook structure describing the sender
+0042  Name of the Outlook sender structure
+0043  Another structure describing the recipient
+0044  Name of the second recipient structure
+004f  Reply-To Outlook Structure
+0050  Name of the Reply-To structure
+0051  Outlook Name of recipient
+0052  Second Outlook name of recipient
+0057  My address in TO field
+0058  My address in CC field
+0059  Message addressed to me
+0063  Response requested
+0064  Sender's Address access method (SMTP, EX)
+0065  Sender's Address
+0070  Processed Subject (with Fwd:, Re, ... removed)
+0071  Date. Another date
+0075  Recipient Address Access Method (SMTP, EX)
+0076  Recipient's Address
+0077  Second Recipient Access Method (SMTP, EX)
+0078  Second Recipient Address
+007d  Email Header. This is the header that was attached to the email
+0c17  Reply Requested
+0c19  Second sender struct
+0c1a  Name of second sender struct
+0c1d  Second outlook name of sender
+0c1e  Second sender access method (SMTP, EX)
+0c1f  Second Sender Address
+0e01  Delete after submit
+0e03  CC Address?
+0e04  SentTo Address
+0e06  Date.
+0e07  Flag - contains IsSeen value
+0e08  Message Size
+0e0a  Sentmail EntryID
+0e1f  Compressed RTF in Sync
+0e20  Attachment Size
+0ff9  binary record header
+1000  Plain Text Email Body. Does not exist if the email doesn't have a plain text version
+1006  RTF Sync Body CRC
+1007  RTF Sync Body character count
+1008  RTF Sync body tag
+1009  RTF Compressed body
+1010  RTF whitespace prefix count
+1011  RTF whitespace tailing count
+1013  HTML Email Body. Does not exist if the email doesn't have a HTML version
+1035  Message ID
+1042  In-Reply-To or Parent's Message ID
+1046  Return Path
+3001  Folder Name? I have seen this value used for the contacts record aswell
+3002  Address Type
+3003  Contact Address
+3004  Comment
+3007  Date item creation
+3008  Date item modification
+300b  binary record header
+35df  Valid Folder Mask
+35e0  binary record found in first item. Contains the reference to "Top of Personal Folder" item
+35e3  binary record with a reference to "Deleted Items" item
+35e7  binary record with a refernece to "Search Root" item
+3602  the number of emails stored in a folder
+3603  the number of unread emails in a folder
+360a  Has Subfolders
+3613  the folder content description
+3617  Associate Content count
+3701  Binary Data attachment
+3704  Attachment Filename
+3705  Attachement method
+3707  Attachment Filename long
+370b  Attachment Position
+370e  Attachment mime encoding
+3710  Attachment Mime Sequence
+3a00  Contact's Account name
+3a01  Contact Alternate Recipient
+3a02  Callback telephone number
+3a03  Message Conversion Prohibited
+3a05  Contacts Suffix
+3a06  Contacts First Name
+3a07  Contacts Government ID Number
+3a08  Business Telephone Number
+3a09  Home Telephone Number
+3a0a  Contacts Initials
+3a0b  Keyword
+3a0c  Contact's Language
+3a0d  Contact's Location
+3a0e  Mail Permission
+3a0f  MHS Common Name
+3a10  Organizational ID #
+3a11  Contacts Surname
+3a12  original entry id
+3a13  original display name
+3a14  original search key
+3a15  Default Postal Address
+3a16  Company Name
+3a17  Job Title
+3a18  Department Name
+3a19  Office Location
+3a1a  Primary Telephone
+3a1b  Business Phone Number 2
+3a1c  Mobile Phone Number
+3a1d  Radio Phone Number
+3a1e  Car Phone Number
+3a1f  Other Phone Number
+3a20  Transmittable Display Name
+3a21  Pager Phone Number
+3a22  user certificate
+3a23  Primary Fax Number
+3a24  Business Fax Number
+3a25  Home Fax Number
+3a26  Business Address Country
+3a27  Business Address City
+3a28  Business Address State
+3a29  Business Address Street
+3a2a  Business Postal Code
+3a2b  Business PO Box
+3a2c  Telex Number
+3a2d  ISDN Number
+3a2e  Assistant Phone Number
+3a2f  Home Phone 2
+3a30  Assistant's Name
+3a40  Can receive Rich Text
+3a41  Wedding Anniversary
+3a42  Birthday
+3a43  Hobbies
+3a44  Middle Name
+3a45  Display Name Prefix (Title)
+3a46  Profession
+3a47  Preferred By Name
+3a48  Spouse's Name
+3a49  Computer Network Name
+3a4a  Customer ID
+3a4b  TTY/TDD Phone
+3a4c  Ftp Site
+3a4d  Gender
+3a4e  Manager's Name
+3a4f  Nickname
+3a50  Personal Home Page
+3a51  Business Home Page
+3a57  Company Main Phone
+3a58  childrens names
+3a59  Home Address City
+3a5a  Home Address Country
+3a5b  Home Address Postal Code
+3a5c  Home Address State or Province
+3a5d  Home Address Street
+3a5e  Home Address Post Office Box
+3a5f  Other Address City
+3a60  Other Address Country
+3a61  Other Address Postal Code
+3a62  Other Address State
+3a63  Other Address Street
+3a64  Other Address Post Office box
+65e3  Entry ID
+67f2  Attachment ID2 value
+67ff  Password checksum [0x67FF]
+6f02  Secure HTML Body
+6f04  Secure Text Body
+7c07  Top of folders RecID [0x7c07]
+8000  Contain extra bits of information that have been taken from the email's header. I call them extra lines
+8005  Contact Fullname
+801a  Home Address
+801b  Business Address
+801c  Other Address
+8082  Email Address 1 Transport
+8083  Email Address 1 Address
+8084  Email Address 1 Description
+8085  Email Address 1 Record
+8092  Email Address 2 Transport
+8093  Email Address 2 Address
+8094  DEBUG_EMAIL (("Email Address 2 Description
+8095  Email Address 2 Record
+80a2  DEBUG_EMAIL (("Email Address 3 Transport
+80a3  Email Address 3 Address
+80a4  Email Address 3 Description
+80a5  Email Address 3 Record
+80d8  Internet Free/Busy
+8205  Appointment shows as
+8208  Appointment Location
+8214  Label for appointment
+8234  TimeZone of times
+8235  Appointment Start Time
+8236  Appointment End Time
+8516  Duplicate Time Start
+8517  Duplicate Time End
+8530  Followup String
+8534  Mileage
+8535  Billing Information
+8554  Outlook Version
+8560  Appointment Reminder Time
+8700  Journal Entry Type
+8706  Start Timestamp
+8708  End Timestamp
+8712  Journal Entry Type
+]]></literallayout>
+        </refsect1>
+
     </refentry>
 </reference>

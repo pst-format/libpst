@@ -1,9 +1,13 @@
-LibPST 0.5.3 (2006-02-19)
+LibPST 0.5.3 (2006-02-20)
 ===============================
 
-        * switch to gnu autoconf/automake
+        * switch to gnu autoconf/automake. This breaks the MS VC++ projects
+        since the source code is now in the src subdirectory.
+
         * documentation switched to xml, building man pages and html
         from the master xml copy.
+
+        * include rpm .spec file for building src and binary rpms.
 
 
 LibPST 0.5.2 (2006-02-18)
