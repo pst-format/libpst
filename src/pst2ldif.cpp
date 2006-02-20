@@ -45,6 +45,7 @@ extern "C" {
 	#include "common.h"
 	#include "timeconv.h"
 	#include "lzfu.h"
+	#include "version.h"
 }
 
 int32_t   usage();
