@@ -21,22 +21,12 @@
             <refmiscinfo>readpst @VERSION@</refmiscinfo>
         </refmeta>
 
-        <refnamediv id='name.1'>
+        <refnamediv id='readpst.name.1'>
             <refname>readpst</refname>
             <refpurpose>convert PST (MS Outlook Personal Folders) files to mbox format</refpurpose>
         </refnamediv>
 
-        <refsect1 id='description.1'>
-            <title>Description</title>
-            <para>This manual page briefly documents the <command>readpst</command> command.</para>
-            <para>
-                <command>readpst</command> is a program that can read an Outlook PST (Personal Folders) file
-                and convert it into an mbox file, a format suitable for KMail, a recursive mbox
-                structure, or separate emails.
-            </para>
-        </refsect1>
-
-        <refsynopsisdiv id='synopsis.1'>
+        <refsynopsisdiv id='readpst.synopsis.1'>
             <title>Synopsis</title>
             <cmdsynopsis>
                 <command>readpst</command>
@@ -54,7 +44,16 @@
             </cmdsynopsis>
         </refsynopsisdiv>
 
-        <refsect1 id='options.1'>
+        <refsect1 id='readpst.description.1'>
+            <title>Description</title>
+            <para>This manual page briefly documents the <command>readpst</command> command.</para>
+            <para><command>readpst</command> is a program that can read an Outlook PST (Personal Folders) file
+                and convert it into an mbox file, a format suitable for KMail, a recursive mbox
+                structure, or separate emails.
+            </para>
+        </refsect1>
+
+        <refsect1 id='readpst.options.1'>
             <title>Options</title>
             <variablelist>
                 <varlistentry>
@@ -83,7 +82,7 @@
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>-o <replaceable class="parameter">output-directory</term>
+                    <term>-o <replaceable class="parameter">output-directory</replaceable></term>
                     <listitem><para>
                         Specifies the output directory. The directory must already exist, and
                         is entered after the PST file is opened, but before any processing of
@@ -109,7 +108,7 @@
                 <varlistentry>
                     <term>-S</term>
                     <listitem><para>
-                        Output messages into seperate files. This will create folders as
+                        Output messages into separate files. This will create folders as
                         named in the PST file, and will put each email in its own file. These
                         files will be numbered from 000000000 increasing in intervals of 1 (ie
                         000000000, 000000001, 0000000002). Any attachments are saved alongside
@@ -126,7 +125,7 @@
                 <varlistentry>
                     <term>-w</term>
                     <listitem><para>
-                        Overwrite any previous output files. <B>Beware</B>: When used with the -S
+                        Overwrite any previous output files. Beware: When used with the -S
                         switch, this will remove all files from the target folder before
                         writing. This is to keep the count of emails and attachments correct.
                     </para></listitem>
@@ -134,25 +133,25 @@
             </variablelist>
         </refsect1>
 
-        <refsect1 id='also.1'>
+        <refsect1 id='readpst.also.1'>
             <title>See Also</title>
             <para>
-                <citerefentry><refentrytitle>readpstlog</refentrytitle><para>
+                <citerefentry><refentrytitle>readpstlog</refentrytitle></citerefentry>
             </para>
         </refsect1>
 
-        <refsect1 id='author.1'>
+        <refsect1 id='readpst.author.1'>
             <title>Author</title>
             <para>
                 This manual page was originally written by Dave Smith
                 &lt;dave.s@earthcorp.com&gt;, and updated by Joe Nahmias &lt;joe@nahmias.net&gt;
                 for the Debian GNU/Linux system (but may be used by others). It was
-                subsequently updated by Brad Hards &ltbradh@frogmouth.net&gt;, and converted to
+                subsequently updated by Brad Hards &lt;bradh@frogmouth.net&gt;, and converted to
                 xml format by Carl Byington &lt;carl@five-ten-sg.com&gt;.
             </para>
         </refsect1>
 
-        <refsect1 id='copyright.1'>
+        <refsect1 id='readpst.copyright.1'>
             <title>Copyright</title>
             <para>
                 Copyright (C) 2002 by David Smith &lt;dave.s@earthcorp.com&gt;.
@@ -171,7 +170,7 @@
             </para>
         </refsect1>
 
-        <refsect1 id='version.1'>
+        <refsect1 id='readpst.version.1'>
             <title>CVS Version</title>
             <para>
                 $Id$
@@ -191,22 +190,12 @@
             <refmiscinfo>readpstlog @VERSION@</refmiscinfo>
         </refmeta>
 
-        <refnamediv id='name.1'>
+        <refnamediv id='readpstlog.name.1'>
             <refname>readpstlog</refname>
             <refpurpose>convert a readpst logfile to text format</refpurpose>
         </refnamediv>
 
-        <refsect1 id='description.1'>
-            <title>Description</title>
-            <para>This manual page briefly documents the <command>readpstlog</command> command.</para>
-            <para>
-                <command>readpstlog</command>
-                is a program that reads the binary logfile generated
-                by <command>readpst</command>, and outputs it in a more desirable format (i.e. text).
-            </para>
-        </refsect1>
-
-        <refsynopsisdiv id='synopsis.1'>
+        <refsynopsisdiv id='readpstlog.synopsis.1'>
             <title>Synopsis</title>
             <cmdsynopsis>
                 <command>readpst</command>
@@ -217,7 +206,17 @@
             </cmdsynopsis>
         </refsynopsisdiv>
 
-        <refsect1 id='options.1'>
+        <refsect1 id='readpstlog.description.1'>
+            <title>Description</title>
+            <para>This manual page briefly documents the <command>readpstlog</command> command.</para>
+            <para>
+                <command>readpstlog</command>
+                is a program that reads the binary logfile generated
+                by <command>readpst</command>, and outputs it in a more desirable format (i.e. text).
+            </para>
+        </refsect1>
+
+        <refsect1 id='readpstlog.options.1'>
             <title>Options</title>
             <variablelist>
                 <varlistentry>
@@ -244,46 +243,76 @@
             </variablelist>
         </refsect1>
 
-        <refsect1 id='message.types.1'>
+        <refsect1 id='readpstlog.message.types.1'>
             <title>Message Types</title>
             <para>
                 <command>readpstlog</command> understands the following types of log messages:
             </para>
             <variablelist>
-                <listitem><para>
-                    1 File accesses
-                </para></listitem>
-                <listitem><para>
-                    2 Index accesses
-                </para></listitem>
-                <listitem><para>
-                    3 New email found
-                </para></listitem>
-                <listitem><para>
-                    4 Warnings
-                </para></listitem>
-                <listitem><para>
-                    5 Read accesses
-                </para></listitem>
-                <listitem><para>
-                    6 Informational messages
-                </para></listitem>
-                <listitem><para>
-                    7 Main function calls
-                </para></listitem>
-                <listitem><para>
-                    8 Decrypting calls
-                </para></listitem>
-                <listitem><para>
-                    10 Function calls
-                </para></listitem>
-                <listitem><para>
-                    11 HexDump calls
-                </para></listitem>
+                <varlistentry>
+                    <term>1</term>
+                    <listitem><para>
+                        File accesses
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>2</term>
+                    <listitem><para>
+                        Index accesses
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>3</term>
+                    <listitem><para>
+                        New email found
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>4</term>
+                    <listitem><para>
+                        Warnings
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>5</term>
+                    <listitem><para>
+                        Read accesses
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>6</term>
+                    <listitem><para>
+                        Informational messages
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>7</term>
+                    <listitem><para>
+                        Main function calls
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>8</term>
+                    <listitem><para>
+                        Decrypting calls
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>10</term>
+                    <listitem><para>
+                        Function calls
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>11</term>
+                    <listitem><para>
+                        HexDump calls
+                    </para></listitem>
+                </varlistentry>
             </variablelist>
         </refsect1>
 
-        <refsect1 id='author.1'>
+        <refsect1 id='readpstlog.author.1'>
             <title>Author</title>
             <para>
                 This manual page was written by Joe Nahmias &lt;joe@nahmias.net&gt;
@@ -292,7 +321,7 @@
             </para>
         </refsect1>
 
-        <refsect1 id='copyright.1'>
+        <refsect1 id='readpstlog.copyright.1'>
             <title>Copyright</title>
             <para>
                 Copyright (C) 2002 by David Smith &lt;dave.s@earthcorp.com&gt;.
@@ -311,7 +340,7 @@
             </para>
         </refsect1>
 
-        <refsect1 id='version.1'>
+        <refsect1 id='readpstlog.version.1'>
             <title>CVS Version</title>
             <para>
                 $Id$

@@ -37,14 +37,14 @@ build_triplet = @build@
 host_triplet = @host@
 subdir = xml
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/dnsbl.in
+	$(srcdir)/libpst.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = dnsbl
+CONFIG_CLEAN_FILES = libpst
 SOURCES =
 DIST_SOURCES =
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -177,7 +177,7 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-dnsbl: $(top_builddir)/config.status $(srcdir)/dnsbl.in
+libpst: $(top_builddir)/config.status $(srcdir)/libpst.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 
 mostlyclean-libtool:
@@ -307,16 +307,16 @@ uninstall-am: uninstall-info-am
 	mostlyclean-libtool pdf pdf-am ps ps-am uninstall uninstall-am \
 	uninstall-info-am
 
-all: dnsbl
-	   cat header.xml  dnsbl >dnsbl.xml
-	   cat header.sgml dnsbl >dnsbl.sgml
+all: libpst
+	   cat header.xml  libpst >libpst.xml
+	   cat header.sgml libpst >libpst.sgml
 	   rm -f ../html/*html
 	   rm -f ../html/*pdf
-	   xmlto        -o ../man  man   dnsbl.xml
-	   xmlto        -o ../html xhtml dnsbl.xml
-	   xmlto        -o ../html pdf   dnsbl.xml
-	   docbook2texi -o ../info       dnsbl.sgml
-	   rm -f dnsbl.xml dnsbl.sgml
+	   xmlto        -o ../man  man   libpst.xml
+	   xmlto        -o ../html xhtml libpst.xml
+	   xmlto        -o ../html pdf   libpst.xml
+	   docbook2texi -o ../info       libpst.sgml
+	   rm -f libpst.xml libpst.sgml
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

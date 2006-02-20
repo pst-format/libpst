@@ -1,4 +1,4 @@
-all: dnsbl
+all: libpst
 	   cat header.xml  libpst >libpst.xml
 	   cat header.sgml libpst >libpst.sgml
 	   rm -f ../html/*html
