@@ -1,12 +1,25 @@
 #!/bin/bash
 
 pst=outlook.pst
-
 cp /home/ldap/$pst .
+
+T=`grep AM_INIT_AUTOMAKE configure.in | cut -d'(' -f2`
+NAME=`echo $T | cut -d, -f1`
+VER=`echo $T | cut -d, -f2 | cut -d')' -f1`
+BALL=$NAME-$VER.tar.gz
+web=/home/httpd/html/510sg/$NAME
+distlog=/tmp/distcheck
+
+echo $web $BALL
+
 chown --recursive root:root *
-make clean
-make all
+make -f *cvs
+./configure >/dev/null
+(cd xml; make; make distclean)
 chown --recursive carl:carl *
+make distcheck >$distlog 2>&1
+
+exit
 
 if [ -f pst2ldif ]; then
     rm -f pst2ldif.log my.log
