@@ -1,0 +1,4 @@
+    $Id$
+
+0.5.3 2006-01-19 switch to gnu autoconf/automake
+0.5.2 2006-01-18 add pst2ldif, fix btree processing in libpst.c
