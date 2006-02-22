@@ -40,6 +40,7 @@
 #define OUTPUT_TEMPLATE "%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
 #define KMAIL_INDEX ".%s.index"
+#define SEP_MAIL_FILE_TEMPLATE "%i" /* "%09i" */
 
 // max size of the c_time char*. It will store the date of the email
 #define C_TIME_SIZE 500
@@ -79,6 +80,13 @@ int32_t chr_count(char *str, char x);
 char *rfc2425_datetime_format(FILETIME *ft);
 char *rfc2445_datetime_format(FILETIME *ft);
 char *skip_header_prologue(char *headers);
+void write_separate_attachment(char f_name[], pst_item_attach* current_attach, int attach_num, pst_file* pst);
+void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, char boundary[], pst_file* pst);
+void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst);
+void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[]);
+void write_appointment(FILE* f_output, pst_item_appointment* appointment,
+		       pst_item_email* email, FILETIME* create_date, FILETIME* modify_date);
+void create_enter_dir(struct file_ll* f, char file_as[], int mode, int overwrite);
 char *prog_name;
 char *output_dir = ".";
 char *kmail_chdir = NULL;
@@ -120,25 +128,20 @@ int main(int argc, char** argv) {
   pst_file pstfile;
   pst_desc_ll *d_ptr;
   char * fname = NULL;
-  time_t em_time;
-  char * c_time, *d_log=NULL;
+  char *d_log=NULL;
   int c,x;
   int mode = MODE_NORMAL;
+  int mode_MH = 0;
   int output_mode = OUTPUT_NORMAL;
   int contact_mode = CMODE_VCARD;
   int overwrite = 0;
-  int base64_body = 0;
   //  int encrypt = 0;
-  FILE *fp;
-  char *enc; // base64 encoded attachment
-  char *boundary = NULL, *b1, *b2; // the boundary marker between multipart sections
   char *temp = NULL; //temporary char pointer
-  int attach_num = 0;
   int skip_child = 0;
   struct file_ll  *f, *head;
   prog_name = argv[0];
 
-  while ((c = getopt(argc, argv, "d:hko:qrSVwc:"))!= -1) {
+  while ((c = getopt(argc, argv, "d:hko:qrMSVwc:"))!= -1) {
 	switch (c) {
 	case 'c':
 	  if (optarg!=NULL && optarg[0]=='v')
@@ -163,6 +166,10 @@ int main(int argc, char** argv) {
 	  break;
 	case 'k':
 	  mode = MODE_KMAIL;
+	  break;
+	case 'M':
+	  mode = MODE_SEPERATE;
+	  mode_MH = 1;
 	  break;
 	case 'o':
 	  output_dir = optarg;
@@ -248,54 +255,7 @@ int main(int argc, char** argv) {
   f->skip_count = 0;
   f->next = NULL;
   head = f;
-  if (mode == MODE_KMAIL)
-	f->name = mk_kmail_dir(item->file_as);
-  else if (mode == MODE_RECURSE)
-	f->name = mk_recurse_dir(item->file_as);
-  else if (mode == MODE_SEPERATE) {
-	// do similar stuff to recurse here.
-	mk_seperate_dir(item->file_as, overwrite);
-	f->name = (char*) xmalloc(10);
-	sprintf(f->name, "%09i", f->email_count);
-  } else {
-	f->name = (char*) malloc(strlen(item->file_as)+strlen(OUTPUT_TEMPLATE)+1);
-	sprintf(f->name, OUTPUT_TEMPLATE, item->file_as);
-  }
-
-  f->dname = (char*) malloc(strlen(item->file_as)+1);
-  strcpy(f->dname, item->file_as);
-
-  if (overwrite != 1 && mode != MODE_SEPERATE) {
-	// if overwrite is set to 1 we keep the existing name and don't modify anything
-	// we don't want to go changing the file name of the SEPERATE items
-	temp = (char*) malloc (strlen(f->name)+10); //enough room for 10 digits
-	sprintf(temp, "%s", f->name);
-	temp = check_filename(temp);
-	x = 0;
-	while ((f->output = fopen(temp, "r")) != NULL) {
-	  DEBUG_MAIN(("main: need to increase filename cause one already exists with that name\n"));
-	  DEBUG_MAIN(("main: - increasing it to %s%d\n", f->name, x));
-	  x++;
-	  sprintf(temp, "%s%08d", f->name, x);
-	  DEBUG_MAIN(("main: - trying \"%s\"\n", temp));
-	  if (x == 99999999) {
-	DIE(("main: Why can I not create a folder %s? I have tried %i extensions...\n", f->name, x));
-	  }
-	  fclose(f->output);
-	}
-	if (x > 0) { //then the f->name should change
-	  free (f->name);
-	  f->name = temp;
-	} else {
-	  free (temp);
-	}
-  }
-  if (mode != MODE_SEPERATE) {
-	f->name = check_filename(f->name);
-	if ((f->output = fopen(f->name, "w")) == NULL) {
-	  DIE(("main: Could not open file \"%s\" for write\n", f->name));
-	}
-  }
+  create_enter_dir(f, item->file_as, mode, overwrite);
   f->type = item->type;
 
   if ((d_ptr = pst_getTopOfFolders(&pstfile, item)) == NULL) {
@@ -355,56 +315,7 @@ int main(int argc, char** argv) {
 
 	temp = item->file_as;
 	temp = check_filename(temp);
-
-	if (mode == MODE_KMAIL)
-	  f->name = mk_kmail_dir(item->file_as); //create directory and form filename
-	else if (mode == MODE_RECURSE)
-	  f->name = mk_recurse_dir(item->file_as);
-	else if (mode == MODE_SEPERATE) {
-	  // do similar stuff to recurse here.
-	  mk_seperate_dir(item->file_as, overwrite);
-	  f->name = (char*) xmalloc(10);
-	  memset(f->name, 0, 10);
-	  //		sprintf(f->name, "%09i", f->email_count);
-	} else {
-	  f->name = (char*) xmalloc(strlen(item->file_as)+strlen(OUTPUT_TEMPLATE+1));
-	  sprintf(f->name, OUTPUT_TEMPLATE, item->file_as);
-	}
-
-	f->dname = (char*) xmalloc(strlen(item->file_as)+1);
-	strcpy(f->dname, item->file_as);
-
-	if (overwrite != 1) {
-	  temp = (char*) xmalloc (strlen(f->name)+10); //enough room for 10 digits
-	  sprintf(temp, "%s", f->name);
-	  x = 0;
-	  temp = check_filename(temp);
-	  while ((f->output = fopen(temp, "r")) != NULL) {
-		DEBUG_MAIN(("main: need to increase filename cause one already exists with that name\n"));
-		DEBUG_MAIN(("main: - increasing it to %s%d\n", f->name, x));
-		x++;
-		sprintf(temp, "%s%08d", f->name, x);
-		DEBUG_MAIN(("main: - trying \"%s\"\n", f->name));
-		if (x == 99999999) {
-		  DIE(("main: Why can I not create a folder %s? I have tried %i extensions...\n", f->name, x));
-		}
-		fclose(f->output);
-	  }
-	  if (x > 0) { //then the f->name should change
-		free (f->name);
-		f->name = temp;
-	  } else {
-		free(temp);
-	  }
-	}
-
-	DEBUG_MAIN(("main: f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as));
-	if (mode != MODE_SEPERATE) {
-	  f->name = check_filename(f->name);
-	  if ((f->output = fopen(f->name, "w")) == NULL) {
-		DIE(("main: Could not open file \"%s\" for write\n", f->name));
-	  }
-	}
+	create_enter_dir(f, item->file_as, mode, overwrite);
 	if (d_ptr->child != NULL) {
 	  d_ptr = d_ptr->child;
 	  skip_child = 1;
@@ -452,112 +363,11 @@ int main(int argc, char** argv) {
 	if (item->contact == NULL) { // this is an incorrect situation. Inform user
 	  DEBUG_MAIN(("main: ERROR. This contact has not been fully parsed. one of the pre-requisties is NULL\n"));
 	} else {
-	  if (contact_mode == CMODE_VCARD) {
-		// the specification I am following is (hopefully) RFC2426 vCard Mime Directory Profile
-		fprintf(f->output, "BEGIN:VCARD\n");
-		fprintf(f->output, "FN:%s\n", rfc2426_escape(item->contact->fullname));
-		fprintf(f->output, "N:%s;%s;%s;%s;%s\n",
-			rfc2426_escape((item->contact->surname==NULL?"":item->contact->surname)),
-			rfc2426_escape((item->contact->first_name==NULL?"":item->contact->first_name)),
-			rfc2426_escape((item->contact->middle_name==NULL?"":item->contact->middle_name)),
-			rfc2426_escape((item->contact->display_name_prefix==NULL?"":item->contact->display_name_prefix)),
-			rfc2426_escape((item->contact->suffix==NULL?"":item->contact->suffix)));
-		if (item->contact->nickname != NULL)
-		  fprintf(f->output, "NICKNAME:%s\n", rfc2426_escape(item->contact->nickname));
-		if (item->contact->address1 != NULL)
-		  fprintf(f->output, "EMAIL:%s\n", rfc2426_escape(item->contact->address1));
-		if (item->contact->address2 != NULL)
-		  fprintf(f->output, "EMAIL:%s\n", rfc2426_escape(item->contact->address2));
-		if (item->contact->address3 != NULL)
-		  fprintf(f->output, "EMAIL:%s\n", rfc2426_escape(item->contact->address3));
-		if (item->contact->birthday != NULL)
-		  fprintf(f->output, "BDAY:%s\n", rfc2425_datetime_format(item->contact->birthday));
-		if (item->contact->home_address != NULL) {
-		  fprintf(f->output, "ADR;TYPE=home:%s;%s;%s;%s;%s;%s;%s\n",
-			  rfc2426_escape((item->contact->home_po_box!=NULL?item->contact->home_po_box:"")),
-			  "", // extended Address
-			  rfc2426_escape((item->contact->home_street!=NULL?item->contact->home_street:"")),
-			  rfc2426_escape((item->contact->home_city!=NULL?item->contact->home_city:"")),
-			  rfc2426_escape((item->contact->home_state!=NULL?item->contact->home_state:"")),
-			  rfc2426_escape((item->contact->home_postal_code!=NULL?item->contact->home_postal_code:"")),
-			  rfc2426_escape((item->contact->home_country!=NULL?item->contact->home_country:"")));
-		  fprintf(f->output, "LABEL;TYPE=home:%s\n", rfc2426_escape(item->contact->home_address));
-		}
-		if (item->contact->business_address != NULL) {
-		  fprintf(f->output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n",
-			  rfc2426_escape((item->contact->business_po_box!=NULL?item->contact->business_po_box:"")),
-			  "", // extended Address
-			  rfc2426_escape((item->contact->business_street!=NULL?item->contact->business_street:"")),
-			  rfc2426_escape((item->contact->business_city!=NULL?item->contact->business_city:"")),
-			  rfc2426_escape((item->contact->business_state!=NULL?item->contact->business_state:"")),
-			  rfc2426_escape((item->contact->business_postal_code!=NULL?item->contact->business_postal_code:"")),
-			  rfc2426_escape((item->contact->business_country!=NULL?item->contact->business_country:"")));
-		  fprintf(f->output, "LABEL;TYPE=work:%s\n", rfc2426_escape(item->contact->business_address));
-		}
-		if (item->contact->other_address != NULL) {
-		  fprintf(f->output, "ADR;TYPE=postal:%s;%s;%s;%s;%s;%s;%s\n",
-			  rfc2426_escape((item->contact->other_po_box!=NULL?item->contact->business_po_box:"")),
-			  "", // extended Address
-			  rfc2426_escape((item->contact->other_street!=NULL?item->contact->other_street:"")),
-			  rfc2426_escape((item->contact->other_city!=NULL?item->contact->other_city:"")),
-			  rfc2426_escape((item->contact->other_state!=NULL?item->contact->other_state:"")),
-			  rfc2426_escape((item->contact->other_postal_code!=NULL?item->contact->other_postal_code:"")),
-			  rfc2426_escape((item->contact->other_country!=NULL?item->contact->other_country:"")));
-		  fprintf(f->output, "ADR;TYPE=postal:%s\n", rfc2426_escape(item->contact->other_address));
-		}
-		if (item->contact->business_fax != NULL)
-		  fprintf(f->output, "TEL;TYPE=work,fax:%s\n", rfc2426_escape(item->contact->business_fax));
-		if (item->contact->business_phone != NULL)
-		  fprintf(f->output, "TEL;TYPE=work,voice:%s\n", rfc2426_escape(item->contact->business_phone));
-		if (item->contact->business_phone2 != NULL)
-		  fprintf(f->output, "TEL;TYPE=work,voice:%s\n", rfc2426_escape(item->contact->business_phone2));
-		if (item->contact->car_phone != NULL)
-		  fprintf(f->output, "TEL;TYPE=car,voice:%s\n", rfc2426_escape(item->contact->car_phone));
-		if (item->contact->home_fax != NULL)
-		  fprintf(f->output, "TEL;TYPE=home,fax:%s\n", rfc2426_escape(item->contact->home_fax));
-		if (item->contact->home_phone != NULL)
-		  fprintf(f->output, "TEL;TYPE=home,voice:%s\n", rfc2426_escape(item->contact->home_phone));
-		if (item->contact->home_phone2 != NULL)
-		  fprintf(f->output, "TEL;TYPE=home,voice:%s\n", rfc2426_escape(item->contact->home_phone2));
-		if (item->contact->isdn_phone != NULL)
-		  fprintf(f->output, "TEL;TYPE=isdn:%s\n", rfc2426_escape(item->contact->isdn_phone));
-		if (item->contact->mobile_phone != NULL)
-		  fprintf(f->output, "TEL;TYPE=cell,voice:%s\n", rfc2426_escape(item->contact->mobile_phone));
-		if (item->contact->other_phone != NULL)
-		  fprintf(f->output, "TEL;TYPE=msg:%s\n", rfc2426_escape(item->contact->other_phone));
-		if (item->contact->pager_phone != NULL)
-		  fprintf(f->output, "TEL;TYPE=pager:%s\n", rfc2426_escape(item->contact->pager_phone));
-		if (item->contact->primary_fax != NULL)
-		  fprintf(f->output, "TEL;TYPE=fax,pref:%s\n", rfc2426_escape(item->contact->primary_fax));
-		if (item->contact->primary_phone != NULL)
-		  fprintf(f->output, "TEL;TYPE=phone,pref:%s\n", rfc2426_escape(item->contact->primary_phone));
-		if (item->contact->radio_phone != NULL)
-		  fprintf(f->output, "TEL;TYPE=pcs:%s\n", rfc2426_escape(item->contact->radio_phone));
-		if (item->contact->telex != NULL)
-		  fprintf(f->output, "TEL;TYPE=bbs:%s\n", rfc2426_escape(item->contact->telex));
-		if (item->contact->job_title != NULL)
-		  fprintf(f->output, "TITLE:%s\n", rfc2426_escape(item->contact->job_title));
-		if (item->contact->profession != NULL)
-		  fprintf(f->output, "ROLE:%s\n", rfc2426_escape(item->contact->profession));
-		if (item->contact->assistant_name != NULL || item->contact->assistant_phone != NULL) {
-		  fprintf(f->output, "AGENT:BEGIN:VCARD\\n");
-		  if (item->contact->assistant_name != NULL)
-		fprintf(f->output, "FN:%s\\n", rfc2426_escape(item->contact->assistant_name));
-		  if (item->contact->assistant_phone != NULL)
-		fprintf(f->output, "TEL:%s\\n", rfc2426_escape(item->contact->assistant_phone));
-		  fprintf(f->output, "END:VCARD\\n\n");
-		}
-		if (item->contact->company_name != NULL)
-		  fprintf(f->output, "ORG:%s\n", rfc2426_escape(item->contact->company_name));
-		if (item->comment != NULL)
-		  fprintf(f->output, "NOTE:%s\n", rfc2426_escape(item->comment));
-
-		fprintf(f->output, "VERSION: 3.0\n");
-		fprintf(f->output, "END:VCARD\n\n");
-	  } else {
+	  if (contact_mode == CMODE_VCARD)
+	    write_vcard(f->output, item->contact, item->comment);
+	  else
 		fprintf(f->output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
 	  }
-		}
 	  } else if (item->email != NULL &&
 		 (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
 	if (mode == MODE_SEPERATE) {
@@ -567,324 +377,7 @@ int main(int argc, char** argv) {
 	f->email_count++;
 
 	DEBUG_MAIN(("main: seen an email\n"));
-
-	// convert the sent date if it exists, or set it to a fixed date
-	if (item->email->sent_date != NULL) {
-	  em_time = fileTimeToUnixTime(item->email->sent_date, 0);
-	  c_time = ctime(&em_time);
-	  if (c_time != NULL)
-		c_time[strlen(c_time)-1] = '\0'; //remove end \n
-	  else
-		c_time = "Fri Dec 28 12:06:21 2001";
-	} else
-	  c_time= "Fri Dec 28 12:06:21 2001";
-
-	// if the boundary is still set from the previous run, then free it
-	if (boundary != NULL) {
-	  free (boundary);
-	  boundary = NULL;
-	}
-
-	// we will always look at the header to discover some stuff
-	if (item->email->header != NULL ) {
-	  // see if there is a boundary variable there
-	  // this search MUST be made case insensitive (DONE).
-	  // Also, some check to find out if we
-	  // are looking at the boundary associated with content-type, and that the content
-	  // type really is "multipart"
-	  if ((b2 = my_stristr(item->email->header, "boundary=")) != NULL) {
-		b2 += strlen("boundary="); // move boundary to first char of marker
-
-		if (*b2 == '"') {
-		  b2++;
-		  b1 = strchr(b2, '"'); // find terminating quote
-		} else {
-		  b1 = b2;
-		  while (isgraph(*b1)) // find first char that isn't part of boundary
-		b1++;
-		}
-
-		boundary = malloc ((b1-b2)+1); //malloc that length
-		memset (boundary, 0, (b1-b2)+1);  // blank it
-		strncpy(boundary, b2, b1-b2); // copy boundary to another variable
-		b1 = b2 = boundary;
-		while (*b2 != '\0') { // remove any CRs and Tabs
-		  if (*b2 != '\n' && *b2 != '\r' && *b2 != '\t') {
-		*b1 = *b2;
-		b1++;
-		  }
-		  b2++;
-		}
-		*b1 = '\0';
-
-		DEBUG_MAIN(("main: Found boundary of - %s\n", boundary));
-	  } else {
-
-		DEBUG_MAIN(("main: boundary not found in header\n"));
-	  }
-
-	  // also possible to set 7bit encoding detection here.
-	  if ((b2 = my_stristr(item->email->header, "Content-Transfer-Encoding:")) != NULL) {
-		if ((b2 = strchr(b2, ':')) != NULL) {
-		  b2++; // skip to the : at the end of the string
-
-		  while (*b2 == ' ' || *b2 == '\t')
-		b2++;
-		  if (pst_strincmp(b2, "base64", 6)==0) {
-		DEBUG_MAIN(("body is base64 encoded\n"));
-		base64_body = 1;
-		  }
-		} else {
-		  DEBUG_WARN(("found a ':' during the my_stristr, but not after that..\n"));
-		}
-	  }
-
-	}
-
-	DEBUG_MAIN(("main: About to print Header\n"));
-
-	if (item != NULL && item->email != NULL && item->email->subject != NULL &&
-		item->email->subject->subj != NULL) {
-	  DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
-	}
-	if (item->email->header != NULL) {
-	  // some of the headers we get from the file are not properly defined.
-	  // they can contain some email stuff too. We will cut off the header
-	  // when we see a \n\n or \r\n\r\n
-
-	  removeCR(item->email->header);
-
-	  temp = strstr(item->email->header, "\n\n");
-
-	  if (temp != NULL) {
-		DEBUG_MAIN(("main: Found body text in header\n"));
-		*temp = '\0';
-	  }
-
-	  if (mode != MODE_SEPERATE) {
-		char *soh = NULL;  // real start of headers.
-		// don't put rubbish in if we are doing seperate
-		fprintf(f->output, "From \"%s\" %s\n", item->email->outlook_sender_name, c_time);
-		soh = skip_header_prologue(item->email->header);
-		   fprintf(f->output, "%s\n", soh);
-	  } else {
-		   fprintf(f->output, "%s", item->email->header);
-	  }
-	} else {
-	  //make up our own header!
-	  if (mode != MODE_SEPERATE) {
-		// don't want this first line for this mode
-		if (item->email->outlook_sender_name != NULL) {
-		  temp = item->email->outlook_sender_name;
-		} else {
-		  temp = "(readpst_null)";
-		}
-		fprintf(f->output, "From \"%s\" %s\n", temp, c_time);
-	  }
-	  if ((temp = item->email->outlook_sender) == NULL)
-		temp = "";
-	  fprintf(f->output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name, temp);
-	  if (item->email->subject != NULL) {
-		fprintf(f->output, "Subject: %s\n", item->email->subject->subj);
-	  } else {
-		fprintf(f->output, "Subject: \n");
-	  }
-	  fprintf(f->output, "To: %s\n", item->email->sentto_address);
-	  if (item->email->cc_address != NULL) {
-		   fprintf(f->output, "Cc: %s\n", item->email->cc_address);
-	  }
-	  if (item->email->sent_date != NULL) {
-		c_time = (char*) xmalloc(C_TIME_SIZE);
-		strftime(c_time, C_TIME_SIZE, "%a, %d %b %Y %H:%M:%S %z", gmtime(&em_time));
-		fprintf(f->output, "Date: %s\n", c_time);
-		free(c_time);
-	  }
-
-	  fprintf(f->output, "MIME-Version: 1.0\n");
-	   }
-	   if (boundary == NULL && (item->attach ||(item->email->body && item->email->htmlbody)
-								|| item->email->rtf_compressed || item->email->encrypted_body
-								|| item->email->encrypted_htmlbody)) {
-		 // we need to create a boundary here.
-		 DEBUG_EMAIL(("main: must create own boundary. oh dear.\n"));
-		 boundary = malloc(50 * sizeof(char)); // allow 50 chars for boundary
-		 boundary[0] = '\0';
-		 sprintf(boundary, "--boundary-LibPST-iamunique-%i_-_-", rand());
-		 DEBUG_EMAIL(("main: created boundary is %s\n", boundary));
-
-		 /* If boundary != NULL, then it'll already be printed with existing
-			   * headers.  Otherwise, we generate it here, and print it.
-			   */
-	  if (item->attach != NULL) {
-		   // write the boundary stuff if we have attachments
-		   fprintf(f->output, "Content-type: multipart/mixed;\n\tboundary=\"%s\"\n",
-						boundary);
-	  } else if (boundary != NULL) {
-		   // else if we have multipart/alternative then tell it so
-		   fprintf(f->output, "Content-type: multipart/alternative;\n\tboundary=\"%s\"\n",
-				   boundary);
-	  } else if (item->email->htmlbody) {
-		fprintf(f->output, "Content-type: text/html\n");
-	  }
-	}
-	   fprintf(f->output, "\n");
-
-	DEBUG_MAIN(("main: About to print Body\n"));
-
-	if (item->email->body != NULL) {
-	  if (boundary) {
-		fprintf(f->output, "\n--%s\n", boundary);
-		fprintf(f->output, "Content-type: text/plain\n");
-		if (base64_body) fprintf(f->output, "Content-Transfer-Encoding: base64\n");
-		fprintf(f->output, "\n");
-	  }
-	  removeCR(item->email->body);
-	  if (base64_body)
-		write_email_body(f->output, base64_encode(item->email->body,
-							  strlen(item->email->body)));
-	  else
-		write_email_body(f->output, item->email->body);
-	}
-
-	if (item->email->htmlbody != NULL) {
-	  if (boundary) {
-		fprintf(f->output, "\n--%s\n", boundary);
-		fprintf(f->output, "Content-type: text/html\n");
-		if (base64_body) fprintf(f->output, "Content-Transfer-Encoding: base64\n");
-		fprintf(f->output, "\n");
-	  }
-	  removeCR(item->email->htmlbody);
-	  if (base64_body)
-		write_email_body(f->output, base64_encode(item->email->htmlbody,
-							  strlen(item->email->htmlbody)));
-	  else
-		write_email_body(f->output, item->email->htmlbody);
-	}
-
-	attach_num = 0;
-
-	if (item->email->rtf_compressed != NULL) {
-	  DEBUG_MAIN(("Adding RTF body as attachment\n"));
-	  item->current_attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
-	  memset(item->current_attach, 0, sizeof(pst_item_attach));
-	  item->current_attach->next = item->attach;
-	  item->attach = item->current_attach;
-	  item->current_attach->data = lzfu_decompress(item->email->rtf_compressed);
-	  item->current_attach->filename2 = xmalloc(strlen(RTF_ATTACH_NAME)+2);
-	  strcpy(item->current_attach->filename2, RTF_ATTACH_NAME);
-	  item->current_attach->mimetype = xmalloc(strlen(RTF_ATTACH_TYPE)+2);
-	  strcpy(item->current_attach->mimetype, RTF_ATTACH_TYPE);
-	  memcpy(&(item->current_attach->size), item->email->rtf_compressed+sizeof(int32_t), sizeof(int32_t));
-	  LE32_CPU(item->current_attach->size);
-	  //	  item->email->rtf_compressed = ;
-	  //	  attach_num++;
-	}
-	if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
-	  // if either the body or htmlbody is encrypted, add them as attachments
-	  if (item->email->encrypted_body) {
-		DEBUG_MAIN(("Adding Encrypted Body as attachment\n"));
-		item->current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
-		memset(item->current_attach, 0, sizeof(pst_item_attach));
-		item->current_attach->next = item->attach;
-		item->attach = item->current_attach;
-
-		item->current_attach->data = item->email->encrypted_body;
-		item->current_attach->size = item->email->encrypted_body_size;
-		item->email->encrypted_body = NULL;
-	  }
-	  if (item->email->encrypted_htmlbody) {
-		DEBUG_MAIN(("Adding encrypted HTML body as attachment\n"));
-		item->current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
-		memset(item->current_attach, 0, sizeof(pst_item_attach));
-		item->current_attach->next = item->attach;
-		item->attach = item->current_attach;
-
-		item->current_attach->data = item->email->encrypted_htmlbody;
-		item->current_attach->size = item->email->encrypted_htmlbody_size;
-		item->email->encrypted_htmlbody = NULL;
-	  }
-	  write_email_body(f->output, "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
-	}
-	base64_body = 0;
-	// attachments
-	item->current_attach = item->attach;
-	while (item->current_attach != NULL) {
-	  DEBUG_MAIN(("main: Attempting Attachment encoding\n"));
-	  if (item->current_attach->data == NULL) {
-		DEBUG_MAIN(("main: Data of attachment is NULL!. Size is supposed to be %i\n", item->current_attach->size));
-	  }
-	  if (mode == MODE_SEPERATE) {
-		f->name = check_filename(f->name);
-		if (item->current_attach->filename2 == NULL) {
-		  temp = xmalloc(strlen(f->name)+15);
-		  sprintf(temp, "%s-attach%i", f->name, attach_num);
-		} else {
-		  temp = xmalloc(strlen(f->name)+strlen(item->current_attach->filename2)+15);
-		  fp = NULL; x=0;
-		  do {
-		if (fp != NULL) fclose(fp);
-		if (x == 0)
-		  sprintf(temp, "%s-%s", f->name, item->current_attach->filename2);
-		else
-		  sprintf(temp, "%s-%s-%i", f->name, item->current_attach->filename2, x);
-		  } while ((fp = fopen(temp, "r"))!=NULL && ++x < 99999999);
-		  if (x > 99999999) {
-			DIE(("error finding attachment name. exhausted possibilities to %s\n", temp));
-		  }
-		}
-		DEBUG_MAIN(("main: Saving attachment to %s\n", temp));
-		if ((fp = fopen(temp, "w")) == NULL) {
-		  WARN(("main: Cannot open attachment save file \"%s\"\n", temp));
-		} else {
-		  if (item->current_attach->data != NULL)
-		fwrite(item->current_attach->data, 1, item->current_attach->size, fp);
-		  else {
-		pst_attach_to_file(&pstfile, item->current_attach, fp);
-		  }
-		  fclose(fp);
-		}
-	  } else {
-		DEBUG_MAIN(("main: Attachment Size is %i\n", item->current_attach->size));
-		DEBUG_MAIN(("main: Attachment Pointer is %p\n", item->current_attach->data));
-		if (item->current_attach->data != NULL) {
-		  if ((enc = base64_encode (item->current_attach->data, item->current_attach->size)) == NULL) {
-		DEBUG_MAIN(("main: ERROR base64_encode returned NULL. Must have failed\n"));
-		item->current_attach = item->current_attach->next;
-		continue;
-		  }
-		}
-		if (boundary) {
-		  fprintf(f->output, "\n--%s\n", boundary);
-		  if (item->current_attach->mimetype == NULL) {
-		fprintf(f->output, "Content-type: %s\n", MIME_TYPE_DEFAULT);
-		  } else {
-		fprintf(f->output, "Content-type: %s\n", item->current_attach->mimetype);
-		  }
-		  fprintf(f->output, "Content-transfer-encoding: base64\n");
-		  if (item->current_attach->filename2 == NULL) {
-		fprintf(f->output, "Content-Disposition: inline\n\n");
-		  } else {
-		fprintf(f->output, "Content-Disposition: attachment; filename=\"%s\"\n\n",
-			item->current_attach->filename2);
-		  }
-		}
-		if (item->current_attach->data != NULL) {
-		  fwrite(enc, 1, strlen(enc), f->output);
-		  DEBUG_MAIN(("Attachment Size after encoding is %i\n", strlen(enc)));
-		} else {
-		  pst_attach_to_file_base64(&pstfile, item->current_attach, f->output);
-		}
-		fprintf(f->output, "\n\n");
-	  }
-	  item->current_attach = item->current_attach->next;
-	  attach_num++;
-	}
-	if (mode != MODE_SEPERATE) {
-	  DEBUG_MAIN(("main: Writing buffer between emails\n"));
-	  if (boundary)
-		fprintf(f->output, "\n--%s--\n", boundary);
-	  fprintf(f->output, "\n\n");
-	}
+	write_normal_email(f->output, f->name, item, mode, mode_MH, &pstfile);
 	  } else if (item->type == PST_TYPE_JOURNAL) {
 	// deal with journal items
 	if (mode == MODE_SEPERATE) {
@@ -920,60 +413,7 @@ int main(int argc, char** argv) {
 	if (f->type != PST_TYPE_APPOINTMENT) {
 	  DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
 	}
-	fprintf(f->output, "BEGIN:VEVENT\n");
-	if (item->create_date != NULL)
-	  fprintf(f->output, "CREATED:%s\n", rfc2445_datetime_format(item->create_date));
-	if (item->modify_date != NULL)
-	  fprintf(f->output, "LAST-MOD:%s\n", rfc2445_datetime_format(item->modify_date));
-	if (item->email != NULL && item->email->subject != NULL)
-	  fprintf(f->output, "SUMMARY:%s\n", rfc2426_escape(item->email->subject->subj));
-	if (item->email != NULL && item->email->body != NULL)
-	  fprintf(f->output, "DESCRIPTION:%s\n", rfc2426_escape(item->email->body));
-	if (item->appointment != NULL && item->appointment->start != NULL)
-	  fprintf(f->output, "DTSTART;VALUE=DATE-TIME:%s\n", rfc2445_datetime_format(item->appointment->start));
-	if (item->appointment != NULL && item->appointment->end != NULL)
-	  fprintf(f->output, "DTEND;VALUE=DATE-TIME:%s\n", rfc2445_datetime_format(item->appointment->end));
-	if (item->appointment != NULL && item->appointment->location != NULL)
-	  fprintf(f->output, "LOCATION:%s\n", rfc2426_escape(item->appointment->location));
-	if (item->appointment != NULL) {
-	  switch (item->appointment->showas) {
-	  case PST_FREEBUSY_TENTATIVE:
-		fprintf(f->output, "STATUS:TENTATIVE\n");
-		break;
-	  case PST_FREEBUSY_FREE:
-		// mark as transparent and as confirmed
-		fprintf(f->output, "TRANSP:TRANSPARENT\n");
-	  case PST_FREEBUSY_BUSY:
-	  case PST_FREEBUSY_OUT_OF_OFFICE:
-		fprintf(f->output, "STATUS:CONFIRMED\n");
-		break;
-	  }
-	  switch (item->appointment->label) {
-	  case PST_APP_LABEL_NONE:
-		fprintf(f->output, "CATEGORIES:NONE\n"); break;
-	  case PST_APP_LABEL_IMPORTANT:
-		fprintf(f->output, "CATEGORIES:IMPORTANT\n"); break;
-	  case PST_APP_LABEL_BUSINESS:
-		fprintf(f->output, "CATEGORIES:BUSINESS\n"); break;
-	  case PST_APP_LABEL_PERSONAL:
-		fprintf(f->output, "CATEGORIES:PERSONAL\n"); break;
-	  case PST_APP_LABEL_VACATION:
-		fprintf(f->output, "CATEGORIES:VACATION\n"); break;
-	  case PST_APP_LABEL_MUST_ATTEND:
-		fprintf(f->output, "CATEGORIES:MUST-ATTEND\n"); break;
-	  case PST_APP_LABEL_TRAVEL_REQ:
-		fprintf(f->output, "CATEGORIES:TRAVEL-REQUIRED\n"); break;
-	  case PST_APP_LABEL_NEEDS_PREP:
-		fprintf(f->output, "CATEGORIES:NEEDS-PREPARATION\n"); break;
-	  case PST_APP_LABEL_BIRTHDAY:
-		fprintf(f->output, "CATEGORIES:BIRTHDAY\n"); break;
-	  case PST_APP_LABEL_ANNIVERSARY:
-		fprintf(f->output, "CATEGORIES:ANNIVERSARY\n"); break;
-	  case PST_APP_LABEL_PHONE_CALL:
-		fprintf(f->output, "CATEGORIES:PHONE-CALL\n"); break;
-	  }
-	}
-	fprintf(f->output, "END:VEVENT\n\n");
+	write_appointment(f->output, item->appointment, item->email, item->create_date, item->modify_date);
 	  } else {
 	f->skip_count++;
 	DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n",
@@ -985,10 +425,6 @@ int main(int argc, char** argv) {
 	}
 
 	DEBUG_MAIN(("main: Going to next d_ptr\n"));
-	if (boundary) {
-	  free(boundary);
-	  boundary = NULL;
-	}
 
   check_parent:
 	//	  _pst_freeItem(item);
@@ -1102,6 +538,7 @@ int usage() {
   printf("\t-d\t- Debug to file. This is a binary log. Use readlog to print it\n");
   printf("\t-h\t- Help. This screen\n");
   printf("\t-k\t- KMail. Output in kmail format\n");
+  printf("\t-M\t- MH. Write emails in the MH format\n");
   printf("\t-o\t- Output Dir. Directory to write files to. CWD is changed *after* opening pst file\n");
   printf("\t-q\t- Quiet. Only print error messages\n");
   printf("\t-r\t- Recursive. Output in a recursive format\n");
@@ -1233,7 +670,7 @@ char *mk_seperate_dir(char *dir, int overwrite) {
 	if (y == 0)
 	  sprintf(dir_name, "%s", dir);
 	else
-	  sprintf(dir_name, "%s%09i", dir, y); // enough for 9 digits allocated above
+	  sprintf(dir_name, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y); // enough for 9 digits allocated above
 
 	dir_name = check_filename(dir_name);
 	DEBUG_MAIN(("mk_seperate_dir: about to try creating %s\n", dir_name));
@@ -1290,12 +727,13 @@ int close_seperate_dir() {
   return 0;
 }
 int mk_seperate_file(struct file_ll *f) {
+  const int name_offset = 1;
   DEBUG_ENT("mk_seperate_file");
   DEBUG_MAIN(("mk_seperate_file: opening next file to save email\n"));
   if (f->email_count > 999999999) { // bigger than nine 9's
 	DIE(("mk_seperate_file: The number of emails in this folder has become too high to handle"));
   }
-  sprintf(f->name, "%09i", f->email_count);
+  sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count + name_offset);
   if (f->output != NULL)
 	fclose(f->output);
   f->output = NULL;
@@ -1441,3 +879,604 @@ char *skip_header_prologue(char *headers) {
 
 // vim:sw=4 ts=4:
 // vim600: set foldlevel=0 foldmethod=marker:
+void write_separate_attachment(char f_name[], pst_item_attach* current_attach, int attach_num, pst_file* pst)
+{
+	FILE *fp = NULL;
+	int x = 0;
+	char *temp;
+
+	check_filename(f_name);
+	if (current_attach->filename2 == NULL) {
+		temp = xmalloc(strlen(f_name)+15);
+		sprintf(temp, "%s-attach%i", f_name, attach_num);
+	} else {
+		temp = xmalloc(strlen(f_name)+strlen(current_attach->filename2)+15);
+		do {
+			if (fp != NULL) fclose(fp);
+			if (x == 0)
+				sprintf(temp, "%s-%s", f_name, current_attach->filename2);
+			else
+				sprintf(temp, "%s-%s-%i", f_name, current_attach->filename2, x);
+		} while ((fp = fopen(temp, "r"))!=NULL && ++x < 99999999);
+		if (x > 99999999) {
+			DIE(("error finding attachment name. exhausted possibilities to %s\n", temp));
+		}
+	}
+	DEBUG_MAIN(("write_separate_attachment: Saving attachment to %s\n", temp));
+	if ((fp = fopen(temp, "w")) == NULL) {
+		WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
+	} else {
+		if (current_attach->data != NULL)
+			fwrite(current_attach->data, 1, current_attach->size, fp);
+		else {
+			pst_attach_to_file(pst, current_attach, fp);
+		}
+		fclose(fp);
+	}
+}
+
+void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, char boundary[], pst_file* pst)
+{
+	char *enc; // base64 encoded attachment
+	DEBUG_MAIN(("write_inline_attachment: Attachment Size is %i\n", item->current_attach->size));
+	DEBUG_MAIN(("write_inline_attachment: Attachment Pointer is %p\n", item->current_attach->data));
+	if (current_attach->data != NULL) {
+		if ((enc = base64_encode (current_attach->data, current_attach->size)) == NULL) {
+			DEBUG_MAIN(("write_inline_attachment: ERROR base64_encode returned NULL. Must have failed\n"));
+			current_attach = current_attach->next;
+			return;
+		}
+	}
+	if (boundary) {
+		fprintf(f_output, "\n--%s\n", boundary);
+		if (current_attach->mimetype == NULL) {
+			fprintf(f_output, "Content-type: %s\n", MIME_TYPE_DEFAULT);
+		} else {
+			fprintf(f_output, "Content-type: %s\n", current_attach->mimetype);
+		}
+		fprintf(f_output, "Content-transfer-encoding: base64\n");
+		if (current_attach->filename2 == NULL) {
+			fprintf(f_output, "Content-Disposition: inline\n\n");
+		} else {
+			fprintf(f_output, "Content-Disposition: attachment; filename=\"%s\"\n\n",
+				current_attach->filename2);
+		}
+	}
+	if (current_attach->data != NULL) {
+		fwrite(enc, 1, strlen(enc), f_output);
+		DEBUG_MAIN(("Attachment Size after encoding is %i\n", strlen(enc)));
+	} else {
+		pst_attach_to_file_base64(pst, current_attach, f_output);
+	}
+	fprintf(f_output, "\n\n");
+}
+
+void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst)
+{
+	char *boundary = NULL; // the boundary marker between multipart sections
+	char *temp = NULL;
+	int attach_num, base64_body = 0;
+	time_t em_time;
+	char *c_time;
+
+	// convert the sent date if it exists, or set it to a fixed date
+	if (item->email->sent_date != NULL) {
+		em_time = fileTimeToUnixTime(item->email->sent_date, 0);
+		c_time = ctime(&em_time);
+		if (c_time != NULL)
+			c_time[strlen(c_time)-1] = '\0'; //remove end \n
+		else
+			c_time = "Fri Dec 28 12:06:21 2001";
+	} else
+		c_time= "Fri Dec 28 12:06:21 2001";
+
+	// we will always look at the header to discover some stuff
+	if (item->email->header != NULL ) {
+		char *b1, *b2;
+		// see if there is a boundary variable there
+		// this search MUST be made case insensitive (DONE).
+		// Also, some check to find out if we
+		// are looking at the boundary associated with content-type, and that the content
+		// type really is "multipart"
+
+		removeCR(item->email->header);
+
+		if ((b2 = my_stristr(item->email->header, "boundary=")) != NULL) {
+			b2 += strlen("boundary="); // move boundary to first char of marker
+	    
+			if (*b2 == '"') {
+				b2++;
+				b1 = strchr(b2, '"'); // find terminating quote
+			} else {
+				b1 = b2;
+				while (isgraph(*b1)) // find first char that isn't part of boundary
+					b1++;
+			}
+	    
+			boundary = malloc ((b1-b2)+1); //malloc that length
+			memset (boundary, 0, (b1-b2)+1);  // blank it
+			strncpy(boundary, b2, b1-b2); // copy boundary to another variable
+			b1 = b2 = boundary;
+			while (*b2 != '\0') { // remove any CRs and Tabs
+				if (*b2 != '\n' && *b2 != '\r' && *b2 != '\t') {
+					*b1 = *b2;
+					b1++;
+				}
+				b2++;
+			}
+			*b1 = '\0';
+	    
+			DEBUG_MAIN(("write_normal_email: Found boundary of - %s\n", boundary));
+		} else {
+			DEBUG_MAIN(("write_normal_email: boundary not found in header\n"));
+		}
+
+		// also possible to set 7bit encoding detection here.
+		if ((b2 = my_stristr(item->email->header, "Content-Transfer-Encoding:")) != NULL) {
+			if ((b2 = strchr(b2, ':')) != NULL) {
+				b2++; // skip to the : at the end of the string
+		
+				while (*b2 == ' ' || *b2 == '\t')
+					b2++;
+				if (pst_strincmp(b2, "base64", 6)==0) {
+					DEBUG_MAIN(("body is base64 encoded\n"));
+					base64_body = 1;
+				}
+			} else {
+				DEBUG_WARN(("found a ':' during the my_stristr, but not after that..\n"));
+			}
+		}
+	    
+	}
+
+	DEBUG_MAIN(("write_normal_email: About to print Header\n"));
+
+	if (item != NULL && item->email != NULL && item->email->subject != NULL &&
+	    item->email->subject->subj != NULL) {
+		DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
+	}
+
+	if (item->email->header != NULL) {
+		// some of the headers we get from the file are not properly defined.
+		// they can contain some email stuff too. We will cut off the header
+		// when we see a \n\n or \r\n\r\n
+		temp = strstr(item->email->header, "\n\n");
+
+		if (temp != NULL) {
+			DEBUG_MAIN(("write_normal_email: Found body text in header\n"));
+			temp += 2; // get past the \n\n
+			*temp = '\0';
+		}
+	  
+		if (mode != MODE_SEPERATE) {
+			char *soh = NULL;  // real start of headers.
+			// don't put rubbish in if we are doing seperate
+			fprintf(f_output, "From \"%s\" %s\n", item->email->outlook_sender_name, c_time);
+			soh = skip_header_prologue(item->email->header);
+			fprintf(f_output, "%s\n\n", soh);
+		} else {
+			fprintf(f_output, "%s\n", item->email->header);
+		}
+	} else {
+		//make up our own header!
+		if (mode != MODE_SEPERATE) {
+			// don't want this first line for this mode
+			if (item->email->outlook_sender_name != NULL) {
+				temp = item->email->outlook_sender_name;
+			} else {
+				temp = "(readpst_null)";
+			}
+			fprintf(f_output, "From \"%s\" %s\n", temp, c_time);
+		}
+		if ((temp = item->email->outlook_sender) == NULL)
+			temp = "";
+		fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name, temp);
+		if (item->email->subject != NULL) {
+			fprintf(f_output, "Subject: %s\n", item->email->subject->subj);
+		} else {
+			fprintf(f_output, "Subject: \n");
+		}
+		fprintf(f_output, "To: %s\n", item->email->sentto_address);
+		if (item->email->cc_address != NULL) {
+			fprintf(f_output, "Cc: %s\n", item->email->cc_address);
+		}
+		if (item->email->sent_date != NULL) {
+			c_time = (char*) xmalloc(C_TIME_SIZE);
+			strftime(c_time, C_TIME_SIZE, "%a, %d %b %Y %H:%M:%S %z", gmtime(&em_time));
+			fprintf(f_output, "Date: %s\n", c_time);
+			free(c_time);
+		}
+
+		fprintf(f_output, "MIME-Version: 1.0\n");
+	}
+
+	if (boundary == NULL && (item->attach ||(item->email->body && item->email->htmlbody)
+				 || item->email->rtf_compressed || item->email->encrypted_body
+				 || item->email->encrypted_htmlbody)) {
+		// we need to create a boundary here.
+		DEBUG_EMAIL(("write_normal_email: must create own boundary. oh dear.\n"));
+		boundary = malloc(50 * sizeof(char)); // allow 50 chars for boundary
+		boundary[0] = '\0';
+		sprintf(boundary, "--boundary-LibPST-iamunique-%i_-_-", rand());
+		DEBUG_EMAIL(("write_normal_email: created boundary is %s\n", boundary));
+
+		/* If boundary != NULL, then it has already been printed with existing
+		 * headers.  Otherwise we generate it here and print it.
+		 */
+		if (item->attach != NULL) {
+			// write the boundary stuff if we have attachments
+			fprintf(f_output, "Content-type: multipart/mixed;\n\tboundary=\"%s\"\n",
+				boundary);
+		} else if (boundary != NULL) {
+			// else if we have multipart/alternative then tell it so
+			fprintf(f_output, "Content-type: multipart/alternative;\n\tboundary=\"%s\"\n",
+				boundary);
+		} else if (item->email->htmlbody) {
+			fprintf(f_output, "Content-type: text/html\n");
+		}
+	}
+
+	fprintf(f_output, "\n");
+
+	DEBUG_MAIN(("write_normal_email: About to print Body\n"));
+
+	if (item->email->body != NULL) {
+		if (boundary) {
+			fprintf(f_output, "\n--%s\n", boundary);
+			fprintf(f_output, "Content-type: text/plain\n\n");
+			if (base64_body)
+				fprintf(f_output, "Content-Transfer-Encoding: base64\n");
+		}
+		removeCR(item->email->body);
+		if (base64_body)
+			write_email_body(f_output, base64_encode(item->email->body,
+								 strlen(item->email->body)));
+		else
+			write_email_body(f_output, item->email->body);
+	}
+	
+	if (item->email->htmlbody != NULL) {
+		if (boundary) {
+			fprintf(f_output, "\n--%s\n", boundary);
+			fprintf(f_output, "Content-type: text/html\n\n");
+			if (base64_body)
+				fprintf(f_output, "Content-Transfer-Encoding: base64\n");
+		}
+		removeCR(item->email->htmlbody);
+		if (base64_body)
+			write_email_body(f_output, base64_encode(item->email->htmlbody,
+								 strlen(item->email->htmlbody)));
+		else
+			write_email_body(f_output, item->email->htmlbody);
+	}
+
+	if (item->email->rtf_compressed != NULL) {
+		DEBUG_MAIN(("Adding RTF body as attachment\n"));
+		item->current_attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
+		memset(item->current_attach, 0, sizeof(pst_item_attach));
+		item->current_attach->next = item->attach;
+		item->attach = item->current_attach;
+		item->current_attach->data = lzfu_decompress(item->email->rtf_compressed);
+		item->current_attach->filename2 = xmalloc(strlen(RTF_ATTACH_NAME)+2);
+		strcpy(item->current_attach->filename2, RTF_ATTACH_NAME);
+		item->current_attach->mimetype = xmalloc(strlen(RTF_ATTACH_TYPE)+2);
+		strcpy(item->current_attach->mimetype, RTF_ATTACH_TYPE);
+		memcpy(&(item->current_attach->size), item->email->rtf_compressed+sizeof(int32_t), sizeof(int32_t));
+		LE32_CPU(item->current_attach->size);
+		//	  item->email->rtf_compressed = ;
+		//	  attach_num++;
+	}
+	if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
+		// if either the body or htmlbody is encrypted, add them as attachments
+		if (item->email->encrypted_body) {
+			DEBUG_MAIN(("Adding Encrypted Body as attachment\n"));
+			item->current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+			memset(item->current_attach, 0, sizeof(pst_item_attach));
+			item->current_attach->next = item->attach;
+			item->attach = item->current_attach;
+	    
+			item->current_attach->data = item->email->encrypted_body;
+			item->current_attach->size = item->email->encrypted_body_size;
+			item->email->encrypted_body = NULL;
+		}
+		if (item->email->encrypted_htmlbody) {
+			DEBUG_MAIN(("Adding encrypted HTML body as attachment\n"));
+			item->current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+			memset(item->current_attach, 0, sizeof(pst_item_attach));
+			item->current_attach->next = item->attach;
+			item->attach = item->current_attach;
+
+			item->current_attach->data = item->email->encrypted_htmlbody;
+			item->current_attach->size = item->email->encrypted_htmlbody_size;
+			item->email->encrypted_htmlbody = NULL;
+		}
+		write_email_body(f_output, "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
+	}
+	// attachments
+	attach_num = 0;
+	for(item->current_attach = item->attach;
+	    item->current_attach;
+	    item->current_attach = item->current_attach->next) {
+		DEBUG_MAIN(("write_normal_email: Attempting Attachment encoding\n"));
+		if (item->current_attach->data == NULL) {
+			DEBUG_MAIN(("write_normal_email: Data of attachment is NULL!. Size is supposed to be %i\n", item->current_attach->size));
+		}
+		attach_num++;
+		if (mode == MODE_SEPERATE && !mode_MH)
+			write_separate_attachment(f_name, item->current_attach, attach_num, pst);
+		else
+			write_inline_attachment(f_output, item->current_attach, boundary, pst);
+	}
+	if (mode != MODE_SEPERATE) { /* do not add a boundary after the last attachment for mode_MH */
+		DEBUG_MAIN(("write_normal_email: Writing buffer between emails\n"));
+		if (boundary)
+			fprintf(f_output, "\n--%s--\n", boundary);
+		fprintf(f_output, "\n\n");
+	}
+	if (boundary)
+		free (boundary);
+}
+
+void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[])
+{
+	// the specification I am following is (hopefully) RFC2426 vCard Mime Directory Profile
+	fprintf(f_output, "BEGIN:VCARD\n");
+	fprintf(f_output, "FN:%s\n", rfc2426_escape(contact->fullname));
+	fprintf(f_output, "N:%s;%s;%s;%s;%s\n",
+		rfc2426_escape((contact->surname==NULL?"":contact->surname)),
+		rfc2426_escape((contact->first_name==NULL?"":contact->first_name)),
+		rfc2426_escape((contact->middle_name==NULL?"":contact->middle_name)),
+		rfc2426_escape((contact->display_name_prefix==NULL?"":contact->display_name_prefix)),
+		rfc2426_escape((contact->suffix==NULL?"":contact->suffix)));
+	if (contact->nickname != NULL)
+		fprintf(f_output, "NICKNAME:%s\n", rfc2426_escape(contact->nickname));
+	if (contact->address1 != NULL)
+		fprintf(f_output, "EMAIL:%s\n", rfc2426_escape(contact->address1));
+	if (contact->address2 != NULL)
+		fprintf(f_output, "EMAIL:%s\n", rfc2426_escape(contact->address2));
+	if (contact->address3 != NULL)
+		fprintf(f_output, "EMAIL:%s\n", rfc2426_escape(contact->address3));
+	if (contact->birthday != NULL)
+		fprintf(f_output, "BDAY:%s\n", rfc2425_datetime_format(contact->birthday));
+	if (contact->home_address != NULL) {
+		fprintf(f_output, "ADR;TYPE=home:%s;%s;%s;%s;%s;%s;%s\n",
+			rfc2426_escape((contact->home_po_box!=NULL?contact->home_po_box:"")),
+			"", // extended Address
+			rfc2426_escape((contact->home_street!=NULL?contact->home_street:"")),
+			rfc2426_escape((contact->home_city!=NULL?contact->home_city:"")),
+			rfc2426_escape((contact->home_state!=NULL?contact->home_state:"")),
+			rfc2426_escape((contact->home_postal_code!=NULL?contact->home_postal_code:"")),
+			rfc2426_escape((contact->home_country!=NULL?contact->home_country:"")));
+		fprintf(f_output, "LABEL;TYPE=home:%s\n", rfc2426_escape(contact->home_address));
+	}
+	if (contact->business_address != NULL) {
+		fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n",
+			rfc2426_escape((contact->business_po_box!=NULL?contact->business_po_box:"")),
+			"", // extended Address
+			rfc2426_escape((contact->business_street!=NULL?contact->business_street:"")),
+			rfc2426_escape((contact->business_city!=NULL?contact->business_city:"")),
+			rfc2426_escape((contact->business_state!=NULL?contact->business_state:"")),
+			rfc2426_escape((contact->business_postal_code!=NULL?contact->business_postal_code:"")),
+			rfc2426_escape((contact->business_country!=NULL?contact->business_country:"")));
+		fprintf(f_output, "LABEL;TYPE=work:%s\n", rfc2426_escape(contact->business_address));
+	}
+	if (contact->other_address != NULL) {
+		fprintf(f_output, "ADR;TYPE=postal:%s;%s;%s;%s;%s;%s;%s\n",
+			rfc2426_escape((contact->other_po_box != NULL ?
+					contact->business_po_box:"")),
+			"", // extended Address
+			rfc2426_escape((contact->other_street != NULL ?
+					contact->other_street:"")),
+			rfc2426_escape((contact->other_city != NULL ?
+					contact->other_city:"")),
+			rfc2426_escape((contact->other_state != NULL ?
+					contact->other_state:"")),
+			rfc2426_escape((contact->other_postal_code != NULL ?
+					contact->other_postal_code:"")),
+			rfc2426_escape((contact->other_country != NULL ?
+					contact->other_country:"")));
+		fprintf(f_output, "ADR;TYPE=postal:%s\n",
+			rfc2426_escape(contact->other_address));
+	}
+	if (contact->business_fax != NULL)
+		fprintf(f_output, "TEL;TYPE=work,fax:%s\n",
+			rfc2426_escape(contact->business_fax));
+	if (contact->business_phone != NULL)
+		fprintf(f_output, "TEL;TYPE=work,voice:%s\n",
+			rfc2426_escape(contact->business_phone));
+	if (contact->business_phone2 != NULL)
+		fprintf(f_output, "TEL;TYPE=work,voice:%s\n",
+			rfc2426_escape(contact->business_phone2));
+	if (contact->car_phone != NULL)
+		fprintf(f_output, "TEL;TYPE=car,voice:%s\n",
+			rfc2426_escape(contact->car_phone));
+	if (contact->home_fax != NULL)
+		fprintf(f_output, "TEL;TYPE=home,fax:%s\n",
+			rfc2426_escape(contact->home_fax));
+	if (contact->home_phone != NULL)
+		fprintf(f_output, "TEL;TYPE=home,voice:%s\n",
+			rfc2426_escape(contact->home_phone));
+	if (contact->home_phone2 != NULL)
+		fprintf(f_output, "TEL;TYPE=home,voice:%s\n",
+			rfc2426_escape(contact->home_phone2));
+	if (contact->isdn_phone != NULL)
+		fprintf(f_output, "TEL;TYPE=isdn:%s\n",
+			rfc2426_escape(contact->isdn_phone));
+	if (contact->mobile_phone != NULL)
+		fprintf(f_output, "TEL;TYPE=cell,voice:%s\n",
+			rfc2426_escape(contact->mobile_phone));
+	if (contact->other_phone != NULL)
+		fprintf(f_output, "TEL;TYPE=msg:%s\n",
+			rfc2426_escape(contact->other_phone));
+	if (contact->pager_phone != NULL)
+		fprintf(f_output, "TEL;TYPE=pager:%s\n",
+			rfc2426_escape(contact->pager_phone));
+	if (contact->primary_fax != NULL)
+		fprintf(f_output, "TEL;TYPE=fax,pref:%s\n",
+			rfc2426_escape(contact->primary_fax));
+	if (contact->primary_phone != NULL)
+		fprintf(f_output, "TEL;TYPE=phone,pref:%s\n",
+			rfc2426_escape(contact->primary_phone));
+	if (contact->radio_phone != NULL)
+		fprintf(f_output, "TEL;TYPE=pcs:%s\n",
+			rfc2426_escape(contact->radio_phone));
+	if (contact->telex != NULL)
+		fprintf(f_output, "TEL;TYPE=bbs:%s\n",
+			rfc2426_escape(contact->telex));
+	if (contact->job_title != NULL)
+		fprintf(f_output, "TITLE:%s\n",
+			rfc2426_escape(contact->job_title));
+	if (contact->profession != NULL)
+		fprintf(f_output, "ROLE:%s\n",
+			rfc2426_escape(contact->profession));
+	if (contact->assistant_name != NULL
+	    || contact->assistant_phone != NULL) {
+		fprintf(f_output, "AGENT:BEGIN:VCARD\\n");
+		if (contact->assistant_name != NULL)
+			fprintf(f_output, "FN:%s\\n",
+				rfc2426_escape(contact->assistant_name));
+		if (contact->assistant_phone != NULL)
+			fprintf(f_output, "TEL:%s\\n",
+				rfc2426_escape(contact->assistant_phone));
+	}
+	if (contact->company_name != NULL)
+		fprintf(f_output, "ORG:%s\n",
+			rfc2426_escape(contact->company_name));
+	if (comment != NULL)
+		fprintf(f_output, "NOTE:%s\n", rfc2426_escape(comment));
+
+	fprintf(f_output, "VERSION: 3.0\n");
+	fprintf(f_output, "END:VCARD\n\n");
+}
+
+void write_appointment(FILE* f_output, pst_item_appointment* appointment,
+		       pst_item_email* email, FILETIME* create_date, FILETIME* modify_date)
+{
+	fprintf(f_output, "BEGIN:VEVENT\n");
+	if (create_date != NULL)
+		fprintf(f_output, "CREATED:%s\n",
+			rfc2445_datetime_format(create_date));
+	if (modify_date != NULL)
+		fprintf(f_output, "LAST-MOD:%s\n",
+			rfc2445_datetime_format(modify_date));
+	if (email != NULL && email->subject != NULL)
+		fprintf(f_output, "SUMMARY:%s\n",
+			rfc2426_escape(email->subject->subj));
+	if (email != NULL && email->body != NULL)
+		fprintf(f_output, "DESCRIPTION:%s\n",
+			rfc2426_escape(email->body));
+	if (appointment != NULL && appointment->start != NULL)
+		fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n",
+			rfc2445_datetime_format(appointment->start));
+	if (appointment != NULL && appointment->end != NULL)
+		fprintf(f_output, "DTEND;VALUE=DATE-TIME:%s\n",
+			rfc2445_datetime_format(appointment->end));
+	if (appointment != NULL && appointment->location != NULL)
+		fprintf(f_output, "LOCATION:%s\n",
+			rfc2426_escape(appointment->location));
+	if (appointment != NULL) {
+		switch (appointment->showas) {
+		case PST_FREEBUSY_TENTATIVE:
+			fprintf(f_output, "STATUS:TENTATIVE\n");
+			break;
+		case PST_FREEBUSY_FREE:
+			// mark as transparent and as confirmed
+			fprintf(f_output, "TRANSP:TRANSPARENT\n");
+		case PST_FREEBUSY_BUSY:
+		case PST_FREEBUSY_OUT_OF_OFFICE:
+			fprintf(f_output, "STATUS:CONFIRMED\n");
+			break;
+		}
+		switch (appointment->label) {
+		case PST_APP_LABEL_NONE:
+			fprintf(f_output, "CATEGORIES:NONE\n");
+			break;
+		case PST_APP_LABEL_IMPORTANT:
+			fprintf(f_output, "CATEGORIES:IMPORTANT\n");
+			break;
+		case PST_APP_LABEL_BUSINESS:
+			fprintf(f_output, "CATEGORIES:BUSINESS\n");
+			break;
+		case PST_APP_LABEL_PERSONAL:
+			fprintf(f_output, "CATEGORIES:PERSONAL\n");
+			break;
+		case PST_APP_LABEL_VACATION:
+			fprintf(f_output, "CATEGORIES:VACATION\n");
+			break;
+		case PST_APP_LABEL_MUST_ATTEND:
+			fprintf(f_output, "CATEGORIES:MUST-ATTEND\n");
+			break;
+		case PST_APP_LABEL_TRAVEL_REQ:
+			fprintf(f_output, "CATEGORIES:TRAVEL-REQUIRED\n");
+			break;
+		case PST_APP_LABEL_NEEDS_PREP:
+			fprintf(f_output, "CATEGORIES:NEEDS-PREPARATION\n");
+			break;
+		case PST_APP_LABEL_BIRTHDAY:
+			fprintf(f_output, "CATEGORIES:BIRTHDAY\n");
+			break;
+		case PST_APP_LABEL_ANNIVERSARY:
+			fprintf(f_output, "CATEGORIES:ANNIVERSARY\n");
+			break;
+		case PST_APP_LABEL_PHONE_CALL:
+			fprintf(f_output, "CATEGORIES:PHONE-CALL\n");
+			break;
+		}
+	}
+	fprintf(f_output, "END:VEVENT\n\n");
+}
+
+void create_enter_dir(struct file_ll* f, char file_as[], int mode, int overwrite)
+{
+	if (mode == MODE_KMAIL)
+		f->name = mk_kmail_dir(file_as); //create directory and form filename
+	else if (mode == MODE_RECURSE)
+		f->name = mk_recurse_dir(file_as);
+	else if (mode == MODE_SEPERATE) {
+		// do similar stuff to recurse here.
+		mk_seperate_dir(file_as, overwrite);
+		f->name = (char*) xmalloc(10);
+		memset(f->name, 0, 10);
+		//		sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count);
+	} else {
+		f->name = (char*) xmalloc(strlen(file_as)+strlen(OUTPUT_TEMPLATE+1));
+		sprintf(f->name, OUTPUT_TEMPLATE, file_as);
+	}
+
+	f->dname = (char*) xmalloc(strlen(file_as)+1);
+	strcpy(f->dname, file_as);
+
+	if (overwrite != 1) {
+		int x = 0;
+		char *temp = (char*) xmalloc (strlen(f->name)+10); //enough room for 10 digits
+
+		sprintf(temp, "%s", f->name);
+		temp = check_filename(temp);
+		while ((f->output = fopen(temp, "r")) != NULL) {
+			DEBUG_MAIN(("create_enter_dir: need to increase filename cause one already exists with that name\n"));
+			DEBUG_MAIN(("create_enter_dir: - increasing it to %s%d\n", f->name, x));
+			x++;
+			sprintf(temp, "%s%08d", f->name, x);
+			DEBUG_MAIN(("create_enter_dir: - trying \"%s\"\n", f->name));
+			if (x == 99999999) {
+				DIE(("create_enter_dir: Why can I not create a folder %s? I have tried %i extensions...\n", f->name, x));
+			}
+			fclose(f->output);
+		}
+		if (x > 0) { //then the f->name should change
+			free (f->name);
+			f->name = temp;
+		} else {
+			free(temp);
+		}
+	}
+
+	DEBUG_MAIN(("create_enter_dir: f->name = %s\nitem->folder_name = %s\n", f->name, file_as));
+	if (mode != MODE_SEPERATE) {
+		f->name = check_filename(f->name);
+		if ((f->output = fopen(f->name, "w")) == NULL) {
+			DIE(("create_enter_dir: Could not open file \"%s\" for write\n", f->name));
+		}
+	}
+}
+

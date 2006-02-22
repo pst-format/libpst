@@ -38,6 +38,7 @@
                 <arg><option>-q</option></arg>
                 <arg><option>-r</option></arg>
                 <arg><option>-S</option></arg>
+                <arg><option>-M</option></arg>
                 <arg><option>-V</option></arg>
                 <arg><option>-w</option></arg>
                 <arg rep='repeat' choice='plain'>files</arg>
@@ -107,12 +108,22 @@
                 <varlistentry>
                     <term>-S</term>
                     <listitem><para>
-                        Output messages into separate files. This will create folders as
-                        named in the PST file, and will put each email in its own file. These
-                        files will be numbered from 000000000 increasing in intervals of 1 (ie
-                        000000000, 000000001, 0000000002). Any attachments are saved alongside
+                        Output messages into separate files.  This will create folders as named
+                        in the PST file, and will put each email in its own file.  These files
+                        will be numbered from 000000000 increasing in intervals of 1 (ie
+                        000000000, 000000001, 0000000002).  Any attachments are saved alongside
                         each email as 000000000-attach0, or with the name of the attachment if
                         one is present.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-M</term>
+                    <listitem><para>
+                        Output messages in MH format as separate files.  This will create
+                        folders as named in the PST file, and will put each email in its own
+                        file.  These files will be numbered from 1 to n with no leading zeros.
+                        Any attachments are saved alongside each email as 000000000-attach0, or
+                        with the name of the attachment if one is present.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -135,7 +146,7 @@
         <refsect1 id='readpst.also.1'>
             <title>See Also</title>
             <para>
-                <citerefentry><refentrytitle>readpstlog</refentrytitle></citerefentry>
+                <citerefentry><refentrytitle>readpstlog</refentrytitle> <manvolnum>1</manvolnum> </citerefentry>
             </para>
         </refsect1>
 

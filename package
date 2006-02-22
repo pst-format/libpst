@@ -56,8 +56,9 @@ else
     tail -10 $distlog
 fi
 chown --recursive carl:carl *
-args="-z -e ssh --times --perms --links --relative --owner --group --numeric-ids --delete"
-echo rcync $args $web ns1:/
+args="--recursive -z -e ssh --times --perms --links --relative --owner --group --numeric-ids --delete"
+echo rsync $args $web ns1:/
+rsync $args $web ns1:/
 
 if [ -f /usr/local/bin/pst2ldif ]; then
     pushd /home/ldap
