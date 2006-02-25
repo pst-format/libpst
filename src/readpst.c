@@ -53,14 +53,14 @@
 #define D_MKDIR(x) mkdir(x)
 #endif
 struct file_ll {
-  char *name;
-  char *dname;
-  FILE * output;
-  int32_t stored_count;
-  int32_t email_count;
-  int32_t skip_count;
-  int32_t type;
-  struct file_ll *next;
+	char *name;
+	char *dname;
+	FILE * output;
+	int32_t stored_count;
+	int32_t email_count;
+	int32_t skip_count;
+	int32_t type;
+	struct file_ll *next;
 };
 void  write_email_body(FILE *f, char *body);
 char *removeCR (char *c);
@@ -124,741 +124,741 @@ char *kmail_chdir = NULL;
 // mime type for the attachment
 #define RTF_ATTACH_TYPE "application/rtf"
 int main(int argc, char** argv) {
-  pst_item *item = NULL;
-  pst_file pstfile;
-  pst_desc_ll *d_ptr;
-  char * fname = NULL;
-  char *d_log=NULL;
-  int c,x;
-  int mode = MODE_NORMAL;
-  int mode_MH = 0;
-  int output_mode = OUTPUT_NORMAL;
-  int contact_mode = CMODE_VCARD;
-  int overwrite = 0;
-  //  int encrypt = 0;
-  char *temp = NULL; //temporary char pointer
-  int skip_child = 0;
-  struct file_ll  *f, *head;
-  prog_name = argv[0];
+	pst_item *item = NULL;
+	pst_file pstfile;
+	pst_desc_ll *d_ptr;
+	char * fname = NULL;
+	char *d_log=NULL;
+	int c,x;
+	int mode = MODE_NORMAL;
+	int mode_MH = 0;
+	int output_mode = OUTPUT_NORMAL;
+	int contact_mode = CMODE_VCARD;
+	int overwrite = 0;
+	//  int encrypt = 0;
+	char *temp = NULL; //temporary char pointer
+	int skip_child = 0;
+	struct file_ll  *f, *head;
+	prog_name = argv[0];
 
-  while ((c = getopt(argc, argv, "d:hko:qrMSVwc:"))!= -1) {
-	switch (c) {
-	case 'c':
-	  if (optarg!=NULL && optarg[0]=='v')
-	contact_mode=CMODE_VCARD;
-	  else if (optarg!=NULL && optarg[0]=='l')
-	contact_mode=CMODE_LIST;
-	  else {
-	usage();
-	exit(0);
-	  }
-	  break;
-	case 'd':
-	  d_log = optarg;
-	  break;
-	case 'h':
-	  usage();
-	  exit(0);
-	  break;
-	case 'V':
-	  version();
-	  exit(0);
-	  break;
-	case 'k':
-	  mode = MODE_KMAIL;
-	  break;
-	case 'M':
-	  mode = MODE_SEPERATE;
-	  mode_MH = 1;
-	  break;
-	case 'o':
-	  output_dir = optarg;
-	  break;
-	case 'q':
-	  output_mode = OUTPUT_QUIET;
-	  break;
-	case 'r':
-	  mode = MODE_RECURSE;
-	  break;
-	case 'S':
-	  mode = MODE_SEPERATE;
-	  break;
-	case 'w':
-	  overwrite = 1;
-	  break;
-	default:
-	  usage();
-	  exit(1);
-	  break;
+	while ((c = getopt(argc, argv, "d:hko:qrMSVwc:"))!= -1) {
+		switch (c) {
+		case 'c':
+			if (optarg!=NULL && optarg[0]=='v')
+				contact_mode=CMODE_VCARD;
+			else if (optarg!=NULL && optarg[0]=='l')
+				contact_mode=CMODE_LIST;
+			else {
+				usage();
+				exit(0);
+			}
+			break;
+		case 'd':
+			d_log = optarg;
+			break;
+		case 'h':
+			usage();
+			exit(0);
+			break;
+		case 'V':
+			version();
+			exit(0);
+			break;
+		case 'k':
+			mode = MODE_KMAIL;
+			break;
+		case 'M':
+			mode = MODE_SEPERATE;
+			mode_MH = 1;
+			break;
+		case 'o':
+			output_dir = optarg;
+			break;
+		case 'q':
+			output_mode = OUTPUT_QUIET;
+			break;
+		case 'r':
+			mode = MODE_RECURSE;
+			break;
+		case 'S':
+			mode = MODE_SEPERATE;
+			break;
+		case 'w':
+			overwrite = 1;
+			break;
+		default:
+			usage();
+			exit(1);
+			break;
+		}
 	}
-  }
 
 #ifdef DEBUG_ALL
-  // initialize log file
-  if (d_log == NULL)
-	d_log = "readpst.log";
-  DEBUG_INIT(d_log);
-  DEBUG_REGISTER_CLOSE();
+	// initialize log file
+	if (d_log == NULL)
+		d_log = "readpst.log";
+	DEBUG_INIT(d_log);
+	DEBUG_REGISTER_CLOSE();
 #endif // defined DEBUG_ALL
 
-  DEBUG_ENT("main");
+	DEBUG_ENT("main");
 
-  if (argc > optind) {
-	fname = argv[optind];
-  } else {
-	usage();
-	exit(2);
-  }
-
-  if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");
-
-  DEBUG_MAIN(("main: Opening PST file '%s'\n", fname));
-  RET_DERROR(pst_open(&pstfile, fname, "r"), 1, ("Error opening File\n"));
-  DEBUG_MAIN(("main: Loading Indexes\n"));
-  RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
-  DEBUG_MAIN(("processing file items\n"));
-
-  pst_load_extended_attributes(&pstfile);
-
-  if (chdir(output_dir)) {
-	x = errno;
-	pst_close(&pstfile);
-	DIE(("main: Cannot change to output dir %s: %s\n", output_dir, strerror(x)));
-  }
-
-  if (output_mode != OUTPUT_QUIET) printf("About to start processing first record...\n");
-
-  d_ptr = pstfile.d_head; // first record is main record
-  if ((item = _pst_parse_item(&pstfile, d_ptr)) == NULL || item->message_store == NULL) {
-	DIE(("main: Could not get root record\n"));
-  }
-
-   // default the file_as to the same as the main filename if it doesn't exist
-  if (item->file_as == NULL) {
-	if ((temp = strrchr(fname, '/')) == NULL)
-	  if ((temp = strrchr(fname, '\\')) == NULL)
-	temp = fname;
-	  else
-	temp++; // get past the "\\"
-	else
-	  temp++; // get past the "/"
-	item->file_as = (char*)xmalloc(strlen(temp)+1);
-	strcpy(item->file_as, temp);
-	DEBUG_MAIN(("file_as was blank, so am using %s\n", item->file_as));
-  }
-  DEBUG_MAIN(("main: Root Folder Name: %s\n", item->file_as));
-
-
-  f = (struct file_ll*) malloc(sizeof(struct file_ll));
-  memset(f, 0, sizeof(struct file_ll));
-  f->email_count = 0;
-  f->skip_count = 0;
-  f->next = NULL;
-  head = f;
-  create_enter_dir(f, item->file_as, mode, overwrite);
-  f->type = item->type;
-
-  if ((d_ptr = pst_getTopOfFolders(&pstfile, item)) == NULL) {
-	DIE(("Top of folders record not found. Cannot continue\n"));
-  }
-
-  if (item){
-	_pst_freeItem(item);
-	item = NULL;
-  }
-
-  /*  if ((item = _pst_parse_item(&pstfile, d_ptr)) == NULL || item->folder == NULL) {
-	DEBUG_MAIN(("main: Could not get \"Top Of Personal Folder\" record\n"));
-	return -2;
-	}*/
-  d_ptr = d_ptr->child; // do the children of TOPF
-
-  if (output_mode != OUTPUT_QUIET) printf("Processing items...\n");
-
-  DEBUG_MAIN(("main: About to do email stuff\n"));
-  while (d_ptr != NULL) {
-	DEBUG_MAIN(("main: New item record\n"));
-	if (d_ptr->desc == NULL) {
-	  DEBUG_WARN(("main: ERROR ?? item's desc record is NULL\n"));
-	  f->skip_count++;
-	  goto check_parent;
+	if (argc > optind) {
+		fname = argv[optind];
+	} else {
+		usage();
+		exit(2);
 	}
-	DEBUG_MAIN(("main: Desc Email ID %#x [d_ptr->id = %#x]\n", d_ptr->desc->id, d_ptr->id));
 
-	item = _pst_parse_item(&pstfile, d_ptr);
-	DEBUG_MAIN(("main: About to process item\n"));
-	if (item != NULL && item->email != NULL && item->email->subject != NULL &&
-	item->email->subject->subj != NULL) {
-	  //	  DEBUG_EMAIL(("item->email->subject = %p\n", item->email->subject));
-	  //	  DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
+	if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");
+
+	DEBUG_MAIN(("main: Opening PST file '%s'\n", fname));
+	RET_DERROR(pst_open(&pstfile, fname, "r"), 1, ("Error opening File\n"));
+	DEBUG_MAIN(("main: Loading Indexes\n"));
+	RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
+	DEBUG_MAIN(("processing file items\n"));
+
+	pst_load_extended_attributes(&pstfile);
+
+	if (chdir(output_dir)) {
+		x = errno;
+		pst_close(&pstfile);
+		DIE(("main: Cannot change to output dir %s: %s\n", output_dir, strerror(x)));
 	}
-	if (item != NULL) {
-	  if (item->message_store != NULL) {
-	// there should only be one message_store, and we have already done it
-	DIE(("main: A second message_store has been found. Sorry, this must be an error.\n"));
-	  }
+
+	if (output_mode != OUTPUT_QUIET) printf("About to start processing first record...\n");
+
+	d_ptr = pstfile.d_head; // first record is main record
+	if ((item = _pst_parse_item(&pstfile, d_ptr)) == NULL || item->message_store == NULL) {
+		DIE(("main: Could not get root record\n"));
+	}
+
+	// default the file_as to the same as the main filename if it doesn't exist
+	if (item->file_as == NULL) {
+		if ((temp = strrchr(fname, '/')) == NULL)
+			if ((temp = strrchr(fname, '\\')) == NULL)
+				temp = fname;
+			else
+				temp++; // get past the "\\"
+		else
+			temp++; // get past the "/"
+		item->file_as = (char*)xmalloc(strlen(temp)+1);
+		strcpy(item->file_as, temp);
+		DEBUG_MAIN(("file_as was blank, so am using %s\n", item->file_as));
+	}
+	DEBUG_MAIN(("main: Root Folder Name: %s\n", item->file_as));
 
 
-	  if (item->folder != NULL) {
-	// if this is a folder, we want to recurse into it
-	if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as);
-	//	f->email_count++;
-	DEBUG_MAIN(("main: I think I may try to go into folder \"%s\"\n", item->file_as));
 	f = (struct file_ll*) malloc(sizeof(struct file_ll));
 	memset(f, 0, sizeof(struct file_ll));
-
-	f->next = head;
 	f->email_count = 0;
-	f->type = item->type;
-	f->stored_count = item->folder->email_count;
+	f->skip_count = 0;
+	f->next = NULL;
 	head = f;
-
-	temp = item->file_as;
-	temp = check_filename(temp);
 	create_enter_dir(f, item->file_as, mode, overwrite);
-	if (d_ptr->child != NULL) {
-	  d_ptr = d_ptr->child;
-	  skip_child = 1;
-	} else {
-	  DEBUG_MAIN(("main: Folder has NO children. Creating directory, and closing again\n"));
-	  if (output_mode != OUTPUT_QUIET)
-		printf("\tNo items to process in folder \"%s\", should have been %i\n", f->dname, f->stored_count);
-	  head = f->next;
-	  if (f->output != NULL)
-		fclose(f->output);
-	  if (mode == MODE_KMAIL)
-		close_kmail_dir();
-	  else if (mode == MODE_RECURSE)
-		close_recurse_dir();
-	  else if (mode == MODE_SEPERATE)
-		close_seperate_dir();
-	  free(f->dname);
-	  free(f->name);
-	  free(f);
+	f->type = item->type;
 
-	  f = head;
-	}
-	_pst_freeItem(item);
-	item = NULL; // just for the odd situations!
-	goto check_parent;
-	  } else if (item->contact != NULL) {
-	// deal with a contact
-	// write them to the file, one per line in this format
-	// Desc Name <email@address>\n
-	if (mode == MODE_SEPERATE) {
-	  mk_seperate_file(f);
-	}
-	f->email_count++;
-
-	DEBUG_MAIN(("main: Processing Contact\n"));
-	if (f->type != PST_TYPE_CONTACT) {
-	  DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. "
-			 "Will process anyway\n"));
-	}
-	if (item->type != PST_TYPE_CONTACT) {
-	  DEBUG_MAIN(("main: I have an item that has contact info, but doesn't say that"
-			 " it is a contact. Type is \"%s\"\n", item->ascii_type));
-	  DEBUG_MAIN(("main: Processing anyway\n"));
-	}
-	if (item->contact == NULL) { // this is an incorrect situation. Inform user
-	  DEBUG_MAIN(("main: ERROR. This contact has not been fully parsed. one of the pre-requisties is NULL\n"));
-	} else {
-	  if (contact_mode == CMODE_VCARD)
-	    write_vcard(f->output, item->contact, item->comment);
-	  else
-		fprintf(f->output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
-	  }
-	  } else if (item->email != NULL &&
-		 (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
-	if (mode == MODE_SEPERATE) {
-	  mk_seperate_file(f);
+	if ((d_ptr = pst_getTopOfFolders(&pstfile, item)) == NULL) {
+		DIE(("Top of folders record not found. Cannot continue\n"));
 	}
 
-	f->email_count++;
-
-	DEBUG_MAIN(("main: seen an email\n"));
-	write_normal_email(f->output, f->name, item, mode, mode_MH, &pstfile);
-	  } else if (item->type == PST_TYPE_JOURNAL) {
-	// deal with journal items
-	if (mode == MODE_SEPERATE) {
-	  mk_seperate_file(f);
-	}
-	f->email_count++;
-
-	DEBUG_MAIN(("main: Processing Journal Entry\n"));
-	if (f->type != PST_TYPE_JOURNAL) {
-	  DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
+	if (item){
+		_pst_freeItem(item);
+		item = NULL;
 	}
 
-	/*	if (item->type != PST_TYPE_JOURNAL) {
-	  DEBUG_MAIN(("main: I have an item with journal info, but it's type is \"%s\" \n. Processing...\n",
-			  item->ascii_type));
-	}*/
-	fprintf(f->output, "BEGIN:VJOURNAL\n");
-	if (item->email->subject != NULL)
-	  fprintf(f->output, "SUMMARY:%s\n", rfc2426_escape(item->email->subject->subj));
-	if (item->email->body != NULL)
-	  fprintf(f->output, "DESCRIPTION:%s\n", rfc2426_escape(item->email->body));
-	if (item->journal->start != NULL)
-	  fprintf(f->output, "DTSTART;VALUE=DATE-TIME:%s\n", rfc2445_datetime_format(item->journal->start));
-	fprintf(f->output, "END:VJOURNAL\n\n");
-	  } else if (item->type == PST_TYPE_APPOINTMENT) {
-	// deal with Calendar appointments
-	if (mode == MODE_SEPERATE) {
-	  mk_seperate_file(f);
+	/*  if ((item = _pst_parse_item(&pstfile, d_ptr)) == NULL || item->folder == NULL) {
+	    DEBUG_MAIN(("main: Could not get \"Top Of Personal Folder\" record\n"));
+	    return -2;
+	    }*/
+	d_ptr = d_ptr->child; // do the children of TOPF
+
+	if (output_mode != OUTPUT_QUIET) printf("Processing items...\n");
+
+	DEBUG_MAIN(("main: About to do email stuff\n"));
+	while (d_ptr != NULL) {
+		DEBUG_MAIN(("main: New item record\n"));
+		if (d_ptr->desc == NULL) {
+			DEBUG_WARN(("main: ERROR ?? item's desc record is NULL\n"));
+			f->skip_count++;
+			goto check_parent;
+		}
+		DEBUG_MAIN(("main: Desc Email ID %#x [d_ptr->id = %#x]\n", d_ptr->desc->id, d_ptr->id));
+
+		item = _pst_parse_item(&pstfile, d_ptr);
+		DEBUG_MAIN(("main: About to process item\n"));
+		if (item != NULL && item->email != NULL && item->email->subject != NULL &&
+		    item->email->subject->subj != NULL) {
+			//	  DEBUG_EMAIL(("item->email->subject = %p\n", item->email->subject));
+			//	  DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
+		}
+		if (item != NULL) {
+			if (item->message_store != NULL) {
+				// there should only be one message_store, and we have already done it
+				DIE(("main: A second message_store has been found. Sorry, this must be an error.\n"));
+			}
+
+
+			if (item->folder != NULL) {
+				// if this is a folder, we want to recurse into it
+				if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as);
+				//	f->email_count++;
+				DEBUG_MAIN(("main: I think I may try to go into folder \"%s\"\n", item->file_as));
+				f = (struct file_ll*) malloc(sizeof(struct file_ll));
+				memset(f, 0, sizeof(struct file_ll));
+
+				f->next = head;
+				f->email_count = 0;
+				f->type = item->type;
+				f->stored_count = item->folder->email_count;
+				head = f;
+
+				temp = item->file_as;
+				temp = check_filename(temp);
+				create_enter_dir(f, item->file_as, mode, overwrite);
+				if (d_ptr->child != NULL) {
+					d_ptr = d_ptr->child;
+					skip_child = 1;
+				} else {
+					DEBUG_MAIN(("main: Folder has NO children. Creating directory, and closing again\n"));
+					if (output_mode != OUTPUT_QUIET)
+						printf("\tNo items to process in folder \"%s\", should have been %i\n", f->dname, f->stored_count);
+					head = f->next;
+					if (f->output != NULL)
+						fclose(f->output);
+					if (mode == MODE_KMAIL)
+						close_kmail_dir();
+					else if (mode == MODE_RECURSE)
+						close_recurse_dir();
+					else if (mode == MODE_SEPERATE)
+						close_seperate_dir();
+					free(f->dname);
+					free(f->name);
+					free(f);
+
+					f = head;
+				}
+				_pst_freeItem(item);
+				item = NULL; // just for the odd situations!
+				goto check_parent;
+			} else if (item->contact != NULL) {
+				// deal with a contact
+				// write them to the file, one per line in this format
+				// Desc Name <email@address>\n
+				if (mode == MODE_SEPERATE) {
+					mk_seperate_file(f);
+				}
+				f->email_count++;
+
+				DEBUG_MAIN(("main: Processing Contact\n"));
+				if (f->type != PST_TYPE_CONTACT) {
+					DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. "
+						    "Will process anyway\n"));
+				}
+				if (item->type != PST_TYPE_CONTACT) {
+					DEBUG_MAIN(("main: I have an item that has contact info, but doesn't say that"
+						    " it is a contact. Type is \"%s\"\n", item->ascii_type));
+					DEBUG_MAIN(("main: Processing anyway\n"));
+				}
+				if (item->contact == NULL) { // this is an incorrect situation. Inform user
+					DEBUG_MAIN(("main: ERROR. This contact has not been fully parsed. one of the pre-requisties is NULL\n"));
+				} else {
+					if (contact_mode == CMODE_VCARD)
+						write_vcard(f->output, item->contact, item->comment);
+					else
+						fprintf(f->output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
+				}
+			} else if (item->email != NULL &&
+				   (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+				if (mode == MODE_SEPERATE) {
+					mk_seperate_file(f);
+				}
+
+				f->email_count++;
+
+				DEBUG_MAIN(("main: seen an email\n"));
+				write_normal_email(f->output, f->name, item, mode, mode_MH, &pstfile);
+			} else if (item->type == PST_TYPE_JOURNAL) {
+				// deal with journal items
+				if (mode == MODE_SEPERATE) {
+					mk_seperate_file(f);
+				}
+				f->email_count++;
+
+				DEBUG_MAIN(("main: Processing Journal Entry\n"));
+				if (f->type != PST_TYPE_JOURNAL) {
+					DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
+				}
+
+				/*	if (item->type != PST_TYPE_JOURNAL) {
+					DEBUG_MAIN(("main: I have an item with journal info, but it's type is \"%s\" \n. Processing...\n",
+					item->ascii_type));
+					}*/
+				fprintf(f->output, "BEGIN:VJOURNAL\n");
+				if (item->email->subject != NULL)
+					fprintf(f->output, "SUMMARY:%s\n", rfc2426_escape(item->email->subject->subj));
+				if (item->email->body != NULL)
+					fprintf(f->output, "DESCRIPTION:%s\n", rfc2426_escape(item->email->body));
+				if (item->journal->start != NULL)
+					fprintf(f->output, "DTSTART;VALUE=DATE-TIME:%s\n", rfc2445_datetime_format(item->journal->start));
+				fprintf(f->output, "END:VJOURNAL\n\n");
+			} else if (item->type == PST_TYPE_APPOINTMENT) {
+				// deal with Calendar appointments
+				if (mode == MODE_SEPERATE) {
+					mk_seperate_file(f);
+				}
+				f->email_count++;
+
+				DEBUG_MAIN(("main: Processing Appointment Entry\n"));
+				if (f->type != PST_TYPE_APPOINTMENT) {
+					DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
+				}
+				write_appointment(f->output, item->appointment, item->email, item->create_date, item->modify_date);
+			} else {
+				f->skip_count++;
+				DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n",
+					    item->type, item->ascii_type));
+			}
+		} else {
+			f->skip_count++;
+			DEBUG_MAIN(("main: A NULL item was seen\n"));
+		}
+
+		DEBUG_MAIN(("main: Going to next d_ptr\n"));
+
+	check_parent:
+		//	  _pst_freeItem(item);
+		while (!skip_child && d_ptr->next == NULL && d_ptr->parent != NULL) {
+			DEBUG_MAIN(("main: Going to Parent\n"));
+			head = f->next;
+			if (f->output != NULL)
+				fclose(f->output);
+			DEBUG_MAIN(("main: Email Count for folder %s is %i\n", f->dname, f->email_count));
+			if (output_mode != OUTPUT_QUIET)
+				printf("\t\"%s\" - %i items done, skipped %i, should have been %i\n",
+				       f->dname, f->email_count, f->skip_count, f->stored_count);
+			if (mode == MODE_KMAIL)
+				close_kmail_dir();
+			else if (mode == MODE_RECURSE)
+				close_recurse_dir();
+			else if (mode == MODE_SEPERATE)
+				close_seperate_dir();
+			free(f->name);
+			free(f->dname);
+			free(f);
+			f = head;
+			if (head == NULL) { //we can't go higher. Must be at start?
+				DEBUG_MAIN(("main: We are now trying to go above the highest level. We must be finished\n"));
+				break; //from main while loop
+			}
+			d_ptr = d_ptr->parent;
+			skip_child = 0;
+		}
+
+		if (item != NULL) {
+			DEBUG_MAIN(("main: Freeing memory used by item\n"));
+			_pst_freeItem(item);
+			item = NULL;
+		}
+
+		if (!skip_child)
+			d_ptr = d_ptr->next;
+		else
+			skip_child = 0;
+
+		if (d_ptr == NULL) {
+			DEBUG_MAIN(("main: d_ptr is now NULL\n"));
+		}
 	}
-	f->email_count++;
+	if (output_mode != OUTPUT_QUIET) printf("Finished.\n");
+	DEBUG_MAIN(("main: Finished.\n"));
 
-	DEBUG_MAIN(("main: Processing Appointment Entry\n"));
-	if (f->type != PST_TYPE_APPOINTMENT) {
-	  DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
-	}
-	write_appointment(f->output, item->appointment, item->email, item->create_date, item->modify_date);
-	  } else {
-	f->skip_count++;
-	DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n",
-		   item->type, item->ascii_type));
-	  }
-	} else {
-	  f->skip_count++;
-	  DEBUG_MAIN(("main: A NULL item was seen\n"));
-	}
+	pst_close(&pstfile);
+	//  fclose(pstfile.fp);
+	while (f != NULL) {
+		if (f->output != NULL)
+			fclose(f->output);
+		free(f->name);
+		free(f->dname);
 
-	DEBUG_MAIN(("main: Going to next d_ptr\n"));
-
-  check_parent:
-	//	  _pst_freeItem(item);
-	while (!skip_child && d_ptr->next == NULL && d_ptr->parent != NULL) {
-	  DEBUG_MAIN(("main: Going to Parent\n"));
-	  head = f->next;
-	  if (f->output != NULL)
-	fclose(f->output);
-	  DEBUG_MAIN(("main: Email Count for folder %s is %i\n", f->dname, f->email_count));
-	  if (output_mode != OUTPUT_QUIET)
-	printf("\t\"%s\" - %i items done, skipped %i, should have been %i\n",
-		   f->dname, f->email_count, f->skip_count, f->stored_count);
-	  if (mode == MODE_KMAIL)
-	close_kmail_dir();
-	  else if (mode == MODE_RECURSE)
-	close_recurse_dir();
-	  else if (mode == MODE_SEPERATE)
-	close_seperate_dir();
-	  free(f->name);
-	  free(f->dname);
-	  free(f);
-	  f = head;
-	  if (head == NULL) { //we can't go higher. Must be at start?
-	DEBUG_MAIN(("main: We are now trying to go above the highest level. We must be finished\n"));
-	break; //from main while loop
-	  }
-	  d_ptr = d_ptr->parent;
-	  skip_child = 0;
+		if (mode == MODE_KMAIL)
+			close_kmail_dir();
+		else if (mode == MODE_RECURSE)
+			close_recurse_dir();
+		else if (mode == MODE_SEPERATE)
+			// DO SOMETHING HERE
+			;
+		head = f->next;
+		free (f);
+		f = head;
 	}
 
-	if (item != NULL) {
-	  DEBUG_MAIN(("main: Freeing memory used by item\n"));
-	  _pst_freeItem(item);
-	  item = NULL;
-	}
+	DEBUG_RET();
 
-	if (!skip_child)
-	  d_ptr = d_ptr->next;
-	else
-	  skip_child = 0;
-
-	if (d_ptr == NULL) {
-	  DEBUG_MAIN(("main: d_ptr is now NULL\n"));
-	}
-  }
-  if (output_mode != OUTPUT_QUIET) printf("Finished.\n");
-  DEBUG_MAIN(("main: Finished.\n"));
-
-  pst_close(&pstfile);
-  //  fclose(pstfile.fp);
-  while (f != NULL) {
-	if (f->output != NULL)
-	 fclose(f->output);
-	free(f->name);
-	free(f->dname);
-
-	if (mode == MODE_KMAIL)
-	  close_kmail_dir();
-	else if (mode == MODE_RECURSE)
-	  close_recurse_dir();
-	else if (mode == MODE_SEPERATE)
-	  // DO SOMETHING HERE
-	  ;
-	head = f->next;
-	free (f);
-	f = head;
-  }
-
-  DEBUG_RET();
-
-  return 0;
+	return 0;
 }
 void write_email_body(FILE *f, char *body) {
-  char *n = body;
-  //  DEBUG_MAIN(("write_email_body(): \"%s\"\n", body));
-  DEBUG_ENT("write_email_body");
-  while (n != NULL) {
-	if (strncmp(body, "From ", 5) == 0)
-	  fprintf(f, ">");
-	if ((n = strchr(body, '\n'))) {
-	  n++;
-	  fwrite(body, n-body, 1, f); //write just a line
+	char *n = body;
+	//  DEBUG_MAIN(("write_email_body(): \"%s\"\n", body));
+	DEBUG_ENT("write_email_body");
+	while (n != NULL) {
+		if (strncmp(body, "From ", 5) == 0)
+			fprintf(f, ">");
+		if ((n = strchr(body, '\n'))) {
+			n++;
+			fwrite(body, n-body, 1, f); //write just a line
 
-	  body = n;
+			body = n;
+		}
 	}
-  }
-  fwrite(body, strlen(body), 1, f);
-  DEBUG_RET();
+	fwrite(body, strlen(body), 1, f);
+	DEBUG_RET();
 }
 char *removeCR (char *c) {
-  // converts /r/n to /n
-  char *a, *b;
-  DEBUG_ENT("removeCR");
-  a = b = c;
-  while (*a != '\0') {
-	*b = *a;
-	if (*a != '\r')
-	  b++;
-	a++;
-  }
-  *b = '\0';
-  DEBUG_RET();
-  return c;
+	// converts /r/n to /n
+	char *a, *b;
+	DEBUG_ENT("removeCR");
+	a = b = c;
+	while (*a != '\0') {
+		*b = *a;
+		if (*a != '\r')
+			b++;
+		a++;
+	}
+	*b = '\0';
+	DEBUG_RET();
+	return c;
 }
 int usage() {
-  DEBUG_ENT("usage");
-  version();
-  printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
-  printf("OPTIONS:\n");
-  printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
-  printf("\t-d\t- Debug to file. This is a binary log. Use readlog to print it\n");
-  printf("\t-h\t- Help. This screen\n");
-  printf("\t-k\t- KMail. Output in kmail format\n");
-  printf("\t-M\t- MH. Write emails in the MH format\n");
-  printf("\t-o\t- Output Dir. Directory to write files to. CWD is changed *after* opening pst file\n");
-  printf("\t-q\t- Quiet. Only print error messages\n");
-  printf("\t-r\t- Recursive. Output in a recursive format\n");
-  printf("\t-S\t- Seperate. Write emails in the seperate format\n");
-  printf("\t-V\t- Version. Display program version\n");
-  printf("\t-w\t- Overwrite any output mbox files\n");
-  DEBUG_RET();
-  return 0;
+	DEBUG_ENT("usage");
+	version();
+	printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
+	printf("OPTIONS:\n");
+	printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
+	printf("\t-d\t- Debug to file. This is a binary log. Use readlog to print it\n");
+	printf("\t-h\t- Help. This screen\n");
+	printf("\t-k\t- KMail. Output in kmail format\n");
+	printf("\t-M\t- MH. Write emails in the MH format\n");
+	printf("\t-o\t- Output Dir. Directory to write files to. CWD is changed *after* opening pst file\n");
+	printf("\t-q\t- Quiet. Only print error messages\n");
+	printf("\t-r\t- Recursive. Output in a recursive format\n");
+	printf("\t-S\t- Seperate. Write emails in the seperate format\n");
+	printf("\t-V\t- Version. Display program version\n");
+	printf("\t-w\t- Overwrite any output mbox files\n");
+	DEBUG_RET();
+	return 0;
 }
 int version() {
-  DEBUG_ENT("version");
-  printf("ReadPST v%s\n", VERSION);
+	DEBUG_ENT("version");
+	printf("ReadPST v%s\n", VERSION);
 #if BYTE_ORDER == BIG_ENDIAN
-  printf("Big Endian implementation being used.\n");
+	printf("Big Endian implementation being used.\n");
 #elif BYTE_ORDER == LITTLE_ENDIAN
-  printf("Little Endian implementation being used.\n");
+	printf("Little Endian implementation being used.\n");
 #else
 #  error "Byte order not supported by this library"
 #endif
 #ifdef __GNUC__
-  printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
+	printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
 #endif
-  DEBUG_RET();
-  return 0;
+	DEBUG_RET();
+	return 0;
 }
 char *mk_kmail_dir(char *fname) {
-  //change to that directory
-  //make a directory based on OUTPUT_KMAIL_DIR_TEMPLATE
-  //allocate space for OUTPUT_TEMPLATE and form a char* with fname
-  //return that value
-  char *dir, *out_name, *index;
-  int x;
-  DEBUG_ENT("mk_kmail_dir");
-  if (kmail_chdir != NULL && chdir(kmail_chdir)) {
-	x = errno;
-	DIE(("mk_kmail_dir: Cannot change to directory %s: %s\n", kmail_chdir, strerror(x)));
-  }
-  dir = malloc(strlen(fname)+strlen(OUTPUT_KMAIL_DIR_TEMPLATE)+1);
-  sprintf(dir, OUTPUT_KMAIL_DIR_TEMPLATE, fname);
-  dir = check_filename(dir);
-  if (D_MKDIR(dir)) {
-	//error occured
-	if (errno != EEXIST) {
-	  x = errno;
-	  DIE(("mk_kmail_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
+	//change to that directory
+	//make a directory based on OUTPUT_KMAIL_DIR_TEMPLATE
+	//allocate space for OUTPUT_TEMPLATE and form a char* with fname
+	//return that value
+	char *dir, *out_name, *index;
+	int x;
+	DEBUG_ENT("mk_kmail_dir");
+	if (kmail_chdir != NULL && chdir(kmail_chdir)) {
+		x = errno;
+		DIE(("mk_kmail_dir: Cannot change to directory %s: %s\n", kmail_chdir, strerror(x)));
 	}
-  }
-  kmail_chdir = realloc(kmail_chdir, strlen(dir)+1);
-  strcpy(kmail_chdir, dir);
-  free (dir);
+	dir = malloc(strlen(fname)+strlen(OUTPUT_KMAIL_DIR_TEMPLATE)+1);
+	sprintf(dir, OUTPUT_KMAIL_DIR_TEMPLATE, fname);
+	dir = check_filename(dir);
+	if (D_MKDIR(dir)) {
+		//error occured
+		if (errno != EEXIST) {
+			x = errno;
+			DIE(("mk_kmail_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
+		}
+	}
+	kmail_chdir = realloc(kmail_chdir, strlen(dir)+1);
+	strcpy(kmail_chdir, dir);
+	free (dir);
 
-  //we should remove any existing indexes created by KMail, cause they might be different now
-  index = malloc(strlen(fname)+strlen(KMAIL_INDEX)+1);
-  sprintf(index, KMAIL_INDEX, fname);
-  unlink(index);
-  free(index);
+	//we should remove any existing indexes created by KMail, cause they might be different now
+	index = malloc(strlen(fname)+strlen(KMAIL_INDEX)+1);
+	sprintf(index, KMAIL_INDEX, fname);
+	unlink(index);
+	free(index);
 
-  out_name = malloc(strlen(fname)+strlen(OUTPUT_TEMPLATE)+1);
-  sprintf(out_name, OUTPUT_TEMPLATE, fname);
-  DEBUG_RET();
-  return out_name;
+	out_name = malloc(strlen(fname)+strlen(OUTPUT_TEMPLATE)+1);
+	sprintf(out_name, OUTPUT_TEMPLATE, fname);
+	DEBUG_RET();
+	return out_name;
 }
 int close_kmail_dir() {
-  // change ..
-  int x;
-  DEBUG_ENT("close_kmail_dir");
-  if (kmail_chdir != NULL) { //only free kmail_chdir if not NULL. do not change directory
-	free(kmail_chdir);
-	kmail_chdir = NULL;
-  } else {
-	if (chdir("..")) {
-	  x = errno;
-	  DIE(("close_kmail_dir: Cannot move up dir (..): %s\n", strerror(x)));
+	// change ..
+	int x;
+	DEBUG_ENT("close_kmail_dir");
+	if (kmail_chdir != NULL) { //only free kmail_chdir if not NULL. do not change directory
+		free(kmail_chdir);
+		kmail_chdir = NULL;
+	} else {
+		if (chdir("..")) {
+			x = errno;
+			DIE(("close_kmail_dir: Cannot move up dir (..): %s\n", strerror(x)));
+		}
 	}
-  }
-  DEBUG_RET();
-  return 0;
+	DEBUG_RET();
+	return 0;
 }
 // this will create a directory by that name, then make an mbox file inside
 // that dir.  any subsequent dirs will be created by name, and they will
 // contain mbox files
 char *mk_recurse_dir(char *dir) {
-  int x;
-  char *out_name;
-  DEBUG_ENT("mk_recurse_dir");
-  dir = check_filename(dir);
-  if (D_MKDIR (dir)) {
-	if (errno != EEXIST) { // not an error because it exists
-	  x = errno;
-	  DIE(("mk_recurse_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
+	int x;
+	char *out_name;
+	DEBUG_ENT("mk_recurse_dir");
+	dir = check_filename(dir);
+	if (D_MKDIR (dir)) {
+		if (errno != EEXIST) { // not an error because it exists
+			x = errno;
+			DIE(("mk_recurse_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
+		}
 	}
-  }
-  if (chdir (dir)) {
-	x = errno;
-	DIE(("mk_recurse_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
-  }
-  out_name = malloc(strlen("mbox")+1);
-  strcpy(out_name, "mbox");
-  DEBUG_RET();
-  return out_name;
+	if (chdir (dir)) {
+		x = errno;
+		DIE(("mk_recurse_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
+	}
+	out_name = malloc(strlen("mbox")+1);
+	strcpy(out_name, "mbox");
+	DEBUG_RET();
+	return out_name;
 }
 int close_recurse_dir() {
-  int x;
-  DEBUG_ENT("close_recurse_dir");
-  if (chdir("..")) {
-	x = errno;
-	DIE(("close_recurse_dir: Cannot go up dir (..): %s\n", strerror(x)));
-  }
-  DEBUG_RET();
-  return 0;
+	int x;
+	DEBUG_ENT("close_recurse_dir");
+	if (chdir("..")) {
+		x = errno;
+		DIE(("close_recurse_dir: Cannot go up dir (..): %s\n", strerror(x)));
+	}
+	DEBUG_RET();
+	return 0;
 }
 char *mk_seperate_dir(char *dir, int overwrite) {
 #if !defined(WIN32) && !defined(__CYGWIN__)
-  DIR * sdir = NULL;
-  struct dirent *dirent = NULL;
-  struct stat *filestat = xmalloc(sizeof(struct stat));
+	DIR * sdir = NULL;
+	struct dirent *dirent = NULL;
+	struct stat *filestat = xmalloc(sizeof(struct stat));
 #endif
 
-  char *dir_name = NULL;
-  int x = 0, y = 0;
-  DEBUG_ENT("mk_seperate_dir");
-  /*#if defined(WIN32) || defined(__CYGWIN__)
-  DIE(("mk_seperate_dir: Win32 applications cannot use this function yet.\n"));
-  #endif*/
+	char *dir_name = NULL;
+	int x = 0, y = 0;
+	DEBUG_ENT("mk_seperate_dir");
+	/*#if defined(WIN32) || defined(__CYGWIN__)
+	  DIE(("mk_seperate_dir: Win32 applications cannot use this function yet.\n"));
+	  #endif*/
 
-  dir_name = xmalloc(strlen(dir)+10);
+	dir_name = xmalloc(strlen(dir)+10);
 
-  do {
-	if (y == 0)
-	  sprintf(dir_name, "%s", dir);
-	else
-	  sprintf(dir_name, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y); // enough for 9 digits allocated above
+	do {
+		if (y == 0)
+			sprintf(dir_name, "%s", dir);
+		else
+			sprintf(dir_name, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y); // enough for 9 digits allocated above
 
-	dir_name = check_filename(dir_name);
-	DEBUG_MAIN(("mk_seperate_dir: about to try creating %s\n", dir_name));
-	if (D_MKDIR(dir_name)) {
-	  if (errno != EEXIST) { // if there is an error, and it doesn't already exist
-	x = errno;
-	DIE(("mk_seperate_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
-	  }
-	} else {
-	  break;
-	}
-	y++;
-  } while (overwrite == 0);
-
-  if (chdir (dir_name)) {
-	x = errno;
-	DIE(("mk_recurse_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
-  }
-
-  if (overwrite) {
-	// we should probably delete all files from this directory
-#if !defined(WIN32) && !defined(__CYGWIN__)
-	if ((sdir = opendir("./")) == NULL) {
-	  WARN(("mk_seperate_dir: Cannot open dir \"%s\" for deletion of old contents\n", "./"));
-	} else {
-	  while ((dirent = readdir(sdir)) != NULL) {
-	if (lstat(dirent->d_name, filestat) != -1)
-	  if (S_ISREG(filestat->st_mode)) {
-		if (unlink(dirent->d_name)) {
-		  y = errno;
-		  DIE(("mk_seperate_dir: unlink returned error on file %s: %s\n", dirent->d_name, strerror(y)));
+		dir_name = check_filename(dir_name);
+		DEBUG_MAIN(("mk_seperate_dir: about to try creating %s\n", dir_name));
+		if (D_MKDIR(dir_name)) {
+			if (errno != EEXIST) { // if there is an error, and it doesn't already exist
+				x = errno;
+				DIE(("mk_seperate_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
+			}
+		} else {
+			break;
 		}
-	  }
-	  }
+		y++;
+	} while (overwrite == 0);
+
+	if (chdir (dir_name)) {
+		x = errno;
+		DIE(("mk_recurse_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
 	}
+
+	if (overwrite) {
+		// we should probably delete all files from this directory
+#if !defined(WIN32) && !defined(__CYGWIN__)
+		if ((sdir = opendir("./")) == NULL) {
+			WARN(("mk_seperate_dir: Cannot open dir \"%s\" for deletion of old contents\n", "./"));
+		} else {
+			while ((dirent = readdir(sdir)) != NULL) {
+				if (lstat(dirent->d_name, filestat) != -1)
+					if (S_ISREG(filestat->st_mode)) {
+						if (unlink(dirent->d_name)) {
+							y = errno;
+							DIE(("mk_seperate_dir: unlink returned error on file %s: %s\n", dirent->d_name, strerror(y)));
+						}
+					}
+			}
+		}
 #endif
-  }
+	}
 
-  // overwrite will never change during this function, it is just there so that
-  //  if overwrite is set, we only go through this loop once.
+	// overwrite will never change during this function, it is just there so that
+	//  if overwrite is set, we only go through this loop once.
 
-  // we don't return a filename here cause it isn't necessary.
-  DEBUG_RET();
-  return NULL;
+	// we don't return a filename here cause it isn't necessary.
+	DEBUG_RET();
+	return NULL;
 }
 int close_seperate_dir() {
-  int x;
-  DEBUG_ENT("close_seperate_dir");
-  if (chdir("..")) {
-	x = errno;
-	DIE(("close_seperate_dir: Cannot go up dir (..): %s\n", strerror(x)));
-  }
-  DEBUG_RET();
-  return 0;
+	int x;
+	DEBUG_ENT("close_seperate_dir");
+	if (chdir("..")) {
+		x = errno;
+		DIE(("close_seperate_dir: Cannot go up dir (..): %s\n", strerror(x)));
+	}
+	DEBUG_RET();
+	return 0;
 }
 int mk_seperate_file(struct file_ll *f) {
-  const int name_offset = 1;
-  DEBUG_ENT("mk_seperate_file");
-  DEBUG_MAIN(("mk_seperate_file: opening next file to save email\n"));
-  if (f->email_count > 999999999) { // bigger than nine 9's
-	DIE(("mk_seperate_file: The number of emails in this folder has become too high to handle"));
-  }
-  sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count + name_offset);
-  if (f->output != NULL)
-	fclose(f->output);
-  f->output = NULL;
-  f->name = check_filename(f->name);
-  if ((f->output = fopen(f->name, "w")) == NULL) {
-	DIE(("mk_seperate_file: Cannot open file to save email \"%s\"\n", f->name));
-  }
-  DEBUG_RET();
-  return 0;
+	const int name_offset = 1;
+	DEBUG_ENT("mk_seperate_file");
+	DEBUG_MAIN(("mk_seperate_file: opening next file to save email\n"));
+	if (f->email_count > 999999999) { // bigger than nine 9's
+		DIE(("mk_seperate_file: The number of emails in this folder has become too high to handle"));
+	}
+	sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count + name_offset);
+	if (f->output != NULL)
+		fclose(f->output);
+	f->output = NULL;
+	f->name = check_filename(f->name);
+	if ((f->output = fopen(f->name, "w")) == NULL) {
+		DIE(("mk_seperate_file: Cannot open file to save email \"%s\"\n", f->name));
+	}
+	DEBUG_RET();
+	return 0;
 }
 char *my_stristr(char *haystack, char *needle) {
 // my_stristr varies from strstr in that its searches are case-insensitive
-  char *x=haystack, *y=needle, *z = NULL;
-  DEBUG_ENT("my_stristr");
-  if (haystack == NULL || needle == NULL)
-	return NULL;
-  while (*y != '\0' && *x != '\0') {
-	if (tolower(*y) == tolower(*x)) {
-	  // move y on one
-	  y++;
-	  if (z == NULL) {
-	z = x; // store first position in haystack where a match is made
-	  }
-	} else {
-	  y = needle; // reset y to the beginning of the needle
-	  z = NULL; // reset the haystack storage point
+	char *x=haystack, *y=needle, *z = NULL;
+	DEBUG_ENT("my_stristr");
+	if (haystack == NULL || needle == NULL)
+		return NULL;
+	while (*y != '\0' && *x != '\0') {
+		if (tolower(*y) == tolower(*x)) {
+			// move y on one
+			y++;
+			if (z == NULL) {
+				z = x; // store first position in haystack where a match is made
+			}
+		} else {
+			y = needle; // reset y to the beginning of the needle
+			z = NULL; // reset the haystack storage point
+		}
+		x++; // advance the search in the haystack
 	}
-	x++; // advance the search in the haystack
-  }
-  DEBUG_RET();
-  return z;
+	DEBUG_RET();
+	return z;
 }
 char *check_filename(char *fname) {
-  char *t = fname;
-  DEBUG_ENT("check_filename");
-  if (t == NULL) {
+	char *t = fname;
+	DEBUG_ENT("check_filename");
+	if (t == NULL) {
+		DEBUG_RET();
+		return fname;
+	}
+	while ((t = strpbrk(t, "/\\:")) != NULL) {
+		// while there are characters in the second string that we don't want
+		*t = '_'; //replace them with an underscore
+	}
 	DEBUG_RET();
 	return fname;
-  }
-  while ((t = strpbrk(t, "/\\:")) != NULL) {
-	// while there are characters in the second string that we don't want
-	*t = '_'; //replace them with an underscore
-  }
-  DEBUG_RET();
-  return fname;
 }
 char *rfc2426_escape(char *str) {
-  static char* buf = NULL;
-  char *ret, *a, *b;
-  int x = 0, y, z;
-  DEBUG_ENT("rfc2426_escape");
-  if (str == NULL)
-	ret = str;
-  else {
-
-	// calculate space required to escape all the following characters
-	x = strlen(str) +(y=(chr_count(str, ',')*2) + (chr_count(str, '\\')*2) + (chr_count(str, ';')*2) + (chr_count(str, '\n')*2));
-	z = chr_count(str, '\r');
-	if (y == 0 && z == 0)
-	  // there isn't any extra space required
-	  ret = str;
+	static char* buf = NULL;
+	char *ret, *a, *b;
+	int x = 0, y, z;
+	DEBUG_ENT("rfc2426_escape");
+	if (str == NULL)
+		ret = str;
 	else {
-	  buf = (char*) realloc(buf, x+1);
-	  a = str;
-	  b = buf;
-	  while (*a != '\0') {
-	switch(*a) {
-	case ',' :
-	case '\\':
-	case ';' :
-	case '\n':
-	  *(b++)='\\';
-	  *b=*a;
-	break;
-	case '\r':
-	  break;
-	default:
-	  *b=*a;
+
+		// calculate space required to escape all the following characters
+		x = strlen(str) +(y=(chr_count(str, ',')*2) + (chr_count(str, '\\')*2) + (chr_count(str, ';')*2) + (chr_count(str, '\n')*2));
+		z = chr_count(str, '\r');
+		if (y == 0 && z == 0)
+			// there isn't any extra space required
+			ret = str;
+		else {
+			buf = (char*) realloc(buf, x+1);
+			a = str;
+			b = buf;
+			while (*a != '\0') {
+				switch(*a) {
+				case ',' :
+				case '\\':
+				case ';' :
+				case '\n':
+					*(b++)='\\';
+					*b=*a;
+					break;
+				case '\r':
+					break;
+				default:
+					*b=*a;
+				}
+				b++;
+				a++;
+			}
+			*b = '\0';
+			ret = buf;
+		}
 	}
-	b++;
-	  a++;
-	  }
-	  *b = '\0';
-	  ret = buf;
-	}
-  }
-  DEBUG_RET();
-  return ret;
+	DEBUG_RET();
+	return ret;
 }
 int chr_count(char *str, char x) {
-  int r = 0;
-  while (*str != '\0') {
-	if (*str == x)
-	  r++;
-	str++;
-  }
-  return r;
+	int r = 0;
+	while (*str != '\0') {
+		if (*str == x)
+			r++;
+		str++;
+	}
+	return r;
 }
 char *rfc2425_datetime_format(FILETIME *ft) {
-  static char * buffer = NULL;
-  struct tm *stm = NULL;
-  DEBUG_ENT("rfc2425_datetime_format");
-  if (buffer == NULL)
-	buffer = malloc(30); // should be enough for the date as defined below
+	static char * buffer = NULL;
+	struct tm *stm = NULL;
+	DEBUG_ENT("rfc2425_datetime_format");
+	if (buffer == NULL)
+		buffer = malloc(30); // should be enough for the date as defined below
 
-  stm = fileTimeToStructTM(ft);
-  //Year[4]-Month[2]-Day[2] Hour[2]:Min[2]:Sec[2]
-  if (strftime(buffer, 30, "%Y-%m-%dT%H:%M:%SZ", stm)==0) {
-	DEBUG_INFO(("Problem occured formatting date\n"));
-  }
-  DEBUG_RET();
-  return buffer;
+	stm = fileTimeToStructTM(ft);
+	//Year[4]-Month[2]-Day[2] Hour[2]:Min[2]:Sec[2]
+	if (strftime(buffer, 30, "%Y-%m-%dT%H:%M:%SZ", stm)==0) {
+		DEBUG_INFO(("Problem occured formatting date\n"));
+	}
+	DEBUG_RET();
+	return buffer;
 }
 char *rfc2445_datetime_format(FILETIME *ft) {
-  static char* buffer = NULL;
-  struct tm *stm = NULL;
-  DEBUG_ENT("rfc2445_datetime_format");
-  if (buffer == NULL)
-	buffer = malloc(30); // should be enough
-  stm = fileTimeToStructTM(ft);
-  if (strftime(buffer, 30, "%Y%m%dT%H%M%SZ", stm)==0) {
-	DEBUG_INFO(("Problem occured formatting date\n"));
-  }
-  DEBUG_RET();
-  return buffer;
+	static char* buffer = NULL;
+	struct tm *stm = NULL;
+	DEBUG_ENT("rfc2445_datetime_format");
+	if (buffer == NULL)
+		buffer = malloc(30); // should be enough
+	stm = fileTimeToStructTM(ft);
+	if (strftime(buffer, 30, "%Y%m%dT%H%M%SZ", stm)==0) {
+		DEBUG_INFO(("Problem occured formatting date\n"));
+	}
+	DEBUG_RET();
+	return buffer;
 }
 // The sole purpose of this function is to bypass the pseudo-header prologue
 // that Microsoft Outlook inserts at the beginning of the internet email
@@ -923,7 +923,6 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
 	if (current_attach->data != NULL) {
 		if ((enc = base64_encode (current_attach->data, current_attach->size)) == NULL) {
 			DEBUG_MAIN(("write_inline_attachment: ERROR base64_encode returned NULL. Must have failed\n"));
-			current_attach = current_attach->next;
 			return;
 		}
 	}
@@ -1044,8 +1043,11 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
 		if (temp != NULL) {
 			DEBUG_MAIN(("write_normal_email: Found body text in header\n"));
-			temp += 2; // get past the \n\n
 			*temp = '\0';
+		} else {
+			temp = item->email->header + strlen(item->email->header) - 1;
+			if(*temp == '\n')
+				*temp = '\0';
 		}
 	  
 		if (mode != MODE_SEPERATE) {
@@ -1053,7 +1055,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 			// don't put rubbish in if we are doing seperate
 			fprintf(f_output, "From \"%s\" %s\n", item->email->outlook_sender_name, c_time);
 			soh = skip_header_prologue(item->email->header);
-			fprintf(f_output, "%s\n\n", soh);
+			fprintf(f_output, "%s\n", soh);
 		} else {
 			fprintf(f_output, "%s\n", item->email->header);
 		}
