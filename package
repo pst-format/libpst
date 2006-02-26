@@ -21,6 +21,8 @@ if [ "$1" == "test" ]; then
     hexdump -C -v $pst >pst.dump
     chown --recursive carl:carl *
     exit
+else
+    rm -f pst2ldif.log my.log ams.ldif pst.dump
 fi
 make distcheck >$distlog 2>&1
 
@@ -64,16 +66,17 @@ rsync $args $web ns1:/
 
 if [ -f /usr/local/bin/pst2ldif ]; then
     pushd /home/ldap
-    pst=outlook.pst
-    #rm -f pst2ldif.log my.log
-    /usr/local/bin/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif2
-    #./readpstlog pst2ldif.log | less >my.log
-    #hexdump -C $pst >pst.dump
+        pst=outlook.pst
+        #rm -f pst2ldif.log my.log
+        /usr/local/bin/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif2
+        #./readpstlog pst2ldif.log | less >my.log
+        #hexdump -C $pst >pst.dump
 
-    grep '^dn:' ams.ldif2 | sort >aaa
-    grep '^dn:' ams.ldif  | sort >bbb
-    echo 'differences from nightly ldap'
-    diff aaa bbb
-    echo 'end differences'
-    rm -f aaa bbb
+        grep '^dn:' ams.ldif2 | sort >aaa
+        grep '^dn:' ams.ldif  | sort >bbb
+        echo 'differences from nightly ldap'
+        diff aaa bbb
+        echo 'end differences'
+        rm -f aaa bbb
+    popd
 fi
