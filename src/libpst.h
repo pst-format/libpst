@@ -385,7 +385,6 @@ typedef struct _pst_item {
   struct _pst_item_folder *folder; // data reffering to folder
   struct _pst_item_contact *contact; // data reffering to contact
   struct _pst_item_attach *attach; // linked list of attachments
-  struct _pst_item_attach *current_attach; // pointer to current attachment
   struct _pst_item_message_store * message_store; // data referring to the message store
   struct _pst_item_extra_field *extra_fields; // linked list of extra headers and such
   struct _pst_item_journal *journal; // data reffering to a journal entry

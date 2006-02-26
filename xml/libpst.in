@@ -47,9 +47,9 @@
 
         <refsect1 id='readpst.description.1'>
             <title>Description</title>
-            <para><command>readpst</command> is a program that can read an Outlook PST (Personal Folders) file
-                and convert it into an mbox file, a format suitable for KMail, a recursive mbox
-                structure, or separate emails.
+            <para><command>readpst</command> is a program that can read an Outlook
+                PST (Personal Folders) file and convert it into an mbox file, a format
+                suitable for KMail, a recursive mbox structure, or separate emails.
             </para>
         </refsect1>
 
@@ -65,8 +65,9 @@
                 <varlistentry>
                     <term>-d <replaceable class="parameter">debug-file</replaceable></term>
                     <listitem><para>
-                        Specify name of debug log file. Defaults to "readpst.log". The log
-                        file is not an ascii file, it is a binary file readable by <command>readpstlog</command>.
+                        Specify name of debug log file. Defaults to "readpst.log". The
+                        log file is not an ascii file, it is a binary file readable
+                        by <command>readpstlog</command>.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -110,20 +111,19 @@
                     <listitem><para>
                         Output messages into separate files.  This will create folders as named
                         in the PST file, and will put each email in its own file.  These files
-                        will be numbered from 000000000 increasing in intervals of 1 (ie
-                        000000000, 000000001, 0000000002).  Any attachments are saved alongside
-                        each email as 000000000-attach0, or with the name of the attachment if
-                        one is present.
+                        will be numbered from 1 increasing in intervals of 1 (ie 1, 2, 3, ...).
+                        Any attachments are saved alongside each email as XXXXXXXXX-attach1,
+                        XXXXXXXXX-attach2 and so on, or with the name of the attachment if one
+                        is present.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
                     <term>-M</term>
                     <listitem><para>
                         Output messages in MH format as separate files.  This will create
-                        folders as named in the PST file, and will put each email in its own
-                        file.  These files will be numbered from 1 to n with no leading zeros.
-                        Any attachments are saved alongside each email as 000000000-attach0, or
-                        with the name of the attachment if one is present.
+                        folders as named in the PST file, and will put each email together with
+                        any attachments into its own file.  These files will be numbered from 1
+                        to n with no leading zeros.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -165,7 +165,7 @@
             <title>Copyright</title>
             <para>
                 Copyright (C) 2002 by David Smith &lt;dave.s@earthcorp.com&gt;.
-                XML version Copyright (C) 2005 by 510 Software Group &lt;carl@five-ten-sg.com&gt;.
+                XML version Copyright (C) 2006 by 510 Software Group &lt;carl@five-ten-sg.com&gt;.
             </para>
             <para>
                 This program is free software; you can redistribute it and/or modify it
@@ -542,27 +542,27 @@
 01f0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
 
 0000  signature       [4 bytes] 0x4e444221 constant
-000a  index type      [1 byte]  0x0e       constant
-01cd  encryption type [1 byte]  0x01       constant
+000a  indexType       [1 byte]  0x0e       constant
+01cd  encryptionType  [1 byte]  0x01       constant
 00a8  total file size [4 bytes] 0x270400   in this case
-00c0  back-pointer-1  [4 bytes] 0x021eb4   in this case
-00c4  offset-index-1  [4 bytes] 0x005400   in this case
-00b8  back-pointer-2  [4 bytes] 0x021ebc   in this case
-00bc  offset-index-2  [4 bytes] 0x0c7e00   in this case
+00c0  backPointer1    [4 bytes] 0x021eb4   in this case
+00c4  offsetIndex1    [4 bytes] 0x005400   in this case
+00b8  backPointer2    [4 bytes] 0x021ebc   in this case
+00bc  offsetIndex2    [4 bytes] 0x0c7e00   in this case
 ]]></literallayout>
             <para>
                 We only support index type 0x0E and encryption type 0x01.
             </para>
             <para>
-                offset-index-1 is the file offset of the root of the
+                offsetIndex1 is the file offset of the root of the
                 index1 b-tree, which contains (ID1, offset, size, unknown) tuples
-                for each item in the file. back-pointer-1 is the value that should
+                for each item in the file. backPointer1 is the value that should
                 appear in the parent pointer of that root node.
             </para>
             <para>
-                offset-index-2 is the file offset of the root of the
+                offsetIndex2 is the file offset of the root of the
                 index2 b-tree, which contains (ID2, DESC-ID1, LIST-ID1, PARENT-ID2)
-                tuples for each item in the file. back-pointer-2 is the value that should
+                tuples for each item in the file. backPointer2 is the value that should
                 appear in the parent pointer of that root node.
             </para>
         </refsect1>
@@ -617,21 +617,21 @@
 01ec  00 00 00 00  02 29 0c 02  80 80 b6 4a
 01f8  b4 1e 02 00  27 9c cc 56  58 27 03 00
 
-01f0  item-count      [1 byte]  0x02       in this case
-01f1  max-item-count  [1 byte]  0x29       constant
-01f3  node-level      [1 byte]  0x02       in this case
-01f8  back-pointer    [4 bytes] 0x021eb4   in this case
+01f0  itemCount       [1 byte]  0x02       in this case
+01f1  maxItemCount    [1 byte]  0x29       constant
+01f3  nodeLevel       [1 byte]  0x02       in this case
+01f8  backPointer     [4 bytes] 0x021eb4   in this case
 ]]></literallayout>
             <para>
-                The item-count specifies the number of 12 byte records that
-                are active. The node-level is non-zero for this style of nodes.
-                The leaf nodes have a different format. The back-pointer must
-                match the back-pointer from the triple that pointed to this node.
+                The itemCount specifies the number of 12 byte records that
+                are active. The nodeLevel is non-zero for this style of nodes.
+                The leaf nodes have a different format. The backPointer must
+                match the backPointer from the triple that pointed to this node.
             </para>
             <para>
-                Each item in this node is a triple of (ID, back-pointer, offset)
+                Each item in this node is a triple of (ID, backPointer, offset)
                 where the offset points to the next deeper node in the tree, the
-                back-pointer value must match the back-pointer in that deeper node,
+                backPointer value must match the backPointer in that deeper node,
                 and ID is the lowest ID value in the subtree.
             </para>
         </refsect1>
@@ -686,15 +686,15 @@
 01ec  00 00 00 00  1f 29 0c 00  80 80  5b b3
 01f8  5a 67 01 00  4f ae 70 a7  92 06  00 00
 
-01f0  item-count      [1 byte]  0x1f       in this case
-01f1  max-item-count  [1 byte]  0x29       constant
-01f3  node-level      [1 byte]  0x00       in this case
-01f8  back-pointer    [4 bytes] 0x01675a   in this case
+01f0  itemCount       [1 byte]  0x1f       in this case
+01f1  maxItemCount    [1 byte]  0x29       constant
+01f3  nodeLevel       [1 byte]  0x00       in this case
+01f8  backPointer     [4 bytes] 0x01675a   in this case
 ]]></literallayout>
             <para>
-                The item-count specifies the number of 12 byte records that
-                are active. The node-level is zero for these leaf nodes.
-                The back-pointer must match the back-pointer from the triple
+                The itemCount specifies the number of 12 byte records that
+                are active. The nodeLevel is zero for these leaf nodes.
+                The backPointer must match the backPointer from the triple
                 that pointed to this node.
             </para>
             <para>
@@ -752,21 +752,21 @@
 01ec  00 00 00 00  02 29 0c 02  81 81 b2 60
 01f8  bc 1e 02 00  7e 70 dc e3  21 00 00 00
 
-01f0  item-count      [1 byte]  0x02       in this case
-01f1  max-item-count  [1 byte]  0x29       constant
-01f3  node-level      [1 byte]  0x02       in this case
-01f8  back-pointer    [4 bytes] 0x021ebc   in this case
+01f0  itemCount       [1 byte]  0x02       in this case
+01f1  maxItemCount    [1 byte]  0x29       constant
+01f3  nodeLevel       [1 byte]  0x02       in this case
+01f8  backPointer     [4 bytes] 0x021ebc   in this case
 ]]></literallayout>
             <para>
-                The item-count specifies the number of 12 byte records that
-                are active. The node-level is non-zero for this style of nodes.
-                The leaf nodes have a different format. The back-pointer must
-                match the back-pointer from the triple that pointed to this node.
+                The itemCount specifies the number of 12 byte records that
+                are active. The nodeLevel is non-zero for this style of nodes.
+                The leaf nodes have a different format. The backPointer must
+                match the backPointer from the triple that pointed to this node.
             </para>
             <para>
-                Each item in this node is a triple of (ID2, back-pointer, offset)
+                Each item in this node is a triple of (ID2, backPointer, offset)
                 where the offset points to the next deeper node in the tree, the
-                back-pointer value must match the back-pointer in that deeper node,
+                backPointer value must match the backPointer in that deeper node,
                 and ID2 is the lowest ID2 value in the subtree.
             </para>
         </refsect1>
@@ -811,15 +811,15 @@
 01F0  10 1f 10 00  81 81 a0 9a  ae 1e 02 00  89 44 6a 0f
 0200  b8 b1 03 00
 
-01f0  item-count      [1 byte]  0x10       in this case
-01f1  max-item-count  [1 byte]  0x1f       constant
-01f3  node-level      [1 byte]  0x00       in this case
-01f8  back-pointer    [4 bytes] 0x021eae   in this case
+01f0  itemCount       [1 byte]  0x10       in this case
+01f1  maxItemCount    [1 byte]  0x1f       constant
+01f3  nodeLevel       [1 byte]  0x00       in this case
+01f8  backPointer     [4 bytes] 0x021eae   in this case
 ]]></literallayout>
             <para>
-                The item-count specifies the number of 16 byte records that
-                are active. The node-level is zero for these leaf nodes.
-                The back-pointer must match the back-pointer from the triple
+                The itemCount specifies the number of 16 byte records that
+                are active. The nodeLevel is zero for these leaf nodes.
+                The backPointer must match the backPointer from the triple
                 that pointed to this node.
             </para>
             <para>
@@ -848,12 +848,13 @@
         </refsect1>
 
         <refsect1 id='pst.file.desc.5'>
-            <title>Associated Descriptor Item</title>
+            <title>Associated Descriptor Item 0xbcec</title>
             <para>
-                Contains information about the item, which may be email, contact, or other outlook types.
-                In the above leaf node, we have a tuple of (0x21, 0x00e638, 0, 0)
-                0x00e638 is the ID1 of the associated descriptor, and we can lookup that ID1 value
-                in the index1 b-tree to find the (offset,size) of the data in the .pst file.
+                Contains information about the item, which may be email, contact, or
+                other outlook types.  In the above leaf node, we have a tuple of (0x21,
+                0x00e638, 0, 0) 0x00e638 is the ID1 of the associated descriptor, and we
+                can lookup that ID1 value in the index1 b-tree to find the (offset,size)
+                of the data in the .pst file.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  3c 01 ec bc  20 00 00 00  00 00 00 00  b5 02 06 00
@@ -879,23 +880,25 @@
 0140  0c 00 14 00  7c 00 8c 00  93 00 ab 00  c3 00 db 00
 0150  f3 00 0b 01  23 01 3b 01
 
-0000  index-offset    [2 bytes] 0x013c     in this case
+0000  indexOffset     [2 bytes] 0x013c     in this case
 0002  signature       [2 bytes] 0xbcec     constant
 0004  offset          [2 bytes] 0x0020     in this case
 ]]></literallayout>
             <para>
-                Note the index-offset of 0x013c - starting at that position in the
+                Note the signature of 0xbcec. There are other descriptor block
+                formats with other signatures.
+                Note the indexOffset of 0x013c - starting at that position in the
                 descriptor block, we have an array of two byte integers. The first
-                integer (0x000b) is a count of the number of overlapping pairs
+                integer (0x000b) is a (count-1) of the number of overlapping pairs
                 following the count. The first pair is (0, 0xc), the next pair is (0xc, 0x14)
-                and the last (11th) pair is (0x10b, 0x123). These pairs are (start,end+1)
-                offsets of items in this block. So we have count+1 integers following
+                and the last (12th) pair is (0x123, 0x13b). These pairs are (start,end+1)
+                offsets of items in this block. So we have count+2 integers following
                 the count value.
             </para>
             <para>
                 Note the offset of 0x0020, which needs to be right shifted by 4 bits
                 to become 0x0002, which is then a byte offset to be added to the above
-                index-offset plus two (to skip the count), so it points to the (0xc, 0x14)
+                indexOffset plus two (to skip the count), so it points to the (0xc, 0x14)
                 pair. Finally, we have the offset and size of the "b5" block located at offset 0xc
                 with a size of 8 bytes in this descriptor block. The "b5" block has the
                 following format:
@@ -908,13 +911,13 @@
             <para>
                 Note the "b5" offset of 0x0040, which needs to be right shifted by 4 bits
                 to become 0x0004, which is then a byte offset to be added to the above
-                index-offset plus two (to skip the count), so it points to the (0x14, 0x7c)
+                indexOffset plus two (to skip the count), so it points to the (0x14, 0x7c)
                 pair. We now have the offset 0x14 of the descriptor array, composed of 8 byte
                 entries. Each descriptor entry has the following format:
             </para>
             <literallayout class="monospaced"><![CDATA[
-0000  item-type       [2 bytes]
-0002  reference-type  [2 bytes]
+0000  itemType        [2 bytes]
+0002  referenceType   [2 bytes]
 0004  value           [4 bytes]
 ]]></literallayout>
             <para>
@@ -1165,6 +1168,126 @@
 8708  End Timestamp
 8712  Journal Entry Type
 ]]></literallayout>
+        </refsect1>
+
+        <refsect1 id='pst.file.desc2.5'>
+            <title>Associated Descriptor Item 0x7cec</title>
+            <para>
+                This style of descriptor block is similar to the BCEC format.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  7a 01 ec 7c  40 00 00 00  00 00 00 00  b5 04 02 00
+0010  60 00 00 00  7c 18 60 00  60 00 62 00  65 00 20 00
+0020  00 00 80 00  00 00 00 00  00 00 03 00  20 0e 0c 00
+0030  04 03 1e 00  01 30 2c 00  04 0b 1e 00  03 37 28 00
+0040  04 0a 1e 00  04 37 14 00  04 05 03 00  05 37 10 00
+0050  04 04 1e 00  07 37 24 00  04 09 1e 00  08 37 20 00
+0060  04 08 02 01  0a 37 18 00  04 06 03 00  0b 37 08 00
+0070  04 02 1e 00  0d 37 1c 00  04 07 1e 00  0e 37 40 00
+0080  04 10 02 01  0f 37 30 00  04 0c 1e 00  11 37 34 00
+0090  04 0d 1e 00  12 37 3c 00  04 0f 1e 00  13 37 38 00
+00A0  04 0e 03 00  f2 67 00 00  04 00 03 00  f3 67 04 00
+00B0  04 01 03 00  09 69 44 00  04 11 03 00  fa 7f 5c 00
+00C0  04 15 40 00  fb 7f 4c 00  08 13 40 00  fc 7f 54 00
+00D0  08 14 03 00  fd 7f 48 00  04 12 0b 00  fe 7f 60 00
+00E0  01 16 0b 00  ff 7f 61 00  01 17 45 82  00 00 00 00
+00F0  45 82 00 00  78 3c 00 00  ff ff ff ff  49 1e 00 00
+0100  06 00 00 00  00 00 00 00  a0 00 00 00  00 00 00 00
+0110  00 00 00 00  00 00 00 00  00 00 00 00  c0 00 00 00
+0120  00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00
+0130  00 00 00 00  00 00 00 00  00 00 00 00  00 40 dd a3
+0140  57 45 b3 0c  00 40 dd a3  57 45 b3 0c  02 00 00 00
+0150  00 00 fa 10  3e 2a 86 48  86 f7 14 03  0a 03 02 01
+0160  4a 2e 20 44  61 76 69 64  20 4b 61 72  61 6d 27 73
+0170  20 42 69 72  74 68 64 61  79 00 06 00  00 00 0c 00
+0180  14 00 ea 00  f0 00 55 01  60 01 79 01
+
+0000  indexOffset     [2 bytes] 0x017a     in this case
+0002  signature       [2 bytes] 0x7cec     constant
+0004  offset          [2 bytes] 0x0040     in this case
+]]></literallayout>
+            <para>
+                Note the signature of 0x7cec. There are other descriptor block
+                formats with other signatures.
+                Note the indexOffset of 0x017a - starting at that position in the
+                descriptor block, we have an array of two byte integers. The first
+                integer (0x0006) is a (count-1) of the number of overlapping pairs
+                following the count. The first pair is (0, 0xc), the next pair is (0xc, 0x14)
+                and the last (7th) pair is (0x160, 0x179). These pairs are (start,end+1)
+                offsets of items in this block. So we have count+2 integers following
+                the count value.
+            </para>
+            <para>
+                Note the offset of 0x0040, which needs to be right shifted by 4 bits
+                to become 0x0004, which is then a byte offset to be added to the above
+                indexOffset plus two (to skip the count), so it points to the (0x14, 0xea)
+                pair. We have the offset and size of the "7c" block located at offset 0x14
+                with a size of 214 bytes in this case. The "7c" block starts with
+                a header with the following format:
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  signature       [1 bytes] 0x7c       constant
+0001  itemCount       [1 bytes] 0x18       in this case
+0002  unknown         [2 bytes] 0x0060     in this case
+0004  unknown         [2 bytes] 0x0060     in this case
+0006  unknown         [2 bytes] 0x0062     in this case
+0008  recordSize      [2 bytes] 0x0065     in this case
+000a  b5Offset        [2 bytes] 0x0020     in this case
+000c  unknown         [2 bytes] 0x0000     in this case
+000e  index2Offset    [2 bytes] 0x0080     in this case
+0010  unknown         [2 bytes] 0x0000     in this case
+0012  unknown         [2 bytes] 0x0000     in this case
+0014  unknown         [2 bytes] 0x0000     in this case
+]]></literallayout>
+            <para>
+                Note the b5Offset of 0x0020, which needs to be right shifted by 4 bits
+                to become 0x0002, which is then a byte offset to be added to the above
+                indexOffset plus two (to skip the count), so it points to the (0xc,
+                0x14) pair.  Finally, we have the offset and size of the "b5" block
+                located at offset 0xc with a size of 8 bytes in this descriptor block.
+                The "b5" block has the following format:
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  signature       [2 bytes] 0x04b5     constant
+0002  unknown         [2 bytes] 0x0002     in this case
+0004  offset          [4 bytes] 0x0060     in this case
+]]></literallayout>
+            <para>
+                Note the "b5" offset of 0x0060, which needs to be right shifted by 4
+                bits to become 0x0006, which is then a byte offset to be added to the
+                above indexOffset plus two (to skip the count), so it points to the
+                (0xea, 0xf0) pair.  That gives us (0xf0 - 0xea)/6 = 1, so we have a
+                recordCount of one.  The actual data between 0xea and 0xf0 is unknown
+                and unused here.
+            </para>
+            <para>
+                Note the index2Offset above of 0x0080, which needs to be right shifted
+                by 4 bits to become 0x0008, which is then a byte offset to be added to
+                the above indexOffset plus two (to skip the count), so it points to the
+                (0xf0, 0x155) pair.  This is an array of tables of four byte integers.
+                We will call these the IND2 tables.  The size of each of these tables is
+                specified by the recordSize field of the "7c" header.  The number of
+                these tables is the above recordCount value derived from the "b5" block.
+            </para>
+            <para>
+                Now the remaining data in the "7c" block after the header starts at
+                offset 0x2a.  There should be itemCount 8 byte items here, with the
+                following format:
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  referenceType   [2 bytes]
+0002  itemType        [2 bytes]
+0004  ind2Offset      [2 bytes]
+0006  unknown         [2 bytes]
+]]></literallayout>
+            <para>
+                The ind2Offset is a byte offset into the current IND2 table of a four
+                byte integer value.  Once we fetch that, we have the same triple (item
+                type, reference type, value) as we find in the 0xbcec style descriptor
+                blocks.  These 8 byte descriptors are processed recordCount times, each
+                time using the next IND2 table.  The item and reference types are as
+                described above for the 0xbcec format descriptor block.
+            </para>
         </refsect1>
 
     </refentry>

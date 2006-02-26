@@ -1027,7 +1027,6 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 				item->attach = attach;
 				x++;
 			}
-			item->current_attach = item->attach;
 
 			if (_pst_process(list, item)) {
 				DEBUG_WARN(("ERROR _pst_process() failed with attachments\n"));
@@ -1051,7 +1050,6 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 					  attach = attach->next;
 					  continue;
 				  }
-				  item->current_attach = attach;
 				  if (_pst_process(list, item)) {
 					  DEBUG_WARN(("ERROR _pst_process() failed with an attachment\n"));
 					  _pst_free_list(list);
@@ -1072,7 +1070,6 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 			  attach = attach->next;
 			}
 		}
-		item->current_attach = item->attach; //reset back to first
 	}
 
 	_pst_free_id2(id2_head);
@@ -1087,7 +1084,7 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 	pst_block_offset block_offset;
 	//	pst_index_ll *rec = NULL;
 	u_int32_t size = 0, t_ptr = 0, fr_ptr = 0, to_ptr = 0, ind_ptr = 0, x = 0;
-	u_int32_t num_recs = 0, count_rec = 0, ind2_ptr = 0, list_start = 0, num_list = 0, cur_list = 0;
+	u_int32_t num_recs = 0, count_rec = 0, ind2_ptr = 0, ind2_end = 0, list_start = 0, num_list = 0, cur_list = 0;
 	int32_t block_type, rec_size;
 	size_t read_size=0;
 	pst_x_attrib_ll *mapptr;
@@ -1164,9 +1161,9 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		}
 
 		_pst_getBlockOffset(buf, read_size, ind_ptr, table_rec.value, &block_offset);
-		list_start = fr_ptr = block_offset.from;
-		to_ptr = block_offset.to;
-		num_list = (to_ptr - fr_ptr)/sizeof(table_rec);
+		list_start = block_offset.from;
+		to_ptr	   = block_offset.to;
+		num_list = (to_ptr - list_start)/sizeof(table_rec);
 		num_recs = 1; // only going to one object in these blocks
 		rec_size = 0; // doesn't matter cause there is only one object
 	}
@@ -1204,11 +1201,10 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		_pst_getBlockOffset(buf, read_size, ind_ptr, seven_c_blk.b_five_offset, &block_offset);
 		fr_ptr = block_offset.from;
 		memcpy(&table_rec, &(buf[fr_ptr]), sizeof(table_rec));
-		DEBUG_EMAIL(("before convert %#x\n", table_rec.type));
 		LE16_CPU(table_rec.type);
-		DEBUG_EMAIL(("after convert %#x\n", table_rec.type));
 		LE16_CPU(table_rec.ref_type);
 		LE32_CPU(table_rec.value);
+		DEBUG_EMAIL(("after convert %#x\n", table_rec.type));
 
 		if (table_rec.type != 0x04B5) { // different constant than a type 1 record
 			WARN(("Unknown second block constant - %#X for id %#x\n", table_rec.type, block_id));
@@ -1229,6 +1225,7 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 
 		_pst_getBlockOffset(buf, read_size, ind_ptr, seven_c_blk.ind2_offset, &block_offset);
 		ind2_ptr = block_offset.from;
+		ind2_end = block_offset.to;
 	} else {
 		WARN(("ERROR: Unknown block constant - %#X for id %#x\n", block_hdr.type, block_id));
 		DEBUG_HEXDUMPC(buf, read_size,0x10);
@@ -1258,6 +1255,7 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 				memcpy(&table_rec, &(buf[fr_ptr]), sizeof(table_rec));
 				LE16_CPU(table_rec.type);
 				LE16_CPU(table_rec.ref_type);
+				//LE32_CPU(table_rec.value);	// done later, some may be order invariant
 				fr_ptr += sizeof(table_rec);
 			} else if (block_type == 2) {
 				// we will copy the table2_rec values into a table_rec record so that we can keep the rest of the code
@@ -1270,9 +1268,10 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 				// table_rec and table2_rec are arranged differently, so assign the values across
 				table_rec.type	   = table2_rec.type;
 				table_rec.ref_type = table2_rec.ref_type;
-				if ((ind2_ptr+table2_rec.ind2_off > 0) &&
-					(ind2_ptr+table2_rec.ind2_off < read_size-sizeof(table_rec.value)))
+				if (ind2_ptr+table2_rec.ind2_off <= ind2_end) {
 					memcpy(&(table_rec.value), &(buf[ind2_ptr+table2_rec.ind2_off]), sizeof(table_rec.value));
+					//LE32_CPU(table_rec.value);	// done later, some may be order invariant
+				}
 				else {
 					DEBUG_WARN (("trying to read more than blocks size. Size=%#x, Req.=%#x,"
 							 " Req Size=%#x\n", read_size, ind2_ptr+table2_rec.ind2_off,
@@ -1473,7 +1472,7 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 		return -1;
 	}
 
-	attach = item->current_attach; // a working variable
+	   attach = item->attach; // a working variable
 
 	while (list) {
 		x = 0;

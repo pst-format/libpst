@@ -6,8 +6,8 @@
  */
 
 // last one wins
-#undef DEBUG_ALL
 #define DEBUG_ALL
+#undef DEBUG_ALL
 
 #ifndef DEFINEH_H
 #define DEFINEH_H

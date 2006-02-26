@@ -918,8 +918,8 @@ void write_separate_attachment(char f_name[], pst_item_attach* current_attach, i
 void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, char boundary[], pst_file* pst)
 {
 	char *enc; // base64 encoded attachment
-	DEBUG_MAIN(("write_inline_attachment: Attachment Size is %i\n", item->current_attach->size));
-	DEBUG_MAIN(("write_inline_attachment: Attachment Pointer is %p\n", item->current_attach->data));
+       DEBUG_MAIN(("write_inline_attachment: Attachment Size is %i\n", current_attach->size));
+       DEBUG_MAIN(("write_inline_attachment: Attachment Pointer is %p\n", current_attach->data));
 	if (current_attach->data != NULL) {
 		if ((enc = base64_encode (current_attach->data, current_attach->size)) == NULL) {
 			DEBUG_MAIN(("write_inline_attachment: ERROR base64_encode returned NULL. Must have failed\n"));
@@ -957,6 +957,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 	int attach_num, base64_body = 0;
 	time_t em_time;
 	char *c_time;
+       pst_item_attach* current_attach;
 
 	// convert the sent date if it exists, or set it to a fixed date
 	if (item->email->sent_date != NULL) {
@@ -1154,17 +1155,17 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
 	if (item->email->rtf_compressed != NULL) {
 		DEBUG_MAIN(("Adding RTF body as attachment\n"));
-		item->current_attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
-		memset(item->current_attach, 0, sizeof(pst_item_attach));
-		item->current_attach->next = item->attach;
-		item->attach = item->current_attach;
-		item->current_attach->data = lzfu_decompress(item->email->rtf_compressed);
-		item->current_attach->filename2 = xmalloc(strlen(RTF_ATTACH_NAME)+2);
-		strcpy(item->current_attach->filename2, RTF_ATTACH_NAME);
-		item->current_attach->mimetype = xmalloc(strlen(RTF_ATTACH_TYPE)+2);
-		strcpy(item->current_attach->mimetype, RTF_ATTACH_TYPE);
-		memcpy(&(item->current_attach->size), item->email->rtf_compressed+sizeof(int32_t), sizeof(int32_t));
-		LE32_CPU(item->current_attach->size);
+               current_attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
+               memset(current_attach, 0, sizeof(pst_item_attach));
+               current_attach->next = item->attach;
+               item->attach = current_attach;
+               current_attach->data = lzfu_decompress(item->email->rtf_compressed);
+               current_attach->filename2 = xmalloc(strlen(RTF_ATTACH_NAME)+2);
+               strcpy(current_attach->filename2, RTF_ATTACH_NAME);
+               current_attach->mimetype = xmalloc(strlen(RTF_ATTACH_TYPE)+2);
+               strcpy(current_attach->mimetype, RTF_ATTACH_TYPE);
+               memcpy(&(current_attach->size), item->email->rtf_compressed+sizeof(int32_t), sizeof(int32_t));
+               LE32_CPU(current_attach->size);
 		//	  item->email->rtf_compressed = ;
 		//	  attach_num++;
 	}
@@ -1172,42 +1173,42 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 		// if either the body or htmlbody is encrypted, add them as attachments
 		if (item->email->encrypted_body) {
 			DEBUG_MAIN(("Adding Encrypted Body as attachment\n"));
-			item->current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
-			memset(item->current_attach, 0, sizeof(pst_item_attach));
-			item->current_attach->next = item->attach;
-			item->attach = item->current_attach;
+                       current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+                       memset(current_attach, 0, sizeof(pst_item_attach));
+                       current_attach->next = item->attach;
+                       item->attach = current_attach;
 	    
-			item->current_attach->data = item->email->encrypted_body;
-			item->current_attach->size = item->email->encrypted_body_size;
+                       current_attach->data = item->email->encrypted_body;
+                       current_attach->size = item->email->encrypted_body_size;
 			item->email->encrypted_body = NULL;
 		}
 		if (item->email->encrypted_htmlbody) {
 			DEBUG_MAIN(("Adding encrypted HTML body as attachment\n"));
-			item->current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
-			memset(item->current_attach, 0, sizeof(pst_item_attach));
-			item->current_attach->next = item->attach;
-			item->attach = item->current_attach;
+                       current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+                       memset(current_attach, 0, sizeof(pst_item_attach));
+                       current_attach->next = item->attach;
+                       item->attach = current_attach;
 
-			item->current_attach->data = item->email->encrypted_htmlbody;
-			item->current_attach->size = item->email->encrypted_htmlbody_size;
+                       current_attach->data = item->email->encrypted_htmlbody;
+                       current_attach->size = item->email->encrypted_htmlbody_size;
 			item->email->encrypted_htmlbody = NULL;
 		}
 		write_email_body(f_output, "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
 	}
 	// attachments
 	attach_num = 0;
-	for(item->current_attach = item->attach;
-	    item->current_attach;
-	    item->current_attach = item->current_attach->next) {
+       for(current_attach = item->attach;
+           current_attach;
+           current_attach = current_attach->next) {
 		DEBUG_MAIN(("write_normal_email: Attempting Attachment encoding\n"));
-		if (item->current_attach->data == NULL) {
-			DEBUG_MAIN(("write_normal_email: Data of attachment is NULL!. Size is supposed to be %i\n", item->current_attach->size));
+               if (current_attach->data == NULL) {
+                       DEBUG_MAIN(("write_normal_email: Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->size));
 		}
 		attach_num++;
 		if (mode == MODE_SEPERATE && !mode_MH)
-			write_separate_attachment(f_name, item->current_attach, attach_num, pst);
+                       write_separate_attachment(f_name, current_attach, attach_num, pst);
 		else
-			write_inline_attachment(f_output, item->current_attach, boundary, pst);
+                       write_inline_attachment(f_output, current_attach, boundary, pst);
 	}
 	if (mode != MODE_SEPERATE) { /* do not add a boundary after the last attachment for mode_MH */
 		DEBUG_MAIN(("write_normal_email: Writing buffer between emails\n"));

@@ -12,14 +12,16 @@ make -f *cvs
 ./configure >/dev/null
 (cd xml; make; make distclean)
 cp -a html/*html $web
-##  make
-##  pst=/home/ldap/outlook.pst
-##  rm -f pst2ldif.log my.log
-##  src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif
-##  src/readpstlog pst2ldif.log | less >my.log
-##  hexdump -C -v $pst >pst.dump
-##  chown --recursive carl:carl *
-##  exit
+if [ "$1" == "test" ]; then
+    make
+    pst=/home/ldap/outlook.pst
+    rm -f pst2ldif.log my.log
+    src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif
+    src/readpstlog pst2ldif.log | less >my.log
+    hexdump -C -v $pst >pst.dump
+    chown --recursive carl:carl *
+    exit
+fi
 make distcheck >$distlog 2>&1
 
 if [ $? -eq 0 ]; then
