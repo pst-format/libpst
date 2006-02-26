@@ -1,3 +1,12 @@
+LibPST 0.5.4 (2006-02-25)
+===============================
+
+        * patches from Arne, adding MH mode, remove leading zeros
+        from the generated numbered filenames starting with one
+        rather than zero. Miscellaneous code cleanup.
+
+        * document the "7c" descriptor block format.
+
 LibPST 0.5.3 (2006-02-20)
 ===============================
 
