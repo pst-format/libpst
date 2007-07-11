@@ -13,8 +13,8 @@
 #include <wchar.h>
 
 #include <errno.h>
-#include <sys/stat.h> //mkdir
-#include <fcntl.h> // for Win32 definition of _O_BINARY
+#include <sys/stat.h>	// mkdir
+#include <fcntl.h>		// for Win32 definition of _O_BINARY
 #include "define.h"
 #include "libstrfunc.h"
 
@@ -24,27 +24,8 @@
 # include <unistd.h>
 #endif //ifdef _MSC_VER
 
-//#include <endian.h>
-//#include <byteswap.h>
-
 #include "libpst.h"
 #include "timeconv.h"
-
-//#ifdef _MSC_VER
-//#include "windows.h"
-//#define WARN printf
-//#define DEBUG_INFO printf
-//#define DEBUG_EMAIL printf
-//#define DEBUG_READ printf
-//#define DEBUG_DECRYPT printf
-//#define DEBUG_CODE printf
-//#define DEBUG_INDEX printf
-//#define DEBUG_WARN printf
-//#define DEBUG printf
-//
-//#define LE32_CPU(x) {}
-//#define LE16_CPU(x) {}
-//#endif // _MSC_VER
 
 #define FILE_SIZE_POINTER 0xA8
 #define INDEX_POINTER	  0xC4

@@ -12,7 +12,7 @@
 #ifndef DEFINEH_H
 #define DEFINEH_H
 
-#ifdef DEBUG_ALL
+//	#ifdef DEBUG_ALL
 #define DEBUG_MODE_GEN
 #define DEBUGPRINT
 #define DEBUG_MODE_WARN
@@ -24,8 +24,7 @@
 #define DEBUG_MODE_INFO
 #define DEBUG_MODE_HEXDUMP
 #define DEBUG_MODE_FUNC
-//#define DEBUG_MODE_DECRYPT
-#endif
+//	#endif
 
 //number of items to save in memory between writes
 #define DEBUG_MAX_ITEMS 0

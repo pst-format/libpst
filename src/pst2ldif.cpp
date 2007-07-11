@@ -362,10 +362,11 @@ int main(int argc, char** argv) {
 	char *fname = NULL;
 	char *temp = NULL;		  //temporary char pointer
 	char c;
+	char *d_log = NULL;
 	prog_name = argv[0];
 	pst_item *item = NULL;
 
-	while ((c = getopt(argc, argv, "b:c:Vh"))!= -1) {
+	while ((c = getopt(argc, argv, "b:c:d:Vh"))!= -1) {
 		switch (c) {
 		case 'b':
 			ldap_base = optarg;
@@ -378,6 +379,9 @@ int main(int argc, char** argv) {
 			break;
 		case 'c':
 			ldap_class = optarg;
+			break;
+		case 'd':
+			d_log = optarg;
 			break;
 		case 'h':
 			usage();
@@ -402,9 +406,11 @@ int main(int argc, char** argv) {
 	}
 
 	#ifdef DEBUG_ALL
-		DEBUG_INIT("pst2ldif.log");
-		DEBUG_REGISTER_CLOSE();
+		// force a log file
+		if (!d_log) d_log = "pst2ldif.log";
 	#endif
+	DEBUG_INIT(d_log);
+	DEBUG_REGISTER_CLOSE();
 	DEBUG_ENT("main");
 	RET_DERROR(pst_open(&pstfile, fname, "r"), 1, ("Error opening File\n"));
 	RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));

@@ -202,13 +202,11 @@ int main(int argc, char** argv) {
 	}
 
 #ifdef DEBUG_ALL
-	// initialize log file
-	if (!d_log)
-		d_log = "readpst.log";
+	// force a log file
+	if (!d_log) d_log = "readpst.log";
+#endif // defined DEBUG_ALL
 	DEBUG_INIT(d_log);
 	DEBUG_REGISTER_CLOSE();
-#endif // defined DEBUG_ALL
-
 	DEBUG_ENT("main");
 
 	if (argc > optind) {
@@ -275,10 +273,6 @@ int main(int argc, char** argv) {
 		item = NULL;
 	}
 
-	/*	if ((item = _pst_parse_item(&pstfile, d_ptr)) == NULL || item->folder == NULL) {
-		DEBUG_MAIN(("main: Could not get \"Top Of Personal Folder\" record\n"));
-		return -2;
-		}*/
 	d_ptr = d_ptr->child; // do the children of TOPF
 
 	if (output_mode != OUTPUT_QUIET) printf("Processing items...\n");
@@ -328,8 +322,7 @@ int main(int argc, char** argv) {
 					skip_child = 1;
 				} else {
 					DEBUG_MAIN(("main: Folder has NO children. Creating directory, and closing again\n"));
-					if (output_mode != OUTPUT_QUIET)
-						printf("\tNo items to process in folder \"%s\", should have been %i\n", f->dname, f->stored_count);
+					if (output_mode != OUTPUT_QUIET) printf("\tNo items to process in folder \"%s\", should have been %i\n", f->dname, f->stored_count);
 					head = f->next;
 					if (f->output)
 						fclose(f->output);
