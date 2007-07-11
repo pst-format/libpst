@@ -119,13 +119,8 @@ unsigned char comp_enc [] =
 
 int32_t pst_open(pst_file *pf, char *name, char *mode) {
 	u_int32_t sig;
-	//	unsigned char ind_type;
 
 	DEBUG_ENT("pst_open");
-#ifdef _MSC_VER
-	// set the default open mode for windows
-	_fmode = _O_BINARY;
-#endif //_MSC_VER
 
 	if (!pf) {
 		WARN (("cannot be passed a NULL pst_file\n"));
@@ -134,21 +129,24 @@ int32_t pst_open(pst_file *pf, char *name, char *mode) {
 	}
 	memset(pf, 0, sizeof(pst_file));
 
+#ifdef _MSC_VER
+	// set the default open mode for windows
+	_fmode = _O_BINARY;
+#endif //_MSC_VER
 	if ((pf->fp = fopen(name, mode)) == NULL) {
 		WARN(("cannot open PST file. Error\n"));
 		DEBUG_RET();
 		return -1;
 	}
+
+	// Check pst file magic
 	if (fread(&sig, sizeof(sig), 1, pf->fp) == 0) {
 		fclose(pf->fp);
 		WARN(("cannot read signature from PST file. Closing on error\n"));
 		DEBUG_RET();
 		return -1;
 	}
-
-	// architecture independant byte-swapping (little, big, pdp)
-	LE32_CPU(sig);
-
+	LE32_CPU(sig);	// architecture independant byte-swapping (little, big, pdp)
 	DEBUG_INFO(("sig = %X\n", sig));
 	if (sig != PST_SIGNATURE) {
 		fclose(pf->fp);
@@ -156,6 +154,8 @@ int32_t pst_open(pst_file *pf, char *name, char *mode) {
 		DEBUG_RET();
 		return -1;
 	}
+
+	// read index type
 	_pst_getAtPos(pf->fp, INDEX_TYPE_OFFSET, &(pf->ind_type), sizeof(unsigned char));
 	DEBUG_INFO(("index_type = %i\n", pf->ind_type));
 	if (pf->ind_type != 0x0E) {
@@ -164,6 +164,7 @@ int32_t pst_open(pst_file *pf, char *name, char *mode) {
 		return -1;
 	}
 
+	// read encryption setting
 	_pst_getAtPos(pf->fp, ENC_OFFSET, &(pf->encryption), sizeof(unsigned char));
 	DEBUG_INFO(("encrypt = %i\n", pf->encryption));
 
@@ -240,8 +241,9 @@ int32_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, unsigned char *
 			size = _pst_ff_getID2data(pf, ptr, &h);
 		} else {
 			DEBUG_WARN(("Couldn't find ID pointer. Cannot handle attachment\n"));
+			size = 0;
 		}
-		attach->size = size; // may aswell update it to what is correct for this instance
+		attach->size = size; // may as well update it to what is correct for this instance
 	} else {
 		size = attach->size;
 	}
@@ -261,6 +263,7 @@ int32_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
 			size = _pst_ff_getID2data(pf, ptr, &h);
 		} else {
 			DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
+			size = 0;
 		}
 		attach->size = size;
 	} else {
@@ -285,15 +288,16 @@ int32_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* f
 			size = _pst_ff_getID2data(pf, ptr, &h);
 			// will need to encode any bytes left over
 			c = base64_encode(h.base64_extra_chars, h.base64_extra);
-			pst_fwrite(c, 1, strlen(c), fp);
+			if (c) pst_fwrite(c, 1, strlen(c), fp);
 		} else {
 			DEBUG_WARN (("Couldn't find ID pointer. Cannot save attachement to Base64\n"));
+			size = 0;
 		}
 		attach->size = size;
 	} else {
 		// encode the attachment to the file
 		c = base64_encode(attach->data, attach->size);
-		pst_fwrite(c, 1, strlen(c), fp);
+		if (c) pst_fwrite(c, 1, strlen(c), fp);
 		size = attach->size;
 	}
 	DEBUG_RET();
@@ -350,13 +354,11 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 	// for PST files this will load up ID2 0x61 and check it's "list" attribute.
 	pst_desc_ll *p;
 	pst_num_array *na;
-	//	pst_index_ll *list;
-	pst_index2_ll *list2;//, *t;
+	pst_index2_ll *list2;
 	unsigned char * buffer=NULL, *headerbuffer=NULL;//, *tc;
 	pst_x_attrib xattrib;
 	int32_t bptr = 0, bsize, hsize, tint, err=0, x;
 	pst_x_attrib_ll *ptr, *p_head=NULL, *p_sh=NULL, *p_sh2=NULL;
-	char *wt;
 
 	DEBUG_ENT("pst_loadExtendedAttributes");
 	if ((p = _pst_getDptr(pf, 0x61)) == NULL) {
@@ -390,6 +392,7 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 	}
 
 	if (!buffer) {
+		if (na) _pst_free_list(na);
 		DEBUG_WARN(("No extended attributes buffer found. Not processing\n"));
 		DEBUG_RET();
 		return 0;
@@ -414,6 +417,7 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 		if (xattrib.type & 0x0001) { // if the Bit 1 is set
 			// pointer to Unicode field in buffer
 			if (xattrib.extended < hsize) {
+				char *wt;
 				// copy the size of the header. It is 32 bit int
 				memcpy(&tint, &(headerbuffer[xattrib.extended]), sizeof(tint));
 				LE32_CPU(tint);
@@ -421,6 +425,7 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 				memset(wt, 0, tint+2);
 				memcpy(wt, &(headerbuffer[xattrib.extended+sizeof(tint)]), tint);
 				ptr->data = _pst_wide_to_single(wt, tint);
+				free(wt);
 				DEBUG_INDEX(("Read string (converted from UTF-16): %s\n", ptr->data));
 			} else {
 				DEBUG_INDEX(("Cannot read outside of buffer [%i !< %i]\n", xattrib.extended, hsize));
@@ -463,8 +468,8 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 		LE16_CPU(xattrib.map);
 		bptr += sizeof(xattrib);
 	}
-	if (buffer) 	  free(buffer);
-	if (headerbuffer) free(headerbuffer);
+	if (list2) _pst_free_id2(list2);
+	if (na)    _pst_free_list(na);
 	pf->x_head = p_head;
 	DEBUG_RET();
 	return 1;
@@ -981,12 +986,14 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 
 	if (!d_ptr->desc) {
 		DEBUG_WARN(("why is d_ptr->desc == NULL? I don't want to do anything else with this record\n"));
+		if (id2_head) _pst_free_id2(id2_head);
 		DEBUG_RET();
 		return NULL;
 	}
 
 	if ((list = _pst_parse_block(pf, d_ptr->desc->id, id2_head)) == NULL) {
 		DEBUG_WARN(("_pst_parse_block() returned an error for d_ptr->desc->id [%#x]\n", d_ptr->desc->id));
+		if (id2_head) _pst_free_id2(id2_head);
 		DEBUG_RET();
 		return NULL;
 	}
@@ -996,11 +1003,13 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 
 	if (_pst_process(list, item)) {
 		DEBUG_WARN(("_pst_process() returned non-zero value. That is an error\n"));
-		_pst_free_list(list);
+		if (item)	  free(item);
+		if (list)	  _pst_free_list(list);
+		if (id2_head) _pst_free_id2(id2_head);
 		DEBUG_RET();
 		return NULL;
 	} else {
-		_pst_free_list(list);
+		if (list) _pst_free_list(list);
 		list = NULL; //_pst_process will free the items in the list
 	}
 
@@ -1015,8 +1024,10 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 		DEBUG_EMAIL(("ATTACHEMENT processing attachement\n"));
 		if ((list = _pst_parse_block(pf, id_ptr->id, id2_head)) == NULL) {
 			DEBUG_WARN(("ERROR error processing main attachment record\n"));
-		  //  DEBUG_RET();
-		  //  return NULL;
+			if (item) free(item);
+			if (id2_head) _pst_free_id2(id2_head);
+			DEBUG_RET();
+			return NULL;
 		}
 		else {
 			x = 0;
@@ -1030,11 +1041,14 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 
 			if (_pst_process(list, item)) {
 				DEBUG_WARN(("ERROR _pst_process() failed with attachments\n"));
-				_pst_free_list(list);
+				if (item)	  free(item);
+				if (list)	  _pst_free_list(list);
+				if (id2_head) _pst_free_id2(id2_head);
 				DEBUG_RET();
 				return NULL;
 			}
-			_pst_free_list(list);
+			if (list) _pst_free_list(list);
+			list = NULL;
 
 			// now we will have initial information of each attachment stored in item->attach...
 			// we must now read the secondary record for each based on the id2 val associated with
@@ -1052,11 +1066,13 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 				  }
 				  if (_pst_process(list, item)) {
 					  DEBUG_WARN(("ERROR _pst_process() failed with an attachment\n"));
-					  _pst_free_list(list);
+					  if (list) _pst_free_list(list);
+					  list = NULL;
 					  attach = attach->next;
 					  continue;
 				  }
-				  _pst_free_list(list);
+				  if (list) _pst_free_list(list);
+				  list = NULL;
 				  if ((id_ptr = _pst_getID2(id2_head, attach->id2_val))) {
 					  // id2_val has been updated to the ID2 value of the datablock containing the
 					  // attachment data
@@ -1073,6 +1089,7 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 	}
 
 	_pst_free_id2(id2_head);
+	id2_head = NULL;
 	DEBUG_RET();
 	return item;
 }
@@ -1281,7 +1298,8 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 				fr_ptr += sizeof(table2_rec);
 			} else {
 				WARN(("Missing code for block_type %i\n", block_type));
-				if (buf) free(buf);
+				if (buf)	 free(buf);
+				if (na_head) _pst_free_list(na_head);
 				DEBUG_RET();
 				return NULL;
 			}
@@ -1377,7 +1395,7 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 					}
 
 					// plus one for good luck (and strings) we will null terminate all reads
-					na_ptr->items[x]->data = (char*) xmalloc(size+1);
+					na_ptr->items[x]->data = (unsigned char*) xmalloc(size+1);
 					memcpy(na_ptr->items[x]->data, &(buf[t_ptr]), size);
 					na_ptr->items[x]->data[size] = '\0'; // null terminate buffer
 
@@ -1407,6 +1425,8 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 					na_ptr->items[x]->type = table_rec.ref_type;
 			} else {
 				WARN(("ERROR Unknown ref_type %#x\n", table_rec.ref_type));
+				if (buf)	 free(buf);
+				if (na_head) _pst_free_list(na_head);
 				DEBUG_RET();
 				return NULL;
 			}
@@ -3002,6 +3022,17 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 							DEBUG_EMAIL(("Phone Call\n")); break;
 					}
 					break;
+				case 0x8215: // All day appointment flag
+					DEBUG_EMAIL(("All day flag - "));
+					MALLOC_APPOINTMENT(item);
+					if (*(int16_t*)list->items[x]->data != 0) {
+						DEBUG_EMAIL(("True\n"));
+						item->appointment->all_day = 1;
+					} else {
+						DEBUG_EMAIL(("False\n"));
+						item->appointment->all_day = 0;
+					}
+					break;
 				case 0x8234: // TimeZone as String
 					DEBUG_EMAIL(("TimeZone of times - "));
 					MALLOC_APPOINTMENT(item);
@@ -3243,6 +3274,7 @@ pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* 
 	pst_index_ll *i_ptr = NULL;
 	pst_index2_ll *i2_ptr = NULL;
 	DEBUG_ENT("_pst_build_id2");
+
 	if (head_ptr) {
 		head = head_ptr;
 		while (head_ptr) head_ptr = (tail = head_ptr)->next;
@@ -3250,6 +3282,7 @@ pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* 
 	if (_pst_read_block_size(pf, list->offset, list->size, &buf, PST_NO_ENC, 0) < list->size) {
 		//an error occured in block read
 		WARN(("block read error occured. offset = %#x, size = %#x\n", list->offset, list->size));
+		if (buf) free(buf);
 		DEBUG_RET();
 		return NULL;
 	}
@@ -3261,6 +3294,7 @@ pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* 
 
 	if (block_head.type != 0x0002) { // some sort of constant?
 		WARN(("Unknown constant [%#x] at start of id2 values [offset %#x].\n", block_head.type, list->offset));
+		if (buf) free(buf);
 		DEBUG_RET();
 		return NULL;
 	}
@@ -3513,7 +3547,7 @@ void _pst_freeItem(pst_item *item) {
 }
 
 
-int32_t _pst_getBlockOffset(char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset *p) {
+int32_t _pst_getBlockOffset(unsigned char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset *p) {
 	int32_t of1 = offset>>4;
 	DEBUG_ENT("_pst_getBlockOffset");
 	if (!p || !buf || (i_offset == 0) || (i_offset+2+of1+sizeof(*p) > read_size)) {
@@ -3679,8 +3713,10 @@ size_t _pst_read_block_size(pst_file *pf, int32_t offset, size_t size, char ** b
 	unsigned char fdepth;
 	pst_index_ll *ptr = NULL;
 	size_t rsize, z;
+
 	DEBUG_ENT("_pst_read_block_size");
 	DEBUG_READ(("Reading block from %#x, %i bytes\n", offset, size));
+
 	fpos = ftell(pf->fp);
 	fseek(pf->fp, offset, SEEK_SET);
 	if (*buf) {
@@ -3688,7 +3724,7 @@ size_t _pst_read_block_size(pst_file *pf, int32_t offset, size_t size, char ** b
 		free(*buf);
 	}
 
-	*buf = (void*) xmalloc(size+1); //plus one so that we can NULL terminate it later
+	*buf = (void*) xmalloc(size+1); //plus one so that we can NUL terminate it later
 	rsize = fread(*buf, 1, size, pf->fp);
 	if (rsize != size) {
 		DEBUG_WARN(("Didn't read all that I could. fread returned less [%i instead of %i]\n", rsize, size));
@@ -3894,7 +3930,7 @@ size_t _pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, struct holder *h) {
 			*(h->buf) = b;
 		} else if ((h->base64 == 1) && h->fp) {
 			t = base64_encode(b, ret);
-			pst_fwrite(t, 1, strlen(t), h->fp);
+			if (t) pst_fwrite(t, 1, strlen(t), h->fp);
 			free(b);
 		} else if (h->fp) {
 			pst_fwrite(b, 1, ret, h->fp);
@@ -3923,8 +3959,10 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 	unsigned char fdepth;
 
 	DEBUG_ENT("_pst_ff_compile_ID");
-	if ((a = _pst_ff_getIDblock(pf, id, &buf3))==0)
+	if ((a = _pst_ff_getIDblock(pf, id, &buf3))==0) {
+		if (buf3) free(buf3);
 		return 0;
+	}
 	if ((buf3[0] != 0x1)) { // if bit 8 is set) {
 		//	if ((buf3)[0] != 0x1 && (buf3)[1] > 4) {
 		DEBUG_WARN(("WARNING: buffer doesn't start with 0x1, but I expected it to or doesn't have it's two-bit set!\n"));
@@ -3934,7 +3972,7 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 			*(h->buf) = buf3;
 		else if (h->base64 == 1 && h->fp) {
 			t = base64_encode(buf3, a);
-			pst_fwrite(t, 1, strlen(t), h->fp);
+			if (t) pst_fwrite(t, 1, strlen(t), h->fp);
 			free(buf3);
 		} else if (h->fp) {
 			pst_fwrite(buf3, 1, a, h->fp);
@@ -3978,7 +4016,7 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 				memcpy(h->base64_extra_chars, &(buf2[z-b]), b);
 				h->base64_extra = b;
 				t = base64_encode(buf2, z-b);
-				pst_fwrite(t, 1, strlen(t), h->fp);
+				if (t) pst_fwrite(t, 1, strlen(t), h->fp);
 				DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n",
 						z, strlen(t), size));
 			}

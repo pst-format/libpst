@@ -4,7 +4,7 @@ Summary:            @PACKAGE@ Libpst utilities
 Name:               @PACKAGE@
 Version:            @VERSION@
 Release:            %{?custom_release}%{!?custom_release:1}
-Copyright:          GPL
+License:            GPL
 Group:              System Environment/Daemons
 Source:             http://www.five-ten-sg.com/@PACKAGE@/packages/@PACKAGE@-@VERSION@.tar.gz
 BuildRoot:          %{_tmppath}/%{name}-%{version}-buildroot
@@ -67,6 +67,9 @@ mv AUTHORS COPYING ChangeLog NEWS README        $RPM_BUILD_ROOT%{_datadir}/doc/@
 
 
 %changelog
-* Sun Feb 19 2006 Carl Byington 1.0
+* Tue Jul 10 2007 Carl Byington 0.5.5
+- merge changes from Joe Nahmias version
+
+* Sun Feb 19 2006 Carl Byington 0.5.3
 - initial spec file using autoconf and http://www.fedora.us/docs/rpm-packaging-guidelines.html
 

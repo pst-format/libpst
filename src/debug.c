@@ -29,13 +29,13 @@ struct _debug_func {
 void _debug_init(char *fname);
 void _debug_msg_info (int line, char *file, int type);
 void _debug_msg(char* fmt, ...);
-void _debug_hexdump(char *x, int y, int cols);
+void _debug_hexdump(unsigned char *x, int y, int cols);
 void _debug_func(char *function);
 void _debug_func_ret();
 void _debug_close();
 void _debug_write();
 void _debug_write_msg(struct _debug_item *item, char *fmt, va_list *ap, int size);
-void _debug_write_hex(struct _debug_item *item, char *buf, int size, int col);
+void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, int col);
 void * xmalloc(size_t size);
 
 // the largest text size we will store in memory. Otherwise we
@@ -159,13 +159,16 @@ void _debug_msg_text(char* fmt, ...) {
 #else
   f = vsnprintf(x, 1, fmt, ap);
 #endif
+  va_end(ap);  // must be called after vsnprintf()
 
   if (f > 0 && f < MAX_MESSAGE_SIZE) {
     info_ptr->text = (char*) xmalloc(f+1);
+    va_start(ap, fmt);
     if ((g = vsnprintf(info_ptr->text, f, fmt, ap)) == -1) {
       fprintf(stderr, "_debug_msg: Dieing! vsnprintf returned -1 for format \"%s\"\n", fmt);
       exit(-2);
     }
+    va_end(ap);
     info_ptr->text[g] = '\0';
     if (f != g) {
       fprintf(stderr, "_debug_msg: f != g\n");
@@ -175,7 +178,9 @@ void _debug_msg_text(char* fmt, ...) {
     temp = info_ptr;
     _debug_write(); // dump the current messages
     info_ptr = temp;
+    va_start(ap, fmt);
     _debug_write_msg(info_ptr, fmt, &ap, f);
+    va_end(ap);
     free(info_ptr->function);
     free(info_ptr->file);
     free(info_ptr);
@@ -185,7 +190,6 @@ void _debug_msg_text(char* fmt, ...) {
     fprintf(stderr, "_debug_msg: error getting requested size of debug message\n");
     info_ptr->text = "ERROR Saving\n";
   }
-  va_end(ap);
 
   if (item_head == NULL)
     item_head = info_ptr;
@@ -202,7 +206,7 @@ void _debug_msg_text(char* fmt, ...) {
   }
 }
 
-void _debug_hexdump(char *x, int y, int cols) {
+void _debug_hexdump(unsigned char *x, int y, int cols) {
   struct _debug_item *temp;
   if (debug_fp == NULL)
     return;
@@ -261,7 +265,7 @@ void _debug_close(void) {
 
 void _debug_write() {
   size_t size, ptr, funcname, filename, text, end;
-  char *buf, rec_type;
+  char *buf = NULL, rec_type;
   long index_pos = ftell (debug_fp), file_pos = index_pos;
   // add 2. One for the pointer to the next index, 
   // one for the count of this index
@@ -287,6 +291,7 @@ void _debug_write() {
     index[index_ptr++] = file_pos;
     size = strlen(item_ptr->function)+strlen(item_ptr->file)+
       strlen(item_ptr->text) + 3; //for the three \0s
+    if (buf) free(buf);
     buf = xmalloc(size+1);
     ptr = 0;
     funcname=ptr;
@@ -318,6 +323,7 @@ void _debug_write() {
       fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
     }
     fwrite(buf, 1, ptr, debug_fp);
+    if (buf) free(buf); buf = NULL;
     item_head = item_ptr->next;
     free(item_ptr->function);
     free(item_ptr->file);
@@ -334,6 +340,7 @@ void _debug_write() {
   fseek(debug_fp, 0, SEEK_END);
   item_ptr = item_head = item_tail = NULL;
   free(index);
+  if (buf) free(buf); buf = NULL;
 }
 
 void _debug_write_msg(struct _debug_item *item, char *fmt, va_list *ap, int size) {
@@ -394,7 +401,7 @@ void _debug_write_msg(struct _debug_item *item, char *fmt, va_list *ap, int size
   // that should do it...
 }
 
-void _debug_write_hex(struct _debug_item *item, char *buf, int size, int col) {
+void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, int col) {
   struct _debug_file_rec_l lfile_rec;
   unsigned char rec_type;
   int index_size = 3 * sizeof(int);

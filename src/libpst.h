@@ -378,6 +378,7 @@ typedef struct _pst_item_appointment {
   char *timezonestring;
   int32_t showas;
   int32_t label;
+  int32_t all_day;
 } pst_item_appointment;
 
 typedef struct _pst_item {
@@ -420,10 +421,10 @@ typedef struct _pst_file {
   int32_t index1_count;
   int32_t index2;
   int32_t index2_count;
-  FILE * fp;
-  size_t size;
-  unsigned char encryption;
-  unsigned char ind_type;
+  FILE * fp;				// file pointer to opened PST file
+  size_t size;				// pst file size
+  unsigned char encryption; // pst encryption setting
+  unsigned char ind_type;	// pst index type
 } pst_file;
 
 typedef struct _pst_block_offset {
@@ -477,7 +478,7 @@ int32_t _pst_free_id2(pst_index2_ll * head);
 int32_t _pst_free_id (pst_index_ll *head);
 int32_t _pst_free_desc (pst_desc_ll *head);
 int32_t _pst_free_xattrib(pst_x_attrib_ll *x);
-int32_t _pst_getBlockOffset(char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset *p);
+int32_t _pst_getBlockOffset(unsigned char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset *p);
 pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* head_ptr);
 pst_index_ll * _pst_getID(pst_file* pf, u_int32_t id);
 pst_index_ll * _pst_getID2(pst_index2_ll * ptr, u_int32_t id);

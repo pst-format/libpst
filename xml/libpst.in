@@ -2,17 +2,24 @@
     <title>@PACKAGE@ Utilities - Version @VERSION@</title>
     <partintro>
         <title>Packages</title>
-        <para>The various source and binary packages are available at <ulink
-        url="http://www.five-ten-sg.com/@PACKAGE@/packages/">http://www.five-ten-sg.com/@PACKAGE@/packages/</ulink>
-        The most recent documentation is available at <ulink
-        url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/</ulink>
-        </para>
+
+            <para>This is a fork of the libpst project at SourceForge.  Another fork
+            is located at <ulink
+            url="http://alioth.debian.org/projects/libpst/">http://alioth.debian.org/projects/libpst/</ulink>
+            </para>
+
+            <para>The various source and binary packages are available at <ulink
+            url="http://www.five-ten-sg.com/@PACKAGE@/packages/">http://www.five-ten-sg.com/@PACKAGE@/packages/</ulink>
+            The most recent documentation is available at <ulink
+            url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/</ulink>
+            </para>
+
     </partintro>
 
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2006-02-20</date>
+            <date>2007-07-10</date>
         </refentryinfo>
 
         <refmeta>
@@ -30,6 +37,7 @@
             <title>Synopsis</title>
             <cmdsynopsis>
                 <command>readpst</command>
+                <arg><option>-b</option></arg>
                 <arg><option>-c <replaceable class="parameter">format</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
                 <arg><option>-h</option></arg>
@@ -57,6 +65,12 @@
             <title>Options</title>
             <variablelist>
                 <varlistentry>
+                    <term>-b</term>
+                    <listitem><para>
+                        Do not save the attachments for the RTF format of the email body.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>-c <replaceable class="parameter">format</replaceable></term>
                     <listitem><para>
                         Set the Contact output mode. Use -cv for vcard format or -cl for an email list.
@@ -73,7 +87,7 @@
                 <varlistentry>
                     <term>-h</term>
                     <listitem><para>
-                        Show summary of options. Subsequent options are then ignored.
+                        Show summary of options and exit.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -129,7 +143,7 @@
                 <varlistentry>
                     <term>-V</term>
                     <listitem><para>
-                        Show program version. Subsequent options are then ignored.
+                        Show program version and exit.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -191,7 +205,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2006-02-20</date>
+            <date>2007-07-10</date>
         </refentryinfo>
 
         <refmeta>
@@ -359,7 +373,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2006-02-20</date>
+            <date>2007-07-10</date>
         </refentryinfo>
 
         <refmeta>
@@ -474,7 +488,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2006-02-20</date>
+            <date>2007-07-10</date>
         </refentryinfo>
 
         <refmeta>

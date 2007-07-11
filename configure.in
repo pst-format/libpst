@@ -1,12 +1,32 @@
 AC_INIT(configure.in)
 
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(libpst,0.5.4)
+AM_INIT_AUTOMAKE(libpst,0.5.5)
 AC_PATH_PROGS(BASH, bash)
 
 AC_LANG_CPLUSPLUS
 AC_PROG_CXX
 AC_PROG_LIBTOOL
+
+# The following lines adds the --enable-pst-debug option to configure:
+#
+# Give the user the choice to enter one of these:
+# --enable-pst-debug
+# --enable-pst-debug=yes
+# --enable-pst-debug=no
+#
+AC_MSG_CHECKING([whether we are enabling pst debug code])
+AC_ARG_ENABLE(pst-debug,
+      AC_HELP_STRING([--enable-pst-debug], [enable pst debug code]),
+      [if test "${enable_pst_debug}" = "no" ; then
+          AC_MSG_RESULT([no])
+      else
+          AC_DEFINE(DEBUG_ALL, 1, Define to 1 to enable pst debug code)
+          AC_MSG_RESULT([yes])
+      fi],
+      # Default value for configure
+      AC_MSG_RESULT([no])
+      )
 
 AC_OUTPUT(                  \
     Makefile                \

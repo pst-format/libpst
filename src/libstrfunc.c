@@ -27,7 +27,7 @@ base64_encode(void *data, size_t size) {
   //register void *dte=data + size;
   register int nc=0;
   
-  if(data == NULL)
+  if ( data == NULL || size == 0 )
     return NULL;
   
   ou=output=(char *)malloc(size / 3 * 4 + (size / 50) + 5);

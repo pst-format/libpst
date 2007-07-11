@@ -37,8 +37,8 @@ void debug_print(char *fmt, ...);
 char *rfc2426_escape(char *str);
 char *rfc2445_datetime_format(FILETIME *ft);
 // }}}1
-#ifndef DEBUG_MAIN
-	#define DEBUG_MAIN(x) debug_print x;
+#ifndef LSPST_DEBUG_MAIN
+	#define LSPST_DEBUG_MAIN(x) debug_print x;
 #endif
 // int main(int argc, char** argv) {{{1
 int main(int argc, char** argv) {
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 	pst_desc_ll *d_ptr;
 	char *temp = NULL; //temporary char pointer
 	int skip_child = 0;
-	struct file_ll	*f, *head;
+	struct file_ll	*f = NULL, *head = NULL;
 	// }}}2
 
 	if (argc <= 1)
@@ -92,12 +92,12 @@ int main(int argc, char** argv) {
 	head->dname = (char*) malloc(strlen(item->file_as)+1);
 	strcpy(head->dname, item->file_as);
 	head->type = item->type;
-	DEBUG_MAIN(("head @ %p: name = '%s', dname = '%s', next = %p.\n", head, head->name, head->dname, head->next));
+	LSPST_DEBUG_MAIN(("head @ %p: name = '%s', dname = '%s', next = %p.\n", head, head->name, head->dname, head->next));
 
 	if ((d_ptr = pst_getTopOfFolders(&pstfile, item)) == NULL) {
 		DIE(("Top of folders record not found. Cannot continue\n"));
 	}
-	DEBUG_MAIN(("d_ptr(TOF) = %p.\n", d_ptr));
+	LSPST_DEBUG_MAIN(("d_ptr(TOF) = %p.\n", d_ptr));
 
 	if (item){
 		_pst_freeItem(item);
@@ -105,21 +105,21 @@ int main(int argc, char** argv) {
 	}
 
 	d_ptr = d_ptr->child; // do the children of TOPF
-	DEBUG_MAIN(("d_ptr(TOF->child) = %p.\n", d_ptr));
+	LSPST_DEBUG_MAIN(("d_ptr(TOF->child) = %p.\n", d_ptr));
 
-	DEBUG_MAIN(("main: About to do email stuff\n"));
+	LSPST_DEBUG_MAIN(("main: About to do email stuff\n"));
 	while (d_ptr != NULL) {
 		// Process d_ptr {{{2
-		DEBUG_MAIN(("main: New item record, d_ptr = %p.\n", d_ptr));
+		LSPST_DEBUG_MAIN(("main: New item record, d_ptr = %p.\n", d_ptr));
 		if (d_ptr->desc == NULL) {
 			DEBUG_WARN(("main: ERROR ?? item's desc record is NULL\n"));
 			f->skip_count++;
 			goto check_parent;
 		}
-		DEBUG_MAIN(("main: Desc Email ID %x [d_ptr->id = %x]\n", d_ptr->desc->id, d_ptr->id));
+		LSPST_DEBUG_MAIN(("main: Desc Email ID %x [d_ptr->id = %x]\n", d_ptr->desc->id, d_ptr->id));
 
 		item = _pst_parse_item(&pstfile, d_ptr);
-		DEBUG_MAIN(("main: About to process item @ %p.\n", item));
+		LSPST_DEBUG_MAIN(("main: About to process item @ %p.\n", item));
 		if (item != NULL) {
 
 			// there should only be one message_store, and we have already
@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
 						printf("\t%s/", item->file_as);
 				printf("\n");
 
-				DEBUG_MAIN(("main: I think I may try to go into folder \"%s\"\n", item->file_as));
+				LSPST_DEBUG_MAIN(("main: I think I may try to go into folder \"%s\"\n", item->file_as));
 				f = (struct file_ll*) malloc(sizeof(struct file_ll));
 				memset(f, 0, sizeof(struct file_ll));
 				f->next = head;
@@ -148,14 +148,14 @@ int main(int argc, char** argv) {
 				f->dname = (char*) xmalloc(strlen(item->file_as)+1);
 				strcpy(f->dname, item->file_as);
 
-				DEBUG_MAIN(("main: f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as));
+				LSPST_DEBUG_MAIN(("main: f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as));
 				canonicalize_filename(f->name);
 
 				if (d_ptr->child != NULL) {
 					d_ptr = d_ptr->child;
 					skip_child = 1;
 				} else {
-					DEBUG_MAIN(("main: Folder has NO children. Creating directory, and closing again\n"));
+					LSPST_DEBUG_MAIN(("main: Folder has NO children. Creating directory, and closing again\n"));
 					// printf("\tNo items to process in folder \"%s\", should have been %i\n", f->dname, f->stored_count);
 					head = f->next;
 					if (f->output != NULL)
@@ -173,13 +173,13 @@ int main(int argc, char** argv) {
 			} else if (item->contact != NULL) {
 				// Process Contact item {{{3
 				if (f->type != PST_TYPE_CONTACT) {
-					DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. "
+					LSPST_DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. "
 							 "Will process anyway\n"));
 				}
 				if (item->type != PST_TYPE_CONTACT) {
-					DEBUG_MAIN(("main: I have an item that has contact info, but doesn't say that"
+					LSPST_DEBUG_MAIN(("main: I have an item that has contact info, but doesn't say that"
 							 " it is a contact. Type is \"%s\"\n", item->ascii_type));
-					DEBUG_MAIN(("main: Processing anyway\n"));
+					LSPST_DEBUG_MAIN(("main: Processing anyway\n"));
 				}
 
 				printf("Contact");
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
 			} else if (item->type == PST_TYPE_JOURNAL) {
 				// Process Journal item {{{3
 				if (f->type != PST_TYPE_JOURNAL) {
-					DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
+					LSPST_DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
 				}
 
 				printf("Journal\t%s\n", rfc2426_escape(item->email->subject->subj));
@@ -209,37 +209,42 @@ int main(int argc, char** argv) {
 				// Process Calendar Appointment item {{{3
 				// deal with Calendar appointments
 
-				DEBUG_MAIN(("main: Processing Appointment Entry\n"));
+				LSPST_DEBUG_MAIN(("main: Processing Appointment Entry\n"));
 				if (f->type != PST_TYPE_APPOINTMENT) {
-					DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
+					LSPST_DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
 				}
 
 				printf("Appointment");
 				if (item->email != NULL && item->email->subject != NULL)
 					printf("\tSUMMARY: %s", rfc2426_escape(item->email->subject->subj));
-				if (item->appointment != NULL && item->appointment->start != NULL)
-					printf("\tSTART: %s", rfc2445_datetime_format(item->appointment->start));
+				if (item->appointment != NULL) {
+					if (item->appointment->start != NULL)
+						printf("\tSTART: %s", rfc2445_datetime_format(item->appointment->start));
+					if (item->appointment->end != NULL)
+						printf("\tEND: %s", rfc2445_datetime_format(item->appointment->end));
+					printf("\tALL DAY: %s", (item->appointment->all_day==1 ? "Yes" : "No"));
+				}
 				printf("\n");
 
 				// }}}3
 			} else {
 				f->skip_count++;
-				DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n", \
+				LSPST_DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n", \
 					item->type, item->ascii_type));
 			}
 		} else {
 			f->skip_count++;
-			DEBUG_MAIN(("main: A NULL item was seen\n"));
+			LSPST_DEBUG_MAIN(("main: A NULL item was seen\n"));
 		}
 
 		check_parent:
 		//	  _pst_freeItem(item);
 		while (!skip_child && d_ptr->next == NULL && d_ptr->parent != NULL) {
-			DEBUG_MAIN(("main: Going to Parent\n"));
+			LSPST_DEBUG_MAIN(("main: Going to Parent\n"));
 			head = f->next;
 			if (f->output != NULL)
 				fclose(f->output);
-			DEBUG_MAIN(("main: Email Count for folder %s is %i\n", f->dname, f->email_count));
+			LSPST_DEBUG_MAIN(("main: Email Count for folder %s is %i\n", f->dname, f->email_count));
 			/*
 			printf("\t\"%s\" - %i items done, skipped %i, should have been %i\n", \
 					f->dname, f->email_count, f->skip_count, f->stored_count);
@@ -250,7 +255,7 @@ int main(int argc, char** argv) {
 			free(f);
 			f = head;
 			if (head == NULL) { //we can't go higher. Must be at start?
-				DEBUG_MAIN(("main: We are now trying to go above the highest level. We must be finished\n"));
+				LSPST_DEBUG_MAIN(("main: We are now trying to go above the highest level. We must be finished\n"));
 				break; //from main while loop
 			}
 			d_ptr = d_ptr->parent;
@@ -258,7 +263,7 @@ int main(int argc, char** argv) {
 		}
 
 		if (item != NULL) {
-			DEBUG_MAIN(("main: Freeing memory used by item\n"));
+			LSPST_DEBUG_MAIN(("main: Freeing memory used by item\n"));
 			_pst_freeItem(item);
 			item = NULL;
 		}
@@ -268,11 +273,11 @@ int main(int argc, char** argv) {
 		else
 			skip_child = 0;
 
-		if (d_ptr == NULL) { DEBUG_MAIN(("main: d_ptr is now NULL\n")); }
+		if (d_ptr == NULL) { LSPST_DEBUG_MAIN(("main: d_ptr is now NULL\n")); }
 
 	// }}}2
 	} // end while(d_ptr != NULL)
-	DEBUG_MAIN(("main: Finished.\n"));
+	LSPST_DEBUG_MAIN(("main: Finished.\n"));
 
 	// Cleanup {{{2
 	pst_close(&pstfile);

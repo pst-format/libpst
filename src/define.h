@@ -5,9 +5,9 @@
  *			  dave.s@earthcorp.com
  */
 
-// last one wins
-#define DEBUG_ALL
-#undef DEBUG_ALL
+#ifdef HAVE_CONFIG_H
+	#include "config.h"
+#endif
 
 #ifndef DEFINEH_H
 #define DEFINEH_H
@@ -60,7 +60,7 @@ void _pst_debug_hexprint(char *data, int size);
 void _debug_init(char *fname);
 void _debug_msg_info (int line, char *file, int type);
 void _debug_msg_text(char* fmt, ...);
-void _debug_hexdump(char *x, int y, int cols);
+void _debug_hexdump(unsigned char *x, int y, int cols);
 void _debug_func(char *function);
 void _debug_func_ret();
 void _debug_close(void);

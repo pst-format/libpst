@@ -12,18 +12,6 @@ make -f *cvs
 ./configure >/dev/null
 (cd xml; make; make distclean)
 cp -a html/*html $web
-if [ "$1" == "test" ]; then
-    make
-    pst=/home/ldap/outlook.pst
-    rm -f pst2ldif.log my.log
-    src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif
-    src/readpstlog pst2ldif.log | less >my.log
-    hexdump -C -v $pst >pst.dump
-    chown --recursive carl:carl *
-    exit
-else
-    rm -f pst2ldif.log my.log ams.ldif pst.dump
-fi
 make distcheck >$distlog 2>&1
 
 if [ $? -eq 0 ]; then
@@ -41,20 +29,28 @@ if [ $? -eq 0 ]; then
         cd ..
 
         # build rpm on target
-        target=host62
-        scp $BALL $target:/tmp
-        ssh $target "cd /tmp; rpmbuild -ta $BALL"
+        target5=pmg2
+        scp $BALL $target5:/tmp
+        ssh $target5 "cd /tmp; rpmbuild -ta $BALL"
+
+        # build rpm on target
+        target4=host62
+        scp $BALL $target4:/tmp
+        ssh $target4 "cd /tmp; rpmbuild -ta $BALL"
 
         # add packages to the web site
         wp=$web/packages
         wp4=$wp/centos4
-        mkdir -p $wp4
+        wp5=$wp/centos5
+        mkdir -p $wp4 $wp5
         rp=/usr/src/redhat
         mv -f $BALL $wp
-        scp $target:$rp/SRPMS/$NAME-$VER*rpm $wp
-        scp $target:$rp/RPMS/i386/$NAME-$VER*rpm $wp4
-        (cd $web; chown --recursive web:web .; ls -alR)
+        scp $target4:$rp/SRPMS/$NAME-$VER*rpm $wp
+        scp $target4:$rp/RPMS/i386/$NAME-$VER*rpm $wp4
+        scp $target5:$rp/RPMS/i386/$NAME-$VER*rpm $wp5
+        (cd $web; chown --recursive web:web *; ls -alR)
         rpm -ql -p $wp4/$NAME-$VER*6.rpm
+        rpm -ql -p $wp5/$NAME-$VER*6.rpm
     fi
 else
     tail -10 $distlog
