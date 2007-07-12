@@ -44,7 +44,7 @@
 #define PST_SIGNATURE 0x4E444221
 
 struct _pst_table_ptr_struct{
-	int32_t start;
+	u_int32_t start;
 	int32_t u1;
 	int32_t offset;
 };
@@ -296,7 +296,7 @@ int32_t pst_load_index (pst_file *pf) {
 		return -1;
 	}
 
-	x = _pst_build_id_ptr(pf, pf->index1, 0, pf->index1_count, -1, INT32_MAX);
+	x = _pst_build_id_ptr(pf, pf->index1, 0, pf->index1_count, 0, INT32_MAX);
 	DEBUG_INDEX(("build id ptr returns %i\n", x));
 
 	y = 0;
@@ -467,12 +467,12 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 #define INDEX_COUNT_MAX 	   41		// max active items
 #define DESC_COUNT_MAX		   31		// max active items
 
-int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, int32_t start_val, int32_t end_val) {
+int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t start_val, u_int32_t end_val) {
 	struct _pst_table_ptr_struct table, table2;
 	pst_index_ll *i_ptr=NULL;
 	pst_index index;
 	int32_t x, item_count;
-	int32_t old = start_val;
+	u_int32_t old = start_val;
 	char *buf = NULL, *bptr;
 
 	DEBUG_ENT("_pst_build_id_ptr");
@@ -530,7 +530,7 @@ int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t l
 			}
 			old = index.id;
 			if (x == 1) {	// first entry
-				if ((start_val != -1) && (index.id != start_val)) {
+				if ((start_val) && (index.id != start_val)) {
 					DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
 					if (buf) free(buf);
 					DEBUG_RET();
@@ -575,7 +575,7 @@ int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t l
 			}
 			old = table.start;
 			if (x == 1) {	// first entry
-				if (start_val != -1 && table.start != start_val) {
+				if ((start_val) && (table.start != start_val)) {
 					DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
 					if (buf) free(buf);
 					DEBUG_RET();
@@ -1162,7 +1162,7 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		list_start = block_offset.from;
 		to_ptr	   = block_offset.to;
 		num_list = (to_ptr - list_start)/sizeof(table_rec);
-		num_recs = 1; // only going to one object in these blocks
+		num_recs = 1; // only going to be one object in these blocks
 		rec_size = 0; // doesn't matter cause there is only one object
 	}
 	else if (block_hdr.type == 0x7CEC) { //type 2
@@ -1437,11 +1437,6 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 	memcpy(targ, list->items[x]->data, list->items[x]->size); \
 }
 
-
-/*	free(list->items[x]->data); \
-	list->items[x]->data=NULL; \*/
-
-//#define INC_CHECK_X() { if (++x >= list->count_item) break; }
 #define NULL_CHECK(x) { if (!x) { DEBUG_EMAIL(("NULL_CHECK: Null Found\n")); break;} }
 
 #define MOVE_NEXT(targ) { \
@@ -1504,7 +1499,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("False\n"));
 						item->email->autoforward = -1;
 					}
-					//	INC_CHECK_X();
 					break;
 				case 0x0003: // Extended Attributes table
 					DEBUG_EMAIL(("Extended Attributes Table - NOT PROCESSED\n"));
@@ -1521,7 +1515,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LE32_CPU(item->email->importance);
 					t = item->email->importance;
 					DEBUG_EMAIL(("%s [%i]\n", (t==0?"Low":(t==1?"Normal":"High")), t));
-					//	INC_CHECK_X();
 					break;
 				case 0x001A: // PR_MESSAGE_CLASS Ascii type of messages - NOT FOLDERS
 					// must be case insensitive
@@ -1547,7 +1540,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						item->type = PST_TYPE_OTHER;
 
 					DEBUG_EMAIL(("%s\n", item->ascii_type));
-					//	INC_CHECK_X(); //increment x here so that the next if statement has a chance of matching the next item
 					break;
 				case 0x0023: // PR_ORIGINATOR_DELIVERY_REPORT_REQUESTED
 					// set if the sender wants a delivery report from all recipients
@@ -1560,7 +1552,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("False\n"));
 						item->email->delivery_report = 0;
 					}
-					//	INC_CHECK_X();
 					break;
 				case 0x0026: // PR_PRIORITY
 					// Priority of a message
@@ -1573,7 +1564,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LE32_CPU(item->email->priority);
 					t = item->email->priority;
 					DEBUG_EMAIL(("%s [%i]\n", (t<0?"NonUrgent":(t==0?"Normal":"Urgent")), t));
-					//	INC_CHECK_X();
 					break;
 				case 0x0029:// PR_READ_RECEIPT_REQUESTED
 					DEBUG_EMAIL(("Read Receipt - "));
@@ -1585,7 +1575,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("False\n"));
 						item->email->read_receipt = 0;
 					}
-					//	INC_CHECK_X();
 					break;
 				case 0x002B: // PR_RECIPIENT_REASSIGNMENT_PROHIBITED
 					DEBUG_EMAIL(("Reassignment Prohibited (Private) - "));
@@ -1610,7 +1599,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					t = item->email->orig_sensitivity;
 					DEBUG_EMAIL(("%s [%i]\n", (t==0?"None":(t==1?"Personal":
 										(t==2?"Private":"Company Confidential"))), t));
-					//	INC_CHECK_X();
 					break;
 				case 0x0036: // PR_SENSITIVITY
 					// sender's opinion of the sensitivity of an email
@@ -1625,7 +1613,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					t = item->email->sensitivity;
 					DEBUG_EMAIL(("%s [%i]\n", (t==0?"None":(t==1?"Personal":
 										(t==2?"Private":"Company Confidential"))), t));
-					//	INC_CHECK_X();
 					break;
 				case 0x0037: // PR_SUBJECT raw subject
 					//		if (list->items[x]->id == 0x0037) {
@@ -1660,7 +1647,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("NULL subject detected\n"));
 					}
 					break;
-					//	INC_CHECK_X();
 				case 0x0039: // PR_CLIENT_SUBMIT_TIME Date Email Sent/Created
 					DEBUG_EMAIL(("Date sent - "));
 					MALLOC_EMAIL(item);
@@ -1668,66 +1654,54 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LE32_CPU(item->email->sent_date->dwLowDateTime);
 					LE32_CPU(item->email->sent_date->dwHighDateTime);
 					DEBUG_EMAIL(("%s", fileTimeToAscii(item->email->sent_date)));
-					//	INC_CHECK_X();
 					break;
 				case 0x003B: // PR_SENT_REPRESENTING_SEARCH_KEY Sender address 1
 					DEBUG_EMAIL(("Sent on behalf of address 1 - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->outlook_sender, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->outlook_sender));
-					//	INC_CHECK_X();
 					break;
 				case 0x003F: // PR_RECEIVED_BY_ENTRYID Structure containing Recipient
 					DEBUG_EMAIL(("Recipient Structure 1 -- NOT HANDLED\n"));
-					//	INC_CHECK_X();
 					break;
 				case 0x0040: // PR_RECEIVED_BY_NAME Name of Recipient Structure
 					DEBUG_EMAIL(("Received By Name 1 -- NOT HANDLED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x0041: // PR_SENT_REPRESENTING_ENTRYID Structure containing Sender
 					DEBUG_EMAIL(("Sent on behalf of Structure 1 -- NOT HANDLED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x0042: // PR_SENT_REPRESENTING_NAME Name of Sender Structure
 					DEBUG_EMAIL(("Sent on behalf of Structure Name - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->outlook_sender_name, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->outlook_sender_name));
-					//INC_CHECK_X();
 					break;
 				case 0x0043: // PR_RCVD_REPRESENTING_ENTRYID Recipient Structure 2
 					DEBUG_EMAIL(("Received on behalf of Structure -- NOT HANDLED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x0044: // PR_RCVD_REPRESENTING_NAME Name of Recipient Structure 2
 					DEBUG_EMAIL(("Received on behalf of Structure Name -- NOT HANDLED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x004F: // PR_REPLY_RECIPIENT_ENTRIES Reply-To Structure
 					DEBUG_EMAIL(("Reply-To Structure -- NOT HANDLED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x0050: // PR_REPLY_RECIPIENT_NAMES Name of Reply-To Structure
 					DEBUG_EMAIL(("Name of Reply-To Structure -"));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->reply_to, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->reply_to));
-					//INC_CHECK_X();
 					break;
 				case 0x0051: // PR_RECEIVED_BY_SEARCH_KEY Recipient Address 1
 					DEBUG_EMAIL(("Recipient's Address 1 (Search Key) - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY (item->email->outlook_recipient, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->outlook_recipient));
-					//INC_CHECK_X();
 					break;
 				case 0x0052: // PR_RCVD_REPRESENTING_SEARCH_KEY Recipient Address 2
 					DEBUG_EMAIL(("Received on behalf of Address (Search Key) - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->outlook_recipient2, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->outlook_recipient2));
-					//INC_CHECK_X();
 					break;
 				case 0x0057: // PR_MESSAGE_TO_ME
 					// this user is listed explicitly in the TO address
@@ -1740,7 +1714,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("False\n"));
 						item->email->message_to_me = 0;
 					}
-					//INC_CHECK_X();
 					break;
 				case 0x0058: // PR_MESSAGE_CC_ME
 					// this user is listed explicitly in the CC address
@@ -1753,7 +1726,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("False\n"));
 						item->email->message_cc_me = 0;
 					}
-					//INC_CHECK_X();
 					break;
 				case 0x0059: //PR_MESSAGE_RECIP_ME
 					// this user appears in TO, CC or BCC address list
@@ -1766,7 +1738,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("False\n"));
 						item->email->message_recip_me = 0;
 					}
-					//INC_CHECK_X();
 					break;
 				case 0x0063: // PR_RESPONSE_REQUESTED
 					DEBUG_EMAIL(("Response requested - "));
@@ -1783,56 +1754,48 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->sender_access, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->sender_access));
-					//INC_CHECK_X();
 					break;
 				case 0x0065: // PR_SENT_REPRESENTING_EMAIL_ADDRESS Sender Address
 					DEBUG_EMAIL(("Sent on behalf of Address - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->sender_address, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->sender_address));
-					//INC_CHECK_X();
 					break;
 				case 0x0070: // PR_CONVERSATION_TOPIC Processed Subject
 					DEBUG_EMAIL(("Processed Subject (Conversation Topic) - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->proc_subject, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->proc_subject));
-					//INC_CHECK_X();
 					break;
 				case 0x0071: // PR_CONVERSATION_INDEX Date 2
 					DEBUG_EMAIL(("Conversation Index - "));
 					MALLOC_EMAIL(item);
 					memcpy(&(item->email->conv_index), list->items[x]->data, sizeof(item->email->conv_index));
 					DEBUG_EMAIL(("%i\n", item->email->conv_index));
-					//INC_CHECK_X();
 					break;
 				case 0x0075: // PR_RECEIVED_BY_ADDRTYPE Recipient Access Method
 					DEBUG_EMAIL(("Received by Address type - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->recip_access, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->recip_access));
-					//INC_CHECK_X();
 					break;
 				case 0x0076: // PR_RECEIVED_BY_EMAIL_ADDRESS Recipient Address
 					DEBUG_EMAIL(("Received by Address - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->recip_address, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->recip_address));
-					//INC_CHECK_X();
 					break;
 				case 0x0077: // PR_RCVD_REPRESENTING_ADDRTYPE Recipient Access Method 2
 					DEBUG_EMAIL(("Received on behalf of Address type - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->recip2_access, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->recip2_access));
-					//INC_CHECK_X();
 					break;
 				case 0x0078: // PR_RCVD_REPRESENTING_EMAIL_ADDRESS Recipient Address 2
 					DEBUG_EMAIL(("Received on behalf of Address -"));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->recip2_address, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->recip2_address));
-					//INC_CHECK_X();
 					break;
 				case 0x007D: // PR_TRANSPORT_MESSAGE_HEADERS Internet Header
 					DEBUG_EMAIL(("Internet Header - "));
@@ -1840,7 +1803,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LIST_COPY(item->email->header, (char*));
 					//DEBUG_EMAIL(("%s\n", item->email->header));
 					DEBUG_EMAIL(("NOT PRINTED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x0C17: // PR_REPLY_REQUESTED
 					DEBUG_EMAIL(("Reply Requested - "));
@@ -1855,32 +1817,27 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					break;
 				case 0x0C19: // PR_SENDER_ENTRYID Sender Structure 2
 					DEBUG_EMAIL(("Sender Structure 2 -- NOT HANDLED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x0C1A: // PR_SENDER_NAME Name of Sender Structure 2
 					DEBUG_EMAIL(("Name of Sender Structure 2 -- NOT HANDLED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x0C1D: // PR_SENDER_SEARCH_KEY Name of Sender Address 2
 					DEBUG_EMAIL(("Name of Sender Address 2 (Sender search key) - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->outlook_sender2, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->outlook_sender2));
-					//INC_CHECK_X();
 					break;
 				case 0x0C1E: // PR_SENDER_ADDRTYPE Sender Address 2 access method
 					DEBUG_EMAIL(("Sender Address type - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->sender2_access, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->sender2_access));
-					//INC_CHECK_X();
 					break;
 				case 0x0C1F: // PR_SENDER_EMAIL_ADDRESS Sender Address 2
 					DEBUG_EMAIL(("Sender Address - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->sender2_address, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->sender2_address));
-					//INC_CHECK_X();
 					break;
 				case 0x0E01: // PR_DELETE_AFTER_SUBMIT
 					// I am not too sure how this works
@@ -1893,28 +1850,24 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("False\n"));
 						item->email->delete_after_submit = 0;
 					}
-					//INC_CHECK_X();
 					break;
 				case 0x0E03: // PR_DISPLAY_CC CC Addresses
 					DEBUG_EMAIL(("Display CC Addresses - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->cc_address, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->cc_address));
-					//INC_CHECK_X();
 					break;
 				case 0x0E04: // PR_DISPLAY_TO Address Sent-To
 					DEBUG_EMAIL(("Display Sent-To Address - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->sentto_address, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->sentto_address));
-					//INC_CHECK_X();
 					break;
 				case 0x0E06: // PR_MESSAGE_DELIVERY_TIME Date 3 - Email Arrival Date
 					DEBUG_EMAIL(("Date 3 (Delivery Time) - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->arrival_date, (FILETIME*));
 					DEBUG_EMAIL(("%s", fileTimeToAscii(item->email->arrival_date)));
-					//INC_CHECK_X();
 					break;
 				case 0x0E07: // PR_MESSAGE_FLAGS Email Flag
 					// 0x01 - Read
@@ -1932,14 +1885,12 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(item->email->flag), list->items[x]->data, sizeof(item->email->flag));
 					LE32_CPU(item->email->flag);
 					DEBUG_EMAIL(("%i\n", item->email->flag));
-					//INC_CHECK_X();
 					break;
 				case 0x0E08: // PR_MESSAGE_SIZE Total size of a message object
 					DEBUG_EMAIL(("Message Size - "));
 					memcpy(&(item->message_size), list->items[x]->data, sizeof(item->message_size));
 					LE32_CPU(item->message_size);
 					DEBUG_EMAIL(("%i [%#x]\n", item->message_size, item->message_size));
-					//INC_CHECK_X();
 					break;
 				case 0x0E0A: // PR_SENTMAIL_ENTRYID
 					// folder that this message is sent to after submission
@@ -1948,7 +1899,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LIST_COPY(item->email->sentmail_folder, (pst_entryid*));
 					LE32_CPU(item->email->sentmail_folder->id);
 					DEBUG_EMAIL(("[id = %#x]\n", item->email->sentmail_folder->id));
-					//INC_CHECK_X();
 					break;
 				case 0x0E1F: // PR_RTF_IN_SYNC
 					// True means that the rtf version is same as text body
@@ -1964,7 +1914,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("False\n"));
 						item->email->rtf_in_sync = 0;
 					}
-					//INC_CHECK_X();
 					break;
 				case 0x0E20: // PR_ATTACH_SIZE binary Attachment data in record
 					DEBUG_EMAIL(("Attachment Size - "));
@@ -1972,7 +1921,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MOVE_NEXT(attach);
 					memcpy(&(attach->size), list->items[x]->data, sizeof(attach->size));
 					DEBUG_EMAIL(("%i\n", attach->size));
-					//INC_CHECK_X();
 					break;
 				case 0x0FF9: // PR_RECORD_KEY Record Header 1
 					DEBUG_EMAIL(("Record Key 1 - "));
@@ -1980,7 +1928,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					item->record_key_size = list->items[x]->size;
 					DEBUG_EMAIL_HEXPRINT(item->record_key, item->record_key_size);
 					DEBUG_EMAIL(("\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x1000: // PR_BODY Plain Text body
 					DEBUG_EMAIL(("Plain Text body - "));
@@ -1988,7 +1935,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LIST_COPY(item->email->body, (char*));
 					//DEBUG_EMAIL("%s\n", item->email->body);
 					DEBUG_EMAIL(("NOT PRINTED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x1006: // PR_RTF_SYNC_BODY_CRC
 					DEBUG_EMAIL(("RTF Sync Body CRC - "));
@@ -1996,7 +1942,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(item->email->rtf_body_crc), list->items[x]->data, sizeof(item->email->rtf_body_crc));
 					LE32_CPU(item->email->rtf_body_crc);
 					DEBUG_EMAIL(("%#x\n", item->email->rtf_body_crc));
-					//INC_CHECK_X();
 					break;
 				case 0x1007: // PR_RTF_SYNC_BODY_COUNT
 					// a count of the *significant* charcters in the rtf body. Doesn't count
@@ -2006,7 +1951,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(item->email->rtf_body_char_count), list->items[x]->data, sizeof(item->email->rtf_body_char_count));
 					LE32_CPU(item->email->rtf_body_char_count);
 					DEBUG_EMAIL(("%i [%#x]\n", item->email->rtf_body_char_count, item->email->rtf_body_char_count));
-					//INC_CHECK_X();
 					break;
 				case 0x1008: // PR_RTF_SYNC_BODY_TAG
 					// the first couple of lines of RTF body so that after modification, then beginning can
@@ -2015,7 +1959,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->rtf_body_tag, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->rtf_body_tag));
-					//INC_CHECK_X();
 					break;
 				case 0x1009: // PR_RTF_COMPRESSED
 					// some compression algorithm has been applied to this. At present
@@ -2024,7 +1967,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->rtf_compressed, (char*));
 					DEBUG_EMAIL(("NOT PRINTED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x1010: // PR_RTF_SYNC_PREFIX_COUNT
 					// a count of the ignored characters before the first significant character
@@ -2032,7 +1974,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MALLOC_EMAIL(item);
 					memcpy(&(item->email->rtf_ws_prefix_count), list->items[x]->data, sizeof(item->email->rtf_ws_prefix_count));
 					DEBUG_EMAIL(("%i\n", item->email->rtf_ws_prefix_count));
-					//INC_CHECK_X();
 					break;
 				case 0x1011: // PR_RTF_SYNC_TRAILING_COUNT
 					// a count of the ignored characters after the last significant character
@@ -2040,7 +1981,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MALLOC_EMAIL(item);
 					memcpy(&(item->email->rtf_ws_trailing_count), list->items[x]->data, sizeof(item->email->rtf_ws_trailing_count));
 					DEBUG_EMAIL(("%i\n", item->email->rtf_ws_trailing_count));
-					//INC_CHECK_X();
 					break;
 				case 0x1013: // HTML body
 					DEBUG_EMAIL(("HTML body - "));
@@ -2048,41 +1988,35 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LIST_COPY(item->email->htmlbody, (char*));
 					//	DEBUG_EMAIL(("%s\n", item->email->htmlbody));
 					DEBUG_EMAIL(("NOT PRINTED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x1035: // Message ID
 					DEBUG_EMAIL(("Message ID - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->messageid, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->messageid));
-					//INC_CHECK_X();
 					break;
 				case 0x1042: // in-reply-to
 					DEBUG_EMAIL(("In-Reply-To - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->in_reply_to, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->in_reply_to));
-					//INC_CHECK_X();
 					break;
 				case 0x1046: // Return Path
 					DEBUG_EMAIL(("Return Path - "));
 					MALLOC_EMAIL(item);
 					LIST_COPY(item->email->return_path_address, (char*));
 					DEBUG_EMAIL(("%s\n", item->email->return_path_address));
-					//INC_CHECK_X();
 					break;
 				case 0x3001: // PR_DISPLAY_NAME File As
 					DEBUG_EMAIL(("Display Name - "));
 					LIST_COPY(item->file_as, (char*));
 					DEBUG_EMAIL(("%s\n", item->file_as));
-					//INC_CHECK_X();
 					break;
 				case 0x3002: // PR_ADDRTYPE
 					DEBUG_EMAIL(("Address Type - "));
 					MALLOC_CONTACT(item);
 					LIST_COPY(item->contact->address1_transport, (char*));
 					DEBUG_EMAIL(("|%s|\n", item->contact->address1_transport));
-					//INC_CHECK_X();
 					break;
 				case 0x3003: // PR_EMAIL_ADDRESS
 					// Contact's email address
@@ -2090,29 +2024,24 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MALLOC_CONTACT(item);
 					LIST_COPY(item->contact->address1, (char*));
 					DEBUG_EMAIL(("|%s|\n", item->contact->address1));
-					//INC_CHECK_X();
 					break;
 				case 0x3004: // PR_COMMENT Comment for item - usually folders
 					DEBUG_EMAIL(("Comment - "));
 					LIST_COPY(item->comment, (char*));
 					DEBUG_EMAIL(("%s\n", item->comment));
-					//INC_CHECK_X();
 					break;
 				case 0x3007: // PR_CREATION_TIME Date 4 - Creation Date?
 					DEBUG_EMAIL(("Date 4 (Item Creation Date) - "));
 					LIST_COPY(item->create_date, (FILETIME*));
 					DEBUG_EMAIL(("%s", fileTimeToAscii(item->create_date)));
-					//INC_CHECK_X();
 					break;
 				case 0x3008: // PR_LAST_MODIFICATION_TIME Date 5 - Modify Date
 					DEBUG_EMAIL(("Date 5 (Modify Date) - "));
 					LIST_COPY(item->modify_date, (FILETIME*));
 					DEBUG_EMAIL(("%s", fileTimeToAscii(item->modify_date)));
-					//INC_CHECK_X();
 					break;
 				case 0x300B: // PR_SEARCH_KEY Record Header 2
 					DEBUG_EMAIL(("Record Search 2 -- NOT HANDLED\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x35DF: // PR_VALID_FOLDER_MASK
 					// States which folders are valid for this message store
@@ -2129,7 +2058,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(item->message_store->valid_mask), list->items[x]->data, sizeof(int));
 					LE32_CPU(item->message_store->valid_mask);
 					DEBUG_EMAIL(("%i\n", item->message_store->valid_mask));
-					//INC_CHECK_X();
 					break;
 				case 0x35E0: // PR_IPM_SUBTREE_ENTRYID Top of Personal Folder Record
 					DEBUG_EMAIL(("Top of Personal Folder Record - "));
@@ -2137,7 +2065,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LIST_COPY(item->message_store->top_of_personal_folder, (pst_entryid*));
 					LE32_CPU(item->message_store->top_of_personal_folder->id);
 					DEBUG_EMAIL(("[id = %#x]\n", item->message_store->top_of_personal_folder->id));
-					//INC_CHECK_X();
 					break;
 				case 0x35E3: // PR_IPM_WASTEBASKET_ENTRYID Deleted Items Folder Record
 					DEBUG_EMAIL(("Deleted Items Folder record - "));
@@ -2145,7 +2072,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LIST_COPY(item->message_store->deleted_items_folder, (pst_entryid*));
 					LE32_CPU(item->message_store->deleted_items_folder->id);
 					DEBUG_EMAIL(("[id = %#x]\n", item->message_store->deleted_items_folder->id));
-					//INC_CHECK_X();
 					break;
 				case 0x35E7: // PR_FINDER_ENTRYID Search Root Record
 					DEBUG_EMAIL(("Search Root record - "));
@@ -2153,7 +2079,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LIST_COPY(item->message_store->search_root_folder, (pst_entryid*));
 					LE32_CPU(item->message_store->search_root_folder->id);
 					DEBUG_EMAIL(("[id = %#x]\n", item->message_store->search_root_folder->id));
-					//INC_CHECK_X();
 					break;
 				case 0x3602: // PR_CONTENT_COUNT Number of emails stored in a folder
 					DEBUG_EMAIL(("Folder Email Count - "));
@@ -2161,7 +2086,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(item->folder->email_count), list->items[x]->data, sizeof(item->folder->email_count));
 					LE32_CPU(item->folder->email_count);
 					DEBUG_EMAIL(("%i\n", item->folder->email_count));
-					//INC_CHECK_X();
 					break;
 				case 0x3603: // PR_CONTENT_UNREAD Number of unread emails
 					DEBUG_EMAIL(("Unread Email Count - "));
@@ -2169,7 +2093,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(item->folder->unseen_email_count), list->items[x]->data, sizeof(item->folder->unseen_email_count));
 					LE32_CPU(item->folder->unseen_email_count);
 					DEBUG_EMAIL(("%i\n", item->folder->unseen_email_count));
-					//INC_CHECK_X();
 					break;
 				case 0x360A: // PR_SUBFOLDERS Has children
 					DEBUG_EMAIL(("Has Subfolders - "));
@@ -2181,7 +2104,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						DEBUG_EMAIL(("False\n"));
 						item->folder->subfolder = 0;
 					}
-					//INC_CHECK_X();
 					break;
 				case 0x3613: // PR_CONTAINER_CLASS IPF.x
 					DEBUG_EMAIL(("IPF.x - "));
@@ -2202,7 +2124,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						item->type = PST_TYPE_OTHER;
 
 					DEBUG_EMAIL(("%s [%i]\n", item->ascii_type, item->type));
-					//INC_CHECK_X();
 					break;
 				case 0x3617: // PR_ASSOC_CONTENT_COUNT
 					// associated content are items that are attached to this folder
@@ -2212,7 +2133,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(item->folder->assoc_count), list->items[x]->data, sizeof(item->folder->assoc_count));
 					LE32_CPU(item->folder->assoc_count);
 					DEBUG_EMAIL(("%i [%#x]\n", item->folder->assoc_count, item->folder->assoc_count));
-					//INC_CHECK_X();
 					break;
 				case 0x3701: // PR_ATTACH_DATA_OBJ binary data of attachment
 					DEBUG_EMAIL(("Binary Data [Size %i] - ", list->items[x]->size));
@@ -2227,7 +2147,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						attach->size = list->items[x]->size;
 						DEBUG_EMAIL(("NOT PRINTED\n"));
 					}
-					//INC_CHECK_X();
 					break;
 				case 0x3704: // PR_ATTACH_FILENAME Attachment filename (8.3)
 					DEBUG_EMAIL(("Attachment Filename - "));
@@ -2235,7 +2154,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MOVE_NEXT(attach);
 					LIST_COPY(attach->filename1, (char*));
 					DEBUG_EMAIL(("%s\n", attach->filename1));
-					//INC_CHECK_X();
 					break;
 				case 0x3705: // PR_ATTACH_METHOD
 					// 0 - No Attachment
@@ -2257,7 +2175,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 									 (t==3?"Attach by Ref. Resolve":
 									  (t==4?"Attach by Ref. Only":
 									   (t==5?"Embedded Message":"OLE")))))),t));
-					//INC_CHECK_X();
 					break;
 				case 0x3707: // PR_ATTACH_LONG_FILENAME Attachment filename (long?)
 					DEBUG_EMAIL(("Attachment Filename long - "));
@@ -2265,7 +2182,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MOVE_NEXT(attach);
 					LIST_COPY(attach->filename2, (char*));
 					DEBUG_EMAIL(("%s\n", attach->filename2));
-					//INC_CHECK_X();
 					break;
 				case 0x370B: // PR_RENDERING_POSITION
 					// position in characters that the attachment appears in the plain text body
@@ -2275,7 +2191,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(attach->position), list->items[x]->data, sizeof(attach->position));
 					LE32_CPU(attach->position);
 					DEBUG_EMAIL(("%i [%#x]\n", attach->position));
-					//INC_CHECK_X();
 					break;
 				case 0x370E: // PR_ATTACH_MIME_TAG Mime type of encoding
 					DEBUG_EMAIL(("Attachment mime encoding - "));
@@ -2283,7 +2198,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MOVE_NEXT(attach);
 					LIST_COPY(attach->mimetype, (char*));
 					DEBUG_EMAIL(("%s\n", attach->mimetype));
-					//INC_CHECK_X();
 					break;
 				case 0x3710: // PR_ATTACH_MIME_SEQUENCE
 					// sequence number for mime parts. Includes body
@@ -2293,7 +2207,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(attach->sequence), list->items[x]->data, sizeof(attach->sequence));
 					LE32_CPU(attach->sequence);
 					DEBUG_EMAIL(("%i\n", attach->sequence));
-					//INC_CHECK_X();
 					break;
 				case 0x3A00: // PR_ACCOUNT
 					DEBUG_EMAIL(("Contact's Account name - "));
@@ -2332,7 +2245,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MALLOC_CONTACT(item);
 					LIST_COPY(item->contact->first_name, (char*));
 					DEBUG_EMAIL(("%s\n", item->contact->first_name));
-					//INC_CHECK_X();
 					break;
 				case 0x3A07: // PR_GOVERNMENT_ID_NUMBER
 					DEBUG_EMAIL(("Contacts Government ID Number - "));
@@ -2357,7 +2269,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MALLOC_CONTACT(item);
 					LIST_COPY(item->contact->initials, (char*));
 					DEBUG_EMAIL(("%s\n", item->contact->initials));
-					//INC_CHECK_X();
 					break;
 				case 0x3A0B: // PR_KEYWORD
 					DEBUG_EMAIL(("Keyword - "));
@@ -2405,7 +2316,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					MALLOC_CONTACT(item);
 					LIST_COPY(item->contact->surname, (char*));
 					DEBUG_EMAIL(("%s\n", item->contact->surname));
-					//INC_CHECK_X();
 					break;
 				case 0x3A12: // PR_ORIGINAL_ENTRY_ID
 					DEBUG_EMAIL(("Original Entry ID - NOT PROCESSED\n"));
@@ -2795,7 +2705,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					item->record_key[16]='\0';
 					item->record_key_size=16;
 					DEBUG_EMAIL_HEXPRINT((char*)item->record_key, 16);
-					//INC_CHECK_X();
 					break;
 				case 0x67F2: // ID2 value of the attachments proper record
 					DEBUG_EMAIL(("Attachment ID2 value - "));
@@ -2807,7 +2716,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					} else {
 						DEBUG_EMAIL(("NOT AN ATTACHMENT: %#x\n", list->items[x]->id));
 					}
-					//INC_CHECK_X();
 					break;
 				case 0x67FF: // Extra Property Identifier (Password CheckSum)
 					DEBUG_EMAIL(("Password checksum [0x67FF] - "));
@@ -2815,7 +2723,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					memcpy(&(item->message_store->pwd_chksum), list->items[x]->data,
 						   sizeof(item->message_store->pwd_chksum));
 					DEBUG_EMAIL(("%#x\n", item->message_store->pwd_chksum));
-					//INC_CHECK_X();
 					break;
 				case 0x6F02: // Secure HTML Body
 					DEBUG_EMAIL(("Secure HTML Body - "));
@@ -2823,7 +2730,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LIST_COPY(item->email->encrypted_htmlbody, (char*));
 					item->email->encrypted_htmlbody_size = list->items[x]->size;
 					DEBUG_EMAIL(("Not Printed\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x6F04: // Secure Text Body
 					DEBUG_EMAIL(("Secure Text Body - "));
@@ -2831,7 +2737,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LIST_COPY(item->email->encrypted_body, (char*));
 					item->email->encrypted_body_size = list->items[x]->size;
 					DEBUG_EMAIL(("Not Printed\n"));
-					//INC_CHECK_X();
 					break;
 				case 0x7C07: // top of folders ENTRYID
 					DEBUG_EMAIL(("Top of folders RecID [0x7c07] - "));
@@ -2841,7 +2746,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					LE32_CPU(item->message_store->top_of_folder->u1);
 					LE32_CPU(item->message_store->top_of_folder->id);
 					DEBUG_EMAIL_HEXPRINT((char*)item->message_store->top_of_folder->entryid, 16);
-					//INC_CHECK_X();
 					break;
 				case 0x8005: // Contact's Fullname
 					DEBUG_EMAIL(("Contact Fullname - "));
@@ -3141,7 +3045,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 						free(list->items[x]->data);
 						list->items[x]->data = NULL;
 					}
-					//INC_CHECK_X();
 			}
 			x++;
 		}

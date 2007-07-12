@@ -466,7 +466,7 @@ int32_t pst_load_index (pst_file *pf);
 pst_desc_ll* pst_getNextDptr(pst_desc_ll* d);
 int32_t pst_load_extended_attributes(pst_file *pf);
 
-int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, int32_t start_val, int32_t end_val);
+int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t start_val, u_int32_t end_val);
 int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t *high_id, int32_t start_id, int32_t end_val);
 pst_item* _pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 void * _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);

@@ -1,18 +1,21 @@
+        * Fix to allow very small pst files with only one node in the
+        tree. We were mixing signed/unsigned types in comparisons.
+
 LibPST 0.5.5 (2007-07-10)
 ===============================
 
-       * merge the following changes from Joe Nahmias version:
-       * Lots of memory fixes.  Thanks to Nigel Horne for his assistance
-       tracking these down!
-       * Fixed creation of vCards from contacts, thanks to Nigel Horne for
-       his help with this!
-       * fix for MIME multipart/alternative attachments.
-       * added -c options to readpst manpage.
-       * use 8.3 attachment filename if long filename isn't available.
-       * new -b option to skip rtf-body.rtf attachments.
-       * fix format of From header lines in mbox files.
-       * Add more appointment fields, thanks to Chris Hall for tracking
-       them down!
+        * merge the following changes from Joe Nahmias version:
+        * Lots of memory fixes.  Thanks to Nigel Horne for his assistance
+        tracking these down!
+        * Fixed creation of vCards from contacts, thanks to Nigel Horne for
+        his help with this!
+        * fix for MIME multipart/alternative attachments.
+        * added -c options to readpst manpage.
+        * use 8.3 attachment filename if long filename isn't available.
+        * new -b option to skip rtf-body.rtf attachments.
+        * fix format of From header lines in mbox files.
+        * Add more appointment fields, thanks to Chris Hall for tracking
+        them down!
 
 
 LibPST 0.5.4 (2006-02-25)

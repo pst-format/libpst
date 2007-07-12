@@ -30,29 +30,29 @@ int main(int argc, char ** argv) {
   DEBUG_ENT("main");
 
   while ((c = getopt(argc, argv, "bdp")) != -1) {
-    switch (c) {
-    case 'b':
-      // enable binary output
-      binary = 1;
-      break;
-    case 'd':
-      //enable decrypt
-      decrypt = 1;
-      break;
-    case 'p':
-      // enable procesing of block
-      process = 1;
-      break;
-    default:
-      usage();
-      exit(EXIT_FAILURE);
-    }
+	switch (c) {
+	case 'b':
+	  // enable binary output
+	  binary = 1;
+	  break;
+	case 'd':
+	  //enable decrypt
+	  decrypt = 1;
+	  break;
+	case 'p':
+	  // enable procesing of block
+	  process = 1;
+	  break;
+	default:
+	  usage();
+	  exit(EXIT_FAILURE);
+	}
   }
 
   if (optind+1 >= argc) {
-    // no more items on the cmd
-    usage();
-    exit(EXIT_FAILURE);
+	// no more items on the cmd
+	usage();
+	exit(EXIT_FAILURE);
   }
   fname = argv[optind];
   sid = argv[optind+1];
@@ -61,67 +61,67 @@ int main(int argc, char ** argv) {
   DEBUG_MAIN(("Opening file\n"));
   memset(&pstfile, 0, sizeof(pstfile));
   if (pst_open(&pstfile, fname, "r")!=0) {
-    DIE(("Error opening file\n"));
+	DIE(("Error opening file\n"));
   }
-  
+
   DEBUG_MAIN(("Loading Index\n"));
   if (pst_load_index(&pstfile) != 0) {
-    DIE(("Error loading file index\n"));
+	DIE(("Error loading file index\n"));
   }
 
   //  if ((ptr = _pst_getID(&pstfile, id)) == NULL) {
-  //    DIE(("id not found [%#x]\n", id));
+  //	DIE(("id not found [%#x]\n", id));
   //  }
 
   DEBUG_MAIN(("Loading block\n"));
 
   if ((readSize = _pst_ff_getIDblock(&pstfile, id, &buf)) <= 0 || buf == NULL) {
-    //  if ((readSize = _pst_read_block_size(&pstfile, ptr->offset, ptr->size, &buf, 1, 1)) < ptr->size) {
-    DIE(("Error loading block\n"));
+	//	if ((readSize = _pst_read_block_size(&pstfile, ptr->offset, ptr->size, &buf, 1, 1)) < ptr->size) {
+	DIE(("Error loading block\n"));
   }
   if (binary==0) printf("Block %#x, size %#x[%i]\n",id, (unsigned int)readSize, (int) readSize);
 
   if (decrypt!=0)
-    if (_pst_decrypt(buf, readSize, (int)pstfile.encryption) != 0) {
-      DIE(("Error decrypting block\n"));
-    }
+	if (_pst_decrypt(buf, readSize, (int)pstfile.encryption) != 0) {
+	  DIE(("Error decrypting block\n"));
+	}
 
   DEBUG_MAIN(("Printing block... [id %#x, size %#x]\n", id, readSize));
   if (binary==0) {
-    _pst_debug_hexdump(stdout, buf, readSize, 0x10);
+	_pst_debug_hexdump(stdout, buf, readSize, 0x10, 0);
   } else {
-    if (fwrite(buf, 1, readSize, stdout) != 0) {
-      DIE(("Error occured during writing of buf to stdout\n"));
-    }
+	if (fwrite(buf, 1, readSize, stdout) != 0) {
+	  DIE(("Error occured during writing of buf to stdout\n"));
+	}
   }
   free(buf);
 
   if (process!=0) {
-    DEBUG_MAIN(("Parsing block...\n"));
-    ptr = pstfile.d_head;
-    while(ptr != NULL) {
-      if (ptr->list_index != NULL && ptr->list_index->id == id)
+	DEBUG_MAIN(("Parsing block...\n"));
+	ptr = pstfile.d_head;
+	while(ptr != NULL) {
+	  if (ptr->list_index != NULL && ptr->list_index->id == id)
 	break;
-      if (ptr->desc != NULL && ptr->desc->id == id)
+	  if (ptr->desc != NULL && ptr->desc->id == id)
 	break;
-      ptr = pst_getNextDptr(ptr);
-    }
-    if (ptr == NULL) {
-      ptr = (pst_desc_ll*)xmalloc(sizeof(pst_desc_ll));
-      ptr->desc = _pst_getID(&pstfile, id);
-      ptr->list_index = NULL;
-    }
-    if (ptr != NULL) {
-      if ((item = _pst_parse_item(&pstfile, ptr)) != NULL)
+	  ptr = pst_getNextDptr(ptr);
+	}
+	if (ptr == NULL) {
+	  ptr = (pst_desc_ll*)xmalloc(sizeof(pst_desc_ll));
+	  ptr->desc = _pst_getID(&pstfile, id);
+	  ptr->list_index = NULL;
+	}
+	if (ptr != NULL) {
+	  if ((item = _pst_parse_item(&pstfile, ptr)) != NULL)
 	_pst_freeItem(item);
-    } else {
-      DEBUG_MAIN(("item not found with this ID\n"));
-      printf("Cannot find the owning Record of this ID. Cannot parse\n");
-    }
+	} else {
+	  DEBUG_MAIN(("item not found with this ID\n"));
+	  printf("Cannot find the owning Record of this ID. Cannot parse\n");
+	}
   }
-  
+
   if(pst_close(&pstfile)!=0) {
-    DIE(("pst_close failed\n"));
+	DIE(("pst_close failed\n"));
   }
 
   DEBUG_RET();

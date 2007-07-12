@@ -53,13 +53,13 @@
 
 
 void _pst_debug(char *fmt, ...);
-void _pst_debug_hexdump(FILE* out, unsigned char* buf, size_t size, int col);
+void _pst_debug_hexdump(FILE* out, unsigned char* buf, size_t size, int col, int delta);
 void _pst_debug_hexprint(char *data, int size);
 
 void _debug_init(char *fname);
 void _debug_msg_info (int line, char *file, int type);
 void _debug_msg_text(char* fmt, ...);
-void _debug_hexdump(unsigned char *x, int y, int cols);
+void _debug_hexdump(unsigned char *x, int y, int cols, int delta);
 void _debug_func(char *function);
 void _debug_func_ret();
 void _debug_close(void);
@@ -103,7 +103,7 @@ void * xmalloc(size_t size);
 #ifdef DEBUG_MODE_EMAIL
 #define DEBUG_EMAIL(x) MESSAGEPRINT(x, DEBUG_EMAIL_NO);
 #define DEBUG_EMAIL_HEXPRINT(x,y) {_debug_msg_info(__LINE__, __FILE__, 11);\
-								   _debug_hexdump(x, y, 0x10);}
+								   _debug_hexdump(x, y, 0x10, 0);}
 #else
 #define DEBUG_EMAIL(x) {}
 #define DEBUG_EMAIL_HEXPRINT(x,y) {}
@@ -148,10 +148,10 @@ void * xmalloc(size_t size);
 #ifdef DEBUG_MODE_HEXDUMP
 #define DEBUG_HEXDUMP(x, s)\
   {_debug_msg_info(__LINE__, __FILE__, DEBUG_HEXDUMP_NO);\
-   _debug_hexdump(x, s, 0x10);}
+   _debug_hexdump(x, s, 0x10, 0);}
 #define DEBUG_HEXDUMPC(x, s, c)\
   {_debug_msg_info(__LINE__, __FILE__, DEBUG_HEXDUMP_NO);\
-   _debug_hexdump(x, s, c);}
+   _debug_hexdump(x, s, c, 0);}
 #else
 #define DEBUG_HEXDUMP(x, s) {}
 #define DEBUG_HEXDUMPC(x, s, c) {}

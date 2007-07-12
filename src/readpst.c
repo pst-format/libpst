@@ -63,34 +63,35 @@ struct file_ll {
 	struct file_ll *next;
 };
 
-void  write_email_body(FILE *f, char *body);
-char *removeCR (char *c);
+void	  write_email_body(FILE *f, char *body);
+char*	  removeCR (char *c);
 int32_t   usage();
 int32_t   version();
-char *mk_kmail_dir(char*);
+char*	  mk_kmail_dir(char*);
 int32_t   close_kmail_dir();
-char *mk_recurse_dir(char*);
+char*	  mk_recurse_dir(char*);
 int32_t   close_recurse_dir();
-char *mk_seperate_dir(char *dir, int overwrite);
+char*	  mk_seperate_dir(char *dir, int overwrite);
 int32_t   close_seperate_dir();
 int32_t   mk_seperate_file(struct file_ll *f);
-char *my_stristr(char *haystack, char *needle);
-char *check_filename(char *fname);
-char *rfc2426_escape(char *str);
-int32_t chr_count(char *str, char x);
-char *rfc2425_datetime_format(FILETIME *ft);
-char *rfc2445_datetime_format(FILETIME *ft);
-char *skip_header_prologue(char *headers);
-void write_separate_attachment(char f_name[], pst_item_attach* current_attach, int attach_num, pst_file* pst);
-void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, char boundary[], pst_file* pst);
-void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf);
-void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[]);
-void write_appointment(FILE* f_output, pst_item_appointment* appointment,
-			   pst_item_email* email, FILETIME* create_date, FILETIME* modify_date);
-void create_enter_dir(struct file_ll* f, char file_as[], int mode, int overwrite);
-char *prog_name;
-char *output_dir = ".";
-char *kmail_chdir = NULL;
+char*	  my_stristr(char *haystack, char *needle);
+char*	  check_filename(char *fname);
+char*	  rfc2426_escape(char *str);
+int32_t   chr_count(char *str, char x);
+char*	  rfc2425_datetime_format(FILETIME *ft);
+char*	  rfc2445_datetime_format(FILETIME *ft);
+char*	  skip_header_prologue(char *headers);
+void	  write_separate_attachment(char f_name[], pst_item_attach* current_attach, int attach_num, pst_file* pst);
+void	  write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, char boundary[], pst_file* pst);
+void	  write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf);
+void	  write_vcard(FILE* f_output, pst_item_contact* contact, char comment[]);
+void	  write_appointment(FILE* f_output, pst_item_appointment* appointment,
+							pst_item_email* email, FILETIME* create_date, FILETIME* modify_date);
+void	  create_enter_dir(struct file_ll* f, char file_as[], int mode, int overwrite);
+
+char*  prog_name;
+char*  output_dir = ".";
+char*  kmail_chdir = NULL;
 // Normal mode just creates mbox format files in the current directory. Each file is named
 // the same as the folder's name that it represents
 #define MODE_NORMAL 0
@@ -114,7 +115,6 @@ char *kmail_chdir = NULL;
 // default mime-type for attachments that have a null mime-type
 #define MIME_TYPE_DEFAULT "application/octet-stream"
 
-
 // output mode for contacts
 #define CMODE_VCARD 0
 #define CMODE_LIST	1
@@ -124,6 +124,8 @@ char *kmail_chdir = NULL;
 #define RTF_ATTACH_NAME "rtf-body.rtf"
 // mime type for the attachment
 #define RTF_ATTACH_TYPE "application/rtf"
+
+
 int main(int argc, char** argv) {
 	pst_item *item = NULL;
 	pst_file pstfile;

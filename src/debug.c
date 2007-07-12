@@ -27,14 +27,6 @@ struct _debug_func {
 } *func_head=NULL, *func_ptr=NULL;
 
 
-void _debug_init(char *fname);
-void _debug_msg_info (int line, char *file, int type);
-void _debug_msg(char* fmt, ...);
-void _debug_hexdump(unsigned char *x, int y, int cols);
-void _debug_func(char *function);
-void _debug_func_ret();
-void _debug_close();
-void _debug_write();
 void _debug_write_msg(struct _debug_item *item, char *fmt, va_list *ap, int size);
 void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, int col);
 void * xmalloc(size_t size);
@@ -53,7 +45,7 @@ void _pst_debug(char *fmt, ...) {
 
 
 #define NUM_COL 30
-void _pst_debug_hexdump(FILE *out, unsigned char *buf, size_t size, int col) {
+void _pst_debug_hexdump(FILE *out, unsigned char *buf, size_t size, int col, int delta) {
 	int off = 0, toff;
 	int count = 0;
 
@@ -61,14 +53,14 @@ void _pst_debug_hexdump(FILE *out, unsigned char *buf, size_t size, int col) {
 	if (col == -1) col = NUM_COL;
 	fprintf(out, "\n");
 	while (off < size) {
-		fprintf(out, "%X\t:", off);
+		fprintf(out, "%06X\t:", off+delta);
 		toff = off;
 		while (count < col && off < size) {
 			fprintf(out, "%02hhx ", buf[off]);
 			off++; count++;
 		}
 		off = toff;
-		  while (count < col) {
+		while (count < col) {
 			// only happens at end of block to pad the text over to the text column
 			fprintf(out, "   ");
 			count++;
@@ -199,12 +191,11 @@ void _debug_msg_text(char* fmt, ...) {
 }
 
 
-void _debug_hexdump(unsigned char *x, int y, int cols) {
+void _debug_hexdump(unsigned char *x, int y, int cols, int delta) {
 	struct _debug_item *temp;
 	if (!debug_fp) return;	// no file
 	info_ptr = temp_list;
-	if (info_ptr)
-	  temp_list = info_ptr->next;
+	if (info_ptr) temp_list = info_ptr->next;
 	temp = info_ptr;
 	_debug_write();
 	info_ptr = temp;
@@ -420,7 +411,7 @@ void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, in
 	fwrite(item->function, strlen(item->function)+1, 1, debug_fp);
 	fwrite(item->file, strlen(item->file)+1, 1, debug_fp);
 
-	_pst_debug_hexdump(debug_fp, buf, size, col);
+	_pst_debug_hexdump(debug_fp, buf, size, col, 0);
 	fwrite(&zero, 1, 1, debug_fp);
 	lfile_rec.end = ftell(debug_fp)-file_pos;
 
