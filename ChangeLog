@@ -1,5 +1,11 @@
+LibPST 0.5.6 (2007-07-15)
+===============================
+
         * Fix to allow very small pst files with only one node in the
         tree. We were mixing signed/unsigned types in comparisons.
+        * More progress decoding the basic structure 7c blocks. Many
+        four byte values may be ID2 indices with data outside the buffer.
+        * Start using doxygen to generate internal documentation.
 
 LibPST 0.5.5 (2007-07-10)
 ===============================

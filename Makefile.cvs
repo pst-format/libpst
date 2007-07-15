@@ -1,8 +1,12 @@
 default: all
 
+HOST=$(shell hostname)
+
 all:
 	aclocal
 	autoheader
 	automake
 	autoconf
-
+	rm -rf html.internal
+	doxygen
+	tar cfz libpst.html.tar.gz html.internal

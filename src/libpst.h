@@ -126,7 +126,7 @@ typedef struct _pst_misc_6_struct {
 typedef struct _pst_entryid_struct {
   int32_t u1;
   char entryid[16];
-  int32_t id;
+  u_int32_t id;
 } pst_entryid;
 
 typedef struct _pst_desc_struct {
@@ -152,7 +152,7 @@ typedef struct _pst_index_tree {
 } pst_index_ll;
 
 typedef struct _pst_index2_tree {
-  int32_t id2;
+  u_int32_t id2;
   pst_index_ll *id;
   struct _pst_index2_tree * next;
 } pst_index2_ll;
@@ -432,8 +432,14 @@ typedef struct _pst_block_offset {
   int16_t to;
 } pst_block_offset;
 
+typedef struct _pst_block_offset_pointer {
+  unsigned char *from;
+  unsigned char *to;
+  int			needfree;
+} pst_block_offset_pointer;
+
 struct _pst_num_item {
-  int32_t id;
+  u_int32_t id;
   unsigned char *data;
   int32_t type;
   size_t size;
@@ -467,7 +473,7 @@ pst_desc_ll* pst_getNextDptr(pst_desc_ll* d);
 int32_t pst_load_extended_attributes(pst_file *pf);
 
 int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t start_val, u_int32_t end_val);
-int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t *high_id, int32_t start_id, int32_t end_val);
+int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t *high_id, u_int32_t start_id, u_int32_t end_val);
 pst_item* _pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 void * _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
 pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll *i2_head);
@@ -478,6 +484,7 @@ int32_t _pst_free_id2(pst_index2_ll * head);
 int32_t _pst_free_id (pst_index_ll *head);
 int32_t _pst_free_desc (pst_desc_ll *head);
 int32_t _pst_free_xattrib(pst_x_attrib_ll *x);
+int32_t _pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, unsigned char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset_pointer *p);
 int32_t _pst_getBlockOffset(unsigned char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset *p);
 pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* head_ptr);
 pst_index_ll * _pst_getID(pst_file* pf, u_int32_t id);

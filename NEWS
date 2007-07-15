@@ -1,5 +1,6 @@
     $Id$
 
+0.5.6 2007-07-15 handle small pst files, better decoding of 7c blocks
 0.5.5 2007-07-10 merge changes from Joe Nahmias version
 0.5.4 2006-02-25 add MH mode, generated filenames with no leading zeros
 0.5.3 2006-02-20 switch to gnu autoconf/automake

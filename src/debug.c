@@ -237,7 +237,6 @@ void _debug_close(void) {
 		free(func_ptr->name);
 		free(func_ptr);
 	}
-
 	if (debug_fp) fclose(debug_fp);
 	debug_fp = NULL;
 }

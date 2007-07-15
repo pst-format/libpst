@@ -44,7 +44,7 @@
 #define PST_SIGNATURE 0x4E444221
 
 struct _pst_table_ptr_struct{
-	u_int32_t start;
+	int32_t start;
 	int32_t u1;
 	int32_t offset;
 };
@@ -55,12 +55,12 @@ typedef struct _pst_block_header {
 } pst_block_header;
 
 typedef struct _pst_id2_assoc {
-	int32_t id2;
-	int32_t id;
+	u_int32_t id2;
+	u_int32_t id;
 	int32_t table2;
 } pst_id2_assoc;
 
-// this is an array of the un-encrypted values. the un-encrypyed value is in the position
+// this is an array of the un-encrypted values. the un-encrypted value is in the position
 // of the encrypted value. ie the encrypted value 0x13 represents 0x02
 //					   0	 1	   2	 3	   4	 5	   6	 7
 //					   8	 9	   a	 b	   c	 d	   e	 f
@@ -192,9 +192,6 @@ int32_t pst_close(pst_file *pf) {
 
 pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
 	pst_desc_ll *ret;
-	//	pst_item *i;
-	//	char *a, *b;
-	//	int x,z;
 	DEBUG_ENT("pst_getTopOfFolders");
 	if (!root || !root->message_store) {
 		DEBUG_INDEX(("There isn't a top of folder record here.\n"));
@@ -521,7 +518,7 @@ int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t l
 			if (index.id == 0) break;
 			DEBUG_INDEX(("[%i]%i Item [id = %#x, offset = %#x, u1 = %#x, size = %i(%#x)]\n",
 						depth, x, index.id, index.offset, index.u1, index.size, index.size));
-			if (index.id & 0x02) DEBUG_INDEX(("two-bit set!!\n"));
+			// if (index.id & 0x02) DEBUG_INDEX(("two-bit set!!\n"));
 			if ((index.id >= end_val) || (index.id < old)) {
 				DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
 				if (buf) free(buf);
@@ -591,23 +588,124 @@ int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t l
 }
 
 
-int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t *high_id, int32_t start_val, int32_t end_val) {
+/** this list node type is used for a quick cache
+	of the descriptor tree nodes (rooted at pf->d_head)
+	and for a "lost and found" list.
+	If the parent isn't found yet, put it on the lost and found
+	list and check it each time you read a new item.
+*/
+struct cache_list_node {
+	pst_desc_ll *ptr;
+	/** only used for lost and found lists */
+	u_int32_t parent;
+	struct cache_list_node *next;
+	struct cache_list_node *prev;
+};
+struct cache_list_node *cache_head;
+struct cache_list_node *cache_tail;
+struct cache_list_node *lostfound_head;
+int32_t cache_count;
+
+
+/**
+	add the d_ptr descriptor into the global tree
+*/
+void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, u_int32_t parent_id) {
+	struct cache_list_node *lostfound_ptr = NULL;
+	struct cache_list_node *cache_ptr	  = NULL;
+	pst_desc_ll 		   *parent		  = NULL;
+
+	if (parent_id == 0 || parent_id == d_ptr->id) {
+		// add top level node to the descriptor tree
+		if (parent_id == 0) {
+			DEBUG_INDEX(("No Parent\n"));
+		} else {
+			DEBUG_INDEX(("Record is its own parent. What is this world coming to?\n"));
+		}
+		if (pf->d_tail)  pf->d_tail->next = d_ptr;
+		if (!pf->d_head) pf->d_head = d_ptr;
+		d_ptr->prev = pf->d_tail;
+		pf->d_tail	= d_ptr;
+	} else {
+		DEBUG_INDEX(("Searching for parent\n"));
+		// check in the cache for the parent
+		cache_ptr = cache_head;
+		while (cache_ptr && (cache_ptr->ptr->id != parent_id)) {
+			cache_ptr = cache_ptr->next;
+		}
+		if (!cache_ptr && (parent = _pst_getDptr(pf, parent_id)) == NULL) {
+			// check in the lost/found list
+			lostfound_ptr = lostfound_head;
+			while (lostfound_ptr && (lostfound_ptr->ptr->id != parent_id)) {
+				lostfound_ptr = lostfound_ptr->next;
+			}
+			if (!lostfound_ptr) {
+				DEBUG_WARN(("ERROR -- cannot find parent with id %#x. Adding to lost/found\n", parent_id));
+				lostfound_ptr = (struct cache_list_node*) xmalloc(sizeof(struct cache_list_node));
+				lostfound_ptr->prev   = NULL;
+				lostfound_ptr->next   = lostfound_head;
+				lostfound_ptr->parent = parent_id;
+				lostfound_ptr->ptr	  = d_ptr;
+				lostfound_head = lostfound_ptr;
+			} else {
+				parent = lostfound_ptr->ptr;
+				DEBUG_INDEX(("Found parent (%#x) in Lost and Found\n", parent->id));
+			}
+		}
+
+		if (cache_ptr || parent) {
+			if (cache_ptr)
+				// parent is already in the cache
+				parent = cache_ptr->ptr;
+			else {
+				//add the parent to the cache
+				DEBUG_INDEX(("Cache addition\n"));
+				cache_ptr = (struct cache_list_node*) xmalloc(sizeof(struct cache_list_node));
+				cache_ptr->prev = NULL;
+				cache_ptr->next = cache_head;
+				cache_ptr->ptr	= parent;
+				cache_head = cache_ptr;
+				if (!cache_tail) cache_tail = cache_ptr;
+				cache_count++;
+				if (cache_count > 100) {
+					DEBUG_INDEX(("trimming quick cache\n"));
+					//remove one from the end
+					cache_ptr  = cache_tail;
+					cache_tail = cache_ptr->prev;
+					free (cache_ptr);
+					cache_count--;
+				}
+			}
+			DEBUG_INDEX(("Found a parent\n"));
+			parent->no_child++;
+			d_ptr->parent = parent;
+			if (parent->child_tail)  parent->child_tail->next = d_ptr;
+			if (!parent->child) 	 parent->child = d_ptr;
+			d_ptr->prev = parent->child_tail;
+			parent->child_tail = d_ptr;
+		}
+	}
+}
+
+int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t *high_id, u_int32_t start_val, u_int32_t end_val) {
 	struct _pst_table_ptr_struct table, table2;
 	pst_desc desc_rec;
-	pst_desc_ll *d_ptr=NULL, *d_par=NULL;
-	int32_t d_ptr_count = 0;
+	pst_desc_ll *d_ptr=NULL, *parent=NULL;
 	int32_t x, item_count;
-	int32_t old = start_val;
+	u_int32_t old = start_val;
 	char *buf = NULL, *bptr;
+	struct cache_list_node *cache_ptr = NULL;
+	struct cache_list_node *lostfound_ptr = NULL;
+	struct cache_list_node *lostfound_shd = NULL;
+	struct cache_list_node *lostfound_tmp = NULL;
 
-	struct _pst_d_ptr_ll {
-		pst_desc_ll * ptr;
-		int32_t parent; // used for lost and found lists
-		struct _pst_d_ptr_ll * next;
-		struct _pst_d_ptr_ll * prev;
-	} *d_ptr_head=NULL, *d_ptr_tail=NULL, *d_ptr_ptr=NULL, *lf_ptr=NULL, *lf_head=NULL, *lf_shd=NULL, *lf_tmp;
-	// lf_ptr and lf_head are used for the lost/found list. If the parent isn't found yet, put it on this
-	// list and check it each time you read a new item
+	if (depth == 0) {
+		// initialize the linked list and lost/found list.
+		cache_head = NULL;
+		cache_tail = NULL;
+		lostfound_head = NULL;
+		cache_count = 0;
+	}
 
 	DEBUG_ENT("_pst_build_desc_ptr");
 	DEBUG_INDEX(("offset %x depth %i linku1 %x start %x end %x\n", offset, depth, linku1, start_val, end_val));
@@ -663,7 +761,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 			}
 			old = desc_rec.d_id;
 			if (x == 1) {	// first entry
-				if (start_val != -1 && desc_rec.d_id != start_val) {
+				if (start_val && (desc_rec.d_id != start_val)) {
 					DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
 					if (buf) free(buf);
 					DEBUG_RET();
@@ -672,7 +770,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 			}
 			// When duplicates found, just update the info.... perhaps this is correct functionality
 			DEBUG_INDEX(("Searching for existing record\n"));
-			if (desc_rec.d_id <= *high_id && (d_ptr = _pst_getDptr(pf, desc_rec.d_id)) !=  NULL) {
+			if (desc_rec.d_id <= *high_id && (d_ptr = _pst_getDptr(pf, desc_rec.d_id))) {
 				DEBUG_INDEX(("Updating Existing Values\n"));
 				d_ptr->list_index = _pst_getID(pf, desc_rec.list_id);
 				d_ptr->desc = _pst_getID(pf, desc_rec.desc_id);
@@ -706,72 +804,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 					d_ptr->prev   = NULL;
 					d_ptr->next   = NULL;
 					d_ptr->parent = NULL;
-
-					// ok, now place in correct place
-					DEBUG_INDEX(("Searching for parent\n"));
-					if (desc_rec.parent_id == 0) {
-						DEBUG_INDEX(("No Parent\n"));
-						if (pf->d_tail)  pf->d_tail->next = d_ptr;
-						if (!pf->d_head) pf->d_head = d_ptr;
-						d_ptr->prev = pf->d_tail;
-						pf->d_tail	= d_ptr;
-					} else {
-						// check in the quick list
-						d_ptr_ptr = d_ptr_head;
-						while (d_ptr_ptr && (d_ptr_ptr->ptr->id != desc_rec.parent_id)) {
-							d_ptr_ptr = d_ptr_ptr->next;
-						}
-
-						if (!d_ptr_ptr && (d_par = _pst_getDptr(pf, desc_rec.parent_id)) == NULL) {
-							// check in the lost/found list
-							lf_ptr = lf_head;
-							while (lf_ptr && lf_ptr->ptr->id != desc_rec.parent_id) {
-								lf_ptr = lf_ptr->next;
-							}
-							if (!lf_ptr) {
-								DEBUG_WARN(("ERROR -- not found parent with id %#x. Adding to lost/found\n", desc_rec.parent_id));
-								lf_ptr = (struct _pst_d_ptr_ll*) xmalloc(sizeof(struct _pst_d_ptr_ll));
-								lf_ptr->prev   = NULL;
-								lf_ptr->next   = lf_head;
-								lf_ptr->parent = desc_rec.parent_id;
-								lf_ptr->ptr    = d_ptr;
-								lf_head = lf_ptr;
-							} else {
-								d_par = lf_ptr->ptr;
-								DEBUG_INDEX(("Found parent (%#x) in Lost and Found\n", d_par->id));
-							}
-						}
-
-						if (d_ptr_ptr || d_par) {
-							if (d_ptr_ptr)
-								d_par = d_ptr_ptr->ptr;
-							else {
-								//add the d_par to the cache
-								DEBUG_INDEX(("Update - Cache addition\n"));
-								d_ptr_ptr = (struct _pst_d_ptr_ll*) xmalloc(sizeof(struct _pst_d_ptr_ll));
-								d_ptr_ptr->prev = NULL;
-								d_ptr_ptr->next = d_ptr_head;
-								d_ptr_ptr->ptr	= d_par;
-								d_ptr_head = d_ptr_ptr;
-								if (!d_ptr_tail) d_ptr_tail = d_ptr_ptr;
-								d_ptr_count++;
-								if (d_ptr_count > 100) {
-									//remove on from the end
-									d_ptr_ptr = d_ptr_tail;
-									d_ptr_tail = d_ptr_ptr->prev;
-									free (d_ptr_ptr);
-									d_ptr_count--;
-								}
-							}
-							DEBUG_INDEX(("Found a parent\n"));
-							d_par->no_child++;
-							d_ptr->parent = d_par;
-							if (d_par->child_tail)	d_par->child_tail->next = d_ptr;
-							if (!d_par->child)		d_par->child = d_ptr;
-							d_ptr->prev = d_par->child_tail;
-							d_par->child_tail = d_ptr;
-						}
-					}
+					record_descriptor(pf, d_ptr, desc_rec.parent_id);	// add to the global tree
 				}
 			} else {
 				if (*high_id < desc_rec.d_id) {
@@ -789,99 +822,31 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 				d_ptr->child = NULL;
 				d_ptr->child_tail = NULL;
 				d_ptr->no_child = 0;
+				record_descriptor(pf, d_ptr, desc_rec.parent_id);	// add to the global tree
 
-				DEBUG_INDEX(("Searching for parent\n"));
-				if (desc_rec.parent_id == 0 || desc_rec.parent_id == desc_rec.d_id) {
-					if (desc_rec.parent_id == 0) {
-						DEBUG_INDEX(("No Parent\n"));
-					} else {
-						DEBUG_INDEX(("Record is its own parent. What is this world coming to?\n"));
-					}
-					if (pf->d_tail)  pf->d_tail->next = d_ptr;
-					if (!pf->d_head) pf->d_head = d_ptr;
-					d_ptr->prev = pf->d_tail;
-					pf->d_tail	= d_ptr;
-				} else {
-					d_ptr_ptr = d_ptr_head;
-					while (d_ptr_ptr && (d_ptr_ptr->ptr->id != desc_rec.parent_id)) {
-						d_ptr_ptr = d_ptr_ptr->next;
-					}
-					if (!d_ptr_ptr && (d_par = _pst_getDptr(pf, desc_rec.parent_id)) == NULL) {
-						// check in the lost/found list
-						lf_ptr = lf_head;
-						while (lf_ptr && (lf_ptr->ptr->id != desc_rec.parent_id)) {
-							lf_ptr = lf_ptr->next;
-						}
-						if (!lf_ptr) {
-							DEBUG_WARN(("ERROR -- not found parent with id %#x. Adding to lost/found\n", desc_rec.parent_id));
-							lf_ptr = (struct _pst_d_ptr_ll*) xmalloc(sizeof(struct _pst_d_ptr_ll));
-							lf_ptr->prev   = NULL;
-							lf_ptr->next   = lf_head;
-							lf_ptr->parent = desc_rec.parent_id;
-							lf_ptr->ptr    = d_ptr;
-							lf_head = lf_ptr;
-						} else {
-							d_par = lf_ptr->ptr;
-							DEBUG_INDEX(("Found parent (%#x) in Lost and Found\n", d_par->id));
-						}
-					}
-
-					if (d_ptr_ptr || d_par) {
-						if (d_ptr_ptr)
-							d_par = d_ptr_ptr->ptr;
-						else {
-							//add the d_par to the cache
-							DEBUG_INDEX(("Normal - Cache addition\n"));
-							d_ptr_ptr = (struct _pst_d_ptr_ll*) xmalloc(sizeof(struct _pst_d_ptr_ll));
-							d_ptr_ptr->prev = NULL;
-							d_ptr_ptr->next = d_ptr_head;
-							d_ptr_ptr->ptr	= d_par;
-							d_ptr_head = d_ptr_ptr;
-							if (!d_ptr_tail) d_ptr_tail = d_ptr_ptr;
-							d_ptr_count++;
-							if (d_ptr_count > 100) {
-								//remove one from the end
-								d_ptr_ptr  = d_ptr_tail;
-								d_ptr_tail = d_ptr_ptr->prev;
-								free (d_ptr_ptr);
-								d_ptr_count--;
-							}
-						}
-
-						DEBUG_INDEX(("Found a parent\n"));
-						d_par->no_child++;
-						d_ptr->parent = d_par;
-						if (d_par->child_tail)	d_par->child_tail->next = d_ptr;
-						if (!d_par->child)		d_par->child = d_ptr;
-						d_ptr->prev = d_par->child_tail;
-						d_par->child_tail = d_ptr;
-					}
-				}
 			}
 			// check here to see if d_ptr is the parent of any of the items in the lost / found list
-			lf_ptr = lf_head;
-			lf_shd = NULL;
-			while (lf_ptr) {
-				if (lf_ptr->parent == d_ptr->id) {
-					DEBUG_INDEX(("Found a child  (%#x) of the current record. Joining to main structure.\n", lf_ptr->ptr->id));
-					d_par = d_ptr;
-					d_ptr = lf_ptr->ptr;
-					d_par->no_child++;
-					d_ptr->parent = d_par;
-					if (d_par->child_tail) d_par->child_tail->next = d_ptr;
-					if (!d_par->child)	   d_par->child = d_ptr;
-					d_ptr->prev = d_par->child_tail;
-					d_par->child_tail = d_ptr;
-					if (!lf_shd)
-						lf_head = lf_ptr->next;
-					else
-						lf_shd->next = lf_ptr->next;
-					lf_tmp = lf_ptr->next;
-					free(lf_ptr);
-					lf_ptr = lf_tmp;
+			lostfound_ptr = lostfound_head;
+			lostfound_shd = NULL;
+			while (lostfound_ptr) {
+				if (lostfound_ptr->parent == d_ptr->id) {
+					DEBUG_INDEX(("Found a child  (%#x) of the current record. Joining to main structure.\n", lostfound_ptr->ptr->id));
+					parent = d_ptr;
+					d_ptr = lostfound_ptr->ptr;
+					parent->no_child++;
+					d_ptr->parent = parent;
+					if (parent->child_tail) parent->child_tail->next = d_ptr;
+					if (!parent->child) 	parent->child = d_ptr;
+					d_ptr->prev = parent->child_tail;
+					parent->child_tail = d_ptr;
+					if (!lostfound_shd) lostfound_head		= lostfound_ptr->next;
+					else				lostfound_shd->next = lostfound_ptr->next;
+					lostfound_tmp = lostfound_ptr->next;
+					free(lostfound_ptr);
+					lostfound_ptr = lostfound_tmp;
 				} else {
-					lf_shd = lf_ptr;
-					lf_ptr = lf_ptr->next;
+					lostfound_shd = lostfound_ptr;
+					lostfound_ptr = lostfound_ptr->next;
 				}
 			}
 		}
@@ -930,14 +895,21 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 			_pst_build_desc_ptr(pf, table.offset, depth+1, table.u1, high_id, table.start, table2.start);
 		}
 	}
-	// ok, lets try freeing the d_ptr_head cache here
-	while (d_ptr_head) {
-		d_ptr_ptr = d_ptr_head->next;
-		free(d_ptr_head);
-		d_ptr_head = d_ptr_ptr;
+	if (depth == 0) {
+		// free the quick cache
+		while (cache_head) {
+			cache_ptr = cache_head->next;
+			free(cache_head);
+			cache_head = cache_ptr;
+		}
+		// free the lost and found
+		while (lostfound_head) {
+			lostfound_ptr = lostfound_head->next;
+			WARN(("unused lost/found item with parent %d))", lostfound_head->parent));
+			free(lostfound_head);
+			lostfound_head = lostfound_ptr;
+		}
 	}
-	// TODO - need to free lost and found list also!!
-	// TODO - and show error for any remaining lf items
 	if (buf) free(buf);
 	DEBUG_RET();
 	return 0;
@@ -1076,14 +1048,49 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 }
 
 
+void freeall(unsigned char *buf, pst_block_offset_pointer *p1,
+								 pst_block_offset_pointer *p2,
+								 pst_block_offset_pointer *p3,
+								 pst_block_offset_pointer *p4,
+								 pst_block_offset_pointer *p5,
+								 pst_block_offset_pointer *p6,
+								 pst_block_offset_pointer *p7) {
+	if (buf) free(buf);
+	if (p1->needfree) free(p1->from);
+	if (p2->needfree) free(p2->from);
+	if (p3->needfree) free(p3->from);
+	if (p4->needfree) free(p4->from);
+	if (p5->needfree) free(p5->from);
+	if (p6->needfree) free(p6->from);
+	if (p7->needfree) free(p7->from);
+}
+
+
 pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll *i2_head) {
 	unsigned char *buf = NULL;
 	pst_num_array *na_ptr = NULL, *na_head = NULL;
-	pst_block_offset block_offset;
-	//	pst_index_ll *rec = NULL;
-	u_int32_t size = 0, t_ptr = 0, fr_ptr = 0, to_ptr = 0, ind_ptr = 0, x = 0;
-	u_int32_t num_recs = 0, count_rec = 0, ind2_ptr = 0, ind2_end = 0, list_start = 0, num_list = 0, cur_list = 0;
-	int32_t block_type, rec_size;
+	pst_block_offset_pointer block_offset1;
+	pst_block_offset_pointer block_offset2;
+	pst_block_offset_pointer block_offset3;
+	pst_block_offset_pointer block_offset4;
+	pst_block_offset_pointer block_offset5;
+	pst_block_offset_pointer block_offset6;
+	pst_block_offset_pointer block_offset7;
+	u_int32_t size;
+	u_int32_t x;
+	u_int32_t num_recs;
+	u_int32_t count_rec;
+	u_int32_t num_list;
+	u_int32_t cur_list;
+	u_int32_t block_type;
+	u_int32_t rec_size;
+	u_int32_t ind_ptr;
+	unsigned char* list_start;
+	unsigned char* t_ptr;
+	unsigned char* fr_ptr;
+	unsigned char* to_ptr;
+	unsigned char* ind2_end;
+	unsigned char* ind2_ptr;
 	size_t read_size=0;
 	pst_x_attrib_ll *mapptr;
 
@@ -1091,17 +1098,21 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		u_int16_t type;
 		u_int16_t ref_type;
 		u_int32_t value;
-	} table_rec; //for type 1 ("BC") blocks
+	} table_rec;	//for type 1 (0xBCEC) blocks
 	struct {
 		u_int16_t ref_type;
 		u_int16_t type;
 		u_int16_t ind2_off;
-		u_int16_t u1;
-	} table2_rec; //for type 2 ("7C") blocks
+		u_int8_t  size;
+		u_int8_t  slot;
+	} table2_rec;	//for type 2 (0x7CEC) blocks
+	struct {
+		u_int32_t id;
+	} table3_rec;	//for type 3 (0x0101) blocks
 	struct {
 		u_int16_t index_offset;
 		u_int16_t type;
-		u_int16_t offset;
+		u_int32_t offset;
 	} block_hdr;
 	struct {
 		unsigned char seven_c;
@@ -1110,10 +1121,8 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		u_int16_t u2;
 		u_int16_t u3;
 		u_int16_t rec_size;
-		u_int16_t b_five_offset;
-		u_int16_t u5;
-		u_int16_t ind2_offset;
-		u_int16_t u6;
+		u_int32_t b_five_offset;
+		u_int32_t ind2_offset;
 		u_int16_t u7;
 		u_int16_t u8;
 	} seven_c_blk;
@@ -1130,10 +1139,18 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		return NULL;
 	}
 
+	block_offset1.needfree = 0;
+	block_offset2.needfree = 0;
+	block_offset3.needfree = 0;
+	block_offset4.needfree = 0;
+	block_offset5.needfree = 0;
+	block_offset6.needfree = 0;
+	block_offset7.needfree = 0;
+
 	memcpy(&block_hdr, buf, sizeof(block_hdr));
 	LE16_CPU(block_hdr.index_offset);
 	LE16_CPU(block_hdr.type);
-	LE16_CPU(block_hdr.offset);
+	LE32_CPU(block_hdr.offset);
 	DEBUG_EMAIL(("block header (index_offset=%#hx, type=%#hx, offset=%#hx\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
 
 	ind_ptr = block_hdr.index_offset;
@@ -1141,26 +1158,34 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 	if (block_hdr.type == 0xBCEC) { //type 1
 		block_type = 1;
 
-		_pst_getBlockOffset(buf, read_size, ind_ptr, block_hdr.offset, &block_offset);
-		fr_ptr = block_offset.from;
-
-		memcpy(&table_rec, &(buf[fr_ptr]), sizeof(table_rec));
+		if (_pst_getBlockOffsetPointer(pf, i2_head, buf, read_size, ind_ptr, block_hdr.offset, &block_offset1)) {
+			DEBUG_WARN(("internal error (bc.b5 offset %#x) in reading block id %#x\n", block_hdr.offset, block_id));
+			freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
+			DEBUG_RET();
+			return NULL;
+		}
+		memcpy(&table_rec, block_offset1.from, sizeof(table_rec));
 		LE16_CPU(table_rec.type);
 		LE16_CPU(table_rec.ref_type);
 		LE32_CPU(table_rec.value);
-		DEBUG_EMAIL(("table_rec (type=%#hx, ref_type=%#hx, value=%#x\n", table_rec.type, table_rec.ref_type, table_rec.value));
+		DEBUG_EMAIL(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
 
 		if (table_rec.type != 0x02B5) {
 			WARN(("Unknown second block constant - %#X for id %#x\n", table_rec.type, block_id));
 			DEBUG_HEXDUMPC(buf, sizeof(table_rec), 0x10);
-			if (buf) free (buf);
+			freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
 			DEBUG_RET();
 			return NULL;
 		}
 
-		_pst_getBlockOffset(buf, read_size, ind_ptr, table_rec.value, &block_offset);
-		list_start = block_offset.from;
-		to_ptr	   = block_offset.to;
+		if (_pst_getBlockOffsetPointer(pf, i2_head, buf, read_size, ind_ptr, table_rec.value, &block_offset2)) {
+			DEBUG_WARN(("internal error (bc.b5.desc offset) in reading block id %#x\n", table_rec.value, block_id));
+			freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
+			DEBUG_RET();
+			return NULL;
+		}
+		list_start = block_offset2.from;
+		to_ptr	   = block_offset2.to;
 		num_list = (to_ptr - list_start)/sizeof(table_rec);
 		num_recs = 1; // only going to be one object in these blocks
 		rec_size = 0; // doesn't matter cause there is only one object
@@ -1168,18 +1193,21 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 	else if (block_hdr.type == 0x7CEC) { //type 2
 		block_type = 2;
 
-		_pst_getBlockOffset(buf, read_size, ind_ptr, block_hdr.offset, &block_offset);
-		fr_ptr = block_offset.from; //now got pointer to "7C block"
+		if (_pst_getBlockOffsetPointer(pf, i2_head, buf, read_size, ind_ptr, block_hdr.offset, &block_offset3)) {
+			DEBUG_WARN(("internal error (7c.7c offset %#x) in reading block id %#x\n", block_hdr.offset, block_id));
+			freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
+			DEBUG_RET();
+			return NULL;
+		}
+		fr_ptr = block_offset3.from; //now got pointer to "7C block"
 		memset(&seven_c_blk, 0, sizeof(seven_c_blk));
-		memcpy(&seven_c_blk, &(buf[fr_ptr]), sizeof(seven_c_blk));
+		memcpy(&seven_c_blk, fr_ptr, sizeof(seven_c_blk));
 		LE16_CPU(seven_c_blk.u1);
 		LE16_CPU(seven_c_blk.u2);
 		LE16_CPU(seven_c_blk.u3);
 		LE16_CPU(seven_c_blk.rec_size);
-		LE16_CPU(seven_c_blk.b_five_offset);
-		LE16_CPU(seven_c_blk.u5);
-		LE16_CPU(seven_c_blk.ind2_offset);
-		LE16_CPU(seven_c_blk.u6);
+		LE32_CPU(seven_c_blk.b_five_offset);
+		LE32_CPU(seven_c_blk.ind2_offset);
 		LE16_CPU(seven_c_blk.u7);
 		LE16_CPU(seven_c_blk.u8);
 
@@ -1187,53 +1215,75 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 
 		if (seven_c_blk.seven_c != 0x7C) { // this would mean it isn't a 7C block!
 			WARN(("Error. There isn't a 7C where I want to see 7C!\n"));
-			if (buf) free(buf);
+			freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
 			DEBUG_RET();
 			return NULL;
 		}
 
 		rec_size = seven_c_blk.rec_size;
 		num_list = seven_c_blk.item_count;
-		DEBUG_EMAIL(("b5 offset = %#x\n", seven_c_blk.b_five_offset));
 
-		_pst_getBlockOffset(buf, read_size, ind_ptr, seven_c_blk.b_five_offset, &block_offset);
-		fr_ptr = block_offset.from;
-		memcpy(&table_rec, &(buf[fr_ptr]), sizeof(table_rec));
+		if (_pst_getBlockOffsetPointer(pf, i2_head, buf, read_size, ind_ptr, seven_c_blk.b_five_offset, &block_offset4)) {
+			DEBUG_WARN(("internal error (7c.b5 offset %#x) in reading block id %#x\n", seven_c_blk.b_five_offset, block_id));
+			freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
+			DEBUG_RET();
+			return NULL;
+		}
+		memcpy(&table_rec, block_offset4.from, sizeof(table_rec));
 		LE16_CPU(table_rec.type);
 		LE16_CPU(table_rec.ref_type);
 		LE32_CPU(table_rec.value);
-		DEBUG_EMAIL(("after convert %#x\n", table_rec.type));
 
 		if (table_rec.type != 0x04B5) { // different constant than a type 1 record
 			WARN(("Unknown second block constant - %#X for id %#x\n", table_rec.type, block_id));
-			if (buf) free(buf);
+			freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
 			DEBUG_RET();
 			return NULL;
 		}
 
-		if (table_rec.value == 0) { // this is for the 2nd index offset
-			DEBUG_INFO(("reference to second index block is zero. ERROR\n"));
-			if (buf) free(buf);
+		if (_pst_getBlockOffsetPointer(pf, i2_head, buf, read_size, ind_ptr, table_rec.value, &block_offset5)) {
+			DEBUG_WARN(("internal error (7c.5b.desc offset %#x) in reading block id %#x\n", table_rec.value, block_id));
+			freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
 			DEBUG_RET();
 			return NULL;
 		}
+		num_recs = (block_offset5.to - block_offset5.from) / 6; // this will give the number of records in this block
 
-		_pst_getBlockOffset(buf, read_size, ind_ptr, table_rec.value, &block_offset);
-		num_recs = (block_offset.to - block_offset.from) / 6; // this will give the number of records in this block
-
-		_pst_getBlockOffset(buf, read_size, ind_ptr, seven_c_blk.ind2_offset, &block_offset);
-		ind2_ptr = block_offset.from;
-		ind2_end = block_offset.to;
+		if (_pst_getBlockOffsetPointer(pf, i2_head, buf, read_size, ind_ptr, seven_c_blk.ind2_offset, &block_offset6)) {
+			DEBUG_WARN(("internal error (7c.ind2 offset %#x) in reading block id %#x\n", seven_c_blk.ind2_offset, block_id));
+			freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
+			DEBUG_RET();
+			return NULL;
+		}
+		ind2_ptr = block_offset6.from;
+		ind2_end = block_offset6.to;
+	}
+	else if (block_hdr.index_offset == 0x0101) { //type 2
+		unsigned char *buf2 = NULL;
+		int n = block_hdr.type; // count
+		int m = sizeof(table3_rec);
+		int i;
+		block_type = 3;
+		for (i=0; i<n; i++) {
+			memcpy(&table3_rec, buf+8+i*m, m);
+			LE32_CPU(table3_rec.id);
+			_pst_ff_getIDblock_dec(pf, table3_rec.id, &buf2);
+			if (buf2) free(buf2);
+			buf2 = NULL;
+		}
+		freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
+		DEBUG_RET();
+		return NULL;
 	} else {
 		WARN(("ERROR: Unknown block constant - %#X for id %#x\n", block_hdr.type, block_id));
 		DEBUG_HEXDUMPC(buf, read_size,0x10);
-		if (buf) free(buf);
+		freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
 		DEBUG_RET();
 		return NULL;
 	}
 
-	DEBUG_EMAIL(("Mallocing number of items %i\n", num_recs));
-	while (count_rec < num_recs) {
+	DEBUG_EMAIL(("Mallocing number of records %i\n", num_recs));
+	for (count_rec=0; count_rec<num_recs; count_rec++) {
 		na_ptr = (pst_num_array*) xmalloc(sizeof(pst_num_array));
 		memset(na_ptr, 0, sizeof(pst_num_array));
 		na_ptr->next = na_head;
@@ -1246,45 +1296,51 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 
 		DEBUG_EMAIL(("going to read %i (%#x) items\n", na_ptr->count_item, na_ptr->count_item));
 
-		fr_ptr = list_start; // init fr_ptr to the start of the list.
-		cur_list = 0;
-		while (cur_list < num_list) { //we will increase fr_ptr as we progress through index
+		fr_ptr = list_start; // initialize fr_ptr to the start of the list.
+		for (cur_list=0; cur_list<num_list; cur_list++) { //we will increase fr_ptr as we progress through index
+			unsigned char* value_pointer = NULL;	// needed for block type 2 with values larger than 4 bytes
+			int value_size = 0;
 			if (block_type == 1) {
-				memcpy(&table_rec, &(buf[fr_ptr]), sizeof(table_rec));
+				memcpy(&table_rec, fr_ptr, sizeof(table_rec));
 				LE16_CPU(table_rec.type);
 				LE16_CPU(table_rec.ref_type);
 				//LE32_CPU(table_rec.value);	// done later, some may be order invariant
 				fr_ptr += sizeof(table_rec);
 			} else if (block_type == 2) {
 				// we will copy the table2_rec values into a table_rec record so that we can keep the rest of the code
-				memcpy(&table2_rec, &(buf[fr_ptr]), sizeof(table2_rec));
+				memcpy(&table2_rec, fr_ptr, sizeof(table2_rec));
 				LE16_CPU(table2_rec.ref_type);
 				LE16_CPU(table2_rec.type);
 				LE16_CPU(table2_rec.ind2_off);
-				LE16_CPU(table2_rec.u1);
 
 				// table_rec and table2_rec are arranged differently, so assign the values across
 				table_rec.type	   = table2_rec.type;
 				table_rec.ref_type = table2_rec.ref_type;
-				if (ind2_ptr+table2_rec.ind2_off <= ind2_end) {
-					memcpy(&(table_rec.value), &(buf[ind2_ptr+table2_rec.ind2_off]), sizeof(table_rec.value));
+				if ((ind2_end - ind2_ptr) <= (table2_rec.ind2_off + table2_rec.size)) {
+					int n = table2_rec.size;
+					int m = sizeof(table_rec.value);
+					table_rec.value = 0;
+					if (n <= m) {
+						memcpy(&table_rec.value, ind2_ptr + table2_rec.ind2_off, n);
+					}
+					else {
+						value_pointer = ind2_ptr + table2_rec.ind2_off;
+						value_size	  = n;
+					}
 					//LE32_CPU(table_rec.value);	// done later, some may be order invariant
 				}
 				else {
-					DEBUG_WARN (("trying to read more than blocks size. Size=%#x, Req.=%#x,"
-							 " Req Size=%#x\n", read_size, ind2_ptr+table2_rec.ind2_off,
-							 sizeof(table_rec.value)));
+					DEBUG_WARN (("Trying to read outside buffer, buffer size %#x, offset %#x, data size %#x\n",
+								read_size, ind2_end-ind2_ptr+table2_rec.ind2_off, table2_rec.size));
 				}
-
 				fr_ptr += sizeof(table2_rec);
 			} else {
 				WARN(("Missing code for block_type %i\n", block_type));
-				if (buf)	 free(buf);
+				freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
 				if (na_head) _pst_free_list(na_head);
 				DEBUG_RET();
 				return NULL;
 			}
-			cur_list++; // get ready to read next bit from list
 			DEBUG_EMAIL(("reading block %i (type=%#x, ref_type=%#x, value=%#x)\n",
 				x, table_rec.type, table_rec.ref_type, table_rec.value));
 
@@ -1329,84 +1385,68 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 				0x1102 - Array of Binary data
 			*/
 
-			if (table_rec.ref_type == 0x0002 || table_rec.ref_type == 0x0003 || table_rec.ref_type == 0x000b) {
-				//contains data
-				na_ptr->items[x]->data = xmalloc(sizeof(int32_t));
-				memcpy(na_ptr->items[x]->data, &(table_rec.value), sizeof(int32_t));
+			if (table_rec.ref_type == 0x0002 ||
+				table_rec.ref_type == 0x0003 ||
+				table_rec.ref_type == 0x000b) {
+				//contains 32 bits of data
 				na_ptr->items[x]->size = sizeof(int32_t);
 				na_ptr->items[x]->type = table_rec.ref_type;
+				na_ptr->items[x]->data = xmalloc(sizeof(int32_t));
+				memcpy(na_ptr->items[x]->data, &(table_rec.value), sizeof(int32_t));
 
-			} else if (table_rec.ref_type == 0x0005 || table_rec.ref_type == 0x000D
-					|| table_rec.ref_type == 0x1003 || table_rec.ref_type == 0x0014
-					|| table_rec.ref_type == 0x001E || table_rec.ref_type == 0x0102
-					|| table_rec.ref_type == 0x0040 || table_rec.ref_type == 0x101E
-					|| table_rec.ref_type == 0x0048 || table_rec.ref_type == 0x1102
-					|| table_rec.ref_type == 0x1014) {
-				//contains index_ref to data
+			} else if (table_rec.ref_type == 0x0005 ||
+					   table_rec.ref_type == 0x000d ||
+					   table_rec.ref_type == 0x0014 ||
+					   table_rec.ref_type == 0x001e ||
+					   table_rec.ref_type == 0x0040 ||
+					   table_rec.ref_type == 0x0048 ||
+					   table_rec.ref_type == 0x0102 ||
+					   table_rec.ref_type == 0x1003 ||
+					   table_rec.ref_type == 0x1014 ||
+					   table_rec.ref_type == 0x101e ||
+					   table_rec.ref_type == 0x1102) {
+				//contains index reference to data
 				LE32_CPU(table_rec.value);
-				if ((table_rec.value & 0x0000000F) == 0xF) {
-					// if value ends in 'F' then this should be an id2 value
-					DEBUG_EMAIL(("Found id2 [%#x] value. Will follow it\n", table_rec.value));
-					if ((na_ptr->items[x]->size = _pst_ff_getID2block(pf, table_rec.value, i2_head,
-											  &(na_ptr->items[x]->data)))==0) {
-						DEBUG_WARN(("not able to read the ID2 data. Setting to be read later. %#x\n", table_rec.value));
-						na_ptr->items[x]->size = 0;
-						na_ptr->items[x]->data = NULL;
-						na_ptr->items[x]->type = table_rec.value;
-					}
-				} else if (table_rec.value != 0) {
-					if ((table_rec.value >> 4)+ind_ptr > read_size) {
-						// check that we will not be outside the buffer we have read
-						DEBUG_WARN(("table_rec.value [%#x] is outside of block [%#x]\n", table_rec.value, read_size));
-						na_ptr->count_item --;
-						continue;
-					}
-					if (_pst_getBlockOffset(buf, read_size, ind_ptr, table_rec.value, &block_offset)) {
+				if (value_pointer) {
+					// in a type 2 block, with a value that is more than 4 bytes
+					// directly stored in this block.
+					na_ptr->items[x]->size = value_size;
+					na_ptr->items[x]->type = table_rec.ref_type;
+					na_ptr->items[x]->data = xmalloc(value_size);
+					memcpy(na_ptr->items[x]->data, value_pointer, value_size);
+				}
+				else if (_pst_getBlockOffsetPointer(pf, i2_head, buf, read_size, ind_ptr, table_rec.value, &block_offset7)) {
+					if (table_rec.value) {
 						DEBUG_WARN(("failed to get block offset for table_rec.value of %#x\n", table_rec.value));
-						na_ptr->count_item --; //we will be skipping a row
-						continue;
 					}
-					t_ptr = block_offset.from;
-					if (t_ptr <= block_offset.to) {
-						na_ptr->items[x]->size = size = block_offset.to - t_ptr;
-					} else {
-						DEBUG_WARN(("I don't want to malloc less than zero sized block. from=%#x, to=%#x."
-							"Will change to 1 byte\n", block_offset.from, block_offset.to));
-						na_ptr->items[x]->size = size = 0; // the malloc statement will add one to this
-					}
-
-					// plus one for good luck (and strings) we will null terminate all reads
-					na_ptr->items[x]->data = (unsigned char*) xmalloc(size+1);
-					memcpy(na_ptr->items[x]->data, &(buf[t_ptr]), size);
-					na_ptr->items[x]->data[size] = '\0'; // null terminate buffer
-
-					if (table_rec.ref_type == 0xd) {
-						// there is still more to do for the type of 0xD
-						type_d_rec = (struct _type_d_rec*) na_ptr->items[x]->data;
-						LE32_CPU(type_d_rec->id);
-						if ((na_ptr->items[x]->size = _pst_ff_getID2block(pf, type_d_rec->id, i2_head, &(na_ptr->items[x]->data)))==0){
-							DEBUG_WARN(("not able to read the ID2 data. Setting to be read later. %#x\n",
-							  type_d_rec->id));
-							na_ptr->items[x]->size = 0;
-							na_ptr->items[x]->data = NULL;
-							na_ptr->items[x]->type = type_d_rec->id;
-						}
-					}
-				} else {
-					DEBUG_EMAIL(("Ignoring 0 value in offset\n"));
-					if (na_ptr->items[x]->data) free (na_ptr->items[x]->data);
-					na_ptr->items[x]->data = NULL;
-					free(na_ptr->items[x]);
-					na_ptr->count_item--; // remove this item from the destination list
+					na_ptr->count_item --; //we will be skipping a row
 					continue;
 				}
-				if (na_ptr->items[x]->type == 0)
-					//it can be used to convey information
-					// to later functions
+				else {
+					value_size = block_offset7.to - block_offset7.from;
+					na_ptr->items[x]->size = value_size;
 					na_ptr->items[x]->type = table_rec.ref_type;
+					na_ptr->items[x]->data = xmalloc(value_size+1);
+					memcpy(na_ptr->items[x]->data, block_offset7.from, value_size);
+					na_ptr->items[x]->data[value_size] = '\0';  // it might be a string, null terminate it.
+				}
+				if (table_rec.ref_type == 0xd) {
+					// there is still more to do for the type of 0xD
+					type_d_rec = (struct _type_d_rec*) na_ptr->items[x]->data;
+					LE32_CPU(type_d_rec->id);
+					if ((na_ptr->items[x]->size = _pst_ff_getID2block(pf, type_d_rec->id, i2_head, &(na_ptr->items[x]->data)))==0){
+						DEBUG_WARN(("not able to read the ID2 data. Setting to be read later. %#x\n",
+						  type_d_rec->id));
+						free(na_ptr->items[x]->data);
+						na_ptr->items[x]->size = 0;
+						na_ptr->items[x]->data = NULL;
+						na_ptr->items[x]->type = type_d_rec->id;
+					}
+				}
+				if (na_ptr->items[x]->type == 0) na_ptr->items[x]->type = table_rec.ref_type;
 			} else {
 				WARN(("ERROR Unknown ref_type %#x\n", table_rec.ref_type));
-				if (buf)	 free(buf);
+				freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
 				if (na_head) _pst_free_list(na_head);
 				DEBUG_RET();
 				return NULL;
@@ -1415,9 +1455,8 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		}
 		DEBUG_EMAIL(("increasing ind2_ptr by %i [%#x] bytes. Was %#x, Now %#x\n", rec_size, rec_size, ind2_ptr, ind2_ptr+rec_size));
 		ind2_ptr += rec_size;
-		count_rec++;
 	}
-	if (buf) free(buf);
+	freeall(buf, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
 	DEBUG_RET();
 	return na_head;
 }
@@ -2998,6 +3037,7 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 					DEBUG_EMAIL(("%s\n", item->journal->type));
 					break;
 				default:
+					DEBUG_EMAIL(("unknown type %#x\n", list->items[x]->id));
 						/* Reference Types
 
 					   2 - 0x0002 - Signed 16bit value
@@ -3431,11 +3471,50 @@ void _pst_freeItem(pst_item *item) {
 }
 
 
+/**
+  * The offset might be zero, in which case we have no data, so return a pair of null pointers.
+  * Or, the offset might end in 0xf, so it is an id2 pointer, in which case we read the id2 block.
+  * Otherwise, the offset>>4 is an index into the table of offsets in the buffer.
+*/
+int32_t _pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, unsigned char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset_pointer *p) {
+	int32_t size;
+	pst_block_offset block_offset;
+	DEBUG_ENT("_pst_getBlockOffsetPointer");
+	if (p->needfree) free(p->from);
+	p->from = NULL;
+	p->needfree = 0;
+	if (!offset) {
+		p->from = p->to = NULL;
+	}
+	else if ((offset & 0xf) == 0xf) {
+		DEBUG_WARN(("Found id2 %#x value. Will follow it\n", offset));
+		size = _pst_ff_getID2block(pf, offset, i2_head, &(p->from));
+		if (size) {
+			p->to = p->from + size;
+			p->needfree = 1;
+		}
+		else {
+			p->from = p->to = NULL;
+		}
+	}
+	else if (_pst_getBlockOffset(buf, read_size, i_offset, offset, &block_offset)) {
+		p->from = p->to = NULL;
+	}
+	else {
+		p->from = buf + block_offset.from;
+		p->to	= buf + block_offset.to;
+	}
+	DEBUG_RET();
+	return (p->from) ? 0 : 1;
+}
+
+
 int32_t _pst_getBlockOffset(unsigned char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset *p) {
-	int32_t of1 = offset>>4;
+	int32_t low = offset & 0xf;
+	int32_t of1 = offset >> 4;
 	DEBUG_ENT("_pst_getBlockOffset");
-	if (!p || !buf || (i_offset == 0) || (i_offset+2+of1+sizeof(*p) > read_size)) {
-		DEBUG_WARN(("p is NULL or buf is NULL or offset is 0 (%p, %p, %#x, %i, %i)\n", p, buf, offset, read_size, i_offset));
+	if (!p || !buf || !i_offset || low || (i_offset+2+of1+sizeof(*p) > read_size)) {
+		DEBUG_WARN(("p is NULL or buf is NULL or offset is 0 or offset has low bits or beyond read size (%p, %p, %#x, %i, %i)\n", p, buf, offset, read_size, i_offset));
 		DEBUG_RET();
 		return -1;
 	}
@@ -3443,13 +3522,17 @@ int32_t _pst_getBlockOffset(unsigned char *buf, int32_t read_size, int32_t i_off
 	memcpy(&(p->to), &(buf[(i_offset+2)+of1+sizeof(p->from)]), sizeof(p->to));
 	LE16_CPU(p->from);
 	LE16_CPU(p->to);
-	DEBUG_WARN(("get block offset finds from=%i(%#x), to=%i(%#x)", p->from, p->from, p->to, p->to));
+	DEBUG_WARN(("get block offset finds from=%i(%#x), to=%i(%#x)\n", p->from, p->from, p->to, p->to));
+	if (p->from > p->to) {
+		DEBUG_WARN(("get block offset from > to"));
+		return -1;
+	}
 	DEBUG_RET();
 	return 0;
 }
 
 
-pst_index_ll * _pst_getID(pst_file* pf, u_int32_t id) {
+pst_index_ll* _pst_getID(pst_file* pf, u_int32_t id) {
 	pst_index_ll *ptr = NULL;
 	DEBUG_ENT("_pst_getID");
 	if (id == 0) {
@@ -3457,21 +3540,17 @@ pst_index_ll * _pst_getID(pst_file* pf, u_int32_t id) {
 		return NULL;
 	}
 
-	/*	if (id & 0x3) { // if either of the last two bits on the id are set
-	  DEBUG_INDEX(("ODD_INDEX (not even) is this a pointer to a table?\n"));
-	  }*/
-	// Dave: I don't think I should do this. next bit. I really think it doesn't work
-	// it isn't based on sound principles either.
-	// update: seems that the last two sig bits are flags. u tell me!
-	id &= 0xFFFFFFFE; // remove least sig. bit. seems that it might work if I do this
+	//if (id & 1) DEBUG_INDEX(("have odd id bit %#x\n", id));
+	//if (id & 2) DEBUG_INDEX(("have two id bit %#x\n", id));
+	id &= 0xFFFFFFFE;
 
 	DEBUG_INDEX(("Trying to find %#x\n", id));
 	if (!ptr) ptr = pf->i_head;
 	while (ptr && (ptr->id != id)) {
 		ptr = ptr->next;
 	}
-	if (ptr) {DEBUG_INDEX(("Found Value %#x\n", ptr->id));}
-	else	 {DEBUG_INDEX(("ERROR: Value not found\n"));  }
+	if (ptr) {DEBUG_INDEX(("Found Value %#x\n", id));            }
+	else	 {DEBUG_INDEX(("ERROR: Value %#x not found\n", id)); }
 	DEBUG_RET();
 	return ptr;
 }
@@ -3496,7 +3575,15 @@ pst_index_ll * _pst_getID2(pst_index2_ll *ptr, u_int32_t id) {
 }
 
 
-pst_desc_ll * _pst_getDptr(pst_file *pf, u_int32_t id) {
+/**
+ * find the id in the descriptor tree rooted at pf->d_head
+ *
+ * @param pf	global pst file pointer
+ * @param id	the id we are looking for
+ *
+ * @return pointer to the pst_desc_ll node in the descriptor tree
+*/
+pst_desc_ll* _pst_getDptr(pst_file *pf, u_int32_t id) {
 	pst_desc_ll *ptr = pf->d_head;
 	DEBUG_ENT("_pst_getDptr");
 	while (ptr && (ptr->id != id)) {
@@ -3742,16 +3829,19 @@ int32_t _pst_get (FILE *fp, void *buf, u_int32_t size) {
 size_t _pst_ff_getIDblock_dec(pst_file *pf, u_int32_t id, unsigned char **b) {
 	size_t r;
 	DEBUG_ENT("_pst_ff_getIDblock_dec");
+	DEBUG_INDEX(("for id %#x\n", id));
 	r = _pst_ff_getIDblock(pf, id, b);
-	if (pf->encryption) _pst_decrypt(*b, r, pf->encryption);
 	DEBUG_HEXDUMPC(*b, r, 16);
+	int noenc = (id & 2);	// disable encryption
+	if ((pf->encryption) & !(noenc)) {
+		_pst_decrypt(*b, r, pf->encryption);
+		DEBUG_HEXDUMPC(*b, r, 16);
+	}
 	DEBUG_RET();
 	return r;
 }
 
 
-/** the get ID function for the default file format that I am working with
-	ie the one in the PST files */
 size_t _pst_ff_getIDblock(pst_file *pf, u_int32_t id, unsigned char** b) {
 	pst_index_ll *rec;
 	size_t rsize = 0;//, re_size=0;
