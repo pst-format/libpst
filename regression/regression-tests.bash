@@ -13,9 +13,10 @@ done
 #   ../src/readpst        -o output5 mbmg.archive.pst
 
     ../src/readpst        -o output1 -d dumper ams.pst
-    ../src/readpstlog dumper >dumperams.log
+    ../src/readpstlog -f I dumper >dumperams.log
 
-    ../src/readpst        -o output6 -d dumper /tmp/pam.pst
-    ../src/readpstlog dumper >dumperpam.log
+#   touch /tmp/pam.pst
+#   ../src/readpst        -o output6 -d dumper /tmp/pam.pst
+#   ../src/readpstlog -f I dumper >dumperpam.log
 
     rm -f dumper

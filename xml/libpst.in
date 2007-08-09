@@ -245,7 +245,8 @@
                     <term>-f <replaceable class="parameter">format</replaceable></term>
                     <listitem><para>
                         Sets the format of the text log output.  Currently, the only valid output
-                        format is T, for text; anything else gives the default.
+                        formats are T, for single line text, D for the default default multi line
+                        format, and I for an indented style with single line text.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -320,9 +321,15 @@
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>9</term>
+                    <listitem><para>
+                        Function entries
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>10</term>
                     <listitem><para>
-                        Function calls
+                        Function exits
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -1056,7 +1063,7 @@
 1009  RTF Compressed body
 1010  RTF whitespace prefix count
 1011  RTF whitespace tailing count
-1013  HTML Email Body. Does not exist if the email doesn't have a HTML version
+1013  HTML Email Body. Does not exist if the email doesn't have an HTML version
 1035  Message ID
 1042  In-Reply-To or Parent's Message ID
 1046  Return Path
@@ -1070,7 +1077,7 @@
 35df  Valid Folder Mask
 35e0  binary record found in first item. Contains the reference to "Top of Personal Folder" item
 35e3  binary record with a reference to "Deleted Items" item
-35e7  binary record with a refernece to "Search Root" item
+35e7  binary record with a reference to "Search Root" item
 3602  the number of emails stored in a folder
 3603  the number of unread emails in a folder
 360a  Has Subfolders
@@ -1165,10 +1172,10 @@
 3a64  Other Address Post Office box
 65e3  Entry ID
 67f2  Attachment ID2 value
-67ff  Password checksum [0x67FF]
+67ff  Password checksum
 6f02  Secure HTML Body
 6f04  Secure Text Body
-7c07  Top of folders RecID [0x7c07]
+7c07  Top of folders RecID
 8000  Contain extra bits of information that have been taken from the email's header. I call them extra lines
 8005  Contact Fullname
 801a  Home Address
@@ -1180,9 +1187,9 @@
 8085  Email Address 1 Record
 8092  Email Address 2 Transport
 8093  Email Address 2 Address
-8094  DEBUG_EMAIL (("Email Address 2 Description
+8094  Email Address 2 Description
 8095  Email Address 2 Record
-80a2  DEBUG_EMAIL (("Email Address 3 Transport
+80a2  Email Address 3 Transport
 80a3  Email Address 3 Address
 80a4  Email Address 3 Description
 80a5  Email Address 3 Record

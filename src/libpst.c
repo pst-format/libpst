@@ -723,7 +723,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 	}
 	bptr = buf;
 	item_count = (int)(unsigned)(buf[ITEM_COUNT_OFFSET]);
-	memcpy(&desc_rec, buf+BACKLINK_OFFSET, sizeof(desc_rec));
+	memcpy(&desc_rec.d_id, buf+BACKLINK_OFFSET, sizeof(u_int32_t)); // for valgrind, only have 3 ints here, not 4
 	LE32_CPU(desc_rec.d_id);
 	if (desc_rec.d_id != linku1) {
 		DEBUG_WARN(("Backlink %#x in this node does not match required %#x\n", desc_rec.d_id, linku1));
@@ -1083,14 +1083,14 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 	u_int32_t num_list;
 	u_int32_t cur_list;
 	u_int32_t block_type;
-	u_int32_t rec_size;
+	u_int32_t rec_size = 0;
 	u_int32_t ind_ptr;
 	unsigned char* list_start;
 	unsigned char* t_ptr;
 	unsigned char* fr_ptr;
 	unsigned char* to_ptr;
 	unsigned char* ind2_end;
-	unsigned char* ind2_ptr;
+	unsigned char* ind2_ptr = NULL;
 	size_t read_size=0;
 	pst_x_attrib_ll *mapptr;
 
@@ -1188,7 +1188,6 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		to_ptr	   = block_offset2.to;
 		num_list = (to_ptr - list_start)/sizeof(table_rec);
 		num_recs = 1; // only going to be one object in these blocks
-		rec_size = 0; // doesn't matter cause there is only one object
 	}
 	else if (block_hdr.type == 0x7CEC) { //type 2
 		block_type = 2;
@@ -1292,6 +1291,7 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		na_ptr->items		= (struct _pst_num_item**) xmalloc(sizeof(struct _pst_num_item)*num_list);
 		na_ptr->count_item	= num_list;
 		na_ptr->count_array = num_recs; // each record will have a record of the total number of records
+		for (x=0; x<num_list; x++) na_ptr->items[x] = NULL;
 		x = 0;
 
 		DEBUG_EMAIL(("going to read %i (%#x) items\n", na_ptr->count_item, na_ptr->count_item));
@@ -3098,26 +3098,25 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 
 
 int32_t _pst_free_list(pst_num_array *list) {
-	int32_t x = 0;
 	pst_num_array *l;
 	DEBUG_ENT("_pst_free_list");
 	while (list) {
-		while (x < list->count_item) {
-			if (list->items[x]->data) {
-				free (list->items[x]->data);
-			}
-			if (list->items[x]) {
-				free (list->items[x]);
-			}
-			x++;
-		}
+		int32_t x = 0;
 		if (list->items) {
+			while (x < list->count_item) {
+				if (list->items[x]) {
+					if (list->items[x]->data) {
+						free (list->items[x]->data);
+					}
+					free (list->items[x]);
+				}
+				x++;
+			}
 			free(list->items);
 		}
 		l = list;
 		list = list->next;
 		free (l);
-		x = 0;
 	}
 	DEBUG_RET();
 	return 1;
@@ -3831,12 +3830,11 @@ size_t _pst_ff_getIDblock_dec(pst_file *pf, u_int32_t id, unsigned char **b) {
 	DEBUG_ENT("_pst_ff_getIDblock_dec");
 	DEBUG_INDEX(("for id %#x\n", id));
 	r = _pst_ff_getIDblock(pf, id, b);
-	DEBUG_HEXDUMPC(*b, r, 16);
 	int noenc = (id & 2);	// disable encryption
 	if ((pf->encryption) & !(noenc)) {
 		_pst_decrypt(*b, r, pf->encryption);
-		DEBUG_HEXDUMPC(*b, r, 16);
 	}
+	DEBUG_HEXDUMPC(*b, r, 16);
 	DEBUG_RET();
 	return r;
 }

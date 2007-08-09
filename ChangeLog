@@ -1,3 +1,10 @@
+LibPST 0.5.7 (2007-08-09)
+===============================
+
+        * fix valgrind errors, using uninitialized data.
+        * improve debug logging and readpstlog for indented listings.
+        * cleanup documentation.
+
 LibPST 0.5.6 (2007-07-15)
 ===============================
 

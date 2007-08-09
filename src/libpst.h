@@ -349,7 +349,7 @@ typedef struct _pst_item_attach {
   char *filename2;
   char *mimetype;
   char *data;
-  size_t  size;
+  size_t   size;
   int32_t  id2_val;
   int32_t  id_val; // calculated from id2_val during creation of record
   int32_t  method;

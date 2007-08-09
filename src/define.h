@@ -29,15 +29,16 @@
 //number of items to save in memory between writes
 #define DEBUG_MAX_ITEMS 0
 
-#define DEBUG_FILE_NO  1
-#define DEBUG_INDEX_NO 2
-#define DEBUG_EMAIL_NO 3
-#define DEBUG_WARN_NO  4
-#define DEBUG_READ_NO  5
-#define DEBUG_INFO_NO  6
-#define DEBUG_MAIN_NO  7
-#define DEBUG_DECRYPT_NO 8
-#define DEBUG_FUNC_NO 10
+#define DEBUG_FILE_NO	  1
+#define DEBUG_INDEX_NO	  2
+#define DEBUG_EMAIL_NO	  3
+#define DEBUG_WARN_NO	  4
+#define DEBUG_READ_NO	  5
+#define DEBUG_INFO_NO	  6
+#define DEBUG_MAIN_NO	  7
+#define DEBUG_DECRYPT_NO  8
+#define DEBUG_FUNCENT_NO  9
+#define DEBUG_FUNCRET_NO 10
 #define DEBUG_HEXDUMP_NO 11
 
 //variable number of arguments to this macro. will expand them into
@@ -161,11 +162,16 @@ void * xmalloc(size_t size);
 					   _debug_msg_text x;}
 
 #ifdef DEBUG_MODE_FUNC
-# define DEBUG_ENT(x) \
-  {MESSAGEPRINT(("Entering function %s\n",x),DEBUG_FUNC_NO);\
-   _debug_func(x);}
-# define DEBUG_RET() {MESSAGEPRINT(("Leaving function\n"),DEBUG_FUNC_NO);\
-					  _debug_func_ret();}
+# define DEBUG_ENT(x)											\
+	{															\
+		 _debug_func(x);										\
+		MESSAGEPRINT(("Entering function\n"),DEBUG_FUNCENT_NO); \
+	}
+# define DEBUG_RET()											\
+	{															\
+		MESSAGEPRINT(("Leaving function\n"),DEBUG_FUNCRET_NO);  \
+		_debug_func_ret();										\
+	}
 #else
 # define DEBUG_ENT(x) {}
 # define DEBUG_RET() {}

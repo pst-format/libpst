@@ -1005,6 +1005,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
 	if (current_attach->data) {
 		fwrite(enc, 1, strlen(enc), f_output);
 		DEBUG_EMAIL(("Attachment Size after encoding is %i\n", strlen(enc)));
+		free(enc);	// caught by valgrind
 	} else {
 		pst_attach_to_file_base64(pst, current_attach, f_output);
 	}
@@ -1202,25 +1203,36 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 			fprintf(f_output, "\n");
 		}
 		removeCR(item->email->body);
-		if (base64_body)
-			write_email_body(f_output, base64_encode(item->email->body, strlen(item->email->body)));
-		else
+		if (base64_body) {
+			char *enc = base64_encode(item->email->body, strlen(item->email->body));
+			if (enc) {
+				write_email_body(f_output, enc);
+				free(enc);
+			}
+		}
+		else {
 			write_email_body(f_output, item->email->body);
+		}
 	}
 
 	if (item->email->htmlbody) {
 		if (boundary) {
 			fprintf(f_output, "\n--%s\n", boundary);
 			fprintf(f_output, "Content-type: text/html\n");
-			if (base64_body)
-				fprintf(f_output, "Content-Transfer-Encoding: base64\n");
+			if (base64_body) fprintf(f_output, "Content-Transfer-Encoding: base64\n");
 			fprintf(f_output, "\n");
 		}
 		removeCR(item->email->htmlbody);
-		if (base64_body)
-			write_email_body(f_output, base64_encode(item->email->htmlbody, strlen(item->email->htmlbody)));
-		else
+		if (base64_body) {
+			char *enc = base64_encode(item->email->htmlbody, strlen(item->email->htmlbody));
+			if (enc) {
+				write_email_body(f_output, enc);
+				free(enc);
+			}
+		}
+		else {
 			write_email_body(f_output, item->email->htmlbody);
+		}
 	}
 
 	if (item->email->rtf_compressed && save_rtf) {
@@ -1229,7 +1241,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 		memset(current_attach, 0, sizeof(pst_item_attach));
 		current_attach->next = item->attach;
 		item->attach = current_attach;
-		current_attach->data = lzfu_decompress(item->email->rtf_compressed);
+		current_attach->data = lzfu_decompress(item->email->rtf_compressed, &current_attach->size);
 		current_attach->filename2 = xmalloc(strlen(RTF_ATTACH_NAME)+2);
 		strcpy(current_attach->filename2, RTF_ATTACH_NAME);
 		current_attach->mimetype = xmalloc(strlen(RTF_ATTACH_TYPE)+2);
@@ -1265,7 +1277,6 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 	}
 
 	// attachments
-	base64_body = 0;
 	attach_num = 0;
 	for (current_attach = item->attach;
 		   current_attach;
@@ -1323,19 +1334,28 @@ void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[])
 		fprintf(f_output, "LABEL;TYPE=home:%s\n", rfc2426_escape(contact->home_address));
 	}
 	if (contact->business_address) {
-		fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n",
-			(!contact->business_po_box) 	 ? "" : rfc2426_escape(contact->business_po_box),
-			"", // extended Address
-			(!contact->business_street) 	 ? "" : rfc2426_escape(contact->business_street),
-			(!contact->business_city)		 ? "" : rfc2426_escape(contact->business_city),
-			(!contact->business_state)		 ? "" : rfc2426_escape(contact->business_state),
-			(!contact->business_postal_code) ? "" : rfc2426_escape(contact->business_postal_code),
-			(!contact->business_country)	 ? "" : rfc2426_escape(contact->business_country));
+		// these should be equivalent, but valgrind complains about the single large fprintf
+		//
+		char *ab = (!contact->business_po_box	  ) 	? "" : rfc2426_escape(contact->business_po_box     );
+		char *ac = (!contact->business_street	  ) 	? "" : rfc2426_escape(contact->business_street     );
+		char *ad = (!contact->business_city 	  ) 	? "" : rfc2426_escape(contact->business_city       );
+		char *ae = (!contact->business_state	  ) 	? "" : rfc2426_escape(contact->business_state      );
+		char *af = (!contact->business_postal_code) 	? "" : rfc2426_escape(contact->business_postal_code);
+		char *ag = (!contact->business_country	  ) 	? "" : rfc2426_escape(contact->business_country    );
+		fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n", ab, "", ac, ad, ae, af, ag);
+	  //fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n",
+	  //	(!contact->business_po_box) 	 ? "" : rfc2426_escape(contact->business_po_box),
+	  //	"", // extended Address
+	  //	(!contact->business_street) 	 ? "" : rfc2426_escape(contact->business_street),
+	  //	(!contact->business_city)		 ? "" : rfc2426_escape(contact->business_city),
+	  //	(!contact->business_state)		 ? "" : rfc2426_escape(contact->business_state),
+	  //	(!contact->business_postal_code) ? "" : rfc2426_escape(contact->business_postal_code),
+	  //	(!contact->business_country)	 ? "" : rfc2426_escape(contact->business_country));
 		fprintf(f_output, "LABEL;TYPE=work:%s\n", rfc2426_escape(contact->business_address));
 	}
 	if (contact->other_address) {
 		fprintf(f_output, "ADR;TYPE=postal:%s;%s;%s;%s;%s;%s;%s\n",
-			(!contact->other_po_box)	   ? "" : rfc2426_escape(contact->business_po_box),
+			(!contact->other_po_box)	   ? "" : rfc2426_escape(contact->other_po_box),
 			"", // extended Address
 			(!contact->other_street)	   ? "" : rfc2426_escape(contact->other_street),
 			(!contact->other_city)		   ? "" : rfc2426_escape(contact->other_city),

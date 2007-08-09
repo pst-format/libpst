@@ -258,6 +258,7 @@ void _debug_write() {
 	if (curr_items == 0) return;	// no items to write.
 
 	index = (int*) xmalloc(index_size);
+	memset(index, 0, index_size);	// valgrind, avoid writing uninitialized data
 	file_pos += index_size;
 	// write the index first, we will re-write it later, but
 	// we want to allocate the space
@@ -268,8 +269,9 @@ void _debug_write() {
 	while (item_ptr) {
 		file_pos = ftell(debug_fp);
 		index[index_ptr++] = file_pos;
-		size = strlen(item_ptr->function)+strlen(item_ptr->file)+
-		  strlen(item_ptr->text) + 3; //for the three \0s
+		size = strlen(item_ptr->function) +
+			   strlen(item_ptr->file)	  +
+			   strlen(item_ptr->text)	  + 3; //for the three \0s
 		if (buf) free(buf);
 		buf = xmalloc(size+1);
 		ptr = 0;
@@ -387,11 +389,13 @@ void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, in
 	struct _debug_file_rec_l lfile_rec;
 	unsigned char rec_type;
 	int index_size = 3 * sizeof(int);
-	int *index = malloc(index_size);
-	int index_pos, file_pos;
+	int index_pos, file_pos, *index;
 	char zero='\0';
 	if (!debug_fp) return;	// no file
+	index = malloc(index_size);
 	index[0] = 1; // only one item in this index run
+	index[1] = 0; // valgrind, avoid writing uninitialized data
+	index[2] = 0; // ""
 	index_pos = ftell(debug_fp);
 	fwrite(index, index_size, 1, debug_fp);
 	index[1] = ftell(debug_fp);
@@ -399,11 +403,12 @@ void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, in
 	// always use the long
 	rec_type = 'L';
 	fwrite(&rec_type, 1, sizeof(char), debug_fp);
-	lfile_rec.type = item->type;
-	lfile_rec.line = item->line;
 	lfile_rec.funcname = 0;
 	lfile_rec.filename = strlen(item->function)+1;
 	lfile_rec.text = lfile_rec.filename+strlen(item->file)+1;
+	lfile_rec.end  = 0; // valgrind, avoid writing uninitialized data
+	lfile_rec.line = item->line;
+	lfile_rec.type = item->type;
 	fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
 
 	file_pos = ftell(debug_fp);
@@ -423,12 +428,13 @@ void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, in
 }
 
 
-void * xmalloc(size_t size) {
+void *xmalloc(size_t size) {
 	void *mem = malloc(size);
 	if (!mem) {
 		fprintf(stderr, "xMalloc: Out Of memory [req: %ld]\n", (long)size);
 		exit(1);
 	}
+	memset(mem, 0, size);	// valgrind, some email attachment does not initialize the entire buffer passed to base64 encode
 	return mem;
 }
 
