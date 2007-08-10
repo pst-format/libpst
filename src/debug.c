@@ -321,7 +321,7 @@ void _debug_write() {
 	fseek(debug_fp, 0, SEEK_END);
 	item_ptr = item_head = item_tail = NULL;
 	free(index);
-	if (buf) free(buf); buf = NULL;
+	if (buf) free(buf);
 }
 
 
@@ -330,7 +330,7 @@ void _debug_write_msg(struct _debug_item *item, char *fmt, va_list *ap, int size
 	struct _debug_file_rec_m mfile_rec;
 	unsigned char rec_type;
 	int index_size = 3 * sizeof(int);
-	int *index = malloc(index_size);
+	int index[3];
 	int index_pos, file_pos;
 	char zero='\0';
 	unsigned int end;
@@ -381,7 +381,6 @@ void _debug_write_msg(struct _debug_item *item, char *fmt, va_list *ap, int size
 		fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
 	}
 	fseek(debug_fp, 0, SEEK_END);
-	// that should do it...
 }
 
 
@@ -389,10 +388,9 @@ void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, in
 	struct _debug_file_rec_l lfile_rec;
 	unsigned char rec_type;
 	int index_size = 3 * sizeof(int);
-	int index_pos, file_pos, *index;
+	int index_pos, file_pos, index[3];
 	char zero='\0';
 	if (!debug_fp) return;	// no file
-	index = malloc(index_size);
 	index[0] = 1; // only one item in this index run
 	index[1] = 0; // valgrind, avoid writing uninitialized data
 	index[2] = 0; // ""
@@ -434,7 +432,7 @@ void *xmalloc(size_t size) {
 		fprintf(stderr, "xMalloc: Out Of memory [req: %ld]\n", (long)size);
 		exit(1);
 	}
-	memset(mem, 0, size);	// valgrind, some email attachment does not initialize the entire buffer passed to base64 encode
+  //memset(mem, 0, size);	// valgrind
 	return mem;
 }
 

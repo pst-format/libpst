@@ -291,10 +291,9 @@ int main(int argc, char** argv) {
 
 		item = _pst_parse_item(&pstfile, d_ptr);
 		DEBUG_MAIN(("main: About to process item\n"));
-		if (item && item->email && item->email->subject &&
-			item->email->subject->subj) {
-			//	  DEBUG_EMAIL(("item->email->subject = %p\n", item->email->subject));
-			//	  DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
+		if (item && item->email && item->email->subject && item->email->subject->subj) {
+			DEBUG_EMAIL(("item->email->subject = %p\n", item->email->subject));
+			DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
 		}
 		if (item) {
 			if (item->message_store) {
@@ -341,7 +340,7 @@ int main(int argc, char** argv) {
 					f = head;
 				}
 				_pst_freeItem(item);
-				item = NULL; // just for the odd situations!
+				item = NULL;
 				goto check_parent;
 			} else if (item->contact) {
 				// deal with a contact
@@ -432,8 +431,7 @@ int main(int argc, char** argv) {
 		while (!skip_child && !d_ptr->next && d_ptr->parent) {
 			DEBUG_MAIN(("main: Going to Parent\n"));
 			head = f->next;
-			if (f->output)
-				fclose(f->output);
+			if (f->output) fclose(f->output);
 			DEBUG_MAIN(("main: Email Count for folder %s is %i\n", f->dname, f->email_count));
 			if (output_mode != OUTPUT_QUIET)
 				printf("\t\"%s\" - %i items done, skipped %i, should have been %i\n",
@@ -477,8 +475,7 @@ int main(int argc, char** argv) {
 	pst_close(&pstfile);
 	//	fclose(pstfile.fp);
 	while (f) {
-		if (f->output)
-			fclose(f->output);
+		if (f->output) fclose(f->output);
 		free(f->name);
 		free(f->dname);
 
@@ -1236,6 +1233,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 	}
 
 	if (item->email->rtf_compressed && save_rtf) {
+	  //int32_t tester;
 		DEBUG_EMAIL(("Adding RTF body as attachment\n"));
 		current_attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
 		memset(current_attach, 0, sizeof(pst_item_attach));
@@ -1246,8 +1244,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 		strcpy(current_attach->filename2, RTF_ATTACH_NAME);
 		current_attach->mimetype = xmalloc(strlen(RTF_ATTACH_TYPE)+2);
 		strcpy(current_attach->mimetype, RTF_ATTACH_TYPE);
-		memcpy(&(current_attach->size), item->email->rtf_compressed+sizeof(int32_t), sizeof(int32_t));
-		LE32_CPU(current_attach->size);
+	  //memcpy(&tester, item->email->rtf_compressed+sizeof(int32_t), sizeof(int32_t));
+	  //LE32_CPU(tester);
+	  //printf("lz produced %d bytes, rtf claims %d bytes\n", current_attach->size, tester);
 	}
 
 	if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
@@ -1307,7 +1306,7 @@ void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[])
 	fprintf(f_output, "BEGIN:VCARD\n");
 	fprintf(f_output, "FN:%s\n", rfc2426_escape(contact->fullname));
 	fprintf(f_output, "N:%s;%s;%s;%s;%s\n",
-		(!contact->surname) 			? "" : rfc2426_escape(contact->surname),
+		(!contact->surname) 		? "" : rfc2426_escape(contact->surname),
 		(!contact->first_name)			? "" : rfc2426_escape(contact->first_name),
 		(!contact->middle_name) 		? "" : rfc2426_escape(contact->middle_name),
 		(!contact->display_name_prefix) ? "" : rfc2426_escape(contact->display_name_prefix),
@@ -1336,17 +1335,17 @@ void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[])
 	if (contact->business_address) {
 		// these should be equivalent, but valgrind complains about the single large fprintf
 		//
-		char *ab = (!contact->business_po_box	  ) 	? "" : rfc2426_escape(contact->business_po_box     );
-		char *ac = (!contact->business_street	  ) 	? "" : rfc2426_escape(contact->business_street     );
-		char *ad = (!contact->business_city 	  ) 	? "" : rfc2426_escape(contact->business_city       );
-		char *ae = (!contact->business_state	  ) 	? "" : rfc2426_escape(contact->business_state      );
-		char *af = (!contact->business_postal_code) 	? "" : rfc2426_escape(contact->business_postal_code);
-		char *ag = (!contact->business_country	  ) 	? "" : rfc2426_escape(contact->business_country    );
+		char *ab = (!contact->business_po_box	  ) ? "" : rfc2426_escape(contact->business_po_box     );
+		char *ac = (!contact->business_street	  ) ? "" : rfc2426_escape(contact->business_street     );
+		char *ad = (!contact->business_city   ) ? "" : rfc2426_escape(contact->business_city       );
+		char *ae = (!contact->business_state	  ) ? "" : rfc2426_escape(contact->business_state      );
+		char *af = (!contact->business_postal_code) ? "" : rfc2426_escape(contact->business_postal_code);
+		char *ag = (!contact->business_country	  ) ? "" : rfc2426_escape(contact->business_country    );
 		fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n", ab, "", ac, ad, ae, af, ag);
 	  //fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n",
-	  //	(!contact->business_po_box) 	 ? "" : rfc2426_escape(contact->business_po_box),
+	  //	(!contact->business_po_box)  ? "" : rfc2426_escape(contact->business_po_box),
 	  //	"", // extended Address
-	  //	(!contact->business_street) 	 ? "" : rfc2426_escape(contact->business_street),
+	  //	(!contact->business_street)  ? "" : rfc2426_escape(contact->business_street),
 	  //	(!contact->business_city)		 ? "" : rfc2426_escape(contact->business_city),
 	  //	(!contact->business_state)		 ? "" : rfc2426_escape(contact->business_state),
 	  //	(!contact->business_postal_code) ? "" : rfc2426_escape(contact->business_postal_code),

@@ -1,3 +1,11 @@
+LibPST 0.5.8 (2007-08-10)
+===============================
+
+        * fix more valgrind errors. lzfu_decompress needs to return the
+        actual buffer size, since the lz header overestimates the size.
+        This caused base64_encode to encode undefined bytes into the
+        email attachment.
+
 LibPST 0.5.7 (2007-08-09)
 ===============================
 

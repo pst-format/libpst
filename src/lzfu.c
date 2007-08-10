@@ -69,8 +69,10 @@ unsigned char* lzfu_decompress (unsigned char* rtfcomp, size_t *size) {
 	memcpy(dict, LZFU_INITDICT, LZFU_INITLENGTH);
 	dict_length = LZFU_INITLENGTH;
 	memcpy(&lzfuhdr, rtfcomp, sizeof(lzfuhdr));
-	LE32_CPU(lzfuhdr.cbSize);	LE32_CPU(lzfuhdr.cbRawSize);
-	LE32_CPU(lzfuhdr.dwMagic);	LE32_CPU(lzfuhdr.dwCRC);
+	LE32_CPU(lzfuhdr.cbSize);
+	LE32_CPU(lzfuhdr.cbRawSize);
+	LE32_CPU(lzfuhdr.dwMagic);
+	LE32_CPU(lzfuhdr.dwCRC);
 	/*	printf("total size: %d\n", lzfuhdr.cbSize+4);
 	printf("raw size  : %d\n", lzfuhdr.cbRawSize);
 	printf("compressed: %s\n", (lzfuhdr.dwMagic == LZFU_COMPRESSED ? "yes" : "no"));
@@ -122,7 +124,7 @@ unsigned char* lzfu_decompress (unsigned char* rtfcomp, size_t *size) {
 	// we should do that
 	out_buf[out_ptr++] = '}';
 	out_buf[out_ptr++] = '}';
-	out_buf[out_ptr++] = '\0';
 	*size = out_ptr;
+	out_buf[out_ptr++] = '\0';
 	return out_buf;
 }
