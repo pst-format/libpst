@@ -556,25 +556,26 @@ char *rfc2426_escape(char *str) {
 	else {
 
 		// calculate space required to escape all the following characters
-		x = strlen(str) +(y=(chr_count(str, ',')*2) + (chr_count(str, '\\')*2) + (chr_count(str, ';')*2) + (chr_count(str, '\n')*2));
+		y = chr_count(str, '\\')
+		  + chr_count(str, ';');
 		z = chr_count(str, '\r');
 		if (y == 0 && z == 0)
 			// there isn't any extra space required
 			ret = str;
 		else {
-			buf = (char*) realloc(buf, x+1);
+			x = strlen(str) + y - z + 1; // don't forget room for the NUL
+			buf = (char*) realloc(buf, x);
 			a = str;
 			b = buf;
 			while (*a != '\0') {
 				switch(*a) {
-				 // case ',' :
 					case '\\':
 					case ';' :
-				 // case '\n':
 						*(b++)='\\';
 						*b=*a;
 					break;
-					case '\r':
+					case '\r':  // skip cr
+						b--;
 						break;
 					default:
 						*b=*a;
@@ -582,7 +583,7 @@ char *rfc2426_escape(char *str) {
 				b++;
 				a++;
 			}
-			*b = '\0';
+			*b = '\0'; // NUL-terminate the string (buf)
 			ret = buf;
 		}
 	}

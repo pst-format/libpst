@@ -822,11 +822,11 @@ char *rfc2426_escape(char *str) {
 		  + chr_count(str, ';')
 		  + chr_count(str, '\n');
 		z = chr_count(str, '\r');
-		x = strlen(str) + y - z + 1; // don't forget room for the NUL
 		if (y == 0 && z == 0)
 			// there isn't any extra space required
 			ret = str;
 		else {
+			x = strlen(str) + y - z + 1; // don't forget room for the NUL
 			buf = (char*) realloc(buf, x);
 			a = str;
 			b = buf;
