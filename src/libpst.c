@@ -266,7 +266,10 @@ int32_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* f
 			size = _pst_ff_getID2data(pf, ptr, &h);
 			// will need to encode any bytes left over
 			c = base64_encode(h.base64_extra_chars, h.base64_extra);
-			if (c) pst_fwrite(c, 1, strlen(c), fp);
+			if (c) {
+				pst_fwrite(c, 1, strlen(c), fp);
+				free(c);	// caught by valgrind
+			}
 		} else {
 			DEBUG_WARN (("Couldn't find ID pointer. Cannot save attachement to Base64\n"));
 			size = 0;
@@ -275,7 +278,10 @@ int32_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* f
 	} else {
 		// encode the attachment to the file
 		c = base64_encode(attach->data, attach->size);
-		if (c) pst_fwrite(c, 1, strlen(c), fp);
+		if (c) {
+			pst_fwrite(c, 1, strlen(c), fp);
+			free(c);	// caught by valgrind
+		}
 		size = attach->size;
 	}
 	DEBUG_RET();
@@ -954,17 +960,16 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 	item = (pst_item*) xmalloc(sizeof(pst_item));
 	memset(item, 0, sizeof(pst_item));
 
-	if (_pst_process(list, item)) {
+	if (_pst_process(list, item, NULL)) {
 		DEBUG_WARN(("_pst_process() returned non-zero value. That is an error\n"));
-		if (item)	  free(item);
+		if (item)	  _pst_freeItem(item);
 		if (list)	  _pst_free_list(list);
 		if (id2_head) _pst_free_id2(id2_head);
 		DEBUG_RET();
 		return NULL;
-	} else {
-		if (list) _pst_free_list(list);
-		list = NULL; //_pst_process will free the items in the list
 	}
+	if (list) _pst_free_list(list);
+	list = NULL; //_pst_process will free the items in the list
 
 	if ((id_ptr = _pst_getID2(id2_head, 0x671))) {
 		// attachements exist - so we will process them
@@ -977,7 +982,7 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 		DEBUG_EMAIL(("ATTACHEMENT processing attachement\n"));
 		if ((list = _pst_parse_block(pf, id_ptr->id, id2_head)) == NULL) {
 			DEBUG_WARN(("ERROR error processing main attachment record\n"));
-			if (item) free(item);
+			if (item) _pst_freeItem(item);
 			if (id2_head) _pst_free_id2(id2_head);
 			DEBUG_RET();
 			return NULL;
@@ -992,9 +997,9 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 				x++;
 			}
 
-			if (_pst_process(list, item)) {
+			if (_pst_process(list, item, item->attach)) {
 				DEBUG_WARN(("ERROR _pst_process() failed with attachments\n"));
-				if (item)	  free(item);
+				if (item)	  _pst_freeItem(item);
 				if (list)	  _pst_free_list(list);
 				if (id2_head) _pst_free_id2(id2_head);
 				DEBUG_RET();
@@ -1017,7 +1022,7 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 					  attach = attach->next;
 					  continue;
 				  }
-				  if (_pst_process(list, item)) {
+				  if (_pst_process(list, item, attach)) {
 					  DEBUG_WARN(("ERROR _pst_process() failed with an attachment\n"));
 					  if (list) _pst_free_list(list);
 					  list = NULL;
@@ -1026,7 +1031,8 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 				  }
 				  if (list) _pst_free_list(list);
 				  list = NULL;
-				  if ((id_ptr = _pst_getID2(id2_head, attach->id2_val))) {
+				  id_ptr = _pst_getID2(id2_head, attach->id2_val);
+				  if (id_ptr) {
 					  // id2_val has been updated to the ID2 value of the datablock containing the
 					  // attachment data
 					  attach->id_val = id_ptr->id;
@@ -1290,6 +1296,7 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 		// allocate an array of count num_recs to contain sizeof(struct_pst_num_item)
 		na_ptr->items		= (struct _pst_num_item**) xmalloc(sizeof(struct _pst_num_item)*num_list);
 		na_ptr->count_item	= num_list;
+		na_ptr->orig_count	= num_list;
 		na_ptr->count_array = num_recs; // each record will have a record of the total number of records
 		for (x=0; x<num_list; x++) na_ptr->items[x] = NULL;
 		x = 0;
@@ -1316,10 +1323,10 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 				// table_rec and table2_rec are arranged differently, so assign the values across
 				table_rec.type	   = table2_rec.type;
 				table_rec.ref_type = table2_rec.ref_type;
-				if ((ind2_end - ind2_ptr) <= (table2_rec.ind2_off + table2_rec.size)) {
+				table_rec.value    = 0;
+				if ((ind2_end - ind2_ptr) >= (table2_rec.ind2_off + table2_rec.size)) {
 					int n = table2_rec.size;
 					int m = sizeof(table_rec.value);
-					table_rec.value = 0;
 					if (n <= m) {
 						memcpy(&table_rec.value, ind2_ptr + table2_rec.ind2_off, n);
 					}
@@ -1344,7 +1351,9 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 			DEBUG_EMAIL(("reading block %i (type=%#x, ref_type=%#x, value=%#x)\n",
 				x, table_rec.type, table_rec.ref_type, table_rec.value));
 
-			na_ptr->items[x] = (struct _pst_num_item*) xmalloc(sizeof(struct _pst_num_item));
+			if (!na_ptr->items[x]) {
+				na_ptr->items[x] = (struct _pst_num_item*) xmalloc(sizeof(struct _pst_num_item));
+			}
 			memset(na_ptr->items[x], 0, sizeof(struct _pst_num_item)); //init it
 
 			// check here to see if the id of the attribute is a mapped one
@@ -1416,11 +1425,19 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 					memcpy(na_ptr->items[x]->data, value_pointer, value_size);
 				}
 				else if (_pst_getBlockOffsetPointer(pf, i2_head, buf, read_size, ind_ptr, table_rec.value, &block_offset7)) {
-					if (table_rec.value) {
-						DEBUG_WARN(("failed to get block offset for table_rec.value of %#x\n", table_rec.value));
+					if ((table_rec.value & 0xf) == 0xf) {
+						DEBUG_WARN(("failed to get block offset for table_rec.value of %#x to be read later.\n", table_rec.value));
+						na_ptr->items[x]->size = 0;
+						na_ptr->items[x]->data = NULL;
+						na_ptr->items[x]->type = table_rec.value;
 					}
-					na_ptr->count_item --; //we will be skipping a row
-					continue;
+					else {
+						if (table_rec.value) {
+							DEBUG_WARN(("failed to get block offset for table_rec.value of %#x\n", table_rec.value));
+						}
+						na_ptr->count_item --; //we will be skipping a row
+						continue;
+					}
 				}
 				else {
 					value_size = block_offset7.to - block_offset7.from;
@@ -1434,13 +1451,12 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 					// there is still more to do for the type of 0xD
 					type_d_rec = (struct _type_d_rec*) na_ptr->items[x]->data;
 					LE32_CPU(type_d_rec->id);
-					if ((na_ptr->items[x]->size = _pst_ff_getID2block(pf, type_d_rec->id, i2_head, &(na_ptr->items[x]->data)))==0){
-						DEBUG_WARN(("not able to read the ID2 data. Setting to be read later. %#x\n",
-						  type_d_rec->id));
+					na_ptr->items[x]->size = _pst_ff_getID2block(pf, type_d_rec->id, i2_head, &(na_ptr->items[x]->data));
+					if (!na_ptr->items[x]->size){
+						DEBUG_WARN(("not able to read the ID2 data. Setting to be read later. %#x\n", type_d_rec->id));
+						na_ptr->items[x]->type = type_d_rec->id;	// fetch before freeing data, alias pointer
 						free(na_ptr->items[x]->data);
-						na_ptr->items[x]->size = 0;
 						na_ptr->items[x]->data = NULL;
-						na_ptr->items[x]->type = type_d_rec->id;
 					}
 				}
 				if (na_ptr->items[x]->type == 0) na_ptr->items[x]->type = table_rec.ref_type;
@@ -1494,10 +1510,9 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 }
 
 
-int32_t _pst_process(pst_num_array *list , pst_item *item) {
+int32_t _pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
 	int32_t x, t;
 	int32_t next = 0;
-	pst_item_attach *attach;
 	pst_item_extra_field *ef;
 
 	DEBUG_ENT("_pst_process");
@@ -1506,8 +1521,6 @@ int32_t _pst_process(pst_num_array *list , pst_item *item) {
 		DEBUG_RET();
 		return -1;
 	}
-
-	   attach = item->attach; // a working variable
 
 	while (list) {
 		x = 0;
@@ -3101,16 +3114,13 @@ int32_t _pst_free_list(pst_num_array *list) {
 	pst_num_array *l;
 	DEBUG_ENT("_pst_free_list");
 	while (list) {
-		int32_t x = 0;
 		if (list->items) {
-			while (x < list->count_item) {
+			int32_t x;
+			for (x=0; x < list->orig_count; x++) {
 				if (list->items[x]) {
-					if (list->items[x]->data) {
-						free (list->items[x]->data);
-					}
-					free (list->items[x]);
+					if (list->items[x]->data) free(list->items[x]->data);
+					free(list->items[x]);
 				}
-				x++;
 			}
 			free(list->items);
 		}
@@ -3877,7 +3887,7 @@ size_t _pst_ff_getIDblock(pst_file *pf, u_int32_t id, unsigned char** b) {
 size_t _pst_ff_getID2block(pst_file *pf, u_int32_t id2, pst_index2_ll *id2_head, unsigned char** buf) {
 	pst_index_ll* ptr;
 	//	size_t ret;
-	struct holder h = {buf, NULL, 0};
+	struct holder h = {buf, NULL, 0, "", 0};
 	DEBUG_ENT("_pst_ff_getID2block");
 	ptr = _pst_getID2(id2_head, id2);
 
@@ -3892,7 +3902,6 @@ size_t _pst_ff_getID2block(pst_file *pf, u_int32_t id2, pst_index2_ll *id2_head,
 
 
 size_t _pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, struct holder *h) {
-	// if the attachment begins with 01 01, <= 256 bytes, it is stored in the record
 	int32_t ret;
 	unsigned char *b = NULL, *t;
 	DEBUG_ENT("_pst_ff_getID2data");
@@ -3902,15 +3911,15 @@ size_t _pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, struct holder *h) {
 			*(h->buf) = b;
 		} else if ((h->base64 == 1) && h->fp) {
 			t = base64_encode(b, ret);
-			if (t) pst_fwrite(t, 1, strlen(t), h->fp);
+			if (t) {
+				pst_fwrite(t, 1, strlen(t), h->fp);
+				free(t);	// caught by valgrind
+			}
 			free(b);
 		} else if (h->fp) {
 			pst_fwrite(b, 1, ret, h->fp);
 			free(b);
 		}
-		//if ((*buf)[0] == 0x1) {
-		//	  DEBUG_WARN(("WARNING: buffer starts with 0x1, but I didn't expect it to!\n"));
-		//}
 	} else {
 		// here we will assume it is a block that points to others
 		DEBUG_READ(("Assuming it is a multi-block record because of it's id\n"));
@@ -3931,7 +3940,8 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 	unsigned char fdepth;
 
 	DEBUG_ENT("_pst_ff_compile_ID");
-	if ((a = _pst_ff_getIDblock(pf, id, &buf3))==0) {
+	a = _pst_ff_getIDblock(pf, id, &buf3);
+	if (!a) {
 		if (buf3) free(buf3);
 		return 0;
 	}
@@ -3944,7 +3954,10 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 			*(h->buf) = buf3;
 		else if (h->base64 == 1 && h->fp) {
 			t = base64_encode(buf3, a);
-			if (t) pst_fwrite(t, 1, strlen(t), h->fp);
+			if (t) {
+				pst_fwrite(t, 1, strlen(t), h->fp);
+				free(t);	// caught by valgrind
+			}
 			free(buf3);
 		} else if (h->fp) {
 			pst_fwrite(buf3, 1, a, h->fp);
@@ -3988,9 +4001,11 @@ size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t 
 				memcpy(h->base64_extra_chars, &(buf2[z-b]), b);
 				h->base64_extra = b;
 				t = base64_encode(buf2, z-b);
-				if (t) pst_fwrite(t, 1, strlen(t), h->fp);
-				DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n",
-						z, strlen(t), size));
+				if (t) {
+					DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
+					pst_fwrite(t, 1, strlen(t), h->fp);
+					free(t);	// caught by valgrind
+				}
 			}
 			else if (h->fp) {
 				DEBUG_READ(("writing %i bytes to file. Currently %i\n", z, size));

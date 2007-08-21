@@ -1,3 +1,11 @@
+LibPST 0.5.10 (2007-08-20)
+===============================
+
+        * fix yet more valgrind errors - finally have a clean memory check.
+        * restructure readpst.c for proper recursive tree walk.
+        * buffer overrun test was backwards, introduced at 0.5.6
+        * fix broken email attachments, introduced at 0.5.6
+
 LibPST 0.5.9 (2007-08-12)
 ===============================
 

@@ -60,9 +60,9 @@ struct file_ll {
 	int32_t email_count;
 	int32_t skip_count;
 	int32_t type;
-	struct file_ll *next;
 };
 
+void	  process(pst_item *outeritem, pst_desc_ll *d_ptr);
 void	  write_email_body(FILE *f, char *body);
 char*	  removeCR (char *c);
 int32_t   usage();
@@ -71,7 +71,7 @@ char*	  mk_kmail_dir(char*);
 int32_t   close_kmail_dir();
 char*	  mk_recurse_dir(char*);
 int32_t   close_recurse_dir();
-char*	  mk_seperate_dir(char *dir, int overwrite);
+char*	  mk_seperate_dir(char *dir);
 int32_t   close_seperate_dir();
 int32_t   mk_seperate_file(struct file_ll *f);
 char*	  my_stristr(char *haystack, char *needle);
@@ -87,7 +87,8 @@ void	  write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mod
 void	  write_vcard(FILE* f_output, pst_item_contact* contact, char comment[]);
 void	  write_appointment(FILE* f_output, pst_item_appointment* appointment,
 							pst_item_email* email, FILETIME* create_date, FILETIME* modify_date);
-void	  create_enter_dir(struct file_ll* f, char file_as[], int mode, int overwrite);
+void	  create_enter_dir(struct file_ll* f, pst_item *item);
+void	  close_enter_dir(struct file_ll *f);
 
 char*  prog_name;
 char*  output_dir = ".";
@@ -125,26 +126,142 @@ char*  kmail_chdir = NULL;
 // mime type for the attachment
 #define RTF_ATTACH_TYPE "application/rtf"
 
+// global settings
+int mode = MODE_NORMAL;
+int mode_MH = 0;
+int output_mode = OUTPUT_NORMAL;
+int contact_mode = CMODE_VCARD;
+int overwrite = 0;
+int save_rtf_body = 1;
+pst_file pstfile;
+
+
+
+void process(pst_item *outeritem, pst_desc_ll *d_ptr)
+{
+	struct file_ll ff;
+	pst_item *item = NULL;
+
+	DEBUG_ENT("process");
+	memset(&ff, 0, sizeof(ff));
+	create_enter_dir(&ff, outeritem);
+
+	while (d_ptr) {
+		DEBUG_MAIN(("main: New item record\n"));
+		if (!d_ptr->desc) {
+			DEBUG_WARN(("main: ERROR ?? item's desc record is NULL\n"));
+			ff.skip_count++;
+		}
+		else {
+			DEBUG_MAIN(("main: Desc Email ID %#x [d_ptr->id = %#x]\n", d_ptr->desc->id, d_ptr->id));
+
+			item = _pst_parse_item(&pstfile, d_ptr);
+			DEBUG_MAIN(("main: About to process item\n"));
+			if (item && item->email && item->email->subject && item->email->subject->subj) {
+				DEBUG_EMAIL(("item->email->subject = %p\n", item->email->subject));
+				DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
+			}
+			if (item) {
+				if (item->message_store) {
+					// there should only be one message_store, and we have already done it
+					DIE(("main: A second message_store has been found. Sorry, this must be an error.\n"));
+				}
+
+				if (item->folder && d_ptr->child && strcasecmp(item->file_as, "Deleted Items")) {
+					//if this is a non-empty folder other than deleted items, we want to recurse into it
+					if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as);
+					process(item, d_ptr->child);
+
+				} else if (item->contact) {
+					// deal with a contact
+					// write them to the file, one per line in this format
+					// Desc Name <email@address>\n
+					if (mode == MODE_SEPERATE) mk_seperate_file(&ff);
+					ff.email_count++;
+					DEBUG_MAIN(("main: Processing Contact\n"));
+					if (ff.type != PST_TYPE_CONTACT) {
+						DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. "
+								"Will process anyway\n"));
+					}
+					if (item->type != PST_TYPE_CONTACT) {
+						DEBUG_MAIN(("main: I have an item that has contact info, but doesn't say that"
+								" it is a contact. Type is \"%s\"\n", item->ascii_type));
+						DEBUG_MAIN(("main: Processing anyway\n"));
+					}
+					if (!item->contact) { // this is an incorrect situation. Inform user
+						DEBUG_MAIN(("main: ERROR. This contact has not been fully parsed. one of the pre-requisties is NULL\n"));
+					} else {
+						if (contact_mode == CMODE_VCARD)
+							write_vcard(ff.output, item->contact, item->comment);
+						else
+							fprintf(ff.output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
+					}
+
+				} else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+					if (mode == MODE_SEPERATE) mk_seperate_file(&ff);
+					ff.email_count++;
+					DEBUG_MAIN(("main: seen an email\n"));
+					write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body);
+
+				} else if (item->type == PST_TYPE_JOURNAL) {
+					// deal with journal items
+					if (mode == MODE_SEPERATE) mk_seperate_file(&ff);
+					ff.email_count++;
+
+					DEBUG_MAIN(("main: Processing Journal Entry\n"));
+					if (ff.type != PST_TYPE_JOURNAL) {
+						DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
+					}
+
+					/*	if (item->type != PST_TYPE_JOURNAL) {
+						DEBUG_MAIN(("main: I have an item with journal info, but it's type is \"%s\" \n. Processing...\n",
+						item->ascii_type));
+						}*/
+					fprintf(ff.output, "BEGIN:VJOURNAL\n");
+					if (item->email->subject)
+						fprintf(ff.output, "SUMMARY:%s\n", rfc2426_escape(item->email->subject->subj));
+					if (item->email->body)
+						fprintf(ff.output, "DESCRIPTION:%s\n", rfc2426_escape(item->email->body));
+					if (item->journal->start)
+						fprintf(ff.output, "DTSTART;VALUE=DATE-TIME:%s\n", rfc2445_datetime_format(item->journal->start));
+					fprintf(ff.output, "END:VJOURNAL\n\n");
+
+				} else if (item->type == PST_TYPE_APPOINTMENT) {
+					// deal with Calendar appointments
+					if (mode == MODE_SEPERATE) mk_seperate_file(&ff);
+					ff.email_count++;
+					DEBUG_MAIN(("main: Processing Appointment Entry\n"));
+					if (ff.type != PST_TYPE_APPOINTMENT) {
+						DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
+					}
+					write_appointment(ff.output, item->appointment, item->email, item->create_date, item->modify_date);
+
+				} else {
+					ff.skip_count++;
+					DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n",
+							item->type, item->ascii_type));
+				}
+				_pst_freeItem(item);
+			} else {
+				ff.skip_count++;
+				DEBUG_MAIN(("main: A NULL item was seen\n"));
+			}
+			d_ptr = d_ptr->next;
+		}
+	}
+	close_enter_dir(&ff);
+	DEBUG_RET();
+}
+
+
 
 int main(int argc, char** argv) {
 	pst_item *item = NULL;
-	pst_file pstfile;
 	pst_desc_ll *d_ptr;
 	char * fname = NULL;
 	char *d_log=NULL;
 	int c,x;
-	int mode = MODE_NORMAL;
-	int mode_MH = 0;
-	int output_mode = OUTPUT_NORMAL;
-	int contact_mode = CMODE_VCARD;
-	int overwrite = 0;
-	char *enc = NULL;				 // base64 encoded attachment
-	char *boundary = NULL, *b1, *b2; // the boundary marker between multipart sections
 	char *temp = NULL;				 //temporary char pointer
-	char *attach_filename = NULL;
-	int  skip_child = 0;
-	struct file_ll	*f, *head;
-	int save_rtf_body = 1;
 	prog_name = argv[0];
 
 	// command-line option handling
@@ -203,14 +320,6 @@ int main(int argc, char** argv) {
 		}
 	}
 
-#ifdef DEBUG_ALL
-	// force a log file
-	if (!d_log) d_log = "readpst.log";
-#endif // defined DEBUG_ALL
-	DEBUG_INIT(d_log);
-	DEBUG_REGISTER_CLOSE();
-	DEBUG_ENT("main");
-
 	if (argc > optind) {
 		fname = argv[optind];
 	} else {
@@ -218,26 +327,34 @@ int main(int argc, char** argv) {
 		exit(2);
 	}
 
+	#ifdef DEBUG_ALL
+		// force a log file
+		if (!d_log) d_log = "readpst.log";
+	#endif // defined DEBUG_ALL
+	DEBUG_INIT(d_log);
+	DEBUG_REGISTER_CLOSE();
+	DEBUG_ENT("main");
+
 	if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");
 
-	DEBUG_MAIN(("main: Opening PST file '%s'\n", fname));
 	RET_DERROR(pst_open(&pstfile, fname, "r"), 1, ("Error opening File\n"));
-	DEBUG_MAIN(("main: Loading Indexes\n"));
 	RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
-	DEBUG_MAIN(("processing file items\n"));
 
 	pst_load_extended_attributes(&pstfile);
 
 	if (chdir(output_dir)) {
 		x = errno;
 		pst_close(&pstfile);
+		DEBUG_RET();
 		DIE(("main: Cannot change to output dir %s: %s\n", output_dir, strerror(x)));
 	}
 
 	if (output_mode != OUTPUT_QUIET) printf("About to start processing first record...\n");
 
 	d_ptr = pstfile.d_head; // first record is main record
-	if (!(item = _pst_parse_item(&pstfile, d_ptr)) || !item->message_store) {
+	item  = (pst_item*)_pst_parse_item(&pstfile, d_ptr);
+	if (!item || !item->message_store) {
+		DEBUG_RET();
 		DIE(("main: Could not get root record\n"));
 	}
 
@@ -256,243 +373,17 @@ int main(int argc, char** argv) {
 	}
 	DEBUG_MAIN(("main: Root Folder Name: %s\n", item->file_as));
 
-
-	f = (struct file_ll*) malloc(sizeof(struct file_ll));
-	memset(f, 0, sizeof(struct file_ll));
-	f->email_count = 0;
-	f->skip_count = 0;
-	f->next = NULL;
-	head = f;
-	create_enter_dir(f, item->file_as, mode, overwrite);
-	f->type = item->type;
-
-	if (!(d_ptr = pst_getTopOfFolders(&pstfile, item))) {
+	d_ptr = pst_getTopOfFolders(&pstfile, item);
+	if (!d_ptr) {
+		DEBUG_RET();
 		DIE(("Top of folders record not found. Cannot continue\n"));
 	}
 
-	if (item){
-		_pst_freeItem(item);
-		item = NULL;
-	}
-
-	d_ptr = d_ptr->child; // do the children of TOPF
-
-	if (output_mode != OUTPUT_QUIET) printf("Processing items...\n");
-
-	DEBUG_MAIN(("main: About to do email stuff\n"));
-	while (d_ptr) {
-		DEBUG_MAIN(("main: New item record\n"));
-		if (!d_ptr->desc) {
-			DEBUG_WARN(("main: ERROR ?? item's desc record is NULL\n"));
-			f->skip_count++;
-			goto check_parent;
-		}
-		DEBUG_MAIN(("main: Desc Email ID %#x [d_ptr->id = %#x]\n", d_ptr->desc->id, d_ptr->id));
-
-		item = _pst_parse_item(&pstfile, d_ptr);
-		DEBUG_MAIN(("main: About to process item\n"));
-		if (item && item->email && item->email->subject && item->email->subject->subj) {
-			DEBUG_EMAIL(("item->email->subject = %p\n", item->email->subject));
-			DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
-		}
-		if (item) {
-			if (item->message_store) {
-				// there should only be one message_store, and we have already done it
-				DIE(("main: A second message_store has been found. Sorry, this must be an error.\n"));
-			}
-
-			if (item->folder) {
-				// if this is a folder, we want to recurse into it
-				if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as);
-				//	f->email_count++;
-				DEBUG_MAIN(("main: I think I may try to go into folder \"%s\"\n", item->file_as));
-				f = (struct file_ll*) malloc(sizeof(struct file_ll));
-				memset(f, 0, sizeof(struct file_ll));
-
-				f->next = head;
-				f->email_count = 0;
-				f->type = item->type;
-				f->stored_count = item->folder->email_count;
-				head = f;
-
-				temp = item->file_as;
-				temp = check_filename(temp);
-				create_enter_dir(f, item->file_as, mode, overwrite);
-				if (d_ptr->child) {
-					d_ptr = d_ptr->child;
-					skip_child = 1;
-				} else {
-					DEBUG_MAIN(("main: Folder has NO children. Creating directory, and closing again\n"));
-					if (output_mode != OUTPUT_QUIET) printf("\tNo items to process in folder \"%s\", should have been %i\n", f->dname, f->stored_count);
-					head = f->next;
-					if (f->output)
-						fclose(f->output);
-					if (mode == MODE_KMAIL)
-						close_kmail_dir();
-					else if (mode == MODE_RECURSE)
-						close_recurse_dir();
-					else if (mode == MODE_SEPERATE)
-						close_seperate_dir();
-					free(f->dname);
-					free(f->name);
-					free(f);
-
-					f = head;
-				}
-				_pst_freeItem(item);
-				item = NULL;
-				goto check_parent;
-			} else if (item->contact) {
-				// deal with a contact
-				// write them to the file, one per line in this format
-				// Desc Name <email@address>\n
-				if (mode == MODE_SEPERATE) {
-					mk_seperate_file(f);
-				}
-				f->email_count++;
-
-				DEBUG_MAIN(("main: Processing Contact\n"));
-				if (f->type != PST_TYPE_CONTACT) {
-					DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. "
-							"Will process anyway\n"));
-				}
-				if (item->type != PST_TYPE_CONTACT) {
-					DEBUG_MAIN(("main: I have an item that has contact info, but doesn't say that"
-							" it is a contact. Type is \"%s\"\n", item->ascii_type));
-					DEBUG_MAIN(("main: Processing anyway\n"));
-				}
-				if (!item->contact) { // this is an incorrect situation. Inform user
-					DEBUG_MAIN(("main: ERROR. This contact has not been fully parsed. one of the pre-requisties is NULL\n"));
-				} else {
-					if (contact_mode == CMODE_VCARD)
-						write_vcard(f->output, item->contact, item->comment);
-					else
-						fprintf(f->output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
-				}
-			} else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
-				if (mode == MODE_SEPERATE) {
-					mk_seperate_file(f);
-				}
-
-				f->email_count++;
-
-				DEBUG_MAIN(("main: seen an email\n"));
-				write_normal_email(f->output, f->name, item, mode, mode_MH, &pstfile, save_rtf_body);
-			} else if (item->type == PST_TYPE_JOURNAL) {
-				// deal with journal items
-				if (mode == MODE_SEPERATE) {
-					mk_seperate_file(f);
-				}
-				f->email_count++;
-
-				DEBUG_MAIN(("main: Processing Journal Entry\n"));
-				if (f->type != PST_TYPE_JOURNAL) {
-					DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
-				}
-
-				/*	if (item->type != PST_TYPE_JOURNAL) {
-					DEBUG_MAIN(("main: I have an item with journal info, but it's type is \"%s\" \n. Processing...\n",
-					item->ascii_type));
-					}*/
-				fprintf(f->output, "BEGIN:VJOURNAL\n");
-				if (item->email->subject)
-					fprintf(f->output, "SUMMARY:%s\n", rfc2426_escape(item->email->subject->subj));
-				if (item->email->body)
-					fprintf(f->output, "DESCRIPTION:%s\n", rfc2426_escape(item->email->body));
-				if (item->journal->start)
-					fprintf(f->output, "DTSTART;VALUE=DATE-TIME:%s\n", rfc2445_datetime_format(item->journal->start));
-				fprintf(f->output, "END:VJOURNAL\n\n");
-			} else if (item->type == PST_TYPE_APPOINTMENT) {
-				// deal with Calendar appointments
-				if (mode == MODE_SEPERATE) {
-					mk_seperate_file(f);
-				}
-				f->email_count++;
-
-				DEBUG_MAIN(("main: Processing Appointment Entry\n"));
-				if (f->type != PST_TYPE_APPOINTMENT) {
-					DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
-				}
-				write_appointment(f->output, item->appointment, item->email, item->create_date, item->modify_date);
-			} else {
-				f->skip_count++;
-				DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n",
-						item->type, item->ascii_type));
-			}
-		} else {
-			f->skip_count++;
-			DEBUG_MAIN(("main: A NULL item was seen\n"));
-		}
-
-		DEBUG_MAIN(("main: Going to next d_ptr\n"));
-
-	check_parent:
-		//	  _pst_freeItem(item);
-		while (!skip_child && !d_ptr->next && d_ptr->parent) {
-			DEBUG_MAIN(("main: Going to Parent\n"));
-			head = f->next;
-			if (f->output) fclose(f->output);
-			DEBUG_MAIN(("main: Email Count for folder %s is %i\n", f->dname, f->email_count));
-			if (output_mode != OUTPUT_QUIET)
-				printf("\t\"%s\" - %i items done, skipped %i, should have been %i\n",
-					   f->dname, f->email_count, f->skip_count, f->stored_count);
-			if (mode == MODE_KMAIL)
-				close_kmail_dir();
-			else if (mode == MODE_RECURSE)
-				close_recurse_dir();
-			else if (mode == MODE_SEPERATE)
-				close_seperate_dir();
-			free(f->name);
-			free(f->dname);
-			free(f);
-			f = head;
-			if (!head) { //we can't go higher. Must be at start?
-				DEBUG_MAIN(("main: We are now trying to go above the highest level. We must be finished\n"));
-				break; //from main while loop
-			}
-			d_ptr = d_ptr->parent;
-			skip_child = 0;
-		}
-
-		if (item) {
-			DEBUG_MAIN(("main: Freeing memory used by item\n"));
-			_pst_freeItem(item);
-			item = NULL;
-		}
-
-		if (!skip_child)
-			d_ptr = d_ptr->next;
-		else
-			skip_child = 0;
-
-		if (!d_ptr) {
-			DEBUG_MAIN(("main: d_ptr is now NULL\n"));
-		}
-	}
-	if (output_mode != OUTPUT_QUIET) printf("Finished.\n");
-	DEBUG_MAIN(("main: Finished.\n"));
-
+	process(item, d_ptr->child);  // do the children of TOPF
+	_pst_freeItem(item);
 	pst_close(&pstfile);
-	//	fclose(pstfile.fp);
-	while (f) {
-		if (f->output) fclose(f->output);
-		free(f->name);
-		free(f->dname);
-
-		if (mode == MODE_KMAIL)
-			close_kmail_dir();
-		else if (mode == MODE_RECURSE)
-			close_recurse_dir();
-		else if (mode == MODE_SEPERATE)
-			// DO SOMETHING HERE
-			;
-		head = f->next;
-		free (f);
-		f = head;
-	}
 
 	DEBUG_RET();
-
 	return 0;
 }
 
@@ -667,7 +558,7 @@ int close_recurse_dir() {
 }
 
 
-char *mk_seperate_dir(char *dir, int overwrite) {
+char *mk_seperate_dir(char *dir) {
 	DEBUG_ENT("mk_seperate_dir");
 	#if !defined(WIN32) && !defined(__CYGWIN__)
 		DIR * sdir = NULL;
@@ -677,9 +568,6 @@ char *mk_seperate_dir(char *dir, int overwrite) {
 
 	char *dir_name = NULL;
 	int x = 0, y = 0;
-	/*#if defined(WIN32) || defined(__CYGWIN__)
-	  DIE(("mk_seperate_dir: Win32 applications cannot use this function yet.\n"));
-	  #endif*/
 
 	dir_name = xmalloc(strlen(dir)+10);
 
@@ -726,9 +614,6 @@ char *mk_seperate_dir(char *dir, int overwrite) {
 #endif
 	}
 
-	// overwrite will never change during this function, it is just there so that
-	//	if overwrite is set, we only go through this loop once.
-
 	// we don't return a filename here cause it isn't necessary.
 	DEBUG_RET();
 	return NULL;
@@ -755,8 +640,7 @@ int mk_seperate_file(struct file_ll *f) {
 		DIE(("mk_seperate_file: The number of emails in this folder has become too high to handle"));
 	}
 	sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count + name_offset);
-	if (f->output)
-		fclose(f->output);
+	if (f->output) fclose(f->output);
 	f->output = NULL;
 	f->name = check_filename(f->name);
 	if (!(f->output = fopen(f->name, "w"))) {
@@ -872,14 +756,11 @@ int chr_count(char *str, char x) {
 
 
 char *rfc2425_datetime_format(FILETIME *ft) {
-	static char * buffer = NULL;
+	static char* buffer = NULL;
 	struct tm *stm = NULL;
 	DEBUG_ENT("rfc2425_datetime_format");
-	if (!buffer)
-		buffer = malloc(30); // should be enough for the date as defined below
-
+	if (!buffer) buffer = malloc(30); // should be enough for the date as defined below
 	stm = fileTimeToStructTM(ft);
-	//Year[4]-Month[2]-Day[2] Hour[2]:Min[2]:Sec[2]
 	if (strftime(buffer, 30, "%Y-%m-%dT%H:%M:%SZ", stm)==0) {
 		DEBUG_INFO(("Problem occured formatting date\n"));
 	}
@@ -892,8 +773,7 @@ char *rfc2445_datetime_format(FILETIME *ft) {
 	static char* buffer = NULL;
 	struct tm *stm = NULL;
 	DEBUG_ENT("rfc2445_datetime_format");
-	if (!buffer)
-		buffer = malloc(30); // should be enough
+	if (!buffer) buffer = malloc(30); // should be enough for the date as defined below
 	stm = fileTimeToStructTM(ft);
 	if (strftime(buffer, 30, "%Y%m%dT%H%M%SZ", stm)==0) {
 		DEBUG_INFO(("Problem occured formatting date\n"));
@@ -1277,9 +1157,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
 	// attachments
 	attach_num = 0;
-	for (current_attach = item->attach;
-		   current_attach;
-		   current_attach = current_attach->next) {
+	for (current_attach = item->attach; current_attach; current_attach = current_attach->next) {
 		DEBUG_EMAIL(("Attempting Attachment encoding\n"));
 		if (!current_attach->data) {
 			DEBUG_EMAIL(("Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->size));
@@ -1301,16 +1179,22 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
 void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[])
 {
+	// We can only call rfc escape once per printf, since the second call
+	// may free the buffer returned by the first call.
+	// I had tried to place those into a single printf - Carl.
+
 	DEBUG_ENT("write_vcard");
 	// the specification I am following is (hopefully) RFC2426 vCard Mime Directory Profile
 	fprintf(f_output, "BEGIN:VCARD\n");
 	fprintf(f_output, "FN:%s\n", rfc2426_escape(contact->fullname));
-	fprintf(f_output, "N:%s;%s;%s;%s;%s\n",
-		(!contact->surname) 		? "" : rfc2426_escape(contact->surname),
-		(!contact->first_name)			? "" : rfc2426_escape(contact->first_name),
-		(!contact->middle_name) 		? "" : rfc2426_escape(contact->middle_name),
-		(!contact->display_name_prefix) ? "" : rfc2426_escape(contact->display_name_prefix),
-		(!contact->suffix)				? "" : rfc2426_escape(contact->suffix));
+
+	//fprintf(f_output, "N:%s;%s;%s;%s;%s\n",
+	fprintf(f_output, "N:%s;", (!contact->surname)             ? "" : rfc2426_escape(contact->surname));
+	fprintf(f_output, "%s;",   (!contact->first_name)          ? "" : rfc2426_escape(contact->first_name));
+	fprintf(f_output, "%s;",   (!contact->middle_name)         ? "" : rfc2426_escape(contact->middle_name));
+	fprintf(f_output, "%s;",   (!contact->display_name_prefix) ? "" : rfc2426_escape(contact->display_name_prefix));
+	fprintf(f_output, "%s\n",  (!contact->suffix)              ? "" : rfc2426_escape(contact->suffix));
+
 	if (contact->nickname)
 		fprintf(f_output, "NICKNAME:%s\n", rfc2426_escape(contact->nickname));
 	if (contact->address1)
@@ -1321,114 +1205,67 @@ void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[])
 		fprintf(f_output, "EMAIL:%s\n", rfc2426_escape(contact->address3));
 	if (contact->birthday)
 		fprintf(f_output, "BDAY:%s\n", rfc2425_datetime_format(contact->birthday));
+
 	if (contact->home_address) {
-		fprintf(f_output, "ADR;TYPE=home:%s;%s;%s;%s;%s;%s;%s\n",
-			(!contact->home_po_box) 	 ? "" : rfc2426_escape(contact->home_po_box),
-			   "", // extended Address
-			(!contact->home_street) 	 ? "" : rfc2426_escape(contact->home_street),
-			(!contact->home_city)		 ? "" : rfc2426_escape(contact->home_city),
-			(!contact->home_state)		 ? "" : rfc2426_escape(contact->home_state),
-			(!contact->home_postal_code) ? "" : rfc2426_escape(contact->home_postal_code),
-			(!contact->home_country)	 ? "" : rfc2426_escape(contact->home_country));
+		//fprintf(f_output, "ADR;TYPE=home:%s;%s;%s;%s;%s;%s;%s\n",
+		fprintf(f_output, "ADR;TYPE=home:%s;",  (!contact->home_po_box)      ? "" : rfc2426_escape(contact->home_po_box));
+		fprintf(f_output, "%s;",                ""); // extended Address
+		fprintf(f_output, "%s;",                (!contact->home_street)      ? "" : rfc2426_escape(contact->home_street));
+		fprintf(f_output, "%s;",                (!contact->home_city)        ? "" : rfc2426_escape(contact->home_city));
+		fprintf(f_output, "%s;",                (!contact->home_state)       ? "" : rfc2426_escape(contact->home_state));
+		fprintf(f_output, "%s;",                (!contact->home_postal_code) ? "" : rfc2426_escape(contact->home_postal_code));
+		fprintf(f_output, "%s\n",               (!contact->home_country)     ? "" : rfc2426_escape(contact->home_country));
 		fprintf(f_output, "LABEL;TYPE=home:%s\n", rfc2426_escape(contact->home_address));
 	}
+
 	if (contact->business_address) {
-		// these should be equivalent, but valgrind complains about the single large fprintf
-		//
-		char *ab = (!contact->business_po_box	  ) ? "" : rfc2426_escape(contact->business_po_box     );
-		char *ac = (!contact->business_street	  ) ? "" : rfc2426_escape(contact->business_street     );
-		char *ad = (!contact->business_city   ) ? "" : rfc2426_escape(contact->business_city       );
-		char *ae = (!contact->business_state	  ) ? "" : rfc2426_escape(contact->business_state      );
-		char *af = (!contact->business_postal_code) ? "" : rfc2426_escape(contact->business_postal_code);
-		char *ag = (!contact->business_country	  ) ? "" : rfc2426_escape(contact->business_country    );
-		fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n", ab, "", ac, ad, ae, af, ag);
-	  //fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n",
-	  //	(!contact->business_po_box)  ? "" : rfc2426_escape(contact->business_po_box),
-	  //	"", // extended Address
-	  //	(!contact->business_street)  ? "" : rfc2426_escape(contact->business_street),
-	  //	(!contact->business_city)		 ? "" : rfc2426_escape(contact->business_city),
-	  //	(!contact->business_state)		 ? "" : rfc2426_escape(contact->business_state),
-	  //	(!contact->business_postal_code) ? "" : rfc2426_escape(contact->business_postal_code),
-	  //	(!contact->business_country)	 ? "" : rfc2426_escape(contact->business_country));
+		//fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n",
+		fprintf(f_output, "ADR;TYPE=work:%s;",  (!contact->business_po_box)      ? "" : rfc2426_escape(contact->business_po_box));
+		fprintf(f_output, "%s;",                ""); // extended Address
+		fprintf(f_output, "%s;",                (!contact->business_street)      ? "" : rfc2426_escape(contact->business_street));
+		fprintf(f_output, "%s;",                (!contact->business_city)        ? "" : rfc2426_escape(contact->business_city));
+		fprintf(f_output, "%s;",                (!contact->business_state)       ? "" : rfc2426_escape(contact->business_state));
+		fprintf(f_output, "%s;",                (!contact->business_postal_code) ? "" : rfc2426_escape(contact->business_postal_code));
+		fprintf(f_output, "%s\n",               (!contact->business_country)     ? "" : rfc2426_escape(contact->business_country));
 		fprintf(f_output, "LABEL;TYPE=work:%s\n", rfc2426_escape(contact->business_address));
 	}
+
 	if (contact->other_address) {
-		fprintf(f_output, "ADR;TYPE=postal:%s;%s;%s;%s;%s;%s;%s\n",
-			(!contact->other_po_box)	   ? "" : rfc2426_escape(contact->other_po_box),
-			"", // extended Address
-			(!contact->other_street)	   ? "" : rfc2426_escape(contact->other_street),
-			(!contact->other_city)		   ? "" : rfc2426_escape(contact->other_city),
-			(!contact->other_state) 	   ? "" : rfc2426_escape(contact->other_state),
-			(!contact->other_postal_code)  ? "" : rfc2426_escape(contact->other_postal_code),
-			(!contact->other_country)	   ? "" : rfc2426_escape(contact->other_country));
+		//fprintf(f_output, "ADR;TYPE=postal:%s;%s;%s;%s;%s;%s;%s\n",
+		fprintf(f_output, "ADR;TYPE=postal:%s;",(!contact->other_po_box)       ? "" : rfc2426_escape(contact->other_po_box));
+		fprintf(f_output, "%s;",                ""); // extended Address
+		fprintf(f_output, "%s;",                (!contact->other_street)       ? "" : rfc2426_escape(contact->other_street));
+		fprintf(f_output, "%s;",                (!contact->other_city)         ? "" : rfc2426_escape(contact->other_city));
+		fprintf(f_output, "%s;",                (!contact->other_state)        ? "" : rfc2426_escape(contact->other_state));
+		fprintf(f_output, "%s;",                (!contact->other_postal_code)  ? "" : rfc2426_escape(contact->other_postal_code));
+		fprintf(f_output, "%s\n",               (!contact->other_country)      ? "" : rfc2426_escape(contact->other_country));
 		fprintf(f_output, "LABEL;TYPE=postal:%s\n", rfc2426_escape(contact->other_address));
 	}
-	if (contact->business_fax)
-		fprintf(f_output, "TEL;TYPE=work,fax:%s\n",
-			rfc2426_escape(contact->business_fax));
-	if (contact->business_phone)
-		fprintf(f_output, "TEL;TYPE=work,voice:%s\n",
-			rfc2426_escape(contact->business_phone));
-	if (contact->business_phone2)
-		fprintf(f_output, "TEL;TYPE=work,voice:%s\n",
-			rfc2426_escape(contact->business_phone2));
-	if (contact->car_phone)
-		fprintf(f_output, "TEL;TYPE=car,voice:%s\n",
-			rfc2426_escape(contact->car_phone));
-	if (contact->home_fax)
-		fprintf(f_output, "TEL;TYPE=home,fax:%s\n",
-			rfc2426_escape(contact->home_fax));
-	if (contact->home_phone)
-		fprintf(f_output, "TEL;TYPE=home,voice:%s\n",
-			rfc2426_escape(contact->home_phone));
-	if (contact->home_phone2)
-		fprintf(f_output, "TEL;TYPE=home,voice:%s\n",
-			rfc2426_escape(contact->home_phone2));
-	if (contact->isdn_phone)
-		fprintf(f_output, "TEL;TYPE=isdn:%s\n",
-			rfc2426_escape(contact->isdn_phone));
-	if (contact->mobile_phone)
-		fprintf(f_output, "TEL;TYPE=cell,voice:%s\n",
-			rfc2426_escape(contact->mobile_phone));
-	if (contact->other_phone)
-		fprintf(f_output, "TEL;TYPE=msg:%s\n",
-			rfc2426_escape(contact->other_phone));
-	if (contact->pager_phone)
-		fprintf(f_output, "TEL;TYPE=pager:%s\n",
-			rfc2426_escape(contact->pager_phone));
-	if (contact->primary_fax)
-		fprintf(f_output, "TEL;TYPE=fax,pref:%s\n",
-			rfc2426_escape(contact->primary_fax));
-	if (contact->primary_phone)
-		fprintf(f_output, "TEL;TYPE=phone,pref:%s\n",
-			rfc2426_escape(contact->primary_phone));
-	if (contact->radio_phone)
-		fprintf(f_output, "TEL;TYPE=pcs:%s\n",
-			rfc2426_escape(contact->radio_phone));
-	if (contact->telex)
-		fprintf(f_output, "TEL;TYPE=bbs:%s\n",
-			rfc2426_escape(contact->telex));
-	if (contact->job_title)
-		fprintf(f_output, "TITLE:%s\n",
-			rfc2426_escape(contact->job_title));
-	if (contact->profession)
-		fprintf(f_output, "ROLE:%s\n",
-			rfc2426_escape(contact->profession));
-	if (contact->assistant_name
-		|| contact->assistant_phone) {
+
+	if (contact->business_fax)		fprintf(f_output, "TEL;TYPE=work,fax:%s\n",         rfc2426_escape(contact->business_fax));
+	if (contact->business_phone)	fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       rfc2426_escape(contact->business_phone));
+	if (contact->business_phone2)	fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       rfc2426_escape(contact->business_phone2));
+	if (contact->car_phone) 		fprintf(f_output, "TEL;TYPE=car,voice:%s\n",        rfc2426_escape(contact->car_phone));
+	if (contact->home_fax)			fprintf(f_output, "TEL;TYPE=home,fax:%s\n",         rfc2426_escape(contact->home_fax));
+	if (contact->home_phone)		fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       rfc2426_escape(contact->home_phone));
+	if (contact->home_phone2)		fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       rfc2426_escape(contact->home_phone2));
+	if (contact->isdn_phone)		fprintf(f_output, "TEL;TYPE=isdn:%s\n",             rfc2426_escape(contact->isdn_phone));
+	if (contact->mobile_phone)		fprintf(f_output, "TEL;TYPE=cell,voice:%s\n",       rfc2426_escape(contact->mobile_phone));
+	if (contact->other_phone)		fprintf(f_output, "TEL;TYPE=msg:%s\n",              rfc2426_escape(contact->other_phone));
+	if (contact->pager_phone)		fprintf(f_output, "TEL;TYPE=pager:%s\n",            rfc2426_escape(contact->pager_phone));
+	if (contact->primary_fax)		fprintf(f_output, "TEL;TYPE=fax,pref:%s\n",         rfc2426_escape(contact->primary_fax));
+	if (contact->primary_phone) 	fprintf(f_output, "TEL;TYPE=phone,pref:%s\n",       rfc2426_escape(contact->primary_phone));
+	if (contact->radio_phone)		fprintf(f_output, "TEL;TYPE=pcs:%s\n",              rfc2426_escape(contact->radio_phone));
+	if (contact->telex) 			fprintf(f_output, "TEL;TYPE=bbs:%s\n",              rfc2426_escape(contact->telex));
+	if (contact->job_title) 		fprintf(f_output, "TITLE:%s\n",                     rfc2426_escape(contact->job_title));
+	if (contact->profession)		fprintf(f_output, "ROLE:%s\n",                      rfc2426_escape(contact->profession));
+	if (contact->assistant_name || contact->assistant_phone) {
 		fprintf(f_output, "AGENT:BEGIN:VCARD\n");
-		if (contact->assistant_name)
-			fprintf(f_output, "FN:%s\n",
-				rfc2426_escape(contact->assistant_name));
-		if (contact->assistant_phone)
-			fprintf(f_output, "TEL:%s\n",
-				rfc2426_escape(contact->assistant_phone));
+		if (contact->assistant_name)	fprintf(f_output, "FN:%s\n",                    rfc2426_escape(contact->assistant_name));
+		if (contact->assistant_phone)	fprintf(f_output, "TEL:%s\n",                   rfc2426_escape(contact->assistant_phone));
 	}
-	if (contact->company_name)
-		fprintf(f_output, "ORG:%s\n",
-			rfc2426_escape(contact->company_name));
-	if (comment)
-		fprintf(f_output, "NOTE:%s\n", rfc2426_escape(comment));
+	if (contact->company_name)		fprintf(f_output, "ORG:%s\n",                       rfc2426_escape(contact->company_name));
+	if (comment)					fprintf(f_output, "NOTE:%s\n",                      rfc2426_escape(comment));
 
 	fprintf(f_output, "VERSION: 3.0\n");
 	fprintf(f_output, "END:VCARD\n\n");
@@ -1514,26 +1351,31 @@ void write_appointment(FILE* f_output, pst_item_appointment* appointment,
 }
 
 
-void create_enter_dir(struct file_ll* f, char file_as[], int mode, int overwrite)
+void create_enter_dir(struct file_ll* f, pst_item *item)
 {
+	f->email_count = 0;
+	f->skip_count = 0;
+	f->type = item->type;
+	f->stored_count = (item->folder) ? item->folder->email_count : 0;
+
 	DEBUG_ENT("create_enter_dir");
 	if (mode == MODE_KMAIL)
-		f->name = mk_kmail_dir(file_as); //create directory and form filename
+		f->name = mk_kmail_dir(item->file_as); //create directory and form filename
 	else if (mode == MODE_RECURSE)
-		f->name = mk_recurse_dir(file_as);
+		f->name = mk_recurse_dir(item->file_as);
 	else if (mode == MODE_SEPERATE) {
 		// do similar stuff to recurse here.
-		mk_seperate_dir(file_as, overwrite);
+		mk_seperate_dir(item->file_as);
 		f->name = (char*) xmalloc(10);
 		memset(f->name, 0, 10);
 		//		sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count);
 	} else {
-		f->name = (char*) xmalloc(strlen(file_as)+strlen(OUTPUT_TEMPLATE)+1);
-		sprintf(f->name, OUTPUT_TEMPLATE, file_as);
+		f->name = (char*) xmalloc(strlen(item->file_as)+strlen(OUTPUT_TEMPLATE)+1);
+		sprintf(f->name, OUTPUT_TEMPLATE, item->file_as);
 	}
 
-	f->dname = (char*) xmalloc(strlen(file_as)+1);
-	strcpy(f->dname, file_as);
+	f->dname = (char*) xmalloc(strlen(item->file_as)+1);
+	strcpy(f->dname, item->file_as);
 
 	if (overwrite != 1) {
 		int x = 0;
@@ -1560,7 +1402,7 @@ void create_enter_dir(struct file_ll* f, char file_as[], int mode, int overwrite
 		}
 	}
 
-	DEBUG_MAIN(("f->name = %s\nitem->folder_name = %s\n", f->name, file_as));
+	DEBUG_MAIN(("f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as));
 	if (mode != MODE_SEPERATE) {
 		f->name = check_filename(f->name);
 		if (!(f->output = fopen(f->name, "w"))) {
@@ -1568,5 +1410,24 @@ void create_enter_dir(struct file_ll* f, char file_as[], int mode, int overwrite
 		}
 	}
 	DEBUG_RET();
+}
+
+
+void close_enter_dir(struct file_ll *f)
+{
+	DEBUG_MAIN(("main: Email Count for folder %s is %i\n", f->dname, f->email_count));
+	if (output_mode != OUTPUT_QUIET)
+		printf("\t\"%s\" - %i items done, skipped %i, should have been %i\n",
+			   f->dname, f->email_count, f->skip_count, f->stored_count);
+	if (f->output) fclose(f->output);
+	free(f->name);
+	free(f->dname);
+
+	if (mode == MODE_KMAIL)
+		close_kmail_dir();
+	else if (mode == MODE_RECURSE)
+		close_recurse_dir();
+	else if (mode == MODE_SEPERATE)
+		close_seperate_dir();
 }
 

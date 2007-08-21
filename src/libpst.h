@@ -448,6 +448,7 @@ struct _pst_num_item {
 
 typedef struct _pst_num_array {
   int32_t count_item;
+  int32_t orig_count;
   int32_t count_array;
   struct _pst_num_item ** items;
   struct _pst_num_array *next;
@@ -477,7 +478,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_
 pst_item* _pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 void * _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
 pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll *i2_head);
-int32_t _pst_process(pst_num_array *list, pst_item *item);
+int32_t _pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach);
 int32_t _pst_free_list(pst_num_array *list);
 void _pst_freeItem(pst_item *item);
 int32_t _pst_free_id2(pst_index2_ll * head);
