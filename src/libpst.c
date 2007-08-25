@@ -271,7 +271,7 @@ int32_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* f
 				free(c);	// caught by valgrind
 			}
 		} else {
-			DEBUG_WARN (("Couldn't find ID pointer. Cannot save attachement to Base64\n"));
+			DEBUG_WARN (("Couldn't find ID pointer. Cannot save attachment to Base64\n"));
 			size = 0;
 		}
 		attach->size = size;
@@ -338,7 +338,7 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 	// for PST files this will load up ID2 0x61 and check it's "list" attribute.
 	pst_desc_ll *p;
 	pst_num_array *na;
-	pst_index2_ll *list2;
+	pst_index2_ll *list2 = NULL;
 	unsigned char * buffer=NULL, *headerbuffer=NULL;//, *tc;
 	pst_x_attrib xattrib;
 	int32_t bptr = 0, bsize, hsize, tint, err=0, x;
@@ -350,19 +350,28 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
 		DEBUG_RET();
 		return 0;
 	}
-	if (p->list_index) {
-		list2 = _pst_build_id2(pf, p->list_index, NULL);
-	}
+
 	if (!p->desc) {
 		DEBUG_WARN(("desc is NULL for item 0x61. Cannot load Extended Attributes\n"));
 		DEBUG_RET();
 		return 0;
 	}
-	if ((na = _pst_parse_block(pf, p->desc->id, list2)) == NULL) {
+
+	if (p->list_index) {
+		list2 = _pst_build_id2(pf, p->list_index, NULL);
+		_pst_printID2ptr(list2);
+	} else {
+		DEBUG_WARN(("Have not been able to fetch any id2 values for item 0x61. Brace yourself!\n"));
+	}
+
+	na = _pst_parse_block(pf, p->desc->id, list2);
+	if (!na) {
 		DEBUG_WARN(("Cannot process desc block for item 0x61. Not loading extended Attributes\n"));
+		if (list2) _pst_free_id2(list2);
 		DEBUG_RET();
 		return 0;
 	}
+
 	x = 0;
 	while (x < na->count_item) {
 		if (na->items[x]->id == 0x0003) {
@@ -936,6 +945,12 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 		return NULL;
 	}
 
+	if (!d_ptr->desc) {
+		DEBUG_WARN(("why is d_ptr->desc == NULL? I don't want to do anything else with this record\n"));
+		DEBUG_RET();
+		return NULL;
+	}
+
 	if (d_ptr->list_index) {
 		id2_head = _pst_build_id2(pf, d_ptr->list_index, NULL);
 		_pst_printID2ptr(id2_head);
@@ -943,14 +958,8 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 		DEBUG_WARN(("Have not been able to fetch any id2 values for this item. Brace yourself!\n"));
 	}
 
-	if (!d_ptr->desc) {
-		DEBUG_WARN(("why is d_ptr->desc == NULL? I don't want to do anything else with this record\n"));
-		if (id2_head) _pst_free_id2(id2_head);
-		DEBUG_RET();
-		return NULL;
-	}
-
-	if ((list = _pst_parse_block(pf, d_ptr->desc->id, id2_head)) == NULL) {
+	list = _pst_parse_block(pf, d_ptr->desc->id, id2_head);
+	if (!list) {
 		DEBUG_WARN(("_pst_parse_block() returned an error for d_ptr->desc->id [%#x]\n", d_ptr->desc->id));
 		if (id2_head) _pst_free_id2(id2_head);
 		DEBUG_RET();
@@ -972,14 +981,14 @@ void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 	list = NULL; //_pst_process will free the items in the list
 
 	if ((id_ptr = _pst_getID2(id2_head, 0x671))) {
-		// attachements exist - so we will process them
+		// attachments exist - so we will process them
 		while (item->attach) {
 			attach = item->attach->next;
 			free(item->attach);
 			item->attach = attach;
 		}
 
-		DEBUG_EMAIL(("ATTACHEMENT processing attachement\n"));
+		DEBUG_EMAIL(("ATTACHMENT processing attachment\n"));
 		if ((list = _pst_parse_block(pf, id_ptr->id, id2_head)) == NULL) {
 			DEBUG_WARN(("ERROR error processing main attachment record\n"));
 			if (item) _pst_freeItem(item);
@@ -2215,7 +2224,7 @@ int32_t _pst_process(pst_num_array *list , pst_item *item, pst_item_attach *atta
 					// 4 - Attach by ref only
 					// 5 - Embedded Message
 					// 6 - OLE
-					DEBUG_EMAIL(("Attachement method - "));
+					DEBUG_EMAIL(("Attachment method - "));
 					NULL_CHECK(attach);
 					MOVE_NEXT(attach);
 					memcpy(&(attach->method), list->items[x]->data, sizeof(attach->method));
