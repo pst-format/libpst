@@ -79,6 +79,19 @@ static string_set all_strings;
 
 
 ////////////////////////////////////////////////
+// helper to free all the strings in a set
+//
+static void free_strings(string_set &s);
+static void free_strings(string_set &s)
+{
+	for (string_set::iterator i=s.begin(); i!=s.end(); i++) {
+		free(*i);
+	}
+	s.clear();
+}
+
+
+////////////////////////////////////////////////
 // helper to register a string in a string set
 //
 static char* register_string(string_set &s, char *name);
@@ -443,6 +456,7 @@ int main(int argc, char** argv) {
 	process(d_ptr->child);	// do the children of TOPF
 	pst_close(&pstfile);
 	DEBUG_RET();
+	free_strings(all_strings);
 	return 0;
 }
 

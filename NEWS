@@ -1,5 +1,6 @@
     $Id$
 
+0.5.12  2007-10-02 security fix for possible buffer overruns in liv-zemple decoding
 0.5.11  2007-08-24 fix for unitialized variable
 0.5.10  2007-08-20 fix yet more valgrind errors, restructure readpst recursive walk, backwards overrun test
 0.5.9   2007-08-12 fix more valgrind errors, pst2ldif wrote undefined data

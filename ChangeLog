@@ -1,3 +1,9 @@
+LibPST 0.5.12 (2007-10-02)
+===============================
+
+        * security fix from Brad Hards <bradh@frogmouth.net> for buffer
+        overruns in liv-zemple decoding for corrupted or malicious pst files.
+
 LibPST 0.5.11 (2007-08-24)
 ===============================
 

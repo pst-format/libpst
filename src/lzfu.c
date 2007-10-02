@@ -15,14 +15,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#ifndef _MSC_VER
-#include <stdint.h>
-#endif
-
-#ifdef _MSC_VER
-#define uint32_t unsigned int
-#endif
-
 #include "lzfu.h"
 
 #define LZFU_COMPRESSED 		0x75465a4c
@@ -30,28 +22,24 @@
 
 // initital dictionary
 #define LZFU_INITDICT	"{\\rtf1\\ansi\\mac\\deff0\\deftab720{\\fonttbl;}" \
-												 "{\\f0\\fnil \\froman \\fswiss \\fmodern \\fscrip" \
-												 "t \\fdecor MS Sans SerifSymbolArialTimes Ne" \
-												 "w RomanCourier{\\colortbl\\red0\\green0\\blue0" \
-												 "\r\n\\par \\pard\\plain\\f0\\fs20\\b\\i\\u\\tab" \
-												 "\\tx"
+						"{\\f0\\fnil \\froman \\fswiss \\fmodern \\fscrip" \
+						"t \\fdecor MS Sans SerifSymbolArialTimes Ne" \
+						"w RomanCourier{\\colortbl\\red0\\green0\\blue0" \
+						"\r\n\\par \\pard\\plain\\f0\\fs20\\b\\i\\u\\tab" \
+						"\\tx"
 // initial length of dictionary
 #define LZFU_INITLENGTH 207
 
 // header for compressed rtf
 typedef struct _lzfuheader {
-	uint32_t cbSize;
-	uint32_t cbRawSize;
-	uint32_t dwMagic;
-	uint32_t dwCRC;
+	u_int32_t cbSize;
+	u_int32_t cbRawSize;
+	u_int32_t dwMagic;
+	u_int32_t dwCRC;
 } lzfuheader;
 
 
-/**
-	We always need to add 0x10 to the buffer offset because we need to skip past the header info
-*/
-
-unsigned char* lzfu_decompress (unsigned char* rtfcomp, size_t *size) {
+unsigned char* lzfu_decompress (unsigned char* rtfcomp, u_int32_t compsize, size_t *size) {
 	// the dictionary buffer
 	unsigned char dict[4096];
 	// the dictionary pointer
@@ -62,9 +50,12 @@ unsigned char* lzfu_decompress (unsigned char* rtfcomp, size_t *size) {
 	unsigned char flags;
 	// temp value for determining the bits in the flag
 	unsigned char flag_mask;
-	unsigned int i, in_size;
+	u_int32_t i;
 	unsigned char *out_buf;
-	unsigned int out_ptr = 0;
+	u_int32_t out_ptr  = 0;
+	u_int32_t out_size;
+	u_int32_t in_ptr;
+	u_int32_t in_size;
 
 	memcpy(dict, LZFU_INITDICT, LZFU_INITLENGTH);
 	dict_length = LZFU_INITLENGTH;
@@ -73,58 +64,61 @@ unsigned char* lzfu_decompress (unsigned char* rtfcomp, size_t *size) {
 	LE32_CPU(lzfuhdr.cbRawSize);
 	LE32_CPU(lzfuhdr.dwMagic);
 	LE32_CPU(lzfuhdr.dwCRC);
-	/*	printf("total size: %d\n", lzfuhdr.cbSize+4);
-	printf("raw size  : %d\n", lzfuhdr.cbRawSize);
-	printf("compressed: %s\n", (lzfuhdr.dwMagic == LZFU_COMPRESSED ? "yes" : "no"));
-	printf("CRC       : %#x\n", lzfuhdr.dwCRC);
-	printf("\n");*/
-	out_buf = (unsigned char*)xmalloc(lzfuhdr.cbRawSize+20); //plus 4 cause we have 2x'}' and a \0
-	in_size = 0;
-	// we add plus one here cause when referencing an array, the index is always one less
-	// (ie, when accessing 2 element array, highest index is [1])
-	while (in_size+0x11 < lzfuhdr.cbSize) {
-		memcpy(&flags, &(rtfcomp[in_size+0x10]), 1);
-		in_size += 1;
-
+	//printf("total size: %d\n", lzfuhdr.cbSize+4);
+	//printf("raw size  : %d\n", lzfuhdr.cbRawSize);
+	//printf("compressed: %s\n", (lzfuhdr.dwMagic == LZFU_COMPRESSED ? "yes" : "no"));
+	//printf("CRC       : %#x\n", lzfuhdr.dwCRC);
+	//printf("\n");
+	out_size = lzfuhdr.cbRawSize + 3;	// two braces and a null terminator
+	out_buf  = (unsigned char*)xmalloc(out_size);
+	in_ptr	 = sizeof(lzfuhdr);
+	in_size  = (lzfuhdr.cbSize < compsize) ? lzfuhdr.cbSize : compsize;
+	while (in_ptr < in_size) {
+		flags = rtfcomp[in_ptr++];
 		flag_mask = 1;
-		while (flag_mask != 0 && in_size+0x11 < lzfuhdr.cbSize) {
+		while (flag_mask) {
 			if (flag_mask & flags) {
-				// read 2 bytes from input
-				unsigned short int blkhdr, offset, length;
-				memcpy(&blkhdr, &(rtfcomp[in_size+0x10]), 2);
-				LE16_CPU(blkhdr);
-				in_size += 2;
-				/* swap the upper and lower bytes of blkhdr */
-				blkhdr = (((blkhdr&0xFF00)>>8)+
-					  ((blkhdr&0x00FF)<<8));
-				/* the offset is the first 24 bits of the 32 bit value */
-				offset = (blkhdr&0xFFF0)>>4;
-				/* the length of the dict entry are the last 8 bits */
-				length = (blkhdr&0x000F)+2;
-				// add the value we are about to print to the dictionary
-				for (i=0; i < length; i++) {
-					unsigned char c1;
-					c1 = dict[(offset+i)%4096];
-					dict[dict_length]=c1;
-					dict_length = (dict_length+1) % 4096;
-					out_buf[out_ptr++] = c1;
+				// two bytes available?
+				if (in_ptr+1 < in_size) {
+					// read 2 bytes from input
+					unsigned short int blkhdr, offset, length;
+					memcpy(&blkhdr, rtfcomp+in_ptr, 2);
+					LE16_CPU(blkhdr);
+					in_ptr += 2;
+					/* swap the upper and lower bytes of blkhdr */
+					blkhdr = (((blkhdr&0xFF00)>>8)+
+							  ((blkhdr&0x00FF)<<8));
+					/* the offset is the first 12 bits of the 16 bit value */
+					offset = (blkhdr&0xFFF0)>>4;
+					/* the length of the dict entry are the last 4 bits */
+					length = (blkhdr&0x000F)+2;
+					// add the value we are about to print to the dictionary
+					for (i=0; i < length; i++) {
+						unsigned char c1;
+						c1 = dict[(offset+i)%4096];
+						dict[dict_length]=c1;
+						dict_length = (dict_length+1) % 4096;
+						if (out_ptr < out_size) out_buf[out_ptr++] = c1;
+					}
 				}
 			} else {
-				// uncompressed chunk (single byte)
-				char c1 = rtfcomp[in_size+0x10];
-				in_size ++;
-				dict[dict_length] = c1;
-				dict_length = (dict_length+1)%4096;
-				out_buf[out_ptr++] = c1;
+				// one byte available?
+				if (in_ptr < in_size) {
+					// uncompressed chunk (single byte)
+					char c1 = rtfcomp[in_ptr++];
+					dict[dict_length] = c1;
+					dict_length = (dict_length+1)%4096;
+					if (out_ptr < out_size) out_buf[out_ptr++] = c1;
+				}
 			}
 			flag_mask <<= 1;
 		}
 	}
-	// the compressed version doesn't appear to drop the closing braces onto the doc.
-	// we should do that
-	out_buf[out_ptr++] = '}';
-	out_buf[out_ptr++] = '}';
+	// the compressed version doesn't appear to drop the closing
+	// braces onto the doc, so we do that here.
+	if (out_ptr < out_size) out_buf[out_ptr++] = '}';
+	if (out_ptr < out_size) out_buf[out_ptr++] = '}';
 	*size = out_ptr;
-	out_buf[out_ptr++] = '\0';
+	if (out_ptr < out_size) out_buf[out_ptr++] = '\0';
 	return out_buf;
 }

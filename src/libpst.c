@@ -1494,11 +1494,17 @@ pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll
 #define MALLOC_MESSAGESTORE(x) { if (!x->message_store) { x->message_store = (pst_item_message_store*) xmalloc(sizeof(pst_item_message_store)); memset(x->message_store, 0, sizeof(pst_item_message_store));} }
 #define MALLOC_JOURNAL(x)	   { if (!x->journal)		{ x->journal	   = (pst_item_journal*)	   xmalloc(sizeof(pst_item_journal));		memset(x->journal,		 0, sizeof(pst_item_journal)	  );} }
 #define MALLOC_APPOINTMENT(x)  { if (!x->appointment)	{ x->appointment   = (pst_item_appointment*)   xmalloc(sizeof(pst_item_appointment));	memset(x->appointment,	 0, sizeof(pst_item_appointment)  );} }
-// malloc space and copy the current item's data -- plus one on the size for good luck (and string termination)
-#define LIST_COPY(targ, type) { \
-	targ = type realloc(targ, list->items[x]->size+1); \
-	memset(targ, 0, list->items[x]->size+1); \
+// malloc space and copy the current item's data null terminated
+#define LIST_COPY(targ, type) { 							  \
+	targ = type realloc(targ, list->items[x]->size+1);		  \
 	memcpy(targ, list->items[x]->data, list->items[x]->size); \
+	memset(((char*)targ)+list->items[x]->size, 0, 1);		  \
+}
+// malloc space and copy the current item's data and size
+#define LIST_COPY_SIZE(targ, type, mysize) {	\
+	mysize = list->items[x]->size;				\
+	targ = type realloc(targ, mysize);			\
+	memcpy(targ, list->items[x]->data, mysize); \
 }
 
 #define NULL_CHECK(x) { if (!x) { DEBUG_EMAIL(("NULL_CHECK: Null Found\n")); break;} }
@@ -2026,7 +2032,7 @@ int32_t _pst_process(pst_num_array *list , pst_item *item, pst_item_attach *atta
 					// it is unknown
 					DEBUG_EMAIL(("RTF Compressed body - "));
 					MALLOC_EMAIL(item);
-					LIST_COPY(item->email->rtf_compressed, (char*));
+					LIST_COPY_SIZE(item->email->rtf_compressed, (char*), item->email->rtf_compressed_size);
 					DEBUG_EMAIL(("NOT PRINTED\n"));
 					break;
 				case 0x1010: // PR_RTF_SYNC_PREFIX_COUNT

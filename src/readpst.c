@@ -75,7 +75,7 @@ char*	  mk_seperate_dir(char *dir);
 int32_t   close_seperate_dir();
 int32_t   mk_seperate_file(struct file_ll *f);
 char*	  my_stristr(char *haystack, char *needle);
-char*	  check_filename(char *fname);
+void	  check_filename(char *fname);
 char*	  rfc2426_escape(char *str);
 int32_t   chr_count(char *str, char x);
 char*	  rfc2425_datetime_format(FILETIME *ft);
@@ -478,7 +478,7 @@ char *mk_kmail_dir(char *fname) {
 	}
 	dir = malloc(strlen(fname)+strlen(OUTPUT_KMAIL_DIR_TEMPLATE)+1);
 	sprintf(dir, OUTPUT_KMAIL_DIR_TEMPLATE, fname);
-	dir = check_filename(dir);
+	check_filename(dir);
 	if (D_MKDIR(dir)) {
 		//error occured
 		if (errno != EEXIST) {
@@ -528,7 +528,7 @@ char *mk_recurse_dir(char *dir) {
 	int x;
 	char *out_name;
 	DEBUG_ENT("mk_recurse_dir");
-	dir = check_filename(dir);
+	check_filename(dir);
 	if (D_MKDIR (dir)) {
 		if (errno != EEXIST) { // not an error because it exists
 			x = errno;
@@ -560,24 +560,18 @@ int close_recurse_dir() {
 
 char *mk_seperate_dir(char *dir) {
 	DEBUG_ENT("mk_seperate_dir");
-	#if !defined(WIN32) && !defined(__CYGWIN__)
-		DIR * sdir = NULL;
-		struct dirent *dirent = NULL;
-		struct stat *filestat = xmalloc(sizeof(struct stat));
-	#endif
 
-	char *dir_name = NULL;
+	size_t dirsize = strlen(dir) + 10;
+	char dir_name[dirsize];
 	int x = 0, y = 0;
-
-	dir_name = xmalloc(strlen(dir)+10);
 
 	do {
 		if (y == 0)
-			sprintf(dir_name, "%s", dir);
+			snprintf(dir_name, dirsize, "%s", dir);
 		else
-			sprintf(dir_name, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y); // enough for 9 digits allocated above
+			snprintf(dir_name, dirsize, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y); // enough for 9 digits allocated above
 
-		dir_name = check_filename(dir_name);
+		check_filename(dir_name);
 		DEBUG_MAIN(("about to try creating %s\n", dir_name));
 		if (D_MKDIR(dir_name)) {
 			if (errno != EEXIST) { // if there is an error, and it doesn't already exist
@@ -590,7 +584,7 @@ char *mk_seperate_dir(char *dir) {
 		y++;
 	} while (overwrite == 0);
 
-	if (chdir (dir_name)) {
+	if (chdir(dir_name)) {
 		x = errno;
 		DIE(("mk_recurse_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
 	}
@@ -598,12 +592,15 @@ char *mk_seperate_dir(char *dir) {
 	if (overwrite) {
 		// we should probably delete all files from this directory
 #if !defined(WIN32) && !defined(__CYGWIN__)
+		DIR * sdir = NULL;
+		struct dirent *dirent = NULL;
+		struct stat filestat;
 		if (!(sdir = opendir("./"))) {
 			WARN(("mk_seperate_dir: Cannot open dir \"%s\" for deletion of old contents\n", "./"));
 		} else {
 			while ((dirent = readdir(sdir))) {
-				if (lstat(dirent->d_name, filestat) != -1)
-					if (S_ISREG(filestat->st_mode)) {
+				if (lstat(dirent->d_name, &filestat) != -1)
+					if (S_ISREG(filestat.st_mode)) {
 						if (unlink(dirent->d_name)) {
 							y = errno;
 							DIE(("mk_seperate_dir: unlink returned error on file %s: %s\n", dirent->d_name, strerror(y)));
@@ -642,7 +639,7 @@ int mk_seperate_file(struct file_ll *f) {
 	sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count + name_offset);
 	if (f->output) fclose(f->output);
 	f->output = NULL;
-	f->name = check_filename(f->name);
+	check_filename(f->name);
 	if (!(f->output = fopen(f->name, "w"))) {
 		DIE(("mk_seperate_file: Cannot open file to save email \"%s\"\n", f->name));
 	}
@@ -675,7 +672,7 @@ char *my_stristr(char *haystack, char *needle) {
 }
 
 
-char *check_filename(char *fname) {
+void check_filename(char *fname) {
 	char *t = fname;
 	DEBUG_ENT("check_filename");
 	if (!t) {
@@ -1119,7 +1116,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 		memset(current_attach, 0, sizeof(pst_item_attach));
 		current_attach->next = item->attach;
 		item->attach = current_attach;
-		current_attach->data = lzfu_decompress(item->email->rtf_compressed, &current_attach->size);
+		current_attach->data = lzfu_decompress(item->email->rtf_compressed, item->email->rtf_compressed_size, &current_attach->size);
 		current_attach->filename2 = xmalloc(strlen(RTF_ATTACH_NAME)+2);
 		strcpy(current_attach->filename2, RTF_ATTACH_NAME);
 		current_attach->mimetype = xmalloc(strlen(RTF_ATTACH_TYPE)+2);
@@ -1382,7 +1379,7 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
 		char *temp = (char*) xmalloc (strlen(f->name)+10); //enough room for 10 digits
 
 		sprintf(temp, "%s", f->name);
-		temp = check_filename(temp);
+		check_filename(temp);
 		while ((f->output = fopen(temp, "r"))) {
 			DEBUG_MAIN(("need to increase filename because one already exists with that name\n"));
 			DEBUG_MAIN(("- increasing it to %s%d\n", f->name, x));
@@ -1404,7 +1401,7 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
 
 	DEBUG_MAIN(("f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as));
 	if (mode != MODE_SEPERATE) {
-		f->name = check_filename(f->name);
+		check_filename(f->name);
 		if (!(f->output = fopen(f->name, "w"))) {
 			DIE(("create_enter_dir: Could not open file \"%s\" for write\n", f->name));
 		}
