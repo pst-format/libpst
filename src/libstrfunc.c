@@ -9,55 +9,72 @@
 
 static unsigned char _sf_uc_ib[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/==";
 
-char *
-base64_encode(void *data, size_t size) {
-  char *output;
-  register char *ou;
-  register unsigned char *p=(unsigned char *)data;
-#ifdef __LINUX__
-  register void * dte = ((char*)data + size);
-#endif
+char *base64_encode(void *data, size_t size) {
+    char *output;
+    register char *ou;
+    register unsigned char *p=(unsigned char *)data;
+    register void * dte = (void*)((char*)data + size);
+    register int nc=0;
 
-#ifndef  __LINUX__
-  register void * dte = (void*)((char*)data + size);
-#endif
-  //register void *dte=data + size;
-  register int nc=0;
+    if ( data == NULL || size == 0 ) return NULL;
 
-  if ( data == NULL || size == 0 )
-	return NULL;
+    ou = output = (char *)malloc(size / 3 * 4 + (size / 57) + 5);
+    if(!output) return NULL;
 
-  ou=output=(char *)malloc(size / 3 * 4 + (size / 57) + 5);
-  if(!output)
-	return NULL;
+    while((char *)dte - (char *)p >= 3) {
+        unsigned char x = p[0];
+        unsigned char y = p[1];
+        unsigned char z = p[2];
+        ou[0] = _sf_uc_ib[ x >> 2 ];
+        ou[1] = _sf_uc_ib[ ((x & 0x03) << 4) | (y >> 4) ];
+        ou[2] = _sf_uc_ib[ ((y & 0x0F) << 2) | (z >> 6) ];
+        ou[3] = _sf_uc_ib[ z & 0x3F ];
+        p+=3;
+        ou+=4;
+        nc+=4;
+        if(!(nc % 76)) *ou++='\n';
+    };
+    if ((char *)dte - (char *)p == 2) {
+        *ou++ = _sf_uc_ib[ *p >> 2 ];
+        *ou++ = _sf_uc_ib[ ((*p & 0x03) << 4) | (p[1] >> 4) ];
+        *ou++ = _sf_uc_ib[ ((p[1] & 0x0F) << 2) ];
+        *ou++ = '=';
+    } else if((char *)dte - (char *)p == 1) {
+        *ou++ = _sf_uc_ib[ *p >> 2 ];
+        *ou++ = _sf_uc_ib[ ((*p & 0x03) << 4) ];
+        *ou++ = '=';
+        *ou++ = '=';
+    };
 
-  while((char *)dte - (char *)p >= 3) {
-	unsigned char x = p[0];
-	unsigned char y = p[1];
-	unsigned char z = p[2];
-	ou[0] = _sf_uc_ib[ x >> 2 ];
-	ou[1] = _sf_uc_ib[ ((x & 0x03) << 4) | (y >> 4) ];
-	ou[2] = _sf_uc_ib[ ((y & 0x0F) << 2) | (z >> 6) ];
-	ou[3] = _sf_uc_ib[ z & 0x3F ];
-	p+=3;
-	ou+=4;
-	nc+=4;
-	if(!(nc % 76)) *ou++='\n';
-  };
-  if((char *)dte - (char *)p == 2) {
-	*ou++ = _sf_uc_ib[ *p >> 2 ];
-	*ou++ = _sf_uc_ib[ ((*p & 0x03) << 4) | (p[1] >> 4) ];
-	*ou++ = _sf_uc_ib[ ((p[1] & 0x0F) << 2) ];
-	*ou++ = '=';
-  } else if((char *)dte - (char *)p == 1) {
-	*ou++ = _sf_uc_ib[ *p >> 2 ];
-	*ou++ = _sf_uc_ib[ ((*p & 0x03) << 4) ];
-	*ou++ = '=';
-	*ou++ = '=';
-  };
+    *ou=0;
 
-  *ou=0;
-
-  return output;
+    return output;
 };
 
+
+void hexdump(char *hbuf, int start, int stop, int ascii) /* {{{ HexDump all or a part of some buffer */
+{
+    char c;
+    int diff,i;
+
+    while (start < stop ) {
+        diff = stop - start;
+        if (diff > 16) diff = 16;
+
+        fprintf(stderr, ":%08X  ",start);
+
+        for (i = 0; i < diff; i++) {
+            if( 8 == i ) fprintf( stderr, " " );
+            fprintf(stderr, "%02X ",(unsigned char)*(hbuf+start+i));
+        }
+        if (ascii) {
+            for (i = diff; i < 16; i++) fprintf(stderr, "   ");
+            for (i = 0; i < diff; i++) {
+                c = *(hbuf+start+i);
+                fprintf(stderr, "%c", isprint(c) ? c : '.');
+            }
+        }
+        fprintf(stderr, "\n");
+        start += 16;
+    }
+}

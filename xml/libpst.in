@@ -19,7 +19,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2007-07-10</date>
+            <date>2008-01-06</date>
         </refentryinfo>
 
         <refmeta>
@@ -38,6 +38,7 @@
             <cmdsynopsis>
                 <command>readpst</command>
                 <arg><option>-b</option></arg>
+                <arg><option>-C</option></arg>
                 <arg><option>-c <replaceable class="parameter">format</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
                 <arg><option>-h</option></arg>
@@ -49,7 +50,7 @@
                 <arg><option>-M</option></arg>
                 <arg><option>-V</option></arg>
                 <arg><option>-w</option></arg>
-                <arg rep='repeat' choice='plain'>files</arg>
+                <arg choice='plain'>pstfile</arg>
             </cmdsynopsis>
         </refsynopsisdiv>
 
@@ -68,6 +69,12 @@
                     <term>-b</term>
                     <listitem><para>
                         Do not save the attachments for the RTF format of the email body.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-C</term>
+                    <listitem><para>
+                        Decrypt the entire pst file and dump it to stdout.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -203,9 +210,83 @@
     </refentry>
 
 
+    <refentry id="lspst.1">
+        <refentryinfo>
+            <date>2008-01-06</date>
+        </refentryinfo>
+
+        <refmeta>
+            <refentrytitle>lspst</refentrytitle>
+            <manvolnum>1</manvolnum>
+            <refmiscinfo>lspst @VERSION@</refmiscinfo>
+        </refmeta>
+
+        <refnamediv id='lspst.name.1'>
+            <refname>lspst</refname>
+            <refpurpose>list PST (MS Outlook Personal Folders) file data</refpurpose>
+        </refnamediv>
+
+        <refsynopsisdiv id='lspst.synopsis.1'>
+            <title>Synopsis</title>
+            <cmdsynopsis>
+                <command>lspst</command>
+                <arg choice='plain'>pstfile</arg>
+            </cmdsynopsis>
+        </refsynopsisdiv>
+
+        <refsect1 id='lspst.description.1'>
+            <title>Description</title>
+            <para><command>lspst</command> is a program that can read an Outlook
+                PST (Personal Folders) file and produce a simple listing of the
+    	    	data (contacts, email subjects, etc).
+            </para>
+        </refsect1>
+
+        <refsect1 id='lspst.also.1'>
+            <title>See Also</title>
+            <para>
+                <citerefentry><refentrytitle>readpstlog</refentrytitle> <manvolnum>1</manvolnum> </citerefentry>
+            </para>
+        </refsect1>
+
+        <refsect1 id='lspst.author.1'>
+            <title>Author</title>
+            <para>
+                lspst was written by Joe Nahmias &lt;joe@nahmias.net&gt; based on readpst.
+                This man page was written by 510 Software Group &lt;carl@five-ten-sg.com&gt;.
+            </para>
+        </refsect1>
+
+        <refsect1 id='lspst.copyright.1'>
+            <title>Copyright</title>
+            <para>
+                Copyright (C) 2004 by Joe Nahmias &lt;joe@nahmias.net&gt;.
+            </para>
+            <para>
+                This program is free software; you can redistribute it and/or modify it
+                under the terms of the GNU General Public License as published by the
+                Free Software Foundation; either version 2, or (at your option) any
+                later version.
+            </para>
+            <para>
+                You should have received a copy of the GNU General Public License along
+                with this program; see the file COPYING.  If not, please write to the
+                Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+            </para>
+        </refsect1>
+
+        <refsect1 id='lspst.version.1'>
+            <title>CVS Version</title>
+            <para>
+                $Id$
+            </para>
+        </refsect1>
+    </refentry>
+
+
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2007-07-10</date>
+            <date>2008-01-06</date>
         </refentryinfo>
 
         <refmeta>
@@ -380,7 +461,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2007-07-10</date>
+            <date>2008-01-06</date>
         </refentryinfo>
 
         <refmeta>
@@ -504,7 +585,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2007-07-10</date>
+            <date>2008-01-06</date>
         </refentryinfo>
 
         <refmeta>

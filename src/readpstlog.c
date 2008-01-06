@@ -77,15 +77,15 @@ int main(int argc, char** argv) {
 		ptr = 0;
 		if (x > 0) {
 			if (i) free(i);
-			i = (int*)xmalloc(sizeof(int)*(x+1));
+			i = (off_t*)xmalloc(sizeof(off_t)*(x+1));
 			// plus 1 cause we want to read the offset of the next index
-			if (get(i, sizeof(int), x+1, fp)==0) {
+			if (get(i, sizeof(off_t), x+1, fp)==0) {
 				// we have reached the end of the debug file
 				printf("oh dear. we must now end\n");
 				break;
 			}
 			while (ptr < x) {
-				fseek(fp,i[ptr++], SEEK_SET);
+				fseek(fp, i[ptr++], SEEK_SET);
 				get(&rec_type, 1, sizeof(char), fp);
 				if (rec_type == 'L') {
 					get(&lfile_rec, sizeof(lfile_rec), 1, fp);
@@ -185,9 +185,9 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-size_t get(void * buf, int size, unsigned int  count, FILE *fp) {
+size_t get(void *buf, int size, unsigned int count, FILE *fp) {
 	size_t z;
-	if ((z=fread(buf,size, count, fp)) < count) {
+	if ((z=fread(buf, size, count, fp)) < count) {
 		printf("Read Failed! (size=%d, count=%d,z=%ld)\n", size, count, (long)z);
 		exit(1);
 	}

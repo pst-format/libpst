@@ -10,22 +10,19 @@
 #ifndef LIBPST_H
 #define LIBPST_H
 
+#include <stdint.h>
+
 #ifndef  _MSC_VER
 
 #ifndef FILETIME_DEFINED
 #define FILETIME_DEFINED
 //Win32 Filetime struct - copied from WINE
 typedef struct {
-  u_int32_t dwLowDateTime;
-  u_int32_t dwHighDateTime;
+  uint32_t dwLowDateTime;
+  uint32_t dwHighDateTime;
 } FILETIME;
 #endif //ifndef FILETIME_DEFINED
 #endif //ifndef  _MSC_VER
-
-// define the INT32_MAX here cause it isn't normally defined
-#ifndef INT32_MAX
-# define INT32_MAX INT_MAX
-#endif
 
 // According to Jan Wolter, sys/param.h is the most portable source of endian
 // information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html
@@ -65,9 +62,9 @@ typedef struct {
 #ifdef _MSC_VER
 #include "windows.h"
 #define int32_t int
-#define u_int32_t unsigned int
+#define uint32_t unsigned int
 #define int16_t short int
-#define u_int16_t unsigned short int
+#define uint16_t unsigned short int
 #endif // _MSC_VER
 
 #define PST_TYPE_NOTE 1
@@ -114,6 +111,8 @@ typedef struct {
 #define PST_APP_LABEL_ANNIVERSARY 9 // Anniversary
 #define PST_APP_LABEL_PHONE_CALL  10// Phone Call
 
+extern int do_read64;
+
 typedef struct _pst_misc_6_struct {
   int32_t i1;
   int32_t i2;
@@ -126,39 +125,63 @@ typedef struct _pst_misc_6_struct {
 typedef struct _pst_entryid_struct {
   int32_t u1;
   char entryid[16];
-  u_int32_t id;
+  uint32_t id;
 } pst_entryid;
 
-typedef struct _pst_desc_struct {
-  u_int32_t d_id;
-  u_int32_t desc_id;
-  u_int32_t list_id;
-  u_int32_t parent_id;
-} pst_desc;
+typedef struct _pst_desc_struct32 {
+  uint32_t d_id;
+  uint32_t desc_id;
+  uint32_t list_id;
+  uint32_t parent_id;
+} pst_desc32;
 
-typedef struct _pst_index_struct{
-  u_int32_t id;
-  int32_t offset;
-  u_int16_t size;
-  int16_t u1;
+typedef struct _pst_desc_structn {
+  uint64_t d_id;
+  uint64_t desc_id;
+  uint64_t list_id;
+  uint32_t parent_id;  // not 64 bit ??
+  uint32_t u1;         // padding
+} pst_descn;
+
+typedef struct _pst_index_struct32 {
+  uint32_t id;
+  int32_t  offset;
+  uint16_t size;
+  int16_t  u1;
+} pst_index32;
+
+typedef struct _pst_index_struct {
+  uint64_t id;
+  int64_t  offset;
+  uint16_t size;
+  int16_t  u0;
+  int32_t  u1;
 } pst_index;
 
+typedef struct _pst_index_tree32 {
+  uint32_t id;
+  int32_t  offset;
+  int32_t  size;
+  int32_t  u1;
+  struct _pst_index_tree * next;
+} pst_index_ll32;
+
 typedef struct _pst_index_tree {
-  u_int32_t id;
-  int32_t offset;
-  size_t size;
-  int32_t u1;
+  uint64_t id;
+  int64_t  offset;
+  int64_t  size;
+  int64_t  u1;
   struct _pst_index_tree * next;
 } pst_index_ll;
 
 typedef struct _pst_index2_tree {
-  u_int32_t id2;
+  uint32_t id2;
   pst_index_ll *id;
   struct _pst_index2_tree * next;
 } pst_index2_ll;
 
 typedef struct _pst_desc_tree {
-  u_int32_t id;
+  uint32_t id;
   pst_index_ll * list_index;
   pst_index_ll * desc;
   int32_t no_child;
@@ -172,7 +195,7 @@ typedef struct _pst_desc_tree {
 typedef struct _pst_item_email_subject {
   int32_t off1;
   int32_t off2;
-  char *subj;
+  char   *subj;
 } pst_item_email_subject;
 
 typedef struct _pst_item_email {
@@ -218,7 +241,7 @@ typedef struct _pst_item_email {
   int32_t	rtf_body_crc;
   char	   *rtf_body_tag;
   char	   *rtf_compressed;
-  u_int32_t rtf_compressed_size;
+  uint32_t rtf_compressed_size;
   int32_t	rtf_in_sync; // 1 = true, 0 = doesn't exist, -1 = false
   int32_t	rtf_ws_prefix_count;
   int32_t	rtf_ws_trailing_count;
@@ -383,26 +406,26 @@ typedef struct _pst_item_appointment {
 } pst_item_appointment;
 
 typedef struct _pst_item {
-  struct _pst_item_email *email; // data reffering to email
-  struct _pst_item_folder *folder; // data reffering to folder
-  struct _pst_item_contact *contact; // data reffering to contact
-  struct _pst_item_attach *attach; // linked list of attachments
-  struct _pst_item_message_store * message_store; // data referring to the message store
-  struct _pst_item_extra_field *extra_fields; // linked list of extra headers and such
-  struct _pst_item_journal *journal; // data reffering to a journal entry
-  struct _pst_item_appointment *appointment; // data reffering to a calendar entry
-  int32_t type;
-  char *ascii_type;
-  char *file_as;
-  char *comment;
-  int32_t  message_size;
-  char *outlook_version;
-  char *record_key; // probably 16 bytes long.
-  size_t record_key_size;
-  int32_t  response_requested;
+  struct _pst_item_email         *email;            // data reffering to email
+  struct _pst_item_folder        *folder;           // data reffering to folder
+  struct _pst_item_contact       *contact;          // data reffering to contact
+  struct _pst_item_attach        *attach;           // linked list of attachments
+  struct _pst_item_message_store *message_store;    // data referring to the message store
+  struct _pst_item_extra_field   *extra_fields;     // linked list of extra headers and such
+  struct _pst_item_journal       *journal;          // data reffering to a journal entry
+  struct _pst_item_appointment   *appointment;      // data reffering to a calendar entry
+  int32_t   type;
+  char     *ascii_type;
+  char     *file_as;
+  char     *comment;
+  int32_t   message_size;
+  char     *outlook_version;
+  char     *record_key; // probably 16 bytes long.
+  size_t    record_key_size;
+  int32_t   response_requested;
   FILETIME *create_date;
   FILETIME *modify_date;
-  int32_t private_member;
+  int32_t   private_member;
 } pst_item;
 
 typedef struct _pst_x_attrib_ll {
@@ -422,6 +445,10 @@ typedef struct _pst_file {
   int32_t index1_count;
   int32_t index2;
   int32_t index2_count;
+  int64_t index1_64;
+  int64_t index1_count_64;
+  int64_t index2_64;
+  int64_t index2_count_64;
   FILE * fp;				// file pointer to opened PST file
   size_t size;				// pst file size
   unsigned char encryption; // pst encryption setting
@@ -440,7 +467,7 @@ typedef struct _pst_block_offset_pointer {
 } pst_block_offset_pointer;
 
 struct _pst_num_item {
-  u_int32_t id;
+  uint32_t id;
   unsigned char *data;
   int32_t type;
   size_t size;
@@ -464,6 +491,7 @@ struct holder {
 };
 
 // prototypes
+void set_read64();
 int32_t pst_open(pst_file *pf, char *name, char *mode);
 int32_t pst_close(pst_file *pf);
 pst_desc_ll * pst_getTopOfFolders(pst_file *pf, pst_item *root);
@@ -474,11 +502,11 @@ int32_t pst_load_index (pst_file *pf);
 pst_desc_ll* pst_getNextDptr(pst_desc_ll* d);
 int32_t pst_load_extended_attributes(pst_file *pf);
 
-int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t start_val, u_int32_t end_val);
-int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t linku1, u_int32_t *high_id, u_int32_t start_id, u_int32_t end_val);
+int32_t _pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, int64_t linku1, uint64_t start_val, uint64_t end_val);
+int32_t _pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, int64_t linku1, uint64_t *high_id, uint64_t start_id, uint64_t end_val);
 pst_item* _pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 void * _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
-pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll *i2_head);
+pst_num_array * _pst_parse_block(pst_file *pf, uint32_t block_id, pst_index2_ll *i2_head);
 int32_t _pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach);
 int32_t _pst_free_list(pst_num_array *list);
 void _pst_freeItem(pst_item *item);
@@ -489,24 +517,31 @@ int32_t _pst_free_xattrib(pst_x_attrib_ll *x);
 int32_t _pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, unsigned char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset_pointer *p);
 int32_t _pst_getBlockOffset(unsigned char *buf, int32_t read_size, int32_t i_offset, int32_t offset, pst_block_offset *p);
 pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* head_ptr);
-pst_index_ll * _pst_getID(pst_file* pf, u_int32_t id);
-pst_index_ll * _pst_getID2(pst_index2_ll * ptr, u_int32_t id);
-pst_desc_ll * _pst_getDptr(pst_file *pf, u_int32_t id);
-size_t _pst_read_block_size(pst_file *pf, int32_t offset, size_t size, char ** buf, int32_t do_enc,
-			 unsigned char is_index);
+pst_index_ll * _pst_getID(pst_file* pf, uint64_t id);
+pst_index_ll * _pst_getID2(pst_index2_ll * ptr, uint32_t id);
+pst_desc_ll * _pst_getDptr(pst_file *pf, uint32_t id);
+size_t _pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf, int32_t do_enc, unsigned char is_index);
 int32_t _pst_decrypt(unsigned char *buf, size_t size, int32_t type);
-int32_t _pst_getAtPos(FILE *fp, int32_t pos, void* buf, u_int32_t size);
-int32_t _pst_get (FILE *fp, void *buf, u_int32_t size);
-size_t _pst_ff_getIDblock_dec(pst_file *pf, u_int32_t id, unsigned char **b);
-size_t _pst_ff_getIDblock(pst_file *pf, u_int32_t id, unsigned char** b);
-size_t _pst_ff_getID2block(pst_file *pf, u_int32_t id2, pst_index2_ll *id2_head, unsigned char** buf);
+int64_t _getIntAt(char *buf);
+int64_t _pst_getIntAtPos(FILE *fp, off_t pos);
+int32_t _pst_getAtPos(FILE *fp, off_t pos, void* buf, uint32_t size);
+int32_t _pst_get (FILE *fp, void *buf, uint32_t size);
+size_t _pst_ff_getIDblock_dec(pst_file *pf, uint32_t id, unsigned char **b);
+size_t _pst_ff_getIDblock(pst_file *pf, uint32_t id, unsigned char** b);
+size_t _pst_ff_getID2block(pst_file *pf, uint32_t id2, pst_index2_ll *id2_head, unsigned char** buf);
 size_t _pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, struct holder *h);
-size_t _pst_ff_compile_ID(pst_file *pf, u_int32_t id, struct holder *h, int32_t size);
+size_t _pst_ff_compile_ID(pst_file *pf, uint32_t id, struct holder *h, int32_t size);
 
 int32_t pst_strincmp(char *a, char *b, int32_t x);
 int32_t pst_stricmp(char *a, char *b);
-size_t pst_fwrite(const void*ptr, size_t size, size_t nmemb, FILE*stream);
+size_t  pst_fwrite(const void*ptr, size_t size, size_t nmemb, FILE*stream);
 char * _pst_wide_to_single(char *wt, int32_t size);
+
+char *pst_rfc2426_escape(char *str);
+int   pst_chr_count(char *str, char x);
+char *pst_rfc2425_datetime_format(FILETIME *ft);
+char *pst_rfc2445_datetime_format(FILETIME *ft);
+
 // DEBUG functions
 int32_t _pst_printDptr(pst_file *pf);
 int32_t _pst_printIDptr(pst_file* pf);

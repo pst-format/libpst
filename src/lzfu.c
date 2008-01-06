@@ -32,14 +32,14 @@
 
 // header for compressed rtf
 typedef struct _lzfuheader {
-	u_int32_t cbSize;
-	u_int32_t cbRawSize;
-	u_int32_t dwMagic;
-	u_int32_t dwCRC;
+	uint32_t cbSize;
+	uint32_t cbRawSize;
+	uint32_t dwMagic;
+	uint32_t dwCRC;
 } lzfuheader;
 
 
-unsigned char* lzfu_decompress (unsigned char* rtfcomp, u_int32_t compsize, size_t *size) {
+unsigned char* lzfu_decompress (unsigned char* rtfcomp, uint32_t compsize, size_t *size) {
 	// the dictionary buffer
 	unsigned char dict[4096];
 	// the dictionary pointer
@@ -50,12 +50,12 @@ unsigned char* lzfu_decompress (unsigned char* rtfcomp, u_int32_t compsize, size
 	unsigned char flags;
 	// temp value for determining the bits in the flag
 	unsigned char flag_mask;
-	u_int32_t i;
+	uint32_t i;
 	unsigned char *out_buf;
-	u_int32_t out_ptr  = 0;
-	u_int32_t out_size;
-	u_int32_t in_ptr;
-	u_int32_t in_size;
+	uint32_t out_ptr  = 0;
+	uint32_t out_size;
+	uint32_t in_ptr;
+	uint32_t in_size;
 
 	memcpy(dict, LZFU_INITDICT, LZFU_INITLENGTH);
 	dict_length = LZFU_INITLENGTH;

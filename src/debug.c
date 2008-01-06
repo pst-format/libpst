@@ -246,11 +246,12 @@ void _debug_write() {
 	size_t size, ptr, funcname, filename, text, end;
 	char *buf = NULL, rec_type;
 	if (!debug_fp) return;	// no file
-	long index_pos = ftell (debug_fp), file_pos = index_pos;
+	off_t index_pos = ftell (debug_fp);
+    off_t file_pos  = index_pos;
 	// add 2. One for the pointer to the next index,
 	// one for the count of this index
-	int index_size = ((curr_items+2) * sizeof(int));
-	int *index;
+	int index_size = ((curr_items+2) * sizeof(off_t));
+	off_t *index;
 	int index_ptr = 0;
 	struct _debug_file_rec_m mfile_rec;
 	struct _debug_file_rec_l lfile_rec;
@@ -329,9 +330,9 @@ void _debug_write_msg(struct _debug_item *item, char *fmt, va_list *ap, int size
 	struct _debug_file_rec_l lfile_rec;
 	struct _debug_file_rec_m mfile_rec;
 	unsigned char rec_type;
-	int index_size = 3 * sizeof(int);
-	int index[3];
-	int index_pos, file_pos;
+	int index_size = 3 * sizeof(off_t);
+	off_t index[3];
+	off_t index_pos, file_pos;
 	char zero='\0';
 	unsigned int end;
 	if (!debug_fp) return;	// no file
@@ -387,8 +388,8 @@ void _debug_write_msg(struct _debug_item *item, char *fmt, va_list *ap, int size
 void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, int col) {
 	struct _debug_file_rec_l lfile_rec;
 	unsigned char rec_type;
-	int index_size = 3 * sizeof(int);
-	int index_pos, file_pos, index[3];
+	int index_size = 3 * sizeof(off_t);
+	off_t index_pos, file_pos, index[3];
 	char zero='\0';
 	if (!debug_fp) return;	// no file
 	index[0] = 1; // only one item in this index run
@@ -415,7 +416,7 @@ void _debug_write_hex(struct _debug_item *item, unsigned char *buf, int size, in
 
 	_pst_debug_hexdump(debug_fp, buf, size, col, 0);
 	fwrite(&zero, 1, 1, debug_fp);
-	lfile_rec.end = ftell(debug_fp)-file_pos;
+	lfile_rec.end = ftell(debug_fp) - file_pos;
 
 	index[2] = ftell(debug_fp);
 	fseek(debug_fp, index_pos, SEEK_SET);

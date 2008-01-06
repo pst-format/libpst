@@ -1,3 +1,15 @@
+LibPST 0.6.1 (2008-01-06)
+===============================
+
+	* Outlook 2003 64 bit parsing. Some documentation from Alexander Grau
+	<alexandergrau@gmx.de> and patches from Sean Loaring <sloaring@tec-man.com>.
+	* fix from Antonio Palama <palama@inwind.it> for email items
+	that happen to have item->contact non null, and were being processed
+	as contacts.
+	* Add large file support so we can read .pst files larger than 2gb.
+	* Change lspst to be similar to readpst, properly using recursion to walk
+	the tree, and testing item types. Add a man page for lspst.
+
 LibPST 0.5.12 (2007-10-02)
 ===============================
 
@@ -60,7 +72,7 @@ LibPST 0.5.5 (2007-07-10)
         * use 8.3 attachment filename if long filename isn't available.
         * new -b option to skip rtf-body.rtf attachments.
         * fix format of From header lines in mbox files.
-        * Add more appointment fields, thanks to Chris Hall for tracking
+        * Add more appointment fields, thanks to Chris Halls for tracking
         them down!
 
 

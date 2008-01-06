@@ -1,12 +1,13 @@
 AC_INIT(configure.in)
 
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(libpst,0.5.12)
+AM_INIT_AUTOMAKE(libpst,0.6.1)
 AC_PATH_PROGS(BASH, bash)
 
 AC_LANG_CPLUSPLUS
 AC_PROG_CXX
 AC_PROG_LIBTOOL
+AC_SYS_LARGEFILE
 
 # The following lines adds the --enable-pst-debug option to configure:
 #
