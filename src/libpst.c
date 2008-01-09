@@ -145,6 +145,8 @@ void dump_desc(off_t off, int depth, int i, pst_descn *desc_rec ) {
 int32_t pst_open(pst_file *pf, char *name, char *mode) {
     uint32_t sig;
 
+    unicode_init();
+
     DEBUG_ENT("pst_open");
 
     if (!pf) {

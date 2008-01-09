@@ -316,8 +316,6 @@ int main(int argc, char** argv) {
         exit(2);
     }
 
-    unicode_init();
-
     #ifdef DEBUG_ALL
         // force a log file
         if (!d_log) d_log = "readpst.log";
