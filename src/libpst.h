@@ -61,9 +61,9 @@ typedef struct {
 
 #ifdef _MSC_VER
 #include "windows.h"
-#define int32_t int
+#define int32_t  int
 #define uint32_t unsigned int
-#define int16_t short int
+#define int16_t  short int
 #define uint16_t unsigned short int
 #endif // _MSC_VER
 
@@ -505,7 +505,7 @@ int32_t pst_load_extended_attributes(pst_file *pf);
 int32_t _pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, int64_t linku1, uint64_t start_val, uint64_t end_val);
 int32_t _pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, int64_t linku1, uint64_t *high_id, uint64_t start_id, uint64_t end_val);
 pst_item* _pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
-void * _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
+pst_item* _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
 pst_num_array * _pst_parse_block(pst_file *pf, uint32_t block_id, pst_index2_ll *i2_head);
 int32_t _pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach);
 int32_t _pst_free_list(pst_num_array *list);

@@ -19,7 +19,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-01-06</date>
+            <date>2008-01-08</date>
         </refentryinfo>
 
         <refmeta>
@@ -212,7 +212,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-01-06</date>
+            <date>2008-01-08</date>
         </refentryinfo>
 
         <refmeta>
@@ -286,7 +286,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-01-06</date>
+            <date>2008-01-08</date>
         </refentryinfo>
 
         <refmeta>
@@ -461,7 +461,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-01-06</date>
+            <date>2008-01-08</date>
         </refentryinfo>
 
         <refmeta>
@@ -585,7 +585,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-01-06</date>
+            <date>2008-01-08</date>
         </refentryinfo>
 
         <refmeta>
@@ -610,13 +610,16 @@
             <para>
                 Each item in a .pst file is identified by two id values ID1 and ID2.
                 There are two separate b-trees indexed by these ID1 and ID2 values.
+    	    	Starting with Outlook 2003, the file format changed from one with 32
+    	    	bit pointers, to one with 64 bit pointers. We describe both formats
+    	    	here.
             </para>
         </refsect1>
 
-        <refsect1 id='pst.file.header.5'>
-            <title>File Header</title>
+        <refsect1 id='pst.file.header.32.5'>
+            <title>32 bit File Header</title>
             <para>
-                The file header is located at offset 0 in the .pst file.
+                The 32 bit file header is located at offset 0 in the .pst file.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  21 42 44 4e 49 f8 64 d9  53 4d 0e 00 13 00 01 01
@@ -654,7 +657,7 @@
 
 0000  signature       [4 bytes] 0x4e444221 constant
 000a  indexType       [1 byte]  0x0e       constant
-01cd  encryptionType  [1 byte]  0x01       constant
+01cd  encryptionType  [1 byte]  0x01       in this case
 00a8  total file size [4 bytes] 0x270400   in this case
 00c0  backPointer1    [4 bytes] 0x021eb4   in this case
 00c4  offsetIndex1    [4 bytes] 0x005400   in this case
@@ -662,7 +665,11 @@
 00bc  offsetIndex2    [4 bytes] 0x0c7e00   in this case
 ]]></literallayout>
             <para>
-                We only support index type 0x0E and encryption type 0x01.
+                We only support index types 0x0e and 0x17,  and encryption types
+                0x00 and 0x01. Index type 0x0e is the older 32 bit Outlook format.
+    	    	Index type 0x17 is the newer 64 bit Outlook format. Encryption
+    	    	type 0x00 is no encryption, and type 0x01 is the only other supported
+    	    	encryption type.
             </para>
             <para>
                 offsetIndex1 is the file offset of the root of the
@@ -678,10 +685,62 @@
             </para>
         </refsect1>
 
-        <refsect1 id='pst.file.node1.5'>
-            <title>Index 1 Node</title>
+        <refsect1 id='pst.file.header.64.5'>
+            <title>64 bit File Header</title>
             <para>
-                The index1 b-tree nodes are 516 byte blocks with the following format.
+                The 64 bit file header is located at offset 0 in the .pst file.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  21 42 44 4e 03 02 23 b2  53 4d 17 00 13 00 01 01
+0010  00 00 00 00 00 00 00 00  04 00 00 00 01 00 00 00
+0020  8b 00 00 00 00 00 00 00  1d 00 00 00 00 04 00 00
+0030  00 04 00 00 04 04 00 00  00 40 00 00 02 00 01 00
+0040  00 04 00 00 00 04 00 00  00 04 00 00 00 80 00 00
+0050  00 04 00 00 00 04 00 00  00 04 00 00 00 04 00 00
+0060  04 04 00 00 04 04 00 00  04 04 00 00 00 04 00 00
+0070  00 04 00 00 00 04 00 00  00 04 00 00 00 04 00 00
+0080  00 04 00 00 00 04 00 00  00 04 00 00 00 04 00 00
+0090  00 04 00 00 00 04 00 00  00 04 00 00 00 04 00 00
+00a0  00 04 00 00 00 04 00 00  02 04 00 00 00 00 00 00
+00b0  00 00 00 00 00 00 00 00  00 24 04 00 00 00 00 00
+00c0  00 44 00 00 00 00 00 00  00 71 03 00 00 00 00 00
+00d0  00 22 00 00 00 00 00 00  83 00 00 00 00 00 00 00
+00e0  00 6a 00 00 00 00 00 00  8a 00 00 00 00 00 00 00
+00f0  00 60 00 00 00 00 00 00  01 00 00 00 00 00 00 00
+0100  ff 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0110  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0120  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0130  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0140  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0150  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0160  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0170  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0180  7f ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+0190  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+01a0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+01b0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+01c0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+01d0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+01e0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+01f0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+0200  80 00 00 00 e8 00 00 00  00 00 00 00 c4 68 cb 89
+
+0000  signature       [4 bytes] 0x4e444221 constant
+000a  indexType       [1 byte]  0x17       constant
+0201  encryptionType  [1 byte]  0x00       in this case
+00b8  total file size [8 bytes] 0x042400   in this case
+00e8  backPointer1    [8 bytes] 0x00008a   in this case
+00f0  offsetIndex1    [8 bytes] 0x006000   in this case
+00d8  backPointer2    [8 bytes] 0x000083   in this case
+00e0  offsetIndex2    [8 bytes] 0x006a00   in this case
+]]></literallayout>
+        </refsect1>
+
+        <refsect1 id='pst.file.node1.32.5'>
+            <title>32 bit Index 1 Node</title>
+            <para>
+                The 32 bit index1 b-tree nodes are 516 byte blocks with the
+                following format.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  04 00 00 00  8a 1e 02 00  00 1c 0b 00
@@ -747,10 +806,81 @@
             </para>
         </refsect1>
 
-        <refsect1 id='pst.file.leaf1.5'>
-            <title>Index 1 Leaf Node</title>
+        <refsect1 id='pst.file.node1.64.5'>
+            <title>64 bit Index 1 Node</title>
             <para>
-                The index1 b-tree leaf nodes are 516 byte blocks with the following format.
+                The 64 bit index1 b-tree nodes are 512 byte blocks with the
+                following format.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  04 00 00 00  00 00 00 00  88 00 00 00
+000C  00 00 00 00  00 48 00 00  00 00 00 00
+0018  74 00 00 00  00 00 00 00  86 00 00 00
+0024  00 00 00 00  00 54 00 00  00 00 00 00
+0030  00 00 00 00  00 00 00 00  00 00 00 00
+003C  00 00 00 00  00 00 00 00  00 00 00 00
+0048  00 00 00 00  00 00 00 00  00 00 00 00
+0054  00 00 00 00  00 00 00 00  00 00 00 00
+0060  00 00 00 00  00 00 00 00  00 00 00 00
+006C  00 00 00 00  00 00 00 00  00 00 00 00
+0078  00 00 00 00  00 00 00 00  00 00 00 00
+0084  00 00 00 00  00 00 00 00  00 00 00 00
+0090  00 00 00 00  00 00 00 00  00 00 00 00
+009C  00 00 00 00  00 00 00 00  00 00 00 00
+00A8  00 00 00 00  00 00 00 00  00 00 00 00
+00B4  00 00 00 00  00 00 00 00  00 00 00 00
+00C0  00 00 00 00  00 00 00 00  00 00 00 00
+00CC  00 00 00 00  00 00 00 00  00 00 00 00
+00D8  00 00 00 00  00 00 00 00  00 00 00 00
+00E4  00 00 00 00  00 00 00 00  00 00 00 00
+00F0  00 00 00 00  00 00 00 00  00 00 00 00
+00FC  00 00 00 00  00 00 00 00  00 00 00 00
+0108  00 00 00 00  00 00 00 00  00 00 00 00
+0114  00 00 00 00  00 00 00 00  00 00 00 00
+0120  00 00 00 00  00 00 00 00  00 00 00 00
+012C  00 00 00 00  00 00 00 00  00 00 00 00
+0138  00 00 00 00  00 00 00 00  00 00 00 00
+0144  00 00 00 00  00 00 00 00  00 00 00 00
+0150  00 00 00 00  00 00 00 00  00 00 00 00
+015C  00 00 00 00  00 00 00 00  00 00 00 00
+0168  00 00 00 00  00 00 00 00  00 00 00 00
+0174  00 00 00 00  00 00 00 00  00 00 00 00
+0180  00 00 00 00  00 00 00 00  00 00 00 00
+018C  00 00 00 00  00 00 00 00  00 00 00 00
+0198  00 00 00 00  00 00 00 00  00 00 00 00
+01A4  00 00 00 00  00 00 00 00  00 00 00 00
+01B0  00 00 00 00  00 00 00 00  00 00 00 00
+01BC  00 00 00 00  00 00 00 00  00 00 00 00
+01C8  00 00 00 00  00 00 00 00  00 00 00 00
+01D4  00 00 00 00  00 00 00 00  00 00 00 00
+01E0  00 00 00 00  00 00 00 00  02 14 18 01
+01EC  00 00 00 00  80 80 8a 60  68 e5 b5 19
+01F8  8a 00 00 00  00 00 00 00
+
+01e8  itemCount       [1 byte]  0x02       in this case
+01e9  maxItemCount    [1 byte]  0x14       constant
+01eb  nodeLevel       [1 byte]  0x01       in this case
+01f8  backPointer     [8 bytes] 0x00008a   in this case
+]]></literallayout>
+            <para>
+                The itemCount specifies the number of 24 byte records that
+                are active. The nodeLevel is non-zero for this style of nodes.
+                The leaf nodes have a different format. The backPointer must
+                match the backPointer from the triple that pointed to this node.
+            </para>
+            <para>
+                Each item in this node is a triple of (ID1, backPointer, offset)
+                where the offset points to the next deeper node in the tree, the
+                backPointer value must match the backPointer in that deeper node,
+                and ID1 is the lowest ID1 value in the subtree.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst.file.leaf1.32.5'>
+            <title>32 bit Index 1 Leaf Node</title>
+            <para>
+                The 32 bit index1 b-tree leaf nodes are 516 byte blocks with the
+                following format.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  04 00 00 00  00 58 00 00  64 00  0f 00
@@ -799,7 +929,7 @@
 
 01f0  itemCount       [1 byte]  0x1f       in this case
 01f1  maxItemCount    [1 byte]  0x29       constant
-01f3  nodeLevel       [1 byte]  0x00       in this case
+01f3  nodeLevel       [1 byte]  0x00       defines a leaf node
 01f8  backPointer     [4 bytes] 0x01675a   in this case
 ]]></literallayout>
             <para>
@@ -819,10 +949,84 @@
             </para>
         </refsect1>
 
-        <refsect1 id='pst.file.node2.5'>
-            <title>Index 2 Node</title>
+        <refsect1 id='pst.file.leaf1.64.5'>
+            <title>64 bit Index 1 Leaf Node</title>
             <para>
-                The index2 b-tree nodes are 516 byte blocks with the following format.
+                The 64 bit index1 b-tree leaf nodes are 512 byte blocks with the
+                following format.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  04 00 00 00  00 00 00 00  00 58 00 00
+000C  00 00 00 00  6c 00 05 00  00 00 00 00
+0018  08 00 00 00  00 00 00 00  80 58 00 00
+0024  00 00 00 00  b4 00 06 00  d8 22 37 08
+0030  0c 00 00 00  00 00 00 00  80 59 00 00
+003C  00 00 00 00  ac 00 07 00  d8 22 37 08
+0048  10 00 00 00  00 00 00 00  40 5a 00 00
+0054  00 00 00 00  bc 00 03 00  d8 22 37 08
+0060  14 00 00 00  00 00 00 00  40 5b 00 00
+006C  00 00 00 00  a4 00 02 00  d8 22 37 08
+0078  18 00 00 00  00 00 00 00  00 5c 00 00
+0084  00 00 00 00  64 00 02 00  d8 22 37 08
+0090  1c 00 00 00  00 00 00 00  80 5c 00 00
+009C  00 00 00 00  5c 00 02 00  d8 22 37 08
+00A8  24 00 00 00  00 00 00 00  80 5d 00 00
+00B4  00 00 00 00  72 00 02 00  d8 22 37 08
+00C0  34 00 00 00  00 00 00 00  00 70 00 00
+00CC  00 00 00 00  8c 00 02 00  00 0d 00 00
+00D8  38 00 00 00  00 00 00 00  c0 71 00 00
+00E4  00 00 00 00  5c 00 02 00  d8 22 9c 00
+00F0  40 00 00 00  00 00 00 00  40 72 00 00
+00FC  00 00 00 00  26 00 02 00  d8 22 9c 00
+0108  4c 00 00 00  00 00 00 00  80 5f 00 00
+0114  00 00 00 00  3e 00 02 00  d8 22 9c 00
+0120  5c 00 00 00  00 00 00 00  c0 76 00 00
+012C  00 00 00 00  8c 00 02 00  d8 22 9c 00
+0138  64 00 00 00  00 00 00 00  40 75 00 00
+0144  00 00 00 00  76 00 02 00  d8 22 9c 00
+0150  6c 00 00 00  00 00 00 00  c0 73 00 00
+015C  00 00 00 00  5e 00 02 00  d8 22 9c 00
+0168  70 00 00 00  00 00 00 00  80 72 00 00
+0174  00 00 00 00  1e 01 02 00  d8 22 9c 00
+0180  70 00 00 00  00 00 00 00  80 72 00 00
+018C  00 00 00 00  1e 01 02 00  d8 22 9c 00
+0198  70 00 00 00  00 00 00 00  80 72 00 00
+01A4  00 00 00 00  1e 01 02 00  d8 22 9c 00
+01B0  74 00 00 00  00 00 00 00  40 74 00 00
+01BC  00 00 00 00  e0 00 02 00  d8 22 9c 00
+01C8  7c 00 00 00  00 00 00 00  80 77 00 00
+01D4  00 00 00 00  dc 00 02 00  d8 22 9c 00
+01E0  00 00 00 00  00 00 00 00  10 14 18 00
+01EC  00 00 00 00  80 80 88 48  3f 50 0b 04
+01F8  88 00 00 00  00 00 00 00
+
+01e8  itemCount       [1 byte]  0x10       in this case
+01e9  maxItemCount    [1 byte]  0x14       constant
+01eb  nodeLevel       [1 byte]  0x00       defines a leaf node
+01f8  backPointer     [8 bytes] 0x000088   in this case
+]]></literallayout>
+            <para>
+                The itemCount specifies the number of 24 byte records that
+                are active. The nodeLevel is zero for these leaf nodes.
+                The backPointer must match the backPointer from the triple
+                that pointed to this node.
+            </para>
+            <para>
+                Each item in this node is a tuple of (ID1, offset, size, unknown)
+                The two low order bits of the ID1 value seem to be flags. I have
+                never seen a case with bit zero set. Bit one indicates that the
+                item is <emphasis>not</emphasis> encrypted. Note that references
+                to these ID1 values elsewhere may have the low order bit set (and
+                I don't know what that means), but when we do the search in this
+                tree we need to clear that bit so that we can find the correct item.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst.file.node2.32.5'>
+            <title>32 bit Index 2 Node</title>
+            <para>
+                The 32 bit index2 b-tree nodes are 516 byte blocks with the
+                following format.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  21 00 00 00  bb 1e 02 00  00 e2 0b 00
@@ -888,10 +1092,81 @@
             </para>
         </refsect1>
 
-        <refsect1 id='pst.file.leaf2.5'>
-            <title>Index 2 Leaf Node</title>
+        <refsect1 id='pst.file.node2.64.5'>
+            <title>64 bit Index 2 Node</title>
             <para>
-                The index2 b-tree leaf nodes are 516 byte blocks with the following format.
+                The 64 bit index2 b-tree nodes are 512 byte blocks with the
+                following format.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  21 00 00 00  00 00 00 00  77 00 00 00
+000C  00 00 00 00  00 56 00 00  00 00 00 00
+0018  4c 06 00 00  00 00 00 00  82 00 00 00
+0024  00 00 00 00  00 68 00 00  00 00 00 00
+0030  4f 80 00 00  00 00 00 00  84 00 00 00
+003C  00 00 00 00  00 6e 00 00  00 00 00 00
+0048  00 00 00 00  00 00 00 00  00 00 00 00
+0054  00 00 00 00  00 00 00 00  00 00 00 00
+0060  00 00 00 00  00 00 00 00  00 00 00 00
+006C  00 00 00 00  00 00 00 00  00 00 00 00
+0078  00 00 00 00  00 00 00 00  00 00 00 00
+0084  00 00 00 00  00 00 00 00  00 00 00 00
+0090  00 00 00 00  00 00 00 00  00 00 00 00
+009C  00 00 00 00  00 00 00 00  00 00 00 00
+00A8  00 00 00 00  00 00 00 00  00 00 00 00
+00B4  00 00 00 00  00 00 00 00  00 00 00 00
+00C0  00 00 00 00  00 00 00 00  00 00 00 00
+00CC  00 00 00 00  00 00 00 00  00 00 00 00
+00D8  00 00 00 00  00 00 00 00  00 00 00 00
+00E4  00 00 00 00  00 00 00 00  00 00 00 00
+00F0  00 00 00 00  00 00 00 00  00 00 00 00
+00FC  00 00 00 00  00 00 00 00  00 00 00 00
+0108  00 00 00 00  00 00 00 00  00 00 00 00
+0114  00 00 00 00  00 00 00 00  00 00 00 00
+0120  00 00 00 00  00 00 00 00  00 00 00 00
+012C  00 00 00 00  00 00 00 00  00 00 00 00
+0138  00 00 00 00  00 00 00 00  00 00 00 00
+0144  00 00 00 00  00 00 00 00  00 00 00 00
+0150  00 00 00 00  00 00 00 00  00 00 00 00
+015C  00 00 00 00  00 00 00 00  00 00 00 00
+0168  00 00 00 00  00 00 00 00  00 00 00 00
+0174  00 00 00 00  00 00 00 00  00 00 00 00
+0180  00 00 00 00  00 00 00 00  00 00 00 00
+018C  00 00 00 00  00 00 00 00  00 00 00 00
+0198  00 00 00 00  00 00 00 00  00 00 00 00
+01A4  00 00 00 00  00 00 00 00  00 00 00 00
+01B0  00 00 00 00  00 00 00 00  00 00 00 00
+01BC  00 00 00 00  00 00 00 00  00 00 00 00
+01C8  00 00 00 00  00 00 00 00  00 00 00 00
+01D4  00 00 00 00  00 00 00 00  00 00 00 00
+01E0  00 00 00 00  00 00 00 00  03 14 18 01
+01EC  00 00 00 00  81 81 83 6a  49 da f3 d3
+01F8  83 00 00 00  00 00 00 00
+
+01e8  itemCount       [1 byte]  0x03       in this case
+01e9  maxItemCount    [1 byte]  0x14       constant
+01eb  nodeLevel       [1 byte]  0x01       in this case
+01f8  backPointer     [4 bytes] 0x000083   in this case
+]]></literallayout>
+            <para>
+                The itemCount specifies the number of 24 byte records that
+                are active. The nodeLevel is non-zero for this style of nodes.
+                The leaf nodes have a different format. The backPointer must
+                match the backPointer from the triple that pointed to this node.
+            </para>
+            <para>
+                Each item in this node is a triple of (ID2, backPointer, offset)
+                where the offset points to the next deeper node in the tree, the
+                backPointer value must match the backPointer in that deeper node,
+                and ID2 is the lowest ID2 value in the subtree.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst.file.leaf2.32.5'>
+            <title>32 bit Index 2 Leaf Node</title>
+            <para>
+                The 32 bit index2 b-tree leaf nodes are 516 byte blocks with the
+                following format.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  21 00 00 00  38 e6 00 00  00 00 00 00  00 00 00 00
@@ -944,11 +1219,67 @@
             </para>
         </refsect1>
 
+        <refsect1 id='pst.file.leaf2.64.5'>
+            <title>64 bit Index 2 Leaf Node</title>
+            <para>
+                The 64 bit index2 b-tree leaf nodes are 512 byte blocks with the
+                following format.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  21 00 00 00 00 00 00 00  74 00 00 00 00 00 00 00
+0010  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+0020  61 00 00 00 00 00 00 00  34 00 00 00 00 00 00 00
+0030  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+0040  22 01 00 00 00 00 00 00  4c 00 00 00 00 00 00 00
+0050  00 00 00 00 00 00 00 00  22 01 00 00 02 00 00 00
+0060  2d 01 00 00 00 00 00 00  70 00 00 00 00 00 00 00
+0070  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+0080  2e 01 00 00 00 00 00 00  08 00 00 00 00 00 00 00
+0090  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+00A0  2f 01 00 00 00 00 00 00  0c 00 00 00 00 00 00 00
+00B0  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+00C0  e1 01 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+00D0  00 00 00 00 00 00 00 00  00 00 00 00 d8 e3 13 00
+00E0  01 02 00 00 00 00 00 00  8c 00 00 00 00 00 00 00
+00F0  00 00 00 00 00 00 00 00  00 00 00 00 b0 e3 13 00
+0100  61 02 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+0110  00 00 00 00 00 00 00 00  00 00 00 00 d8 e3 13 00
+0120  0d 06 00 00 00 00 00 00  04 00 00 00 00 00 00 00
+0130  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+0140  0e 06 00 00 00 00 00 00  08 00 00 00 00 00 00 00
+0150  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+0160  0f 06 00 00 00 00 00 00  0c 00 00 00 00 00 00 00
+0170  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+0180  10 06 00 00 00 00 00 00  10 00 00 00 00 00 00 00
+0190  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+01A0  2b 06 00 00 00 00 00 00  24 00 00 00 00 00 00 00
+01B0  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+01C0  71 06 00 00 00 00 00 00  18 00 00 00 00 00 00 00
+01D0  00 00 00 00 00 00 00 00  00 00 00 00 02 00 00 00
+01E0  00 00 00 00 00 00 00 00  0e 0f 20 00 00 00 00 00
+01F0  81 81 77 56 f8 32 43 49  77 00 00 00 00 00 00 00
+
+01e8  itemCount       [1 byte]  0x0e       in this case
+01e9  maxItemCount    [1 byte]  0x0f       constant
+01eb  nodeLevel       [1 byte]  0x00       defines a leaf node
+01f8  backPointer     [4 bytes] 0x000077   in this case
+]]></literallayout>
+            <para>
+                The itemCount specifies the number of 32 byte records that
+                are active. The nodeLevel is zero for these leaf nodes.
+                The backPointer must match the backPointer from the triple
+                that pointed to this node.
+            </para>
+            <para>
+                Each item in this node is a tuple of (ID2, DESC-ID1, LIST-ID1, PARENT-ID2)
+            </para>
+        </refsect1>
+
         <refsect1 id='pst.file.list.5'>
             <title>Associated List Item</title>
             <para>
                 Contains associations between id1 and id2 for the items controlled by the record.
-                In the above leaf node, we have a tuple of (0x61, 0x02a82c, 0x02a836, 0)
+                In the above 32 bit leaf node, we have a tuple of (0x61, 0x02a82c, 0x02a836, 0)
                 0x02a836 is the ID1 of the associated list, and we can lookup that ID1 value
                 in the index1 b-tree to find the (offset,size) of the data in the .pst file.
             </para>

@@ -29,8 +29,8 @@
 
 #include "libpst.h"
 #include "timeconv.h"
-#define INDEX_DEPTH             0x4C
-#define SECOND_DEPTH            0x5C
+//efine INDEX_DEPTH             0x4C
+//efine SECOND_DEPTH            0x5C
 #define INDEX_TYPE32            0x0E
 #define INDEX_TYPE64            0x17
 
@@ -124,7 +124,7 @@ unsigned char comp_enc [] =
     0xed, 0x9a, 0x64, 0x3f, 0xc1, 0x6c, 0xf9, 0xec}; /*0xff*/
 
 
-void dump_desc(off_t off, int depth, int i, pst_descn *desc_rec ) { // {{{
+void dump_desc(off_t off, int depth, int i, pst_descn *desc_rec ) {
     //desc_rec->d_id = 0x0102030405060708;
     DEBUG_INDEX(("%08x [%i] Item(%#x) = [d_id = %#llx, desc_id = %#llx, "
         "list_id = %#llx, parent_id = %#x, u1 = %#x] %#x %p %p\n",
@@ -191,6 +191,9 @@ int32_t pst_open(pst_file *pf, char *name, char *mode) {
             WARN(("unknown .pst format, possibly newer than Outlook 2003 PST file?\n"));
             DEBUG_RET();
             return -1;
+        }
+        else {
+            WARN(("switching to 64 bit format...\n"));
         }
     }
 
@@ -511,22 +514,41 @@ int32_t pst_load_extended_attributes(pst_file *pf) {
     return 1;
 }
 
+#define BLOCK_SIZE32               516      // index blocks
+#define DESC_BLOCK_SIZE32          516      // descriptor blocks
+#define ITEM_COUNT_OFFSET32        0x1f0    // count byte
+#define LEVEL_INDICATOR_OFFSET32   0x1f3    // node or leaf
+#define BACKLINK_OFFSET32          0x1f8    // backlink u1 value
+#define ITEM_SIZE32                12
+#define DESC_SIZE32                16
+#define INDEX_COUNT_MAX32          41       // max active items
+#define DESC_COUNT_MAX32           31       // max active items
 
-#define BLOCK_SIZE             516      // index blocks
-#define DESC_BLOCK_SIZE        516      // descriptor blocks
-#define ITEM_COUNT_OFFSET      0x1f0    // count byte
-#define LEVEL_INDICATOR_OFFSET 0x1f3    // node or leaf
-#define BACKLINK_OFFSET        0x1f8    // backlink u1 value
-#define ITEM_SIZE              12
-#define DESC_SIZE              16
-#define INDEX_COUNT_MAX        41       // max active items
-#define DESC_COUNT_MAX         31       // max active items
+#define BLOCK_SIZE64               512      // index blocks
+#define DESC_BLOCK_SIZE64          512      // descriptor blocks
+#define ITEM_COUNT_OFFSET64        0x1e8    // count byte
+#define LEVEL_INDICATOR_OFFSET64   0x1eb    // node or leaf
+#define BACKLINK_OFFSET64          0x1f8    // backlink u1 value
+#define ITEM_SIZE64                24
+#define DESC_SIZE64                32
+#define INDEX_COUNT_MAX64          20       // max active items
+#define DESC_COUNT_MAX64           15       // max active items
+
+#define BLOCK_SIZE               ((do_read64) ? BLOCK_SIZE64             : BLOCK_SIZE32)
+#define DESC_BLOCK_SIZE          ((do_read64) ? DESC_BLOCK_SIZE64        : DESC_BLOCK_SIZE32)
+#define ITEM_COUNT_OFFSET        ((do_read64) ? ITEM_COUNT_OFFSET64      : ITEM_COUNT_OFFSET32)
+#define LEVEL_INDICATOR_OFFSET   ((do_read64) ? LEVEL_INDICATOR_OFFSET64 : LEVEL_INDICATOR_OFFSET32)
+#define BACKLINK_OFFSET          ((do_read64) ? BACKLINK_OFFSET64        : BACKLINK_OFFSET32)
+#define ITEM_SIZE                ((do_read64) ? ITEM_SIZE64              : ITEM_SIZE32)
+#define DESC_SIZE                ((do_read64) ? DESC_SIZE64              : DESC_SIZE32)
+#define INDEX_COUNT_MAX          ((do_read64) ? INDEX_COUNT_MAX64        : INDEX_COUNT_MAX32)
+#define DESC_COUNT_MAX           ((do_read64) ? DESC_COUNT_MAX64         : DESC_COUNT_MAX32)
 
 
 int _pst_decode_desc( pst_descn *desc, char *buf ) {
     int r;
     if (do_read64) {
-        DEBUG_INDEX(("Decoding desc64 "));
+        DEBUG_INDEX(("Decoding desc64\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_descn), 0x10);
         memcpy(desc, buf, sizeof(pst_descn));
         LE64_CPU(desc->d_id);
@@ -538,7 +560,7 @@ int _pst_decode_desc( pst_descn *desc, char *buf ) {
     }
     else {
         pst_desc32 d32;
-        DEBUG_INDEX(("Decoding desc32 "));
+        DEBUG_INDEX(("Decoding desc32\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_desc32), 0x10);
         memcpy(&d32, buf, sizeof(pst_desc32));
         LE32_CPU(d32.d_id);
@@ -559,7 +581,7 @@ int _pst_decode_desc( pst_descn *desc, char *buf ) {
 int _pst_decode_table( struct _pst_table_ptr_structn *table, char *buf ) {
     int r;
     if (do_read64) {
-        DEBUG_INDEX(("Decoding table64"));
+        DEBUG_INDEX(("Decoding table64\n"));
         DEBUG_HEXDUMPC(buf, sizeof(struct _pst_table_ptr_structn), 0x10);
         memcpy(table, buf, sizeof(struct _pst_table_ptr_structn));
         LE64_CPU(table->start);
@@ -569,7 +591,7 @@ int _pst_decode_table( struct _pst_table_ptr_structn *table, char *buf ) {
     }
     else {
         struct _pst_table_ptr_struct32 t32;
-        DEBUG_INDEX(("Decoding table32"));
+        DEBUG_INDEX(("Decoding table32\n"));
         DEBUG_HEXDUMPC(buf, sizeof( struct _pst_table_ptr_struct32), 0x10);
         memcpy(&t32, buf, sizeof(struct _pst_table_ptr_struct32));
         LE32_CPU(t32.start);
@@ -587,7 +609,7 @@ int _pst_decode_table( struct _pst_table_ptr_structn *table, char *buf ) {
 int _pst_decode_index( pst_index *index, char *buf ) {
     int r;
     if (do_read64) {
-        DEBUG_INDEX(("Decoding index64"));
+        DEBUG_INDEX(("Decoding index64\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_index), 0x10);
         memcpy(index, buf, sizeof(pst_index));
         LE64_CPU(index->id);
@@ -598,7 +620,7 @@ int _pst_decode_index( pst_index *index, char *buf ) {
         r = sizeof(pst_index);
     } else {
         pst_index32 index32;
-        DEBUG_INDEX(("Decoding index32"));
+        DEBUG_INDEX(("Decoding index32\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_index32), 0x10);
         memcpy(&index32, buf, sizeof(pst_index32));
         LE32_CPU(index32->id);
@@ -638,7 +660,7 @@ int32_t _pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, int64_t lin
         return -1;
     }
     bptr = buf;
-    DEBUG_HEXDUMPC(buf, BLOCK_SIZE, ITEM_SIZE);
+    DEBUG_HEXDUMPC(buf, BLOCK_SIZE, ITEM_SIZE32);
     item_count = (int)(unsigned)(buf[ITEM_COUNT_OFFSET]);
     if (item_count > INDEX_COUNT_MAX) {
         DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, INDEX_COUNT_MAX));
@@ -737,7 +759,7 @@ int32_t _pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, int64_t lin
 struct cache_list_node {
     pst_desc_ll *ptr;
     /** only used for lost and found lists */
-    uint32_t parent;
+    uint64_t parent;
     struct cache_list_node *next;
     struct cache_list_node *prev;
 };
@@ -750,7 +772,7 @@ int32_t cache_count;
 /**
     add the d_ptr descriptor into the global tree
 */
-void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, uint32_t parent_id) {
+void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, uint64_t parent_id) {
     struct cache_list_node *lostfound_ptr = NULL;
     struct cache_list_node *cache_ptr     = NULL;
     pst_desc_ll            *parent        = NULL;
@@ -873,7 +895,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, int64_t 
     }
     if (buf[LEVEL_INDICATOR_OFFSET] == '\0') {
         // this node contains leaf pointers
-        DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, 16);
+        DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, DESC_SIZE32);
         if (item_count > DESC_COUNT_MAX) {
             DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, DESC_COUNT_MAX));
             if (buf) free(buf);
@@ -987,7 +1009,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, int64_t 
         }
     } else {
         // this node contains node pointers
-        DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, ITEM_SIZE);
+        DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, ITEM_SIZE32);
         if (item_count > INDEX_COUNT_MAX) {
             DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, INDEX_COUNT_MAX));
             if (buf) free(buf);
@@ -996,7 +1018,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, int64_t 
         }
         x = 0;
         while (x < item_count) {
-            bptr+=_pst_decode_table(&table, bptr);
+            bptr += _pst_decode_table(&table, bptr);
             x++;
             if (table.start == 0) break;
             if (x < item_count) {
@@ -1046,7 +1068,7 @@ int32_t _pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, int64_t 
 }
 
 
-void* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
+pst_item* _pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
     pst_num_array * list;
     pst_index2_ll *id2_head = NULL;
     pst_index_ll *id_ptr = NULL;
@@ -1591,14 +1613,14 @@ pst_num_array * _pst_parse_block(pst_file *pf, uint32_t block_id, pst_index2_ll 
                     //need UTF-16 zero-termination
                     vbset(strbuf, na_ptr->items[x]->data, na_ptr->items[x]->size);
                     vbappend(strbuf, "\0\0", 2);
-                    DEBUG_INDEX(("Iconv in: "));
+                    DEBUG_INDEX(("Iconv in:\n"));
                     DEBUG_HEXDUMPC(strbuf->b, strbuf->dlen, 0x10);
                     vb_utf16to8(unibuf, strbuf->b, strbuf->dlen);
                     free(na_ptr->items[x]->data);
                     na_ptr->items[x]->size = unibuf->dlen;
                     na_ptr->items[x]->data = xmalloc(unibuf->dlen);
                     memcpy(na_ptr->items[x]->data, unibuf->b, unibuf->dlen);
-                    DEBUG_INDEX(("Iconv out: "));
+                    DEBUG_INDEX(("Iconv out:\n"));
                     DEBUG_HEXDUMPC(na_ptr->items[x]->data, na_ptr->items[x]->size, 0x10);
                 }
                 if (na_ptr->items[x]->type == 0) na_ptr->items[x]->type = table_rec.ref_type;
