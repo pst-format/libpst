@@ -147,7 +147,7 @@ static void process(pst_desc_ll *d_ptr) {
 	pst_item *item = NULL;
 	while (d_ptr) {
 		if (d_ptr->desc) {
-			item = (pst_item*)_pst_parse_item(&pstfile, d_ptr);
+			item = (pst_item*)pst_parse_item(&pstfile, d_ptr);
 			DEBUG_INFO(("item pointer is %p\n", item));
 			if (item) {
 				if (item->message_store) {
@@ -363,7 +363,7 @@ static void process(pst_desc_ll *d_ptr) {
 					DEBUG_INFO(("item is not a contact\n"));
 				}
 			}
-			_pst_freeItem(item);
+			pst_freeItem(item);
 		}
 		d_ptr = d_ptr->next;
 	}
@@ -431,7 +431,7 @@ int main(int argc, char** argv) {
 	pst_load_extended_attributes(&pstfile);
 
 	d_ptr = pstfile.d_head; // first record is main record
-	item  = (pst_item*)_pst_parse_item(&pstfile, d_ptr);
+	item  = (pst_item*)pst_parse_item(&pstfile, d_ptr);
 	if (!item || !item->message_store) {
 		DEBUG_RET();
 		DIE(("main: Could not get root record\n"));
@@ -443,7 +443,7 @@ int main(int argc, char** argv) {
 		DIE(("Top of folders record not found. Cannot continue\n"));
 	}
 
-	_pst_freeItem(item);
+	pst_freeItem(item);
 
 	// write the ldap header
 	printf("dn: %s\n", ldap_base);

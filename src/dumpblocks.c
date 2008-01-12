@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
   DEBUG_INIT("dumpblocks.log");
   DEBUG_REGISTER_CLOSE();
   DEBUG_ENT("main");
-  
+
   printf("Opening file %s\n",file);
   if (pst_open(&pstfile, file, "r")) {
     printf("Failed to open file %s\n", file);
@@ -46,28 +46,28 @@ int main(int argc, char **argv) {
     printf("Failed to load indexes in file %s\n", argv[1]);
     exit(1);
    }
-  
+
   if (outdir != NULL)
     if (chdir(outdir)) {
       printf("Failed to change into directory %s\n", outdir);
       exit(1);
     }
-  
+
   ptr = pstfile.i_head;
   outname = (char*) xmalloc(OUT_BUF);
   printf("Saving blocks\n");
   while (ptr != NULL) {
     /*    if (pstfile.encryption == PST_ENC) {
-      c = _pst_ff_getIDblock_dec(&pstfile, ptr->id, buf);
+      c = pst_ff_getIDblock_dec(&pstfile, ptr->id, buf);
       } else {*/
     if ((ptr->id & 0x02)==0 && pstfile.encryption == PST_ENC) {
-      c = _pst_ff_getIDblock_dec(&pstfile, ptr->id, &buf);
+      c = pst_ff_getIDblock_dec(&pstfile, ptr->id, &buf);
     } else {
-      c = _pst_ff_getIDblock(&pstfile, ptr->id, &buf);
+      c = pst_ff_getIDblock(&pstfile, ptr->id, &buf);
     }
 
     if (c > 0) {
-      snprintf(outname, OUT_BUF, "%x", ptr->id);
+      snprintf(outname, OUT_BUF, "%llx", ptr->id);
       if ((fp = fopen(outname, "wb")) == NULL) {
 	printf("Failed to open file %s\n", outname);
 	continue;
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
       fwrite(buf, 1, c, fp);
       fclose(fp);
     } else {
-      printf("Failed to read block id %#x\n", ptr->id);
+      printf("Failed to read block id %#llx\n", ptr->id);
     }
     ptr = ptr->next;
   }

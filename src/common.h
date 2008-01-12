@@ -14,7 +14,7 @@
 # define FILETIME_DEFINED
   /*Win32 Filetime struct - copied from WINE*/
   typedef struct {
-	  unsigned int dwLowDateTime;
+    unsigned int dwLowDateTime;
     unsigned int dwHighDateTime;
   } FILETIME;
 # endif

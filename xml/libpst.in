@@ -1275,8 +1275,8 @@
             </para>
         </refsect1>
 
-        <refsect1 id='pst.file.list.5'>
-            <title>Associated List Item</title>
+        <refsect1 id='pst.file.list.32.5'>
+            <title>32 bit Associated List Item</title>
             <para>
                 Contains associations between id1 and id2 for the items controlled by the record.
                 In the above 32 bit leaf node, we have a tuple of (0x61, 0x02a82c, 0x02a836, 0)
@@ -1291,7 +1291,28 @@
   repeating
 0004  id2             [4 bytes] 0x00819f   in this case
 0008  id              [4 bytes] 0x02a830   in this case
-000c  unknown         [4 bytes] 0          in this case
+000c  table2          [4 bytes] 0          in this case
+]]></literallayout>
+        </refsect1>
+
+        <refsect1 id='pst.file.list.64.5'>
+            <title>64 bit Associated List Item</title>
+            <para>
+                Contains associations between id1 and id2 for the items controlled by the record.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  02 00 02 00  00 00 00 00  92 06 00 00  00 00 00 00
+0010  a8 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00
+0020  3f 80 00 00  00 00 00 00  98 00 00 00  00 00 00 00
+0030  00 00 00 00  00 00 00 00
+
+0000  unknown         [2 bytes] 0x0002     constant
+0002  count           [2 bytes] 0x0002     in this case
+0004  unknown         [4 bytes] 0   	   possibly constant
+  repeating
+0008  id2             [8 bytes] 0x000692   in this case
+0008  id              [8 bytes] 0x0000a8   in this case
+000c  table2          [8 bytes] 0          in this case
 ]]></literallayout>
         </refsect1>
 

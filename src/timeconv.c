@@ -15,9 +15,6 @@
 #include "common.h"
 #include "timeconv.h"
 
-time_t fileTimeToUnixTime( const FILETIME *filetime, DWORD *remainder );
-char * fileTimeToAscii (const FILETIME *filetime);
-
 char * fileTimeToAscii (const FILETIME *filetime) {
   time_t t1;
 
@@ -80,7 +77,7 @@ time_t fileTimeToUnixTime( const FILETIME *filetime, DWORD *remainder )
     else                        a1 += (1 << 16) - 54590 - carry, carry = 1;
 
     a2 -= 27111902 + carry;
-    
+
     /* If a is negative, replace a by (-1-a) */
     negative = (a2 >= ((UINT32)1) << 31);
     if (negative)

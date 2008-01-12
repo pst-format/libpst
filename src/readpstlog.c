@@ -21,15 +21,16 @@ int is_in(int a, int *b, int c);
 
 int main(int argc, char** argv) {
 	int level = 0;
-	int *i=NULL, x, ptr, stop=0, flag;
+    off_t *i = NULL;
+	int x, ptr, stop=0, flag;
 	char *fname, *buf, rec_type;
 	unsigned char version;
 	int *show_type=NULL, show_size=0;
 	int *ex_type=NULL, ex_size=0;
-	unsigned int funcname, filename, text, end, dtype, line, c;
+	unsigned int funcname=0, filename=0, text=0, end=0, dtype=0, line=0, c;
 	FILE *fp;
-	struct _debug_file_rec_m mfile_rec;
-	struct _debug_file_rec_l lfile_rec;
+	struct pst_debug_file_rec_m mfile_rec;
+	struct pst_debug_file_rec_l lfile_rec;
 	char format = 'D';  // default
 	while ((c = getopt(argc, argv, "f:t:x:")) != -1) {
 		switch(c) {

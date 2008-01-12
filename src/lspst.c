@@ -69,7 +69,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
         else {
             DEBUG_MAIN(("main: Desc Email ID %x [d_ptr->id = %x]\n", d_ptr->desc->id, d_ptr->id));
 
-            item = _pst_parse_item(&pstfile, d_ptr);
+            item = pst_parse_item(&pstfile, d_ptr);
             DEBUG_MAIN(("main: About to process item @ %p.\n", item));
             if (item) {
                 if (item->message_store) {
@@ -134,7 +134,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n",
                                       item->type, item->ascii_type));
                 }
-                _pst_freeItem(item);
+                pst_freeItem(item);
             } else {
                 ff.skip_count++;
                 DEBUG_MAIN(("main: A NULL item was seen\n"));
@@ -151,7 +151,6 @@ int main(int argc, char** argv) {
     pst_desc_ll *d_ptr;
     char *temp  = NULL; //temporary char pointer
     char *d_log = NULL;
-    struct file_ll  *f = NULL, *head = NULL;
 
     if (argc <= 1) DIE(("Missing PST filename.\n"));
 
@@ -168,7 +167,7 @@ int main(int argc, char** argv) {
     pst_load_extended_attributes(&pstfile);
 
     d_ptr = pstfile.d_head; // first record is main record
-    item  = _pst_parse_item(&pstfile, d_ptr);
+    item  = pst_parse_item(&pstfile, d_ptr);
     if (!item || !item->message_store) {
         DEBUG_RET();
         DIE(("main: Could not get root record\n"));
@@ -193,7 +192,7 @@ int main(int argc, char** argv) {
     DEBUG_MAIN(("d_ptr(TOF) = %p.\n", d_ptr));
 
     process(item, d_ptr->child);    // do the childred of TOPF
-    _pst_freeItem(item);
+    pst_freeItem(item);
     pst_close(&pstfile);
 
     DEBUG_RET();

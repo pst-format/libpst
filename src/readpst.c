@@ -154,7 +154,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
         else {
             DEBUG_MAIN(("main: Desc Email ID %#x [d_ptr->id = %#x]\n", d_ptr->desc->id, d_ptr->id));
 
-            item = _pst_parse_item(&pstfile, d_ptr);
+            item = pst_parse_item(&pstfile, d_ptr);
             DEBUG_MAIN(("main: About to process item\n"));
             if (item && item->email && item->email->subject && item->email->subject->subj) {
                 DEBUG_EMAIL(("item->email->subject = %p\n", item->email->subject));
@@ -227,7 +227,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n",
                                 item->type, item->ascii_type));
                 }
-                _pst_freeItem(item);
+                pst_freeItem(item);
             } else {
                 ff.skip_count++;
                 DEBUG_MAIN(("main: A NULL item was seen\n"));
@@ -334,8 +334,8 @@ int main(int argc, char** argv) {
         }
 
         while (0 != ( l = fread( buf, 1, 1024, fp))) {
-            if (0 != _pst_decrypt( buf, l, PST_COMP_ENCRYPT))
-                fprintf(stderr, "_pst_decrypt() failed (I'll try to continue)\n");
+            if (0 != pst_decrypt( buf, l, PST_COMP_ENCRYPT))
+                fprintf(stderr, "pst_decrypt() failed (I'll try to continue)\n");
 
             if (l != fwrite( buf, 1, l, stdout)) {
                 fprintf(stderr, "Couldn't output to stdout?\n");
@@ -362,7 +362,7 @@ int main(int argc, char** argv) {
     if (output_mode != OUTPUT_QUIET) printf("About to start processing first record...\n");
 
     d_ptr = pstfile.d_head; // first record is main record
-    item  = _pst_parse_item(&pstfile, d_ptr);
+    item  = pst_parse_item(&pstfile, d_ptr);
     if (!item || !item->message_store) {
         DEBUG_RET();
         DIE(("main: Could not get root record\n"));
@@ -390,7 +390,7 @@ int main(int argc, char** argv) {
     }
 
     process(item, d_ptr->child);  // do the children of TOPF
-    _pst_freeItem(item);
+    pst_freeItem(item);
     pst_close(&pstfile);
 
     DEBUG_RET();
@@ -570,12 +570,11 @@ int close_recurse_dir() {
 
 
 char *mk_seperate_dir(char *dir) {
-    DEBUG_ENT("mk_seperate_dir");
-
     size_t dirsize = strlen(dir) + 10;
     char dir_name[dirsize];
     int x = 0, y = 0;
 
+    DEBUG_ENT("mk_seperate_dir");
     do {
         if (y == 0)
             snprintf(dir_name, dirsize, "%s", dir);
@@ -713,7 +712,6 @@ char *skip_header_prologue(char *headers) {
 
 void write_separate_attachment(char f_name[], pst_item_attach* current_attach, int attach_num, pst_file* pst)
 {
-    DEBUG_ENT("write_separate_attachment");
     FILE *fp = NULL;
     int x = 0;
     char *temp = NULL;
@@ -722,6 +720,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* current_attach, i
     // use the 8.3 filename (filename1)
     char *attach_filename = (current_attach->filename2) ? current_attach->filename2
                                                         : current_attach->filename1;
+    DEBUG_ENT("write_separate_attachment");
 
     check_filename(f_name);
     if (!attach_filename) {
@@ -749,7 +748,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* current_attach, i
         if (current_attach->data)
             fwrite(current_attach->data, 1, current_attach->size, fp);
         else {
-            pst_attach_to_file(pst, current_attach, fp);
+            (void)pst_attach_to_file(pst, current_attach, fp);
         }
         fclose(fp);
     }
@@ -760,8 +759,8 @@ void write_separate_attachment(char f_name[], pst_item_attach* current_attach, i
 
 void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, char boundary[], pst_file* pst)
 {
+    char *enc = NULL; // base64 encoded attachment
     DEBUG_ENT("write_inline_attachment");
-    char *enc; // base64 encoded attachment
     DEBUG_EMAIL(("Attachment Size is %i\n", current_attach->size));
     DEBUG_EMAIL(("Attachment Pointer is %p\n", current_attach->data));
     if (current_attach->data) {
@@ -798,7 +797,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
         DEBUG_EMAIL(("Attachment Size after encoding is %i\n", strlen(enc)));
         free(enc);  // caught by valgrind
     } else {
-        pst_attach_to_file_base64(pst, current_attach, f_output);
+        (void)pst_attach_to_file_base64(pst, current_attach, f_output);
     }
     fprintf(f_output, "\n\n");
     DEBUG_RET();
@@ -807,7 +806,6 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
 
 void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf)
 {
-    DEBUG_ENT("write_normal_email");
     char *boundary = NULL;      // the boundary marker between multipart sections
     int boundary_created = 0;   // we have not (yet) created a new boundary
     char *temp = NULL;
@@ -815,6 +813,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     time_t em_time;
     char *c_time;
     pst_item_attach* current_attach;
+    DEBUG_ENT("write_normal_email");
 
     // convert the sent date if it exists, or set it to a fixed date
     if (item->email->sent_date) {

@@ -1,3 +1,11 @@
+LibPST 0.6.2 (2008-01-12)
+===============================
+
+	* More fixes for Outlook 2003 64 bit parsing.
+	* All buffer sizes changed to size_t, all file offsets changed to off_t,
+	all function names start with pst_, many other type consistency issues
+	found by splint. Many changes to #llx in debug printing for 64 bit items.
+
 LibPST 0.6.1 (2008-01-06)
 ===============================
 

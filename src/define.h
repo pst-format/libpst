@@ -51,23 +51,23 @@
 #endif
 
 
-void _pst_debug(char *fmt, ...);
-void _pst_debug_hexdump(FILE* out, unsigned char* buf, size_t size, int col, int delta);
-void _pst_debug_hexprint(char *data, int size);
+void pst_debug(char *fmt, ...);
+void pst_debug_hexdumper(FILE* out, unsigned char* buf, size_t size, int col, int delta);
+void pst_debug_hexprint(char *data, int size);
 
-void _debug_init(char *fname);
-void _debug_msg_info (int line, char *file, int type);
-void _debug_msg_text(char* fmt, ...);
-void _debug_hexdump(unsigned char *x, int y, int cols, int delta);
-void _debug_func(char *function);
-void _debug_func_ret();
-void _debug_close(void);
-void _debug_write();
+void pst_debug_init(char *fname);
+void pst_debug_msg_info (int line, char *file, int type);
+void pst_debug_msg_text(char* fmt, ...);
+void pst_debug_hexdump(unsigned char *x, size_t y, int cols, int delta);
+void pst_debug_func(char *function);
+void pst_debug_func_ret();
+void pst_debug_close(void);
+void pst_debug_write();
 
 void * xmalloc(size_t size);
 
-#define MESSAGEPRINT(x,y) {_debug_msg_info(__LINE__,__FILE__,y);\
-						   _debug_msg_text x;}
+#define MESSAGEPRINT(x,y) {pst_debug_msg_info(__LINE__,__FILE__,y);\
+						   pst_debug_msg_text x;}
 
 #define LOGSTOP() {MESSAGESTOP();DEBUGSTOP();}
 
@@ -82,7 +82,7 @@ void * xmalloc(size_t size);
 }
 
 #ifdef DEBUGPRINT
-#define DEBUG_PRINT(x) _pst_debug x;
+#define DEBUG_PRINT(x) pst_debug x;
 #else
 #define DEBUG_PRINT(x) {}
 #endif
@@ -101,8 +101,8 @@ void * xmalloc(size_t size);
 
 #ifdef DEBUG_MODE_EMAIL
 #define DEBUG_EMAIL(x) MESSAGEPRINT(x, DEBUG_EMAIL_NO);
-#define DEBUG_EMAIL_HEXPRINT(x,y) {_debug_msg_info(__LINE__, __FILE__, 11);\
-								   _debug_hexdump(x, y, 0x10, 0);}
+#define DEBUG_EMAIL_HEXPRINT(x,y) {pst_debug_msg_info(__LINE__, __FILE__, 11);\
+								   pst_debug_hexdump(x, y, 0x10, 0);}
 #else
 #define DEBUG_EMAIL(x) {}
 #define DEBUG_EMAIL_HEXPRINT(x,y) {}
@@ -146,38 +146,38 @@ void * xmalloc(size_t size);
 
 #ifdef DEBUG_MODE_HEXDUMP
 #define DEBUG_HEXDUMP(x, s)\
-  {_debug_msg_info(__LINE__, __FILE__, DEBUG_HEXDUMP_NO);\
-   _debug_hexdump(x, s, 0x10, 0);}
+  {pst_debug_msg_info(__LINE__, __FILE__, DEBUG_HEXDUMP_NO);\
+   pst_debug_hexdump(x, s, 0x10, 0);}
 #define DEBUG_HEXDUMPC(x, s, c)\
-  {_debug_msg_info(__LINE__, __FILE__, DEBUG_HEXDUMP_NO);\
-   _debug_hexdump(x, s, c, 0);}
+  {pst_debug_msg_info(__LINE__, __FILE__, DEBUG_HEXDUMP_NO);\
+   pst_debug_hexdump(x, s, c, 0);}
 #else
 #define DEBUG_HEXDUMP(x, s) {}
 #define DEBUG_HEXDUMPC(x, s, c) {}
 #endif
 
-#define DEBUG_FILE(x) {_debug_msg_info(__LINE__, __FILE__, DEBUG_FILE_NO);\
-					   _debug_msg_text x;}
+#define DEBUG_FILE(x) {pst_debug_msg_info(__LINE__, __FILE__, DEBUG_FILE_NO);\
+					   pst_debug_msg_text x;}
 
 #ifdef DEBUG_MODE_FUNC
 # define DEBUG_ENT(x)											\
 	{															\
-		 _debug_func(x);										\
+		 pst_debug_func(x);										\
 		MESSAGEPRINT(("Entering function\n"),DEBUG_FUNCENT_NO); \
 	}
 # define DEBUG_RET()											\
 	{															\
 		MESSAGEPRINT(("Leaving function\n"),DEBUG_FUNCRET_NO);  \
-		_debug_func_ret();										\
+		pst_debug_func_ret();										\
 	}
 #else
 # define DEBUG_ENT(x) {}
 # define DEBUG_RET() {}
 #endif
 
-#define DEBUG_INIT(fname) {_debug_init(fname);}
-#define DEBUG_CLOSE() {_debug_close();}
-#define DEBUG_REGISTER_CLOSE() {if(atexit(_debug_close)!=0) fprintf(stderr, "Error registering atexit function\n");}
+#define DEBUG_INIT(fname) {pst_debug_init(fname);}
+#define DEBUG_CLOSE() {pst_debug_close();}
+#define DEBUG_REGISTER_CLOSE() {if(atexit(pst_debug_close)!=0) fprintf(stderr, "Error registering atexit function\n");}
 
 #define RET_DERROR(res, ret_val, x)\
 	if (res) { DIE(x);}
@@ -186,7 +186,7 @@ void * xmalloc(size_t size);
 	if (res) {return ret_val;}
 
 #define DEBUG_VERSION 1
-struct _debug_file_rec_m {
+struct pst_debug_file_rec_m {
   unsigned short int funcname;
   unsigned short int filename;
   unsigned short int text;
@@ -195,7 +195,7 @@ struct _debug_file_rec_m {
   unsigned int type;
 };
 
-struct _debug_file_rec_l {
+struct pst_debug_file_rec_l {
   unsigned int funcname;
   unsigned int filename;
   unsigned int text;

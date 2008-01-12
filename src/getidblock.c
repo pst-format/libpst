@@ -69,26 +69,26 @@ int main(int argc, char ** argv) {
 	DIE(("Error loading file index\n"));
   }
 
-  //  if ((ptr = _pst_getID(&pstfile, id)) == NULL) {
+  //  if ((ptr = pst_getID(&pstfile, id)) == NULL) {
   //	DIE(("id not found [%#x]\n", id));
   //  }
 
   DEBUG_MAIN(("Loading block\n"));
 
-  if ((readSize = _pst_ff_getIDblock(&pstfile, id, &buf)) <= 0 || buf == NULL) {
-	//	if ((readSize = _pst_read_block_size(&pstfile, ptr->offset, ptr->size, &buf, 1, 1)) < ptr->size) {
+  if ((readSize = pst_ff_getIDblock(&pstfile, id, &buf)) <= 0 || buf == NULL) {
+	//	if ((readSize = pst_read_block_size(&pstfile, ptr->offset, ptr->size, &buf, 1, 1)) < ptr->size) {
 	DIE(("Error loading block\n"));
   }
   if (binary==0) printf("Block %#x, size %#x[%i]\n",id, (unsigned int)readSize, (int) readSize);
 
   if (decrypt!=0)
-	if (_pst_decrypt(buf, readSize, (int)pstfile.encryption) != 0) {
+	if (pst_decrypt(buf, readSize, (int)pstfile.encryption) != 0) {
 	  DIE(("Error decrypting block\n"));
 	}
 
   DEBUG_MAIN(("Printing block... [id %#x, size %#x]\n", id, readSize));
   if (binary==0) {
-	_pst_debug_hexdump(stdout, buf, readSize, 0x10, 0);
+	pst_debug_hexdumper(stdout, buf, readSize, 0x10, 0);
   } else {
 	if (fwrite(buf, 1, readSize, stdout) != 0) {
 	  DIE(("Error occured during writing of buf to stdout\n"));
@@ -108,12 +108,12 @@ int main(int argc, char ** argv) {
 	}
 	if (ptr == NULL) {
 	  ptr = (pst_desc_ll*)xmalloc(sizeof(pst_desc_ll));
-	  ptr->desc = _pst_getID(&pstfile, id);
+	  ptr->desc = pst_getID(&pstfile, id);
 	  ptr->list_index = NULL;
 	}
 	if (ptr != NULL) {
-	  if ((item = _pst_parse_item(&pstfile, ptr)) != NULL)
-	_pst_freeItem(item);
+	  if ((item = pst_parse_item(&pstfile, ptr)) != NULL)
+	pst_freeItem(item);
 	} else {
 	  DEBUG_MAIN(("item not found with this ID\n"));
 	  printf("Cannot find the owning Record of this ID. Cannot parse\n");
