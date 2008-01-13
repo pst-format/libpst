@@ -191,21 +191,21 @@ typedef struct pst_desc_tree {
 } pst_desc_ll;
 
 typedef struct pst_item_email_subject {
-  int32_t off1;
-  int32_t off2;
+  int     off1;
+  int     off2;
   char   *subj;
 } pst_item_email_subject;
 
 typedef struct pst_item_email {
   FILETIME *arrival_date;
-  int32_t   autoforward; // 1 = true, 0 = not set, -1 = false
+  int       autoforward;            // 1 = true, 0 = not set, -1 = false
   char     *body;
   char     *cc_address;
   char     *common_name;
   int32_t   conv_index;
-  int32_t   conversion_prohib;
-  int32_t   delete_after_submit; // 1 = true, 0 = false
-  int32_t   delivery_report; // 1 = true, 0 = false
+  int       conversion_prohib;      // 1 = true, 0 = false
+  int       delete_after_submit;    // 1 = true, 0 = false
+  int       delivery_report;        // 1 = true, 0 = false
   char     *encrypted_body;
   int32_t   encrypted_body_size;
   char     *encrypted_htmlbody;
@@ -215,9 +215,9 @@ typedef struct pst_item_email {
   char     *htmlbody;
   int32_t   importance;
   char     *in_reply_to;
-  int32_t   message_cc_me; // 1 = true, 0 = false
-  int32_t   message_recip_me; // 1 = true, 0 = false
-  int32_t   message_to_me; // 1 = true, 0 = false
+  int       message_cc_me;          // 1 = true, 0 = false
+  int       message_recip_me;       // 1 = true, 0 = false
+  int       message_to_me;          // 1 = true, 0 = false
   char     *messageid;
   int32_t   orig_sensitivity;
   char     *outlook_recipient;
@@ -227,12 +227,12 @@ typedef struct pst_item_email {
   char     *outlook_sender2;
   int32_t   priority;
   char     *proc_subject;
-  int32_t   read_receipt;
+  int       read_receipt;           // 1 = true, 0 = false
   char     *recip_access;
   char     *recip_address;
   char     *recip2_access;
   char     *recip2_address;
-  int32_t   reply_requested;
+  int       reply_requested;        // 1 = true, 0 = false
   char     *reply_to;
   char     *return_path_address;
   int32_t   rtf_body_char_count;
@@ -240,7 +240,7 @@ typedef struct pst_item_email {
   char     *rtf_body_tag;
   char     *rtf_compressed;
   uint32_t rtf_compressed_size;
-  int32_t   rtf_in_sync; // 1 = true, 0 = doesn't exist, -1 = false
+  int       rtf_in_sync;            // 1 = true, 0 = doesn't exist, -1 = false
   int32_t   rtf_ws_prefix_count;
   int32_t   rtf_ws_trailing_count;
   char     *sender_access;
@@ -258,7 +258,7 @@ typedef struct pst_item_folder {
   int32_t  email_count;
   int32_t  unseen_email_count;
   int32_t  assoc_count;
-  char subfolder;
+  int      subfolder;               // 1 = true, 0 = false
 } pst_item_folder;
 
 typedef struct pst_item_message_store {
@@ -333,7 +333,7 @@ typedef struct pst_item_contact {
   char *keyword;
   char *language;
   char *location;
-  int32_t  mail_permission;
+  int   mail_permission;            // 1 = true, 0 = false
   char *manager_name;
   char *middle_name;
   char *mileage;
@@ -356,7 +356,7 @@ typedef struct pst_item_contact {
   char *primary_phone;
   char *profession;
   char *radio_phone;
-  int32_t  rich_text;
+  int   rich_text;                  // 1 = true, 0 = false
   char *spouse_name;
   char *suffix;
   char *surname;
@@ -397,10 +397,10 @@ typedef struct pst_item_appointment {
   char *location;
   FILETIME *reminder;
   FILETIME *start;
-  char *timezonestring;
+  char   *timezonestring;
   int32_t showas;
   int32_t label;
-  int32_t all_day;
+  int     all_day;                  // 1 = true, 0 = false
 } pst_item_appointment;
 
 typedef struct pst_item {
@@ -412,7 +412,7 @@ typedef struct pst_item {
   struct pst_item_extra_field   *extra_fields;     // linked list of extra headers and such
   struct pst_item_journal       *journal;          // data reffering to a journal entry
   struct pst_item_appointment   *appointment;      // data reffering to a calendar entry
-  int32_t   type;
+  int       type;
   char     *ascii_type;
   char     *file_as;
   char     *comment;
@@ -420,10 +420,10 @@ typedef struct pst_item {
   char     *outlook_version;
   char     *record_key; // probably 16 bytes long.
   size_t    record_key_size;
-  int32_t   response_requested;
+  int       response_requested;     // 1 = true, 0 = false
   FILETIME *create_date;
   FILETIME *modify_date;
-  int32_t   private_member;
+  int       private_member;         // 1 = true, 0 = false
 } pst_item;
 
 typedef struct pst_x_attrib_ll {
@@ -468,7 +468,7 @@ typedef struct pst_block_offset_pointer {
 struct pst_num_item {
   uint32_t id;
   unsigned char *data;
-  uint32_t type;
+  uint32_t       type;
   size_t  size;
   char   *extra;
 };
@@ -533,7 +533,7 @@ size_t         pst_ff_compile_ID(pst_file *pf, uint64_t id, struct holder *h, si
 int            pst_strincmp(char *a, char *b, size_t x);
 int            pst_stricmp(char *a, char *b);
 size_t         pst_fwrite(const void*ptr, size_t size, size_t nmemb, FILE*stream);
-char *         pst_wide_to_single(char *wt, int32_t size);
+char *         pst_wide_to_single(char *wt, size_t size);
 
 char *         pst_rfc2426_escape(char *str);
 int            pst_chr_count(char *str, char x);

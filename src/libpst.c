@@ -455,7 +455,7 @@ int pst_load_extended_attributes(pst_file *pf) {
                 wt = (char*) xmalloc((size_t)(tint+2)); // plus 2 for a uni-code zero
                 memset(wt, 0, (size_t)(tint+2));
                 memcpy(wt, &(headerbuffer[xattrib.extended+sizeof(tint)]), (size_t)tint);
-                ptr->data = pst_wide_to_single(wt, tint);
+                ptr->data = pst_wide_to_single(wt, (size_t)tint);
                 free(wt);
                 DEBUG_INDEX(("Read string (converted from UTF-16): %s\n", ptr->data));
             } else {
@@ -1263,7 +1263,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
     int      count_rec;
     int32_t  num_list;
     int32_t  cur_list;
-    int32_t  block_type;
+    int      block_type;
     uint32_t rec_size = 0;
     uint32_t ind_ptr;
     unsigned char* list_start;
@@ -1400,7 +1400,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         }
 
         rec_size = seven_c_blk.rec_size;
-        num_list = seven_c_blk.item_count;
+        num_list = (int32_t)(unsigned)seven_c_blk.item_count;
 
         if (pst_getBlockOffsetPointer(pf, i2_head, buf, read_size, ind_ptr, seven_c_blk.b_five_offset, &block_offset4)) {
             DEBUG_WARN(("internal error (7c.b5 offset %#x) in reading block id %#x\n", seven_c_blk.b_five_offset, block_id));
@@ -1471,7 +1471,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         na_ptr->items       = (struct pst_num_item**) xmalloc(sizeof(struct pst_num_item)*num_list);
         na_ptr->count_item  = num_list;
         na_ptr->orig_count  = num_list;
-        na_ptr->count_array = num_recs; // each record will have a record of the total number of records
+        na_ptr->count_array = (int32_t)num_recs; // each record will have a record of the total number of records
         for (x=0; x<num_list; x++) na_ptr->items[x] = NULL;
         x = 0;
 
@@ -1481,13 +1481,13 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         for (cur_list=0; cur_list<num_list; cur_list++) { //we will increase fr_ptr as we progress through index
             unsigned char* value_pointer = NULL;    // needed for block type 2 with values larger than 4 bytes
             size_t value_size = 0;
-            if (block_type == (int32_t)1) {
+            if (block_type == 1) {
                 memcpy(&table_rec, fr_ptr, sizeof(table_rec));
                 LE16_CPU(table_rec.type);
                 LE16_CPU(table_rec.ref_type);
                 //LE32_CPU(table_rec.value);    // done later, some may be order invariant
                 fr_ptr += sizeof(table_rec);
-            } else if (block_type == (int32_t)2) {
+            } else if (block_type == 2) {
                 // we will copy the table2_rec values into a table_rec record so that we can keep the rest of the code
                 memcpy(&table2_rec, fr_ptr, sizeof(table2_rec));
                 LE16_CPU(table2_rec.ref_type);
@@ -1720,7 +1720,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
 
 int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
     int32_t x, t;
-    int32_t next = 0;
+    int next = 0;
     pst_item_extra_field *ef;
 
     DEBUG_ENT("pst_process");
@@ -1752,7 +1752,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // If set to true, the sender allows this email to be autoforwarded
                     DEBUG_EMAIL(("AutoForward allowed - "));
                     MALLOC_EMAIL(item);
-                    if (*((short int*)list->items[x]->data) != 0) {
+                    if (*(int16_t*)list->items[x]->data != 0) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->autoforward = 1;
                     } else {
@@ -1774,7 +1774,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     memcpy(&(item->email->importance), list->items[x]->data, sizeof(item->email->importance));
                     LE32_CPU(item->email->importance);
                     t = item->email->importance;
-                    DEBUG_EMAIL(("%s [%i]\n", (t==0?"Low":(t==1?"Normal":"High")), t));
+                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"Low":((int)t==1?"Normal":"High")), t));
                     break;
                 case 0x001A: // PR_MESSAGE_CLASS Ascii type of messages - NOT FOLDERS
                     // must be case insensitive
@@ -1828,7 +1828,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x0029:// PR_READ_RECEIPT_REQUESTED
                     DEBUG_EMAIL(("Read Receipt - "));
                     MALLOC_EMAIL(item);
-                    if (*(short int*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data != 0) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->read_receipt = 1;
                     } else {
@@ -1838,7 +1838,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     break;
                 case 0x002B: // PR_RECIPIENT_REASSIGNMENT_PROHIBITED
                     DEBUG_EMAIL(("Reassignment Prohibited (Private) - "));
-                    if (*(short int*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data != 0) {
                         DEBUG_EMAIL(("True\n"));
                         item->private_member = 1;
                     } else {
@@ -1857,8 +1857,8 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     memcpy(&(item->email->orig_sensitivity), list->items[x]->data, sizeof(item->email->orig_sensitivity));
                     LE32_CPU(item->email->orig_sensitivity);
                     t = item->email->orig_sensitivity;
-                    DEBUG_EMAIL(("%s [%i]\n", (t==0?"None":(t==1?"Personal":
-                                        (t==2?"Private":"Company Confidential"))), t));
+                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"None":((int)t==1?"Personal":
+                                        ((int)t==2?"Private":"Company Confidential"))), t));
                     break;
                 case 0x0036: // PR_SENSITIVITY
                     // sender's opinion of the sensitivity of an email
@@ -1871,11 +1871,10 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     memcpy(&(item->email->sensitivity), list->items[x]->data, sizeof(item->email->sensitivity));
                     LE32_CPU(item->email->sensitivity);
                     t = item->email->sensitivity;
-                    DEBUG_EMAIL(("%s [%i]\n", (t==0?"None":(t==1?"Personal":
-                                        (t==2?"Private":"Company Confidential"))), t));
+                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"None":((int)t==1?"Personal":
+                                        ((int)t==2?"Private":"Company Confidential"))), t));
                     break;
                 case 0x0037: // PR_SUBJECT raw subject
-                    //      if (list->items[x]->id == 0x0037) {
                     DEBUG_EMAIL(("Raw Subject - "));
                     MALLOC_EMAIL(item);
                     item->email->subject = (pst_item_email_subject*) realloc(item->email->subject, sizeof(pst_item_email_subject));
@@ -1892,9 +1891,9 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         } else {
                             DEBUG_EMAIL(("Raw Subject has control codes\n"));
                             // there might be some control bytes in the first and second bytes
-                            item->email->subject->off1 = list->items[x]->data[0];
-                            item->email->subject->off2 = list->items[x]->data[1];
-                            item->email->subject->subj = realloc(item->email->subject->subj, (list->items[x]->size-2)+1);
+                            item->email->subject->off1 = (int)(unsigned)list->items[x]->data[0];
+                            item->email->subject->off2 = (int)(unsigned)list->items[x]->data[1];
+                            item->email->subject->subj = realloc(item->email->subject->subj, list->items[x]->size-1);
                             memset(item->email->subject->subj, 0, list->items[x]->size-1);
                             memcpy(item->email->subject->subj, &(list->items[x]->data[2]), list->items[x]->size-2);
                         }
@@ -2103,7 +2102,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // I am not too sure how this works
                     DEBUG_EMAIL(("Delete after submit - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*) list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data != 0) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->delete_after_submit = 1;
                     } else {
@@ -2357,7 +2356,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x360A: // PR_SUBFOLDERS Has children
                     DEBUG_EMAIL(("Has Subfolders - "));
                     MALLOC_FOLDER(item);
-                    if (*((int32_t*)list->items[x]->data) != 0) {
+                    if (*(int32_t*)list->items[x]->data != 0) {
                         DEBUG_EMAIL(("True\n"));
                         item->folder->subfolder = 1;
                     } else {
@@ -2754,7 +2753,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x3A40: // PR_SEND_RICH_INFO
                     DEBUG_EMAIL(("Can receive Rich Text - "));
                     MALLOC_CONTACT(item);
-                    if(*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data != 0) {
                         DEBUG_EMAIL(("True\n"));
                         item->contact->rich_text = 1;
                     } else {
@@ -3278,26 +3277,26 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                          - 0x1102 - Array of Binary data
                         */
                     //  DEBUG_EMAIL(("Unknown id [%#x, size=%#x]\n", list->items[x]->id, list->items[x]->size));
-                    if (list->items[x]->type == 0x02) {
+                    if (list->items[x]->type == (uint32_t)0x02) {
                         DEBUG_EMAIL(("Unknown 16bit int = %hi\n", *(int16_t*)list->items[x]->data));
-                    } else if (list->items[x]->type == 0x03) {
+                    } else if (list->items[x]->type == (uint32_t)0x03) {
                         DEBUG_EMAIL(("Unknown 32bit int = %i\n", *(int32_t*)list->items[x]->data));
-                    } else if (list->items[x]->type == 0x0b) {
+                    } else if (list->items[x]->type == (uint32_t)0x0b) {
                         DEBUG_EMAIL(("Unknown 16bit boolean = %s [%hi]\n",
                                  (*((int16_t*)list->items[x]->data)!=0?"True":"False"),
                                  *((int16_t*)list->items[x]->data)));
-                    } else if (list->items[x]->type == 0x1e) {
+                    } else if (list->items[x]->type == (uint32_t)0x1e) {
                         DEBUG_EMAIL(("Unknown String Data = \"%s\" [%#x]\n",
                                 list->items[x]->data, list->items[x]->type));
-                    } else if (list->items[x]->type == 0x40) {
+                    } else if (list->items[x]->type == (uint32_t)0x40) {
                         DEBUG_EMAIL(("Unknown Date = \"%s\" [%#x]\n",
                                 fileTimeToAscii((FILETIME*)list->items[x]->data),
                                 list->items[x]->type));
-                    } else if (list->items[x]->type == 0x102) {
+                    } else if (list->items[x]->type == (uint32_t)0x102) {
                         DEBUG_EMAIL(("Unknown Binary Data [size = %#x]\n",
                                  list->items[x]->size));
                         DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
-                    } else if (list->items[x]->type == 0x101E) {
+                    } else if (list->items[x]->type == (uint32_t)0x101E) {
                         DEBUG_EMAIL(("Unknown Array of Strings [%#x]\n",
                                 list->items[x]->type));
                     } else {
@@ -3432,7 +3431,7 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* h
     LE16_CPU(block_head.count);
 
     if (block_head.type != (uint16_t)0x0002) { // some sort of constant?
-        WARN(("Unknown constant [%#x] at start of id2 values [offset %#llx].\n", block_head.type, list->offset));
+        WARN(("Unknown constant [%#hx] at start of id2 values [offset %#llx].\n", block_head.type, list->offset));
         if (buf) free(buf);
         DEBUG_RET();
         return NULL;
@@ -3930,7 +3929,7 @@ size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf, 
                 buf3 = (char*) realloc(buf3, size+1);
                 buf3[size] = '\0';
                 *buf = buf3;
-                fseek(pf->fp, fpos, SEEK_SET);
+                (void)fseek(pf->fp, fpos, SEEK_SET);
                 DEBUG_RET();
                 return size;
             }
@@ -3938,7 +3937,7 @@ size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf, 
                 buf3 = (char*) realloc(buf3, size+1);
                 buf3[size] = '\0';
                 *buf = buf3;
-                fseek(pf->fp, fpos, SEEK_SET);
+                (void)fseek(pf->fp, fpos, SEEK_SET);
                 DEBUG_RET();
                 return size;
             }
@@ -4035,7 +4034,7 @@ int pst_getAtPos(FILE *fp, off_t pos, void* buf, size_t size) {
         DEBUG_RET();
         return 1;
     }
-    if (fread(buf, 1, size, fp) < size) {
+    if (fread(buf, (size_t)1, size, fp) < size) {
         DEBUG_RET();
         return 2;
     }
@@ -4046,7 +4045,7 @@ int pst_getAtPos(FILE *fp, off_t pos, void* buf, size_t size) {
 
 int pst_get (FILE *fp, void *buf, size_t size) {
     DEBUG_ENT("pst_get");
-    if (fread(buf, 1,  size, fp) < size) {
+    if (fread(buf, (size_t)1, size, fp) < size) {
         DEBUG_RET();
         return 1;
     }
@@ -4087,7 +4086,7 @@ size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, unsigned char** b) {
 
     DEBUG_INDEX(("id = %#x, record size = %#x, offset = %#x\n", id, rec->size, rec->offset));
     *b = (char*) xmalloc(rec->size+1);
-    rsize = fread(*b, 1, rec->size, pf->fp);
+    rsize = fread(*b, (size_t)1, rec->size, pf->fp);
     if (rsize != rec->size) {
         DEBUG_WARN(("Didn't read all the size. fread returned less [%i instead of %i]\n", rsize, rec->size));
         if (feof(pf->fp)) {
@@ -4132,12 +4131,12 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, struct holder *h) {
         } else if ((h->base64 == 1) && h->fp) {
             t = base64_encode(b, ret);
             if (t) {
-                (void)pst_fwrite(t, 1, strlen(t), h->fp);
+                (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
                 free(t);    // caught by valgrind
             }
             free(b);
         } else if (h->fp) {
-            (void)pst_fwrite(b, 1, ret, h->fp);
+            (void)pst_fwrite(b, (size_t)1, ret, h->fp);
             free(b);
         } else {
             // h-> does not specify any output
@@ -4178,12 +4177,12 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, struct holder *h, size_t siz
         else if (h->base64 == 1 && h->fp) {
             t = base64_encode(buf3, a);
             if (t) {
-                (void)pst_fwrite(t, 1, strlen(t), h->fp);
+                (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
                 free(t);    // caught by valgrind
             }
             free(buf3);
         } else if (h->fp) {
-            (void)pst_fwrite(buf3, 1, a, h->fp);
+            (void)pst_fwrite(buf3, (size_t)1, a, h->fp);
             free(buf3);
         } else {
             // h-> does not specify any output
@@ -4227,12 +4226,12 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, struct holder *h, size_t siz
                 t = base64_encode(buf2, z-b);
                 if (t) {
                     DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
-                    (void)pst_fwrite(t, 1, strlen(t), h->fp);
+                    (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
                     free(t);    // caught by valgrind
                 }
             } else if (h->fp) {
                 DEBUG_READ(("writing %i bytes to file. Currently %i\n", z, size));
-                (void)pst_fwrite(buf2, 1, z, h->fp);
+                (void)pst_fwrite(buf2, (size_t)1, z, h->fp);
             } else {
                 // h-> does not specify any output
             }
@@ -4341,7 +4340,7 @@ size_t pst_fwrite(const void*ptr, size_t size, size_t nmemb, FILE*stream) {
 }
 
 
-char * pst_wide_to_single(char *wt, int32_t size) {
+char * pst_wide_to_single(char *wt, size_t size) {
     // returns the first byte of each wide char. the size is the number of bytes in source
     char *x, *y;
     DEBUG_ENT("pst_wide_to_single");
@@ -4362,7 +4361,8 @@ char * pst_wide_to_single(char *wt, int32_t size) {
 char *pst_rfc2426_escape(char *str) {
     static char* buf = NULL;
     char *ret, *a, *b;
-    int x = 0, y, z;
+    size_t x = 0;
+    int y, z;
     DEBUG_ENT("rfc2426_escape");
     if (!str)
         ret = str;
@@ -4423,12 +4423,11 @@ int pst_chr_count(char *str, char x) {
 
 
 char *pst_rfc2425_datetime_format(FILETIME *ft) {
-    static char* buffer = NULL;
+    static char buffer[30];
     struct tm *stm = NULL;
     DEBUG_ENT("rfc2425_datetime_format");
-    if (!buffer) buffer = malloc(30); // should be enough for the date as defined below
     stm = fileTimeToStructTM(ft);
-    if (strftime(buffer, 30, "%Y-%m-%dT%H:%M:%SZ", stm)==0) {
+    if (strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", stm)==0) {
         DEBUG_INFO(("Problem occured formatting date\n"));
     }
     DEBUG_RET();
@@ -4437,12 +4436,11 @@ char *pst_rfc2425_datetime_format(FILETIME *ft) {
 
 
 char *pst_rfc2445_datetime_format(FILETIME *ft) {
-    static char* buffer = NULL;
+    static char buffer[30];
     struct tm *stm = NULL;
     DEBUG_ENT("rfc2445_datetime_format");
-    if (!buffer) buffer = malloc(30); // should be enough for the date as defined below
     stm = fileTimeToStructTM(ft);
-    if (strftime(buffer, 30, "%Y%m%dT%H%M%SZ", stm)==0) {
+    if (strftime(buffer, sizeof(buffer), "%Y%m%dT%H%M%SZ", stm)==0) {
         DEBUG_INFO(("Problem occured formatting date\n"));
     }
     DEBUG_RET();
