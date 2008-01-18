@@ -19,7 +19,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-01-08</date>
+            <date>2008-01-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -212,7 +212,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-01-08</date>
+            <date>2008-01-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -286,7 +286,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-01-08</date>
+            <date>2008-01-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -461,7 +461,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-01-08</date>
+            <date>2008-01-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -585,7 +585,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-01-08</date>
+            <date>2008-01-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -1276,7 +1276,7 @@
         </refsect1>
 
         <refsect1 id='pst.file.list.32.5'>
-            <title>32 bit Associated List Item</title>
+            <title>32 bit Associated List Item 0x0002</title>
             <para>
                 Contains associations between id1 and id2 for the items controlled by the record.
                 In the above 32 bit leaf node, we have a tuple of (0x61, 0x02a82c, 0x02a836, 0)
@@ -1286,7 +1286,7 @@
             <literallayout class="monospaced"><![CDATA[
 0000  02 00  01 00  9f 81 00 00  30 a8 02 00  00 00 00 00
 
-0000  unknown         [2 bytes] 0x0002     constant
+0000  signature       [2 bytes] 0x0002     constant
 0002  count           [2 bytes] 0x0001     in this case
   repeating
 0004  id2             [4 bytes] 0x00819f   in this case
@@ -1296,7 +1296,7 @@
         </refsect1>
 
         <refsect1 id='pst.file.list.64.5'>
-            <title>64 bit Associated List Item</title>
+            <title>64 bit Associated List Item 0x0002</title>
             <para>
                 Contains associations between id1 and id2 for the items controlled by the record.
             </para>
@@ -1306,13 +1306,15 @@
 0020  3f 80 00 00  00 00 00 00  98 00 00 00  00 00 00 00
 0030  00 00 00 00  00 00 00 00
 
-0000  unknown         [2 bytes] 0x0002     constant
+0000  signature       [2 bytes] 0x0002     constant
 0002  count           [2 bytes] 0x0002     in this case
 0004  unknown         [4 bytes] 0   	   possibly constant
   repeating
-0008  id2             [8 bytes] 0x000692   in this case
-0008  id              [8 bytes] 0x0000a8   in this case
-000c  table2          [8 bytes] 0          in this case
+0008  id2             [4 bytes] 0x000692   in this case
+000c  unknown1        [2 bytes] 0          may be a count or size
+000e  unknown2        [2 bytes] 0          may be a count or size
+0010  id              [8 bytes] 0x0000a8   in this case
+0018  table2          [8 bytes] 0          in this case
 ]]></literallayout>
         </refsect1>
 
@@ -1773,11 +1775,17 @@
             </para>
         </refsect1>
 
-        <refsect1 id='pst.file.desc3.5'>
-            <title>Associated Descriptor Item 0x0002</title>
+        <refsect1 id='pst.file.desc3.32.5'>
+            <title>32 bit Associated Descriptor Item 0x0101</title>
             <para>
-                This style of descriptor block is almost unknown here.
-                It seems to contain a list of ID1 values.
+                This descriptor block contains a list of ID1 values. It is used when an
+    	    	ID1 (that would normally point to a type 0x7cec or 0xbcec descriptor block)
+    	    	contains more data than can fit in any single descriptor of those types.
+    	    	In this case, it points to a type 0x0101 block, which contains a list
+    	    	of ID1 values that themselves point to the actual descriptor blocks.
+    	    	The descriptor blocks that are pointed to by this list of ID1 values
+    	    	are almost but not quite the same as the standard 0xbcec blocks. Decoding
+    	    	these blocks is still incomplete.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  01 01 02 00  26 28 00 00  18 77 0c 00  b8 04 00 00
@@ -1788,6 +1796,24 @@
   repeating
 0008  id              [4 bytes] 0x0c7718   in this case
 000c  id              [4 bytes] 0x0004b8   in this case
+]]></literallayout>
+        </refsect1>
+
+        <refsect1 id='pst.file.desc3.64.5'>
+            <title>64 bit Associated Descriptor Item 0x0101</title>
+            <para>
+                This descriptor block contains a list of ID1 values.
+            </para>
+            <literallayout class="monospaced"><![CDATA[
+0000  01 01 02 00  ea 29 00 00  10 83 00 00  00 00 00 00
+0010  1c 83 00 00  00 00 00 00
+
+0000  signature       [2 bytes] 0x0101     constant
+0002  count           [2 bytes] 0x0002     in this case
+0004  unknown         [4 bytes] 0x0029ea   in this case
+  repeating
+0008  id              [8 bytes] 0x008310   in this case
+0010  id              [8 bytes] 0x00831c   in this case
 ]]></literallayout>
         </refsect1>
 

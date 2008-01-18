@@ -1,6 +1,7 @@
+#include "define.h"
+
 #include <stdlib.h>
 #include <string.h>
-#include "define.h"
 
 #define BUF_SIZE 100000
 int main() {

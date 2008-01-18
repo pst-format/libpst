@@ -4,6 +4,8 @@
  * Written by David Smith
  *            dave.s@earthcorp.com
  */
+#include "define.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -32,8 +34,6 @@
 
 #include "libstrfunc.h" // for base64_encoding
 
-#include "version.h"
-#include "define.h"
 #include "libpst.h"
 #include "common.h"
 #include "timeconv.h"
@@ -245,7 +245,7 @@ int main(int argc, char** argv) {
     pst_item *item = NULL;
     pst_desc_ll *d_ptr;
     char * fname = NULL;
-    char *d_log=NULL;
+    char *d_log  = NULL;
     int c,x;
     char *temp = NULL;               //temporary char pointer
     prog_name = argv[0];
@@ -782,9 +782,9 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
         // If there is a long filename (filename2) use that, otherwise
         // use the 8.3 filename (filename1)
         if (current_attach->filename2) {
-          attach_filename = current_attach->filename2;
+            attach_filename = current_attach->filename2;
         } else {
-          attach_filename = current_attach->filename1;
+            attach_filename = current_attach->filename1;
         }
         if (!attach_filename) {
             fprintf(f_output, "Content-Disposition: inline\n\n");

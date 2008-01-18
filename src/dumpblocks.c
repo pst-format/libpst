@@ -1,8 +1,9 @@
+#include "define.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "libpst.h"
-#include "define.h"
 
 #define OUT_BUF 20
 int main(int argc, char **argv) {

@@ -1,11 +1,12 @@
-/* Contains the debug functions */
+
+#include "define.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
-#include "define.h"
 
 #ifdef _WIN32
 # define vsnprintf _vsnprintf
@@ -246,7 +247,7 @@ void pst_debug_write() {
     size_t size, ptr, funcname, filename, text, end;
     char *buf = NULL, rec_type;
     if (!debug_fp) return;  // no file
-    off_t index_pos = ftell (debug_fp);
+    off_t index_pos = ftell(debug_fp);
     off_t file_pos  = index_pos;
     // add 2. One for the pointer to the next index,
     // one for the count of this index

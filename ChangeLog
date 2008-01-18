@@ -1,3 +1,13 @@
+LibPST 0.6.4 (2008-01-18)
+===============================
+
+	* More fixes for Outlook 2003 64 bit parsing. We observed cases of
+	compressed RTF bodies (type 0x1009) with zero length.
+	* Document type 0x0101 descriptor blocks and try to process them.
+	This is still not correct.
+	* Fix large file support - we need to include config.h before any
+	standard headers.
+
 LibPST 0.6.3 (2008-01-13)
 ===============================
 

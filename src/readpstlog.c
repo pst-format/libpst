@@ -1,3 +1,5 @@
+#include "define.h"
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -10,7 +12,6 @@
 # include "XGetopt.h"
 #endif
 
-#include "define.h"
 
 #define BUF_SIZE 4096
 
@@ -74,7 +75,9 @@ int main(int argc, char** argv) {
 	buf = (char*) xmalloc(BUF_SIZE);
 
 	while (!stop) {
-		if (fread(&x, sizeof(int), 1, fp)<=0) break;
+        off_t temp;
+		if (fread(&temp, sizeof(off_t), 1, fp)<=0) break;
+        x = (int)temp;
 		ptr = 0;
 		if (x > 0) {
 			if (i) free(i);

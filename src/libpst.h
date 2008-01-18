@@ -501,10 +501,10 @@ pst_desc_ll*   pst_getNextDptr(pst_desc_ll* d);
 int            pst_load_extended_attributes(pst_file *pf);
 
 int            pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
-int            pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t *high_id, uint64_t start_val, uint64_t end_val);
+int            pst_build_desc_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t *high_id, uint64_t start_val, uint64_t end_val);
 pst_item*      pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 pst_item*      pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
-pst_num_array* pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *i2_head);
+pst_num_array* pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *i2_head, pst_num_array *na_head);
 int            pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach);
 void           pst_free_list(pst_num_array *list);
 void           pst_freeItem(pst_item *item);

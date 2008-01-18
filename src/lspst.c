@@ -6,7 +6,8 @@
  *
  */
 
-// header file includes
+#include "define.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -15,7 +16,6 @@
 #include <errno.h>
 
 #include "libpst.h"
-#include "define.h"
 #include "timeconv.h"
 
 struct file_ll {
@@ -154,6 +154,10 @@ int main(int argc, char** argv) {
 
     if (argc <= 1) DIE(("Missing PST filename.\n"));
 
+    #ifdef DEBUG_ALL
+        // force a log file
+        if (!d_log) d_log = "lspst.log";
+    #endif // defined DEBUG_ALL
     DEBUG_INIT(d_log);
     DEBUG_REGISTER_CLOSE();
     DEBUG_ENT("main");

@@ -1,3 +1,5 @@
+#include "define.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -9,7 +11,6 @@
 # include <unistd.h>
 #endif
 
-#include "define.h"
 #include "libpst.h"
 
 static void usage();
