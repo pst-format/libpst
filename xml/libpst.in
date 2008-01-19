@@ -1367,14 +1367,24 @@
             </para>
             <para>
                 Note the b5offset of 0x0020, which is a type that I will call an index
-                reference.  Such index references have at least two different forms, and
-                may point to data either in this block, or in some other block.
+                reference.  Such index references have at least two different forms,
+                and may point to data either in this block, or in some other block.
                 External pointer references have the low order 4 bits all set, and are
                 ID2 values that can be used to fetch data.  This value of 0x0020 is an
-                internal pointer reference, which needs to be right shifted by 4 bits to
-                become 0x0002, which is then a byte offset to be added to the above
+                internal pointer reference, which needs to be right shifted by 4 bits
+                to become 0x0002, which is then a byte offset to be added to the above
                 indexOffset plus two (to skip the count), so it points to the (0xc,
                 0x14) pair.
+            </para>
+            <para>
+                So far we have only described internal index references where the high
+                order 16 bits are zero. That suffices for single descriptor
+                blocks. But in the case of the type 0x0101 descriptor block, we have
+                an array of subblocks. In this case, the high order 16 bits of an
+                internal index reference are used to select the subblock. Each
+                subblock starts with a 16 bit indexOffset which points to the count
+                and array of 16 bit integer pairs which are offsets in the current
+                subblock.
             </para>
             <para>
                 Finally, we have the offset and size of the "b5" block located at offset 0xc
@@ -1433,10 +1443,6 @@
             <para>
                 The following item types are known, but not all of these
                 are implemented in the code yet.
-                Note:  it appears that some types can have a IPOS value or a ID2 value
-                depending on the size of the field in question.  It is safer to check
-                every field than for me to say what the "usually" contain.  Absolute
-                values though, are generally going to be constant.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0002  AutoForward allowed
@@ -1778,24 +1784,27 @@
         <refsect1 id='pst.file.desc3.32.5'>
             <title>32 bit Associated Descriptor Item 0x0101</title>
             <para>
-                This descriptor block contains a list of ID1 values. It is used when an
-    	    	ID1 (that would normally point to a type 0x7cec or 0xbcec descriptor block)
-    	    	contains more data than can fit in any single descriptor of those types.
-    	    	In this case, it points to a type 0x0101 block, which contains a list
-    	    	of ID1 values that themselves point to the actual descriptor blocks.
-    	    	The descriptor blocks that are pointed to by this list of ID1 values
-    	    	are almost but not quite the same as the standard 0xbcec blocks. Decoding
-    	    	these blocks is still incomplete.
+                This descriptor block contains a list of ID1 values. It is used when
+                an ID1 (that would normally point to a type 0x7cec or 0xbcec
+                descriptor block) contains more data than can fit in any single
+                descriptor of those types.  In this case, it points to a type 0x0101
+                block, which contains a list of ID1 values that themselves point to
+                the actual descriptor blocks.  The total length value in the 0x0101
+                header is the sum of the lengths of the blocks pointed to by the list
+                of ID1 values. The result is an array of subblocks, that may contain
+                index references where the high order 16 bits specify which descriptor
+                subblock to use. Only the first descriptor subblock contains the
+                signature (0xbcec or 0x7cec).
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  01 01 02 00  26 28 00 00  18 77 0c 00  b8 04 00 00
 
 0000  signature       [2 bytes] 0x0101     constant
 0002  count           [2 bytes] 0x0002     in this case
-0004  unknown         [4 bytes] 0x002826   in this case
+0004  total length    [4 bytes] 0x002826   in this case
   repeating
-0008  id              [4 bytes] 0x0c7718   in this case
-000c  id              [4 bytes] 0x0004b8   in this case
+0008  id1             [4 bytes] 0x0c7718   in this case
+000c  id1             [4 bytes] 0x0004b8   in this case
 ]]></literallayout>
         </refsect1>
 
@@ -1810,10 +1819,10 @@
 
 0000  signature       [2 bytes] 0x0101     constant
 0002  count           [2 bytes] 0x0002     in this case
-0004  unknown         [4 bytes] 0x0029ea   in this case
+0004  total length    [4 bytes] 0x0029ea   in this case
   repeating
-0008  id              [8 bytes] 0x008310   in this case
-0010  id              [8 bytes] 0x00831c   in this case
+0008  id1             [8 bytes] 0x008310   in this case
+0010  id1             [8 bytes] 0x00831c   in this case
 ]]></literallayout>
         </refsect1>
 

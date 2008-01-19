@@ -111,383 +111,424 @@ typedef struct {
 #define PST_APP_LABEL_ANNIVERSARY 9 // Anniversary
 #define PST_APP_LABEL_PHONE_CALL  10// Phone Call
 
+
 typedef struct pst_misc_6_struct {
-  int32_t i1;
-  int32_t i2;
-  int32_t i3;
-  int32_t i4;
-  int32_t i5;
-  int32_t i6;
+    int32_t i1;
+    int32_t i2;
+    int32_t i3;
+    int32_t i4;
+    int32_t i5;
+    int32_t i6;
 } pst_misc_6;
 
+
 typedef struct pst_entryid_struct {
-  int32_t u1;
-  char entryid[16];
-  uint32_t id;
+    int32_t u1;
+    char entryid[16];
+    uint32_t id;
 } pst_entryid;
 
+
 typedef struct pst_desc_struct32 {
-  uint32_t d_id;
-  uint32_t desc_id;
-  uint32_t list_id;
-  uint32_t parent_id;
+    uint32_t d_id;
+    uint32_t desc_id;
+    uint32_t list_id;
+    uint32_t parent_id;
 } pst_desc32;
 
+
 typedef struct pst_desc_structn {
-  uint64_t d_id;
-  uint64_t desc_id;
-  uint64_t list_id;
-  uint32_t parent_id;  // not 64 bit ??
-  uint32_t u1;         // padding
+    uint64_t d_id;
+    uint64_t desc_id;
+    uint64_t list_id;
+    uint32_t parent_id;  // not 64 bit ??
+    uint32_t u1;         // padding
 } pst_descn;
 
+
 typedef struct pst_index_struct32 {
-  uint32_t id;
-  uint32_t offset;
-  uint16_t size;
-  int16_t  u1;
+    uint32_t id;
+    uint32_t offset;
+    uint16_t size;
+    int16_t  u1;
 } pst_index32;
 
+
 typedef struct pst_index_struct {
-  uint64_t id;
-  uint64_t offset;
-  uint16_t size;
-  int16_t  u0;
-  int32_t  u1;
+    uint64_t id;
+    uint64_t offset;
+    uint16_t size;
+    int16_t  u0;
+    int32_t  u1;
 } pst_index;
 
+
 typedef struct pst_index_tree32 {
-  uint32_t id;
-  uint32_t offset;
-  uint32_t size;
-  int32_t  u1;
-  struct pst_index_tree * next;
+    uint32_t id;
+    uint32_t offset;
+    uint32_t size;
+    int32_t  u1;
+    struct pst_index_tree * next;
 } pst_index_ll32;
 
+
 typedef struct pst_index_tree {
-  uint64_t id;
-  uint64_t offset;
-  uint64_t size;
-  int64_t  u1;
-  struct pst_index_tree * next;
+    uint64_t id;
+    uint64_t offset;
+    uint64_t size;
+    int64_t  u1;
+    struct pst_index_tree * next;
 } pst_index_ll;
 
+
 typedef struct pst_index2_tree {
-  uint64_t id2;
-  pst_index_ll *id;
-  struct pst_index2_tree * next;
+    uint64_t id2;
+    pst_index_ll *id;
+    struct pst_index2_tree * next;
 } pst_index2_ll;
 
+
 typedef struct pst_desc_tree {
-  uint64_t id;
-  pst_index_ll * list_index;
-  pst_index_ll * desc;
-  int32_t no_child;
-  struct pst_desc_tree * prev;
-  struct pst_desc_tree * next;
-  struct pst_desc_tree * parent;
-  struct pst_desc_tree * child;
-  struct pst_desc_tree * child_tail;
+    uint64_t id;
+    pst_index_ll * list_index;
+    pst_index_ll * desc;
+    int32_t no_child;
+    struct pst_desc_tree * prev;
+    struct pst_desc_tree * next;
+    struct pst_desc_tree * parent;
+    struct pst_desc_tree * child;
+    struct pst_desc_tree * child_tail;
 } pst_desc_ll;
 
+
 typedef struct pst_item_email_subject {
-  int     off1;
-  int     off2;
-  char   *subj;
+    int     off1;
+    int     off2;
+    char   *subj;
 } pst_item_email_subject;
 
+
 typedef struct pst_item_email {
-  FILETIME *arrival_date;
-  int       autoforward;            // 1 = true, 0 = not set, -1 = false
-  char     *body;
-  char     *cc_address;
-  char     *common_name;
-  int32_t   conv_index;
-  int       conversion_prohib;      // 1 = true, 0 = false
-  int       delete_after_submit;    // 1 = true, 0 = false
-  int       delivery_report;        // 1 = true, 0 = false
-  char     *encrypted_body;
-  int32_t   encrypted_body_size;
-  char     *encrypted_htmlbody;
-  int32_t   encrypted_htmlbody_size;
-  int32_t   flag;
-  char     *header;
-  char     *htmlbody;
-  int32_t   importance;
-  char     *in_reply_to;
-  int       message_cc_me;          // 1 = true, 0 = false
-  int       message_recip_me;       // 1 = true, 0 = false
-  int       message_to_me;          // 1 = true, 0 = false
-  char     *messageid;
-  int32_t   orig_sensitivity;
-  char     *outlook_recipient;
-  char     *outlook_recipient2;
-  char     *outlook_sender;
-  char     *outlook_sender_name;
-  char     *outlook_sender2;
-  int32_t   priority;
-  char     *proc_subject;
-  int       read_receipt;           // 1 = true, 0 = false
-  char     *recip_access;
-  char     *recip_address;
-  char     *recip2_access;
-  char     *recip2_address;
-  int       reply_requested;        // 1 = true, 0 = false
-  char     *reply_to;
-  char     *return_path_address;
-  int32_t   rtf_body_char_count;
-  int32_t   rtf_body_crc;
-  char     *rtf_body_tag;
-  char     *rtf_compressed;
-  uint32_t rtf_compressed_size;
-  int       rtf_in_sync;            // 1 = true, 0 = doesn't exist, -1 = false
-  int32_t   rtf_ws_prefix_count;
-  int32_t   rtf_ws_trailing_count;
-  char     *sender_access;
-  char     *sender_address;
-  char     *sender2_access;
-  char     *sender2_address;
-  int32_t   sensitivity;
-  FILETIME *sent_date;
-  pst_entryid *sentmail_folder;
-  char        *sentto_address;
-  pst_item_email_subject *subject;
+    FILETIME *arrival_date;
+    int       autoforward;            // 1 = true, 0 = not set, -1 = false
+    char     *body;
+    char     *cc_address;
+    char     *common_name;
+    int32_t   conv_index;
+    int       conversion_prohib;      // 1 = true, 0 = false
+    int       delete_after_submit;    // 1 = true, 0 = false
+    int       delivery_report;        // 1 = true, 0 = false
+    char     *encrypted_body;
+    int32_t   encrypted_body_size;
+    char     *encrypted_htmlbody;
+    int32_t   encrypted_htmlbody_size;
+    int32_t   flag;
+    char     *header;
+    char     *htmlbody;
+    int32_t   importance;
+    char     *in_reply_to;
+    int       message_cc_me;          // 1 = true, 0 = false
+    int       message_recip_me;       // 1 = true, 0 = false
+    int       message_to_me;          // 1 = true, 0 = false
+    char     *messageid;
+    int32_t   orig_sensitivity;
+    char     *outlook_recipient;
+    char     *outlook_recipient2;
+    char     *outlook_sender;
+    char     *outlook_sender_name;
+    char     *outlook_sender2;
+    int32_t   priority;
+    char     *proc_subject;
+    int       read_receipt;           // 1 = true, 0 = false
+    char     *recip_access;
+    char     *recip_address;
+    char     *recip2_access;
+    char     *recip2_address;
+    int       reply_requested;        // 1 = true, 0 = false
+    char     *reply_to;
+    char     *return_path_address;
+    int32_t   rtf_body_char_count;
+    int32_t   rtf_body_crc;
+    char     *rtf_body_tag;
+    char     *rtf_compressed;
+    uint32_t rtf_compressed_size;
+    int       rtf_in_sync;            // 1 = true, 0 = doesn't exist, -1 = false
+    int32_t   rtf_ws_prefix_count;
+    int32_t   rtf_ws_trailing_count;
+    char     *sender_access;
+    char     *sender_address;
+    char     *sender2_access;
+    char     *sender2_address;
+    int32_t   sensitivity;
+    FILETIME *sent_date;
+    pst_entryid *sentmail_folder;
+    char        *sentto_address;
+    pst_item_email_subject *subject;
 } pst_item_email;
 
+
 typedef struct pst_item_folder {
-  int32_t  email_count;
-  int32_t  unseen_email_count;
-  int32_t  assoc_count;
-  int      subfolder;               // 1 = true, 0 = false
+    int32_t  email_count;
+    int32_t  unseen_email_count;
+    int32_t  assoc_count;
+    int      subfolder;               // 1 = true, 0 = false
 } pst_item_folder;
 
+
 typedef struct pst_item_message_store {
-  pst_entryid *deleted_items_folder;
-  pst_entryid *search_root_folder;
-  pst_entryid *top_of_personal_folder;
-  pst_entryid *top_of_folder;
-  int32_t valid_mask; // what folders the message store contains
-  int32_t pwd_chksum;
+    pst_entryid *deleted_items_folder;
+    pst_entryid *search_root_folder;
+    pst_entryid *top_of_personal_folder;
+    pst_entryid *top_of_folder;
+    int32_t valid_mask; // what folders the message store contains
+    int32_t pwd_chksum;
 } pst_item_message_store;
 
+
 typedef struct pst_item_contact {
-  char *access_method;
-  char *account_name;
-  char *address1;
-  char *address1a;
-  char *address1_desc;
-  char *address1_transport;
-  char *address2;
-  char *address2a;
-  char *address2_desc;
-  char *address2_transport;
-  char *address3;
-  char *address3a;
-  char *address3_desc;
-  char *address3_transport;
-  char *assistant_name;
-  char *assistant_phone;
-  char *billing_information;
-  FILETIME *birthday;
-  char *business_address;
-  char *business_city;
-  char *business_country;
-  char *business_fax;
-  char *business_homepage;
-  char *business_phone;
-  char *business_phone2;
-  char *business_po_box;
-  char *business_postal_code;
-  char *business_state;
-  char *business_street;
-  char *callback_phone;
-  char *car_phone;
-  char *company_main_phone;
-  char *company_name;
-  char *computer_name;
-  char *customer_id;
-  char *def_postal_address;
-  char *department;
-  char *display_name_prefix;
-  char *first_name;
-  char *followup;
-  char *free_busy_address;
-  char *ftp_site;
-  char *fullname;
-  int32_t  gender;
-  char *gov_id;
-  char *hobbies;
-  char *home_address;
-  char *home_city;
-  char *home_country;
-  char *home_fax;
-  char *home_phone;
-  char *home_phone2;
-  char *home_po_box;
-  char *home_postal_code;
-  char *home_state;
-  char *home_street;
-  char *initials;
-  char *isdn_phone;
-  char *job_title;
-  char *keyword;
-  char *language;
-  char *location;
-  int   mail_permission;            // 1 = true, 0 = false
-  char *manager_name;
-  char *middle_name;
-  char *mileage;
-  char *mobile_phone;
-  char *nickname;
-  char *office_loc;
-  char *org_id;
-  char *other_address;
-  char *other_city;
-  char *other_country;
-  char *other_phone;
-  char *other_po_box;
-  char *other_postal_code;
-  char *other_state;
-  char *other_street;
-  char *pager_phone;
-  char *personal_homepage;
-  char *pref_name;
-  char *primary_fax;
-  char *primary_phone;
-  char *profession;
-  char *radio_phone;
-  int   rich_text;                  // 1 = true, 0 = false
-  char *spouse_name;
-  char *suffix;
-  char *surname;
-  char *telex;
-  char *transmittable_display_name;
-  char *ttytdd_phone;
-  FILETIME *wedding_anniversary;
+    char *access_method;
+    char *account_name;
+    char *address1;
+    char *address1a;
+    char *address1_desc;
+    char *address1_transport;
+    char *address2;
+    char *address2a;
+    char *address2_desc;
+    char *address2_transport;
+    char *address3;
+    char *address3a;
+    char *address3_desc;
+    char *address3_transport;
+    char *assistant_name;
+    char *assistant_phone;
+    char *billing_information;
+    FILETIME *birthday;
+    char *business_address;
+    char *business_city;
+    char *business_country;
+    char *business_fax;
+    char *business_homepage;
+    char *business_phone;
+    char *business_phone2;
+    char *business_po_box;
+    char *business_postal_code;
+    char *business_state;
+    char *business_street;
+    char *callback_phone;
+    char *car_phone;
+    char *company_main_phone;
+    char *company_name;
+    char *computer_name;
+    char *customer_id;
+    char *def_postal_address;
+    char *department;
+    char *display_name_prefix;
+    char *first_name;
+    char *followup;
+    char *free_busy_address;
+    char *ftp_site;
+    char *fullname;
+    int32_t  gender;
+    char *gov_id;
+    char *hobbies;
+    char *home_address;
+    char *home_city;
+    char *home_country;
+    char *home_fax;
+    char *home_phone;
+    char *home_phone2;
+    char *home_po_box;
+    char *home_postal_code;
+    char *home_state;
+    char *home_street;
+    char *initials;
+    char *isdn_phone;
+    char *job_title;
+    char *keyword;
+    char *language;
+    char *location;
+    int   mail_permission;            // 1 = true, 0 = false
+    char *manager_name;
+    char *middle_name;
+    char *mileage;
+    char *mobile_phone;
+    char *nickname;
+    char *office_loc;
+    char *org_id;
+    char *other_address;
+    char *other_city;
+    char *other_country;
+    char *other_phone;
+    char *other_po_box;
+    char *other_postal_code;
+    char *other_state;
+    char *other_street;
+    char *pager_phone;
+    char *personal_homepage;
+    char *pref_name;
+    char *primary_fax;
+    char *primary_phone;
+    char *profession;
+    char *radio_phone;
+    int   rich_text;                  // 1 = true, 0 = false
+    char *spouse_name;
+    char *suffix;
+    char *surname;
+    char *telex;
+    char *transmittable_display_name;
+    char *ttytdd_phone;
+    FILETIME *wedding_anniversary;
 } pst_item_contact;
 
+
 typedef struct pst_item_attach {
-  char *filename1;
-  char *filename2;
-  char *mimetype;
-  char *data;
-  size_t   size;
-  uint64_t id2_val;
-  uint64_t id_val; // calculated from id2_val during creation of record
-  int32_t  method;
-  int32_t  position;
-  int32_t  sequence;
-  struct pst_item_attach *next;
+    char *filename1;
+    char *filename2;
+    char *mimetype;
+    char *data;
+    size_t   size;
+    uint64_t id2_val;
+    uint64_t id_val; // calculated from id2_val during creation of record
+    int32_t  method;
+    int32_t  position;
+    int32_t  sequence;
+    struct pst_item_attach *next;
 } pst_item_attach;
 
+
 typedef struct pst_item_extra_field {
-  char *field_name;
-  char *value;
-  struct pst_item_extra_field *next;
+    char *field_name;
+    char *value;
+    struct pst_item_extra_field *next;
 } pst_item_extra_field;
 
+
 typedef struct pst_item_journal {
-  FILETIME *end;
-  FILETIME *start;
-  char *type;
+    FILETIME *end;
+    FILETIME *start;
+    char *type;
 } pst_item_journal;
 
+
 typedef struct pst_item_appointment {
-  FILETIME *end;
-  char *location;
-  FILETIME *reminder;
-  FILETIME *start;
-  char   *timezonestring;
-  int32_t showas;
-  int32_t label;
-  int     all_day;                  // 1 = true, 0 = false
+    FILETIME *end;
+    char *location;
+    FILETIME *reminder;
+    FILETIME *start;
+    char   *timezonestring;
+    int32_t showas;
+    int32_t label;
+    int     all_day;                  // 1 = true, 0 = false
 } pst_item_appointment;
 
+
 typedef struct pst_item {
-  struct pst_item_email         *email;            // data reffering to email
-  struct pst_item_folder        *folder;           // data reffering to folder
-  struct pst_item_contact       *contact;          // data reffering to contact
-  struct pst_item_attach        *attach;           // linked list of attachments
-  struct pst_item_message_store *message_store;    // data referring to the message store
-  struct pst_item_extra_field   *extra_fields;     // linked list of extra headers and such
-  struct pst_item_journal       *journal;          // data reffering to a journal entry
-  struct pst_item_appointment   *appointment;      // data reffering to a calendar entry
-  int       type;
-  char     *ascii_type;
-  char     *file_as;
-  char     *comment;
-  int32_t   message_size;
-  char     *outlook_version;
-  char     *record_key; // probably 16 bytes long.
-  size_t    record_key_size;
-  int       response_requested;     // 1 = true, 0 = false
-  FILETIME *create_date;
-  FILETIME *modify_date;
-  int       private_member;         // 1 = true, 0 = false
+    struct pst_item_email         *email;           // data reffering to email
+    struct pst_item_folder        *folder;          // data reffering to folder
+    struct pst_item_contact       *contact;         // data reffering to contact
+    struct pst_item_attach        *attach;          // linked list of attachments
+    struct pst_item_message_store *message_store;   // data referring to the message store
+    struct pst_item_extra_field   *extra_fields;    // linked list of extra headers and such
+    struct pst_item_journal       *journal;         // data reffering to a journal entry
+    struct pst_item_appointment   *appointment;     // data reffering to a calendar entry
+    int       type;
+    char     *ascii_type;
+    char     *file_as;
+    char     *comment;
+    int32_t   message_size;
+    char     *outlook_version;
+    char     *record_key; // probably 16 bytes long.
+    size_t    record_key_size;
+    int       response_requested;     // 1 = true, 0 = false
+    FILETIME *create_date;
+    FILETIME *modify_date;
+    int       private_member;         // 1 = true, 0 = false
 } pst_item;
 
+
 typedef struct pst_x_attrib_ll {
-  uint32_t type;
-  uint32_t mytype;
-  uint32_t map;
-  void *data;
-  struct pst_x_attrib_ll *next;
+    uint32_t type;
+    uint32_t mytype;
+    uint32_t map;
+    void *data;
+    struct pst_x_attrib_ll *next;
 } pst_x_attrib_ll;
 
+
 typedef struct pst_file {
-  pst_index_ll *i_head, *i_tail;
-  pst_index2_ll *i2_head;
-  pst_desc_ll *d_head, *d_tail;
-  pst_x_attrib_ll *x_head;
+    pst_index_ll *i_head, *i_tail;
+    pst_index2_ll *i2_head;
+    pst_desc_ll *d_head, *d_tail;
+    pst_x_attrib_ll *x_head;
 
-  //set this to 0 to read 32-bit pst files (pre Outlook 2003)
-  //set this to 1 to read 64-bit pst files (Outlook 2003 and later)
-  int do_read64;
+    //set this to 0 to read 32-bit pst files (pre Outlook 2003)
+    //set this to 1 to read 64-bit pst files (Outlook 2003 and later)
+    int do_read64;
 
-  uint64_t index1;
-  uint64_t index1_back;
-  uint64_t index2;
-  uint64_t index2_back;
-  FILE * fp;                // file pointer to opened PST file
-  uint64_t size;            // pst file size
-  unsigned char encryption; // pst encryption setting
-  unsigned char ind_type;   // pst index type
+    uint64_t index1;
+    uint64_t index1_back;
+    uint64_t index2;
+    uint64_t index2_back;
+    FILE * fp;                // file pointer to opened PST file
+    uint64_t size;            // pst file size
+    unsigned char encryption; // pst encryption setting
+    unsigned char ind_type;   // pst index type
 } pst_file;
 
+
 typedef struct pst_block_offset {
-  int16_t from;
-  int16_t to;
+    int16_t from;
+    int16_t to;
 } pst_block_offset;
 
+
 typedef struct pst_block_offset_pointer {
-  unsigned char *from;
-  unsigned char *to;
-  int           needfree;
+    unsigned char *from;
+    unsigned char *to;
+    int           needfree;
 } pst_block_offset_pointer;
 
-struct pst_num_item {
-  uint32_t id;
-  unsigned char *data;
-  uint32_t       type;
-  size_t  size;
-  char   *extra;
-};
+
+typedef struct pst_num_item {
+    uint32_t       id;    // not an id1 or id2, this is actually some sort of type code
+    unsigned char *data;
+    uint32_t       type;
+    size_t         size;
+    char          *extra;
+} pst_num_item;
+
 
 typedef struct pst_num_array {
-  int32_t count_item;
-  int32_t orig_count;
-  int32_t count_array;
-  struct pst_num_item ** items;
-  struct pst_num_array *next;
+    int32_t count_item;
+    int32_t orig_count;
+    int32_t count_array;
+    struct pst_num_item ** items;
+    struct pst_num_array *next;
 } pst_num_array;
 
-struct holder {
-  unsigned char **buf;
-  FILE *    fp;
-  int       base64;
-  char      base64_extra_chars[3];
-  uint32_t  base64_extra;
-};
+
+typedef struct pst_holder {
+    unsigned char **buf;
+    FILE *    fp;
+    int       base64;
+    char      base64_extra_chars[3];
+    uint32_t  base64_extra;
+} pst_holder;
+
+
+typedef struct pst_subblock {
+    unsigned char  *buf;
+    size_t          read_size;
+    size_t          i_offset;
+} pst_subblock;
+
+
+typedef struct pst_subblocks {
+    size_t          subblock_count;
+    pst_subblock   *subs;
+} pst_subblocks;
+
 
 // prototypes
 int            pst_open(pst_file *pf, char *name, char *mode);
@@ -512,7 +553,7 @@ void           pst_free_id2(pst_index2_ll * head);
 void           pst_free_id (pst_index_ll *head);
 void           pst_free_desc (pst_desc_ll *head);
 void           pst_free_xattrib(pst_x_attrib_ll *x);
-int            pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, unsigned char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset_pointer *p);
+int            pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p);
 int            pst_getBlockOffset(unsigned char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p);
 pst_index2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* head_ptr);
 pst_index_ll*  pst_getID(pst_file* pf, uint64_t id);
@@ -527,8 +568,8 @@ int            pst_get (FILE *fp, void *buf, size_t size);
 size_t         pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, unsigned char **b);
 size_t         pst_ff_getIDblock(pst_file *pf, uint64_t id, unsigned char** b);
 size_t         pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, unsigned char** buf);
-size_t         pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, struct holder *h);
-size_t         pst_ff_compile_ID(pst_file *pf, uint64_t id, struct holder *h, size_t size);
+size_t         pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h);
+size_t         pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size);
 
 int            pst_strincmp(char *a, char *b, size_t x);
 int            pst_stricmp(char *a, char *b);
