@@ -6,6 +6,19 @@ LibPST 0.6.4 (2008-01-19)
 	* Document type 0x0101 descriptor blocks and process them.
 	* Fix large file support - we need to include config.h before any
 	standard headers.
+	* Merge following changes from svn snapshot from Alioth:
+            * Add new fields to appointment for recurring events
+              (SourceForge #304198)
+            * Map IPM.Task items to PST_TYPE_TASK.
+            * Applied patch to remove compiler warnings, thanks!
+              (SourceForge #304314)
+            * Fix crash with unknown reference type
+            * Fix more memory issues detected by valgrind
+            * lspst - add usage mesage and option parsing using getopt
+                (SourceForge #304199)
+            * Fix crash caused by invalid free calls
+            * Fix crash when email subject is empty
+            * Fix memory and information leak in hex debug dump
 
 LibPST 0.6.3 (2008-01-13)
 ===============================

@@ -26,8 +26,8 @@ $val  ../src/readpst -cv    -o output7 -d dumper sample_64.pst       >out7.err 2
 $val  ../src/readpst -cv    -o output8 -d dumper big_mail.pst        >out8.err 2>&1
       ../src/readpstlog -f I dumper >big_mail.log
 
-$val  ../src/lspst ams.pst >out8.err 2>&1
-      ../src/readpstlog -f I lspst.debug >lspst.log
+$val  ../src/lspst -d dumper ams.pst                                 >out9.err 2>&1
+      ../src/readpstlog -f I dumper >ams.log
 
 rm -f dumper lspst.debug
 

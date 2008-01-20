@@ -64,22 +64,27 @@ struct pst_table_ptr_struct32{
   uint32_t u1;
   uint32_t offset;
 };
+
+
 struct pst_table_ptr_structn{
   uint64_t start;
   uint64_t u1;
   uint64_t offset;
 };
 
+
 typedef struct pst_block_header {
     uint16_t type;
     uint16_t count;
 } pst_block_header;
+
 
 typedef struct pst_id2_assoc32 {
     uint32_t id2;
     uint32_t id;
     uint32_t table2;
 } pst_id2_assoc32;
+
 
 typedef struct pst_id2_assoc {
     uint32_t id2;       // only 32 bit here?
@@ -89,13 +94,22 @@ typedef struct pst_id2_assoc {
     uint64_t table2;
 } pst_id2_assoc;
 
+
 typedef struct pst_table3_rec32 {
     uint32_t id;
 } pst_table3_rec32; //for type 3 (0x0101) blocks
 
+
 typedef struct pst_table3_rec {
     uint64_t id;
 } pst_table3_rec;   //for type 3 (0x0101) blocks
+
+
+typedef struct pst_block_hdr {
+    uint16_t index_offset;
+    uint16_t type;
+    uint32_t offset;
+} pst_block_hdr;
 
 
 // this is an array of the un-encrypted values. the un-encrypted value is in the position
@@ -1306,12 +1320,8 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
     unsigned char* ind2_end = NULL;
     unsigned char* ind2_ptr = NULL;
     pst_x_attrib_ll *mapptr;
-
-    struct {
-        uint16_t index_offset;
-        uint16_t type;
-        uint32_t offset;
-    } block_hdr;
+    pst_block_hdr    block_hdr;
+    pst_table3_rec   table3_rec;  //for type 3 (0x0101) blocks
 
     struct {
         unsigned char seven_c;
@@ -1345,8 +1355,6 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         uint8_t  slot;
     } table2_rec;   //for type 2 (0x7CEC) blocks
 
-    pst_table3_rec table3_rec;  //for type 3 (0x0101) blocks
-
     DEBUG_ENT("pst_parse_block");
     if ((read_size = pst_ff_getIDblock_dec(pf, block_id, &buf)) == 0) {
         WARN(("Error reading block id %#llx\n", block_id));
@@ -1370,10 +1378,10 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
     DEBUG_EMAIL(("block header (index_offset=%#hx, type=%#hx, offset=%#hx)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
 
     if (block_hdr.index_offset == (uint16_t)0x0101) { //type 3
-        subblocks.subblock_count = block_hdr.type;
-        subblocks.subs = malloc(sizeof(pst_subblock) * subblocks.subblock_count);
         size_t i;
         char *b_ptr = buf + 8;
+        subblocks.subblock_count = block_hdr.type;
+        subblocks.subs = malloc(sizeof(pst_subblock) * subblocks.subblock_count);
         for (i=0; i<subblocks.subblock_count; i++) {
             b_ptr += pst_decode_type3(pf, &table3_rec, b_ptr);
             subblocks.subs[i].buf       = NULL;
@@ -1397,7 +1405,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
     }
     else {
         // setup the subblock descriptors, but we only have one block
-        subblocks.subblock_count = 1;
+        subblocks.subblock_count = (size_t)1;
         subblocks.subs = malloc(sizeof(pst_subblock));
         subblocks.subs[0].buf       = buf;
         subblocks.subs[0].read_size = read_size;
@@ -1551,7 +1559,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
                 table_rec.type     = table2_rec.type;
                 table_rec.ref_type = table2_rec.ref_type;
                 table_rec.value    = 0;
-                if ((ind2_end - ind2_ptr) >= (table2_rec.ind2_off + table2_rec.size)) {
+                if ((ind2_end - ind2_ptr) >= (int)(table2_rec.ind2_off + table2_rec.size)) {
                     size_t n = table2_rec.size;
                     size_t m = sizeof(table_rec.value);
                     if (n <= m) {
@@ -1671,7 +1679,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
                     }
                 }
                 else {
-                    value_size = block_offset7.to - block_offset7.from;
+                    value_size = (size_t)(block_offset7.to - block_offset7.from);
                     na_ptr->items[x]->size = value_size;
                     na_ptr->items[x]->type = table_rec.ref_type;
                     na_ptr->items[x]->data = xmalloc(value_size+1);
@@ -1863,6 +1871,8 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         item->type = PST_TYPE_JOURNAL;
                     else if (pst_strincmp("IPM.Appointment", item->ascii_type, 15) == 0)
                         item->type = PST_TYPE_APPOINTMENT;
+                    else if (pst_strincmp("IPM.Task", item->ascii_type, 8) == 0)
+                        item->type = PST_TYPE_TASK;
                     else
                         item->type = PST_TYPE_OTHER;
 
@@ -2245,7 +2255,9 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("Attachment Size - "));
                     NULL_CHECK(attach);
                     MOVE_NEXT(attach);
-                    memcpy(&(attach->size), list->items[x]->data, sizeof(attach->size));
+                    t = (*(int32_t*)list->items[x]->data);
+                    LE32_CPU(t);
+                    attach->size = (size_t)t;
                     DEBUG_EMAIL(("%i\n", attach->size));
                     break;
                 case 0x0FF9: // PR_RECORD_KEY Record Header 1
@@ -3205,6 +3217,18 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     LIST_COPY(item->appointment->location, (char*));
                     DEBUG_EMAIL(("%s\n", item->appointment->location));
                     break;
+                case 0x820d: // Appointment start
+                    DEBUG_EMAIL(("Appointment Date Start - "));
+                    MALLOC_APPOINTMENT(item);
+                    LIST_COPY(item->appointment->start, (FILETIME*));
+                    DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->start)));
+                    break;
+                case 0x820e: // Appointment end
+                    DEBUG_EMAIL(("Appointment Date End - "));
+                    MALLOC_APPOINTMENT(item);
+                    LIST_COPY(item->appointment->end, (FILETIME*));
+                    DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->end)));
+                    break;
                 case 0x8214: // Label for an appointment
                     DEBUG_EMAIL(("Label for appointment - "));
                     MALLOC_APPOINTMENT(item);
@@ -3246,31 +3270,83 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         item->appointment->all_day = 0;
                     }
                     break;
+                case 0x8231: // Recurrence type
+                    // 1: Daily
+                    // 2: Weekly
+                    // 3: Monthly
+                    // 4: Yearly
+                    DEBUG_EMAIL(("Appointment reccurs - "));
+                    MALLOC_APPOINTMENT(item);
+                    memcpy(&(item->appointment->recurrence_type), list->items[x]->data, sizeof(item->appointment->recurrence_type));
+                    LE32_CPU(item->appointment->recurrence_type);
+                    switch (item->appointment->recurrence_type) {
+                        case PST_APP_RECUR_DAILY:
+                            DEBUG_EMAIL(("Daily\n")); break;
+                        case PST_APP_RECUR_WEEKLY:
+                            DEBUG_EMAIL(("Weekly\n")); break;
+                        case PST_APP_RECUR_MONTHLY:
+                            DEBUG_EMAIL(("Monthly\n")); break;
+                        case PST_APP_RECUR_YEARLY:
+                            DEBUG_EMAIL(("Yearly\n")); break;
+                        default:
+                            DEBUG_EMAIL(("Unknown Value: %d\n", item->appointment->recurrence_type)); break;
+                    }
+                    break;
+                case 0x8232: // Recurrence description
+                    DEBUG_EMAIL(("Appointment recurrence description - "));
+                    MALLOC_APPOINTMENT(item);
+                    LIST_COPY(item->appointment->recurrence, (char*));
+                    DEBUG_EMAIL(("%s\n", item->appointment->recurrence));
+                    break;
                 case 0x8234: // TimeZone as String
                     DEBUG_EMAIL(("TimeZone of times - "));
                     MALLOC_APPOINTMENT(item);
                     LIST_COPY(item->appointment->timezonestring, (char*));
                     DEBUG_EMAIL(("%s\n", item->appointment->timezonestring));
                     break;
-                case 0x8235: // Appointment start time
-                    DEBUG_EMAIL(("Appointment Start Time - "));
+                case 0x8235: // Recurrence start date
+                    DEBUG_EMAIL(("Recurrence Start Date - "));
                     MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->start, (FILETIME*));
-                    DEBUG_EMAIL(("%s\n", fileTimeToAscii((FILETIME*)item->appointment->start)));
+                    LIST_COPY(item->appointment->recurrence_start, (FILETIME*));
+                    DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->recurrence_start)));
                     break;
-                case 0x8236: // Appointment end time
-                    DEBUG_EMAIL(("Appointment End Time - "));
+                case 0x8236: // Recurrence end date
+                    DEBUG_EMAIL(("Recurrence End Date - "));
                     MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->end, (FILETIME*));
-                    DEBUG_EMAIL(("%s\n", fileTimeToAscii((FILETIME*)item->appointment->start)));
+                    LIST_COPY(item->appointment->recurrence_end, (FILETIME*));
+                    DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->recurrence_end)));
                     break;
-                case 0x8516: // Journal time start
-                    DEBUG_EMAIL(("Duplicate Time Start - "));
+                case 0x8501: // Reminder minutes before appointment start
+                    DEBUG_EMAIL(("Alarm minutes - "));
+                    MALLOC_APPOINTMENT(item);
+                    memcpy(&(item->appointment->alarm_minutes), list->items[x]->data, sizeof(item->appointment->alarm_minutes));
+                    LE32_CPU(item->appointment->alarm_minutes);
+                    DEBUG_EMAIL(("%i\n", item->appointment->alarm_minutes));
+                    break;
+                case 0x8503: // Reminder alarm
+                    DEBUG_EMAIL(("Reminder alarm - "));
+                    MALLOC_APPOINTMENT(item);
+                    if (*(int16_t*)list->items[x]->data != 0) {
+                        DEBUG_EMAIL(("True\n"));
+                        item->appointment->alarm = 1;
+                    } else {
+                        DEBUG_EMAIL(("False\n"));
+                        item->appointment->alarm = 0;
+                    }
+                    break;
+                case 0x8516:
+                    DEBUG_EMAIL(("Appointment Start Date 3 - "));
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii((FILETIME*)list->items[x]->data)));
                     break;
-                case 0x8517: // Journal time end
-                    DEBUG_EMAIL(("Duplicate Time End - "));
+                case 0x8517:
+                    DEBUG_EMAIL(("Appointment End Date 3 - "));
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii((FILETIME*)list->items[x]->data)));
+                    break;
+                case 0x851f: // Play reminder sound filename
+                    DEBUG_EMAIL(("Appointment reminder sound filename - "));
+                    MALLOC_APPOINTMENT(item);
+                    LIST_COPY(item->appointment->alarm_filename, (char*));
+                    DEBUG_EMAIL(("%s\n", item->appointment->alarm_filename));
                     break;
                 case 0x8530: // Followup
                     DEBUG_EMAIL(("Followup String - "));
@@ -3726,9 +3802,13 @@ void pst_freeItem(pst_item *item) {
         if (item->appointment) {
             SAFE_FREE(item->appointment->location);
             SAFE_FREE(item->appointment->reminder);
+            SAFE_FREE(item->appointment->alarm_filename);
             SAFE_FREE(item->appointment->start);
             SAFE_FREE(item->appointment->end);
             SAFE_FREE(item->appointment->timezonestring);
+            SAFE_FREE(item->appointment->recurrence);
+            SAFE_FREE(item->appointment->recurrence_start);
+            SAFE_FREE(item->appointment->recurrence_end);
             free(item->appointment);
         }
         SAFE_FREE(item->ascii_type);
@@ -3771,6 +3851,10 @@ int pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, pst_subblock
             p->needfree = 1;
         }
         else {
+            if (p->from) {
+                DEBUG_WARN(("size zero but non-null pointer\n"));
+                free(p->from);
+            }
             p->from = p->to = NULL;
         }
     }
@@ -4123,6 +4207,14 @@ int pst_get (FILE *fp, void *buf, size_t size) {
 }
 
 
+/**
+ * Get an ID block from file using _pst_ff_getIDblock and decrypt if necessary
+ * @param pf PST file structure
+ * @param id ID of block to retrieve
+ * @param b  Reference to pointer that will be set to new block. Any memory
+             pointed to by buffer will be free()d beforehand
+ * @return   Size of block pointed to by *b
+ */
 size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, unsigned char **b) {
     size_t r;
     int noenc = (int)(id & 2);   // disable encryption
@@ -4138,6 +4230,14 @@ size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, unsigned char **b) {
 }
 
 
+/**
+ * Read a block of data from file into memory
+ * @param pf PST file
+ * @param id identifier of block to read
+ * @param b  reference to pointer to buffer. If this pointer
+             is non-NULL, it will first be free()d
+ * @return   size of block read into memory
+ */
 size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, unsigned char** b) {
     pst_index_ll *rec;
     size_t rsize = 0;
@@ -4173,6 +4273,7 @@ size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, unsigned char** b) {
 
 #define PST_PTR_BLOCK_SIZE 0x120
 size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, unsigned char** buf) {
+    size_t ret;
     pst_index_ll* ptr;
     pst_holder h = {buf, NULL, 0, "", 0};
     DEBUG_ENT("pst_ff_getID2block");
@@ -4183,8 +4284,9 @@ size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, u
         DEBUG_RET();
         return 0;
     }
+    ret = pst_ff_getID2data(pf, ptr, &h);
     DEBUG_RET();
-    return pst_ff_getID2data(pf, ptr, &h);
+    return ret;
 }
 
 
@@ -4228,6 +4330,9 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
     uint32_t x, b;
     unsigned char * buf3 = NULL, *buf2 = NULL, *t;
     unsigned char fdepth;
+    unsigned char *b_ptr;
+    pst_block_hdr  block_hdr;
+    pst_table3_rec table3_rec;  //for type 3 (0x0101) blocks
 
     DEBUG_ENT("pst_ff_compile_ID");
     a = pst_ff_getIDblock(pf, id, &buf3);
@@ -4235,10 +4340,15 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
         if (buf3) free(buf3);
         return 0;
     }
-    if ((buf3[0] != 0x1)) { // if bit 8 is set) {
-        //  if ((buf3)[0] != 0x1 && (buf3)[1] > 4) {
-        DEBUG_WARN(("WARNING: buffer doesn't start with 0x1, but I expected it to or doesn't have it's two-bit set!\n"));
-        DEBUG_WARN(("Treating as normal buffer\n"));
+    DEBUG_HEXDUMPC(buf3, a, 0x10);
+    memcpy(&block_hdr, buf3, sizeof(block_hdr));
+    LE16_CPU(block_hdr.index_offset);
+    LE16_CPU(block_hdr.type);
+    LE32_CPU(block_hdr.offset);
+    DEBUG_EMAIL(("block header (index_offset=%#hx, type=%#hx, offset=%#x)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
+
+    if (block_hdr.index_offset != (uint16_t)0x0101) { //type 3
+        DEBUG_WARN(("WARNING: not a type 0x0101 buffer, Treating as normal buffer\n"));
         if (pf->encryption) (void)pst_decrypt(buf3, a, pf->encryption);
         if (h->buf)
             *(h->buf) = buf3;
@@ -4258,64 +4368,45 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
         DEBUG_RET();
         return a;
     }
-    memcpy (&count, &(buf3[2]), sizeof(int16_t));
-    LE16_CPU(count);
-    memcpy (&fdepth, &(buf3[1]), sizeof(char));
-    DEBUG_READ(("Seen index to blocks. Depth is %i\n", fdepth));
-    DEBUG_READ(("There are %i ids here\n", count));
-
-    y = 0;
-    while (y < count) {
-        memcpy(&x, &buf3[0x08+(y*4)], sizeof(int32_t));
-        LE32_CPU(x);
-        if (fdepth == 0x1) {
-            if ((z = pst_ff_getIDblock(pf, x, &buf2)) == 0) {
-                DEBUG_WARN(("call to getIDblock returned zero %i\n", z));
-                if (buf2) free(buf2);
-                free(buf3);
-                return z;
-            }
-            if (pf->encryption) (void)pst_decrypt(buf2, z, pf->encryption);
-            if (h->buf) {
-                *(h->buf) = realloc(*(h->buf), size+z+1);
-                DEBUG_READ(("appending read data of size %i onto main buffer from pos %i\n", z, size));
-                memcpy(&((*(h->buf))[size]), buf2, z);
-            } else if ((h->base64 == 1) && h->fp) {
-                // include any byte left over from the last one encoding
-                buf2 = (char*)realloc(buf2, z+h->base64_extra);
-                memmove(buf2+h->base64_extra, buf2, z);
-                memcpy(buf2, h->base64_extra_chars, h->base64_extra);
-                z += h->base64_extra;
-
-                b = z % 3; // find out how many bytes will be left over after the encoding.
-                // and save them
-                memcpy(h->base64_extra_chars, &(buf2[z-b]), b);
-                h->base64_extra = b;
-                t = base64_encode(buf2, z-b);
-                if (t) {
-                    DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
-                    (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
-                    free(t);    // caught by valgrind
-                }
-            } else if (h->fp) {
-                DEBUG_READ(("writing %i bytes to file. Currently %i\n", z, size));
-                (void)pst_fwrite(buf2, (size_t)1, z, h->fp);
-            } else {
-                // h-> does not specify any output
-            }
-            size += z;
-            y++;
+    count = block_hdr.type;
+    b_ptr = buf3 + 8;
+    for (y=0; y<count; y++) {
+        b_ptr += pst_decode_type3(pf, &table3_rec, b_ptr);
+        z = pst_ff_getIDblock_dec(pf, table3_rec.id, &buf2);
+        if (!z) {
+            DEBUG_WARN(("call to getIDblock returned zero %i\n", z));
+            if (buf2) free(buf2);
+            free(buf3);
+            return z;
         }
-        else {
-            if ((z = pst_ff_compile_ID(pf, x, h, size)) == 0) {
-                DEBUG_WARN(("recursive called returned zero %i\n", z));
-                free(buf3);
-                DEBUG_RET();
-                return z;
+        if (h->buf) {
+            *(h->buf) = realloc(*(h->buf), size+z+1);
+            DEBUG_READ(("appending read data of size %i onto main buffer from pos %i\n", z, size));
+            memcpy(&((*(h->buf))[size]), buf2, z);
+        } else if ((h->base64 == 1) && h->fp) {
+            // include any byte left over from the last one encoding
+            buf2 = (char*)realloc(buf2, z+h->base64_extra);
+            memmove(buf2+h->base64_extra, buf2, z);
+            memcpy(buf2, h->base64_extra_chars, h->base64_extra);
+            z += h->base64_extra;
+
+            b = z % 3; // find out how many bytes will be left over after the encoding.
+            // and save them
+            memcpy(h->base64_extra_chars, &(buf2[z-b]), b);
+            h->base64_extra = b;
+            t = base64_encode(buf2, z-b);
+            if (t) {
+                DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
+                (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
+                free(t);    // caught by valgrind
             }
-            size = z;
-            y++;
+        } else if (h->fp) {
+            DEBUG_READ(("writing %i bytes to file. Currently %i\n", z, size));
+            (void)pst_fwrite(buf2, (size_t)1, z, h->fp);
+        } else {
+            // h-> does not specify any output
         }
+        size += z;
     }
     free(buf3);
     if (buf2) free(buf2);

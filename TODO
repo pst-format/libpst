@@ -2,6 +2,6 @@ Code items that seems to be incorrect, but need verification:
 
 1) case 0x360A: // PR_SUBFOLDERS Has children
 
-Is that really an int32_t flag. All the other boolean flags seem be
+Is that really an int32_t flag? All the other boolean flags seem be
 int16_t.
 

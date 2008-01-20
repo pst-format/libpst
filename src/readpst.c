@@ -204,9 +204,9 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have a journal entry, but the folder isn't a journal folder. Processing anyway\n"));
                     }
                     fprintf(ff.output, "BEGIN:VJOURNAL\n");
-                    if (item->email->subject)
+                    if (item->email && item->email->subject && item->email->subject->subj)
                         fprintf(ff.output, "SUMMARY:%s\n", pst_rfc2426_escape(item->email->subject->subj));
-                    if (item->email->body)
+                    if (item->email && item->email->body)
                         fprintf(ff.output, "DESCRIPTION:%s\n", pst_rfc2426_escape(item->email->body));
                     if (item->journal->start)
                         fprintf(ff.output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(item->journal->start));
@@ -459,7 +459,7 @@ int usage() {
 
 int version() {
     DEBUG_ENT("version");
-    printf("ReadPST v%s\n", VERSION);
+    printf("ReadPST / LibPST v%s\n", VERSION);
 #if BYTE_ORDER == BIG_ENDIAN
     printf("Big Endian implementation being used.\n");
 #elif BYTE_ORDER == LITTLE_ENDIAN
@@ -1097,7 +1097,7 @@ void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[])
     // I had tried to place those into a single printf - Carl.
 
     DEBUG_ENT("write_vcard");
-    // the specification I am following is (hopefully) PST_RFC2426 vCard Mime Directory Profile
+    // the specification I am following is (hopefully) RFC2426 vCard Mime Directory Profile
     fprintf(f_output, "BEGIN:VCARD\n");
     fprintf(f_output, "FN:%s\n", pst_rfc2426_escape(contact->fullname));
 
@@ -1213,51 +1213,51 @@ void write_appointment(FILE* f_output, pst_item_appointment* appointment,
             pst_rfc2426_escape(appointment->location));
     if (appointment) {
         switch (appointment->showas) {
-        case PST_FREEBUSY_TENTATIVE:
-            fprintf(f_output, "STATUS:TENTATIVE\n");
-            break;
-        case PST_FREEBUSY_FREE:
-            // mark as transparent and as confirmed
-            fprintf(f_output, "TRANSP:TRANSPARENT\n");
-        case PST_FREEBUSY_BUSY:
-        case PST_FREEBUSY_OUT_OF_OFFICE:
-            fprintf(f_output, "STATUS:CONFIRMED\n");
-            break;
+            case PST_FREEBUSY_TENTATIVE:
+                fprintf(f_output, "STATUS:TENTATIVE\n");
+                break;
+            case PST_FREEBUSY_FREE:
+                // mark as transparent and as confirmed
+                fprintf(f_output, "TRANSP:TRANSPARENT\n");
+            case PST_FREEBUSY_BUSY:
+            case PST_FREEBUSY_OUT_OF_OFFICE:
+                fprintf(f_output, "STATUS:CONFIRMED\n");
+                break;
         }
         switch (appointment->label) {
-        case PST_APP_LABEL_NONE:
-            fprintf(f_output, "CATEGORIES:NONE\n");
-            break;
-        case PST_APP_LABEL_IMPORTANT:
-            fprintf(f_output, "CATEGORIES:IMPORTANT\n");
-            break;
-        case PST_APP_LABEL_BUSINESS:
-            fprintf(f_output, "CATEGORIES:BUSINESS\n");
-            break;
-        case PST_APP_LABEL_PERSONAL:
-            fprintf(f_output, "CATEGORIES:PERSONAL\n");
-            break;
-        case PST_APP_LABEL_VACATION:
-            fprintf(f_output, "CATEGORIES:VACATION\n");
-            break;
-        case PST_APP_LABEL_MUST_ATTEND:
-            fprintf(f_output, "CATEGORIES:MUST-ATTEND\n");
-            break;
-        case PST_APP_LABEL_TRAVEL_REQ:
-            fprintf(f_output, "CATEGORIES:TRAVEL-REQUIRED\n");
-            break;
-        case PST_APP_LABEL_NEEDS_PREP:
-            fprintf(f_output, "CATEGORIES:NEEDS-PREPARATION\n");
-            break;
-        case PST_APP_LABEL_BIRTHDAY:
-            fprintf(f_output, "CATEGORIES:BIRTHDAY\n");
-            break;
-        case PST_APP_LABEL_ANNIVERSARY:
-            fprintf(f_output, "CATEGORIES:ANNIVERSARY\n");
-            break;
-        case PST_APP_LABEL_PHONE_CALL:
-            fprintf(f_output, "CATEGORIES:PHONE-CALL\n");
-            break;
+            case PST_APP_LABEL_NONE:
+                fprintf(f_output, "CATEGORIES:NONE\n");
+                break;
+            case PST_APP_LABEL_IMPORTANT:
+                fprintf(f_output, "CATEGORIES:IMPORTANT\n");
+                break;
+            case PST_APP_LABEL_BUSINESS:
+                fprintf(f_output, "CATEGORIES:BUSINESS\n");
+                break;
+            case PST_APP_LABEL_PERSONAL:
+                fprintf(f_output, "CATEGORIES:PERSONAL\n");
+                break;
+            case PST_APP_LABEL_VACATION:
+                fprintf(f_output, "CATEGORIES:VACATION\n");
+                break;
+            case PST_APP_LABEL_MUST_ATTEND:
+                fprintf(f_output, "CATEGORIES:MUST-ATTEND\n");
+                break;
+            case PST_APP_LABEL_TRAVEL_REQ:
+                fprintf(f_output, "CATEGORIES:TRAVEL-REQUIRED\n");
+                break;
+            case PST_APP_LABEL_NEEDS_PREP:
+                fprintf(f_output, "CATEGORIES:NEEDS-PREPARATION\n");
+                break;
+            case PST_APP_LABEL_BIRTHDAY:
+                fprintf(f_output, "CATEGORIES:BIRTHDAY\n");
+                break;
+            case PST_APP_LABEL_ANNIVERSARY:
+                fprintf(f_output, "CATEGORIES:ANNIVERSARY\n");
+                break;
+            case PST_APP_LABEL_PHONE_CALL:
+                fprintf(f_output, "CATEGORIES:PHONE-CALL\n");
+                break;
         }
     }
     fprintf(f_output, "END:VEVENT\n\n");

@@ -111,6 +111,13 @@ typedef struct {
 #define PST_APP_LABEL_ANNIVERSARY 9 // Anniversary
 #define PST_APP_LABEL_PHONE_CALL  10// Phone Call
 
+// define type of reccuring event
+#define PST_APP_RECUR_NONE        0
+#define PST_APP_RECUR_DAILY       1
+#define PST_APP_RECUR_WEEKLY      2
+#define PST_APP_RECUR_MONTHLY     3
+#define PST_APP_RECUR_YEARLY      4
+
 
 typedef struct pst_misc_6_struct {
     int32_t i1;
@@ -219,9 +226,9 @@ typedef struct pst_item_email {
     int       delete_after_submit;    // 1 = true, 0 = false
     int       delivery_report;        // 1 = true, 0 = false
     char     *encrypted_body;
-    int32_t   encrypted_body_size;
+    size_t    encrypted_body_size;
     char     *encrypted_htmlbody;
-    int32_t   encrypted_htmlbody_size;
+    size_t    encrypted_htmlbody_size;
     int32_t   flag;
     char     *header;
     char     *htmlbody;
@@ -413,13 +420,20 @@ typedef struct pst_item_journal {
 
 typedef struct pst_item_appointment {
     FILETIME *end;
-    char *location;
+    char     *location;
+    int       alarm;                // 1 = true, 0 = false
     FILETIME *reminder;
+    int32_t   alarm_minutes;
+    char     *alarm_filename;
     FILETIME *start;
-    char   *timezonestring;
-    int32_t showas;
-    int32_t label;
-    int     all_day;                  // 1 = true, 0 = false
+    char     *timezonestring;
+    int32_t   showas;
+    int32_t   label;
+    int       all_day;              // 1 = true, 0 = false
+    char     *recurrence;
+    int32_t   recurrence_type;
+    FILETIME *recurrence_start;
+    FILETIME *recurrence_end;
 } pst_item_appointment;
 
 

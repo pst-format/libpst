@@ -19,7 +19,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-01-15</date>
+            <date>2008-01-19</date>
         </refentryinfo>
 
         <refmeta>
@@ -212,7 +212,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-01-15</date>
+            <date>2008-01-19</date>
         </refentryinfo>
 
         <refmeta>
@@ -230,9 +230,38 @@
             <title>Synopsis</title>
             <cmdsynopsis>
                 <command>lspst</command>
+                <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
+                <arg><option>-h</option></arg>
+                <arg><option>-V</option></arg>
                 <arg choice='plain'>pstfile</arg>
             </cmdsynopsis>
         </refsynopsisdiv>
+
+        <refsect1 id='lspst.options.1'>
+            <title>Options</title>
+            <variablelist>
+                <varlistentry>
+                    <term>-d <replaceable class="parameter">debug-file</replaceable></term>
+                    <listitem><para>
+                        Specify name of debug log file. The
+                        log file is not an ascii file, it is a binary file readable
+                        by <command>readpstlog</command>.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-h</term>
+                    <listitem><para>
+                        Show summary of options and exit.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-V</term>
+                    <listitem><para>
+                        Show program version and exit.
+                    </para></listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect1>
 
         <refsect1 id='lspst.description.1'>
             <title>Description</title>
@@ -286,7 +315,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-01-15</date>
+            <date>2008-01-19</date>
         </refentryinfo>
 
         <refmeta>
@@ -461,7 +490,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-01-15</date>
+            <date>2008-01-19</date>
         </refentryinfo>
 
         <refmeta>
@@ -585,7 +614,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-01-15</date>
+            <date>2008-01-19</date>
         </refentryinfo>
 
         <refmeta>

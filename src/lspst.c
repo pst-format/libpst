@@ -14,6 +14,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "libpst.h"
 #include "timeconv.h"
@@ -29,6 +30,8 @@ struct file_ll {
 
 void canonicalize_filename(char *fname);
 void debug_print(char *fmt, ...);
+int  usage(char *prog_name);
+int  version();
 
 // global settings
 pst_file pstfile;
@@ -88,7 +91,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. Processing anyway\n"));
                     }
                     printf("Contact");
-                    if (item->contact->fullname != NULL)
+                    if (item->contact->fullname)
                         printf("\t%s", pst_rfc2426_escape(item->contact->fullname));
                     printf("\n");
 
@@ -98,9 +101,9 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
                     printf("Email");
-                    if (item->email->outlook_sender_name != NULL)
+                    if (item->email->outlook_sender_name)
                         printf("\tFrom: %s", item->email->outlook_sender_name);
-                    if (item->email->subject->subj != NULL)
+                    if (item->email->subject && item->email->subject->subj)
                         printf("\tSubject: %s", item->email->subject->subj);
                     printf("\n");
 
@@ -109,7 +112,8 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     if (ff.type != PST_TYPE_JOURNAL) {
                         DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
                     }
-                    printf("Journal\t%s\n", pst_rfc2426_escape(item->email->subject->subj));
+                    if (item->email && item->email->subject && item->email->subject->subj)
+                        printf("Journal\t%s\n", pst_rfc2426_escape(item->email->subject->subj));
 
                 } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
                     // Process Calendar Appointment item
@@ -118,15 +122,13 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
                     }
                     printf("Appointment");
-                    if (item->email != NULL && item->email->subject != NULL)
+                    if (item->email && item->email->subject)
                         printf("\tSUMMARY: %s", pst_rfc2426_escape(item->email->subject->subj));
-                    if (item->appointment != NULL) {
-                        if (item->appointment->start != NULL)
-                            printf("\tSTART: %s", pst_rfc2445_datetime_format(item->appointment->start));
-                        if (item->appointment->end != NULL)
-                            printf("\tEND: %s", pst_rfc2445_datetime_format(item->appointment->end));
-                        printf("\tALL DAY: %s", (item->appointment->all_day==1 ? "Yes" : "No"));
-                    }
+                    if (item->appointment->start)
+                        printf("\tSTART: %s", pst_rfc2445_datetime_format(item->appointment->start));
+                    if (item->appointment->end)
+                        printf("\tEND: %s", pst_rfc2445_datetime_format(item->appointment->end));
+                    printf("\tALL DAY: %s", (item->appointment->all_day==1 ? "Yes" : "No"));
                     printf("\n");
 
                 } else {
@@ -146,13 +148,63 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
 }
 
 
+int usage(char *prog_name) {
+	DEBUG_ENT("usage");
+	version();
+	printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
+	printf("OPTIONS:\n");
+    printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readlog to print it\n");
+	printf("\t-h\t- Help. This screen\n");
+	printf("\t-V\t- Version. Display program version\n");
+	DEBUG_RET();
+	return 0;
+}
+
+
+int version() {
+	DEBUG_ENT("version");
+	printf("lspst / LibPST v%s\n", VERSION);
+#if BYTE_ORDER == BIG_ENDIAN
+	printf("Big Endian implementation being used.\n");
+#elif BYTE_ORDER == LITTLE_ENDIAN
+	printf("Little Endian implementation being used.\n");
+#else
+#  error "Byte order not supported by this library"
+#endif
+#ifdef __GNUC__
+			 printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
+#endif
+	 DEBUG_RET();
+	 return 0;
+}
+
+
 int main(int argc, char** argv) {
     pst_item *item = NULL;
     pst_desc_ll *d_ptr;
     char *temp  = NULL; //temporary char pointer
+    int  c;
     char *d_log = NULL;
 
-    if (argc <= 1) DIE(("Missing PST filename.\n"));
+	while ((c = getopt(argc, argv, "d:hV"))!= -1) {
+		switch (c) {
+			case 'd':
+				d_log = optarg;
+				break;
+			case 'h':
+				usage(argv[0]);
+				exit(0);
+				break;
+			case 'V':
+				version();
+				exit(0);
+				break;
+			default:
+				usage(argv[0]);
+				exit(1);
+				break;
+		}
+	}
 
     #ifdef DEBUG_ALL
         // force a log file
@@ -162,8 +214,13 @@ int main(int argc, char** argv) {
     DEBUG_REGISTER_CLOSE();
     DEBUG_ENT("main");
 
+	if (argc <= optind) {
+		usage(argv[0]);
+		exit(2);
+	}
+
     // Open PST file
-    if (pst_open(&pstfile, argv[1], "r")) DIE(("Error opening File\n"));
+    if (pst_open(&pstfile, argv[optind], "r")) DIE(("Error opening File\n"));
 
     // Load PST index
     if (pst_load_index(&pstfile)) DIE(("Index Error\n"));
@@ -212,7 +269,7 @@ void canonicalize_filename(char *fname) {
         DEBUG_RET();
         return;
     }
-    while ((fname = strpbrk(fname, "/\\:")) != NULL)
+    while (fname = strpbrk(fname, "/\\:"))
         *fname = '_';
     DEBUG_RET();
 }
