@@ -14,6 +14,10 @@
             url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/</ulink>
             </para>
 
+    	    <para>This version can now convert both 32 bit Outlook files (pre 2003), and the
+    	    64 bit Outlook 2003 pst files.
+            </para>
+
     </partintro>
 
 
@@ -30,7 +34,7 @@
 
         <refnamediv id='readpst.name.1'>
             <refname>readpst</refname>
-            <refpurpose>convert PST (MS Outlook Personal Folders) files to mbox format</refpurpose>
+            <refpurpose>convert PST (MS Outlook Personal Folders) files to mbox and other formats</refpurpose>
         </refnamediv>
 
         <refsynopsisdiv id='readpst.synopsis.1'>
@@ -1474,17 +1478,17 @@
                 are implemented in the code yet.
             </para>
             <literallayout class="monospaced"><![CDATA[
-0002  AutoForward allowed
+0002  Alternate recipient allowed
 0003  Extended Attributes Table
 0017  Importance Level
-001a  IPM Context. What type of message is this
-0023  Global Delivery Report
+001a  IPM Context, message class
+0023  Global delivery report requested
 0026  Priority
 0029  Read Receipt
 002b  Reassignment Prohibited
 002e  Original Sensitivity
 0036  Sensitivity
-0037  Email Subject. The referenced item is of type "Subject Type"
+0037  Email Subject
 0039  Date. This is likely to be the arrival date
 003b  Outlook Address of Sender
 003f  Outlook structure describing the recipient
@@ -1545,9 +1549,13 @@
 3008  Date item modification
 300b  binary record header
 35df  Valid Folder Mask
-35e0  binary record found in first item. Contains the reference to "Top of Personal Folder" item
-35e3  binary record with a reference to "Deleted Items" item
-35e7  binary record with a reference to "Search Root" item
+35e0  binary record contains a reference to "Top of Personal Folder" item
+35e2  binary record contains a reference to default outbox item
+35e3  binary record contains a reference to "Deleted Items" item
+35e4  binary record contains a reference to sent items folder item
+35e5  binary record contains a reference to user views folder item
+35e6  binary record contains a reference to common views folder item
+35e7  binary record contains a reference to "Search Root" item
 3602  the number of emails stored in a folder
 3603  the number of unread emails in a folder
 360a  Has Subfolders
@@ -1559,7 +1567,7 @@
 3707  Attachment Filename long
 370b  Attachment Position
 370e  Attachment mime encoding
-3710  Attachment Mime Sequence
+3710  Attachment mime Sequence
 3a00  Contact's Account name
 3a01  Contact Alternate Recipient
 3a02  Callback telephone number
@@ -1646,11 +1654,16 @@
 6f02  Secure HTML Body
 6f04  Secure Text Body
 7c07  Top of folders RecID
-8000  Contain extra bits of information that have been taken from the email's header. I call them extra lines
 8005  Contact Fullname
 801a  Home Address
 801b  Business Address
 801c  Other Address
+8045  Work Address Street
+8046  Work Address City
+8047  Work Address State
+8048  Work Address Postal Code
+8049  Work Address Country
+804a  Work Address Post Office Box
 8082  Email Address 1 Transport
 8083  Email Address 1 Address
 8084  Email Address 1 Description
@@ -1666,13 +1679,20 @@
 80d8  Internet Free/Busy
 8205  Appointment shows as
 8208  Appointment Location
+820d  Appointment start
+820e  Appointment end
 8214  Label for appointment
 8215  All day appointment flag
+8231  Recurrence type
+8232  Recurrence description
 8234  TimeZone of times
-8235  Appointment Start Time
-8236  Appointment End Time
-8516  Duplicate Time Start
-8517  Duplicate Time End
+8235  Recurrence Start Time
+8236  Recurrence End Time
+8501  Reminder minutes before appointment start
+8503  Reminder alarm
+8516  Common Time Start
+8517  Common Time End
+851f  Play reminder sound filename
 8530  Followup String
 8534  Mileage
 8535  Billing Information
@@ -1681,7 +1701,7 @@
 8700  Journal Entry Type
 8706  Start Timestamp
 8708  End Timestamp
-8712  Journal Entry Type
+8712  Journal Entry Type - duplicate?
 ]]></literallayout>
         </refsect1>
 

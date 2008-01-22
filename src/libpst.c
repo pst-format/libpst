@@ -362,7 +362,7 @@ int pst_load_index (pst_file *pf) {
     x = pst_build_desc_ptr(pf, pf->index2, 0, pf->index2_back, &y, (uint64_t)0x21, UINT64_MAX);
     DEBUG_INDEX(("build desc ptr returns %i\n", x));
 
-    DEBUG_CODE((void)pst_printDptr(pf););
+    DEBUG_CODE((void)pst_printDptr(pf, pf->d_head););
     DEBUG_RET();
     return 0;
 }
@@ -416,7 +416,7 @@ int pst_load_extended_attributes(pst_file *pf) {
 
     if (p->list_index) {
         id2_head = pst_build_id2(pf, p->list_index, NULL);
-        (void)pst_printID2ptr(id2_head);
+        pst_printID2ptr(id2_head);
     } else {
         DEBUG_WARN(("Have not been able to fetch any id2 values for item 0x61. Brace yourself!\n"));
     }
@@ -719,7 +719,7 @@ int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1,
         return -1;
     }
     DEBUG_INDEX(("Reading index block\n"));
-    if (pst_read_block_size(pf, offset, BLOCK_SIZE, &buf, 0, 0) < BLOCK_SIZE) {
+    if (pst_read_block_size(pf, offset, BLOCK_SIZE, &buf) < BLOCK_SIZE) {
         DEBUG_WARN(("Failed to read %i bytes\n", BLOCK_SIZE));
         if (buf) free(buf);
         DEBUG_RET();
@@ -944,7 +944,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
         return -1;
     }
     DEBUG_INDEX(("Reading desc block\n"));
-    if (pst_read_block_size(pf, offset, DESC_BLOCK_SIZE, &buf, 0, 0) < DESC_BLOCK_SIZE) {
+    if (pst_read_block_size(pf, offset, DESC_BLOCK_SIZE, &buf) < DESC_BLOCK_SIZE) {
         DEBUG_WARN(("Failed to read %i bytes\n", DESC_BLOCK_SIZE));
         if (buf) free(buf);
         DEBUG_RET();
@@ -1640,6 +1640,8 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
                 na_ptr->items[x]->type = table_rec.ref_type;
                 na_ptr->items[x]->data = xmalloc(sizeof(int32_t));
                 memcpy(na_ptr->items[x]->data, &(table_rec.value), sizeof(int32_t));
+                // are we missing an LE32_CPU() call here? table_rec.value is still
+                // in the original order.
 
             } else if (table_rec.ref_type == (uint16_t)0x0005 ||
                        table_rec.ref_type == (uint16_t)0x000d ||
@@ -1740,6 +1742,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
     return na_head;
 }
 
+
 // This version of free does NULL check first
 #define SAFE_FREE(x) {if (x) free(x);}
 
@@ -1827,7 +1830,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // If set to true, the sender allows this email to be autoforwarded
                     DEBUG_EMAIL(("AutoForward allowed - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->autoforward = 1;
                     } else {
@@ -1882,7 +1885,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // set if the sender wants a delivery report from all recipients
                     DEBUG_EMAIL(("Global Delivery Report - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->delivery_report = 1;
                     } else {
@@ -1902,10 +1905,10 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     t = item->email->priority;
                     DEBUG_EMAIL(("%s [%i]\n", (t<0?"NonUrgent":(t==0?"Normal":"Urgent")), t));
                     break;
-                case 0x0029:// PR_READ_RECEIPT_REQUESTED
+                case 0x0029: // PR_READ_RECEIPT_REQUESTED
                     DEBUG_EMAIL(("Read Receipt - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->read_receipt = 1;
                     } else {
@@ -1915,7 +1918,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     break;
                 case 0x002B: // PR_RECIPIENT_REASSIGNMENT_PROHIBITED
                     DEBUG_EMAIL(("Reassignment Prohibited (Private) - "));
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->private_member = 1;
                     } else {
@@ -2043,7 +2046,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // this user is listed explicitly in the TO address
                     DEBUG_EMAIL(("My address in TO field - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->message_to_me = 1;
                     } else {
@@ -2055,7 +2058,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // this user is listed explicitly in the CC address
                     DEBUG_EMAIL(("My address in CC field - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->message_cc_me = 1;
                     } else {
@@ -2063,11 +2066,11 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         item->email->message_cc_me = 0;
                     }
                     break;
-                case 0x0059: //PR_MESSAGE_RECIP_ME
+                case 0x0059: // PR_MESSAGE_RECIP_ME
                     // this user appears in TO, CC or BCC address list
                     DEBUG_EMAIL(("Message addressed to me - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->message_recip_me = 1;
                     } else {
@@ -2077,7 +2080,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     break;
                 case 0x0063: // PR_RESPONSE_REQUESTED
                     DEBUG_EMAIL(("Response requested - "));
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->response_requested = 1;
                     } else {
@@ -2143,7 +2146,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x0C17: // PR_REPLY_REQUESTED
                     DEBUG_EMAIL(("Reply Requested - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->reply_requested = 1;
                     } else {
@@ -2179,7 +2182,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // I am not too sure how this works
                     DEBUG_EMAIL(("Delete after submit - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->delete_after_submit = 1;
                     } else {
@@ -2243,7 +2246,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     //   cannot update to the rtf
                     DEBUG_EMAIL(("Compressed RTF in Sync - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->rtf_in_sync = 1;
                     } else {
@@ -2393,7 +2396,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // FOLDER_FINDER_VALID       0x80
                     DEBUG_EMAIL(("Valid Folder Mask - "));
                     MALLOC_MESSAGESTORE(item);
-                    memcpy(&(item->message_store->valid_mask), list->items[x]->data, sizeof(int));
+                    memcpy(&(item->message_store->valid_mask), list->items[x]->data, sizeof(item->message_store->valid_mask));
                     LE32_CPU(item->message_store->valid_mask);
                     DEBUG_EMAIL(("%i\n", item->message_store->valid_mask));
                     break;
@@ -2404,15 +2407,43 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     LE32_CPU(item->message_store->top_of_personal_folder->id);
                     DEBUG_EMAIL(("[id = %#x]\n", item->message_store->top_of_personal_folder->id));
                     break;
-                case 0x35E3: // PR_IPM_WASTEBASKET_ENTRYID Deleted Items Folder Record
+                case 0x35E2: // PR_IPM_OUTBOX_ENTRYID
+                    DEBUG_EMAIL(("Default Outbox Folder record - "));
+                    MALLOC_MESSAGESTORE(item);
+                    LIST_COPY(item->message_store->default_outbox_folder, (pst_entryid*));
+                    LE32_CPU(item->message_store->default_outbox_folder->id);
+                    DEBUG_EMAIL(("[id = %#x]\n", item->message_store->default_outbox_folder->id));
+                    break;
+                case 0x35E3: // PR_IPM_WASTEBASKET_ENTRYID
                     DEBUG_EMAIL(("Deleted Items Folder record - "));
                     MALLOC_MESSAGESTORE(item);
                     LIST_COPY(item->message_store->deleted_items_folder, (pst_entryid*));
                     LE32_CPU(item->message_store->deleted_items_folder->id);
                     DEBUG_EMAIL(("[id = %#x]\n", item->message_store->deleted_items_folder->id));
                     break;
-                case 0x35E7: // PR_FINDER_ENTRYID Search Root Record
-                    DEBUG_EMAIL(("Search Root record - "));
+                case 0x35E4: // PR_IPM_SENTMAIL_ENTRYID
+                    DEBUG_EMAIL(("Sent Items Folder record - "));
+                    MALLOC_MESSAGESTORE(item);
+                    LIST_COPY(item->message_store->sent_items_folder, (pst_entryid*));
+                    LE32_CPU(item->message_store->sent_items_folder->id);
+                    DEBUG_EMAIL(("[id = %#x]\n", item->message_store->sent_items_folder->id));
+                    break;
+                case 0x35E5: // PR_VIEWS_ENTRYID
+                    DEBUG_EMAIL(("User Views Folder record - "));
+                    MALLOC_MESSAGESTORE(item);
+                    LIST_COPY(item->message_store->user_views_folder, (pst_entryid*));
+                    LE32_CPU(item->message_store->user_views_folder->id);
+                    DEBUG_EMAIL(("[id = %#x]\n", item->message_store->user_views_folder->id));
+                    break;
+                case 0x35E6: // PR_COMMON_VIEWS_ENTRYID
+                    DEBUG_EMAIL(("Common View Folder record - "));
+                    MALLOC_MESSAGESTORE(item);
+                    LIST_COPY(item->message_store->common_view_folder, (pst_entryid*));
+                    LE32_CPU(item->message_store->common_view_folder->id);
+                    DEBUG_EMAIL(("[id = %#x]\n", item->message_store->common_view_folder->id));
+                    break;
+                case 0x35E7: // PR_FINDER_ENTRYID
+                    DEBUG_EMAIL(("Search Root Folder record - "));
                     MALLOC_MESSAGESTORE(item);
                     LIST_COPY(item->message_store->search_root_folder, (pst_entryid*));
                     LE32_CPU(item->message_store->search_root_folder->id);
@@ -2435,7 +2466,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x360A: // PR_SUBFOLDERS Has children
                     DEBUG_EMAIL(("Has Subfolders - "));
                     MALLOC_FOLDER(item);
-                    if (*(int32_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->folder->subfolder = 1;
                     } else {
@@ -2564,7 +2595,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x3A03: // PR_CONVERSION_PROHIBITED
                     DEBUG_EMAIL(("Message Conversion Prohibited - "));
                     MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->email->conversion_prohib = 1;
                     } else {
@@ -2629,7 +2660,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x3A0E: // PR_MAIL_PERMISSION - Can the recipient receive and send email
                     DEBUG_EMAIL(("Mail Permission - "));
                     MALLOC_CONTACT(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->contact->mail_permission = 1;
                     } else {
@@ -2832,7 +2863,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x3A40: // PR_SEND_RICH_INFO
                     DEBUG_EMAIL(("Can receive Rich Text - "));
                     MALLOC_CONTACT(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->contact->rich_text = 1;
                     } else {
@@ -2915,7 +2946,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x3A4D: // PR_GENDER
                     DEBUG_EMAIL(("Gender - "));
                     MALLOC_CONTACT(item);
-                    memcpy(&item->contact->gender, list->items[x]->data, sizeof(int16_t));
+                    memcpy(&item->contact->gender, list->items[x]->data, sizeof(item->contact->gender));
                     LE16_CPU(item->contact->gender);
                     switch(item->contact->gender) {
                         case 0:
@@ -3060,8 +3091,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x67FF: // Extra Property Identifier (Password CheckSum)
                     DEBUG_EMAIL(("Password checksum [0x67FF] - "));
                     MALLOC_MESSAGESTORE(item);
-                    memcpy(&(item->message_store->pwd_chksum), list->items[x]->data,
-                           sizeof(item->message_store->pwd_chksum));
+                    memcpy(&(item->message_store->pwd_chksum), list->items[x]->data, sizeof(item->message_store->pwd_chksum));
                     DEBUG_EMAIL(("%#x\n", item->message_store->pwd_chksum));
                     break;
                 case 0x6F02: // Secure HTML Body
@@ -3110,6 +3140,42 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     MALLOC_CONTACT(item);
                     LIST_COPY(item->contact->other_address, (char*));
                     DEBUG_EMAIL(("%s\n", item->contact->other_address));
+                    break;
+                case 0x8045: // Work address street
+                    DEBUG_EMAIL(("Work address street - "));
+                    MALLOC_CONTACT(item);
+                    LIST_COPY(item->contact->work_address_street, (char*));
+                    DEBUG_EMAIL(("%s\n", item->contact->work_address_street));
+                    break;
+                case 0x8046: // Work address city
+                    DEBUG_EMAIL(("Work address city - "));
+                    MALLOC_CONTACT(item);
+                    LIST_COPY(item->contact->work_address_city, (char*));
+                    DEBUG_EMAIL(("%s\n", item->contact->work_address_city));
+                    break;
+                case 0x8047: // Work address state
+                    DEBUG_EMAIL(("Work address state - "));
+                    MALLOC_CONTACT(item);
+                    LIST_COPY(item->contact->work_address_state, (char*));
+                    DEBUG_EMAIL(("%s\n", item->contact->work_address_state));
+                    break;
+                case 0x8048: // Work address postalcode
+                    DEBUG_EMAIL(("Work address postalcode - "));
+                    MALLOC_CONTACT(item);
+                    LIST_COPY(item->contact->work_address_postalcode, (char*));
+                    DEBUG_EMAIL(("%s\n", item->contact->work_address_postalcode));
+                    break;
+                case 0x8049: // Work address country
+                    DEBUG_EMAIL(("Work address country - "));
+                    MALLOC_CONTACT(item);
+                    LIST_COPY(item->contact->work_address_country, (char*));
+                    DEBUG_EMAIL(("%s\n", item->contact->work_address_country));
+                    break;
+                case 0x804A: // Work address postofficebox
+                    DEBUG_EMAIL(("Work address postofficebox - "));
+                    MALLOC_CONTACT(item);
+                    LIST_COPY(item->contact->work_address_postofficebox, (char*));
+                    DEBUG_EMAIL(("%s\n", item->contact->work_address_postofficebox));
                     break;
                 case 0x8082: // Email Address 1 Transport
                     DEBUG_EMAIL(("Email Address 1 Transport - "));
@@ -3262,7 +3328,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x8215: // All day appointment flag
                     DEBUG_EMAIL(("All day flag - "));
                     MALLOC_APPOINTMENT(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->appointment->all_day = 1;
                     } else {
@@ -3326,7 +3392,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x8503: // Reminder alarm
                     DEBUG_EMAIL(("Reminder alarm - "));
                     MALLOC_APPOINTMENT(item);
-                    if (*(int16_t*)list->items[x]->data != 0) {
+                    if (*(int16_t*)list->items[x]->data) {
                         DEBUG_EMAIL(("True\n"));
                         item->appointment->alarm = 1;
                     } else {
@@ -3334,12 +3400,12 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         item->appointment->alarm = 0;
                     }
                     break;
-                case 0x8516:
-                    DEBUG_EMAIL(("Appointment Start Date 3 - "));
+                case 0x8516: // Common start
+                    DEBUG_EMAIL(("Common Start Date - "));
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii((FILETIME*)list->items[x]->data)));
                     break;
-                case 0x8517:
-                    DEBUG_EMAIL(("Appointment End Date 3 - "));
+                case 0x8517: // Common end
+                    DEBUG_EMAIL(("Common End Date - "));
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii((FILETIME*)list->items[x]->data)));
                     break;
                 case 0x851f: // Play reminder sound filename
@@ -3402,50 +3468,102 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%s\n", item->journal->type));
                     break;
                 default:
-                    DEBUG_EMAIL(("unknown type %#x\n", list->items[x]->id));
-                        /* Reference Types
+                    if (list->items[x]->type == (uint32_t)0x0002) {
+                        DEBUG_EMAIL(("Unknown type %#x 16bit int = %hi\n", list->items[x]->id,
+                            *(int16_t*)list->items[x]->data));
 
-                       2 - 0x0002 - Signed 16bit value
-                       3 - 0x0003 - Signed 32bit value
-                      11 - 0x000B - Boolean (non-zero = true)
-                      13 - 0x000D - Embedded Object
-                      30 - 0x001E - Null terminated String
-                      31 - 0x001F - Unicode string
-                      64 - 0x0040 - Systime - Filetime structure
-                      72 - 0x0048 - OLE Guid
-                     258 - 0x0102 - Binary data
+                    } else if (list->items[x]->type == (uint32_t)0x0003) {
+                        DEBUG_EMAIL(("Unknown type %#x 32bit int = %i\n", list->items[x]->id,
+                            *(int32_t*)list->items[x]->data));
 
-                         - 0x1003 - Array of 32bit values
-                         - 0x101E - Array of Strings
-                         - 0x1102 - Array of Binary data
-                        */
-                    //  DEBUG_EMAIL(("Unknown id [%#x, size=%#x]\n", list->items[x]->id, list->items[x]->size));
-                    if (list->items[x]->type == (uint32_t)0x02) {
-                        DEBUG_EMAIL(("Unknown 16bit int = %hi\n", *(int16_t*)list->items[x]->data));
-                    } else if (list->items[x]->type == (uint32_t)0x03) {
-                        DEBUG_EMAIL(("Unknown 32bit int = %i\n", *(int32_t*)list->items[x]->data));
-                    } else if (list->items[x]->type == (uint32_t)0x0b) {
-                        DEBUG_EMAIL(("Unknown 16bit boolean = %s [%hi]\n",
-                                 (*((int16_t*)list->items[x]->data)!=0?"True":"False"),
-                                 *((int16_t*)list->items[x]->data)));
-                    } else if (list->items[x]->type == (uint32_t)0x1e) {
-                        DEBUG_EMAIL(("Unknown String Data = \"%s\" [%#x]\n",
-                                list->items[x]->data, list->items[x]->type));
-                    } else if (list->items[x]->type == (uint32_t)0x40) {
-                        DEBUG_EMAIL(("Unknown Date = \"%s\" [%#x]\n",
-                                fileTimeToAscii((FILETIME*)list->items[x]->data),
-                                list->items[x]->type));
-                    } else if (list->items[x]->type == (uint32_t)0x102) {
-                        DEBUG_EMAIL(("Unknown Binary Data [size = %#x]\n",
-                                 list->items[x]->size));
+                    } else if (list->items[x]->type == (uint32_t)0x0004) {
+                        DEBUG_EMAIL(("Unknown type %#x 4-byte floating [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
                         DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x0005) {
+                        DEBUG_EMAIL(("Unknown type %#x double floating [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x0006) {
+                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %lli\n", list->items[x]->id,
+                            *(int64_t*)list->items[x]->data));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x0007) {
+                        DEBUG_EMAIL(("Unknown type %#x application time [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x000a) {
+                        DEBUG_EMAIL(("Unknown type %#x 32bit error value = %i\n", list->items[x]->id,
+                            *(int32_t*)list->items[x]->data));
+
+                    } else if (list->items[x]->type == (uint32_t)0x000b) {
+                        DEBUG_EMAIL(("Unknown type %#x 16bit boolean = %s [%hi]\n", list->items[x]->id,
+                            (*((int16_t*)list->items[x]->data)!=0?"True":"False"),
+                            *((int16_t*)list->items[x]->data)));
+
+                    } else if (list->items[x]->type == (uint32_t)0x000d) {
+                        DEBUG_EMAIL(("Unknown type %#x Embedded object [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x0014) {
+                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %lli\n", list->items[x]->id,
+                            *(int64_t*)list->items[x]->data));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x001e) {
+                        DEBUG_EMAIL(("Unknown type %#x String Data = \"%s\"\n", list->items[x]->id,
+                            list->items[x]->data));
+
+                    } else if (list->items[x]->type == (uint32_t)0x001f) {
+                        DEBUG_EMAIL(("Unknown type %#x Unicode String Data [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x0040) {
+                        DEBUG_EMAIL(("Unknown type %#x Date = \"%s\"\n", list->items[x]->id,
+                            fileTimeToAscii((FILETIME*)list->items[x]->data)));
+
+                    } else if (list->items[x]->type == (uint32_t)0x0048) {
+                        DEBUG_EMAIL(("Unknown type %#x OLE GUID [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x0102) {
+                        DEBUG_EMAIL(("Unknown type %#x Binary Data [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x1003) {
+                        DEBUG_EMAIL(("Unknown type %#x Array of 32 bit values [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x1014) {
+                        DEBUG_EMAIL(("Unknown type %#x Array of 64 bit values [siize = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
                     } else if (list->items[x]->type == (uint32_t)0x101E) {
-                        DEBUG_EMAIL(("Unknown Array of Strings [%#x]\n",
-                                list->items[x]->type));
+                        DEBUG_EMAIL(("Unknown type %#x Array of Strings [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
+                    } else if (list->items[x]->type == (uint32_t)0x1102) {
+                        DEBUG_EMAIL(("Unknown type %#x Array of binary data blobs [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
                     } else {
-                        DEBUG_EMAIL(("Unknown Not Printable [%#x]\n",
-                                list->items[x]->type));
+                        DEBUG_EMAIL(("Unknown type %#x Not Printable [%#x]\n", list->items[x]->id,
+                            list->items[x]->type));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
                     }
+
                     if (list->items[x]->data) {
                         free(list->items[x]->data);
                         list->items[x]->data = NULL;
@@ -3560,7 +3678,7 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* h
         head = head_ptr;
         while (head_ptr) head_ptr = (tail = head_ptr)->next;
     }
-    if (pst_read_block_size(pf, list->offset, list->size, &buf, PST_NO_ENC, 0) < list->size) {
+    if (pst_read_block_size(pf, list->offset, list->size, &buf) < list->size) {
         //an error occured in block read
         WARN(("block read error occured. offset = %#llx, size = %#llx\n", list->offset, list->size));
         if (buf) free(buf);
@@ -3678,9 +3796,13 @@ void pst_freeItem(pst_item *item) {
             free(item->folder);
         }
         if (item->message_store) {
-            SAFE_FREE(item->message_store->deleted_items_folder);
-            SAFE_FREE(item->message_store->search_root_folder);
             SAFE_FREE(item->message_store->top_of_personal_folder);
+            SAFE_FREE(item->message_store->default_outbox_folder);
+            SAFE_FREE(item->message_store->deleted_items_folder);
+            SAFE_FREE(item->message_store->sent_items_folder);
+            SAFE_FREE(item->message_store->user_views_folder);
+            SAFE_FREE(item->message_store->common_view_folder);
+            SAFE_FREE(item->message_store->search_root_folder);
             SAFE_FREE(item->message_store->top_of_folder);
             free(item->message_store);
         }
@@ -3775,6 +3897,12 @@ void pst_freeItem(pst_item *item) {
             SAFE_FREE(item->contact->transmittable_display_name);
             SAFE_FREE(item->contact->ttytdd_phone);
             SAFE_FREE(item->contact->wedding_anniversary);
+            SAFE_FREE(item->contact->work_address_street);
+            SAFE_FREE(item->contact->work_address_city);
+            SAFE_FREE(item->contact->work_address_state);
+            SAFE_FREE(item->contact->work_address_postalcode);
+            SAFE_FREE(item->contact->work_address_country);
+            SAFE_FREE(item->contact->work_address_postofficebox);
             free(item->contact);
         }
         while (item->attach) {
@@ -3969,34 +4097,22 @@ pst_desc_ll* pst_getDptr(pst_file *pf, uint64_t id) {
 }
 
 
-int32_t pst_printDptr(pst_file *pf) {
-    pst_desc_ll *ptr = pf->d_head;
-    int32_t depth = 0;
-    char spaces[100];
+void pst_printDptr(pst_file *pf, pst_desc_ll *ptr) {
     DEBUG_ENT("pst_printDptr");
-    memset(spaces, ' ', 99);
-    spaces[99] = '\0';
     while (ptr) {
-        DEBUG_INDEX(("%s%#x [%i] desc=%#x, list=%#x\n", &(spaces[(99-depth<0?0:99-depth)]), ptr->id, ptr->no_child,
-            (ptr->desc==NULL?0:ptr->desc->id),
-            (ptr->list_index==NULL?0:ptr->list_index->id)));
+        DEBUG_INDEX(("%#x [%i] desc=%#x, list=%#x\n", ptr->id, ptr->no_child,
+                    (ptr->desc==NULL?0:ptr->desc->id),
+                    (ptr->list_index==NULL?0:ptr->list_index->id)));
         if (ptr->child) {
-            depth++;
-            ptr = ptr->child;
-            continue;
-        }
-        while (!ptr->next && ptr->parent) {
-            depth--;
-            ptr = ptr->parent;
+            pst_printDptr(pf, ptr->child);
         }
         ptr = ptr->next;
     }
     DEBUG_RET();
-    return 0;
 }
 
 
-int32_t pst_printIDptr(pst_file* pf) {
+void pst_printIDptr(pst_file* pf) {
     pst_index_ll *ptr = pf->i_head;
     DEBUG_ENT("pst_printIDptr");
     while (ptr) {
@@ -4004,33 +4120,22 @@ int32_t pst_printIDptr(pst_file* pf) {
         ptr = ptr->next;
     }
     DEBUG_RET();
-    return 0;
 }
 
 
-int32_t pst_printID2ptr(pst_index2_ll *ptr) {
+void pst_printID2ptr(pst_index2_ll *ptr) {
     DEBUG_ENT("pst_printID2ptr");
     while (ptr) {
         DEBUG_INDEX(("%#x id=%#x\n", ptr->id2, (ptr->id!=NULL?ptr->id->id:0)));
         ptr = ptr->next;
     }
     DEBUG_RET();
-    return 0;
 }
 
 
-// when the first byte of the block being read is 01, then we can assume
-// that it is a list of further ids to read and we will follow those ids
-// recursively calling this function until we have all the data
-// we could do decryption of the encrypted PST files here
-size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf, int32_t do_enc, unsigned char is_index) {
+size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf) {
     off_t fpos;
-    uint32_t x;
-    int16_t count, y;
-    char *buf2 = NULL, *buf3 = NULL;
-    unsigned char fdepth;
-    pst_index_ll *ptr = NULL;
-    size_t rsize, z;
+    size_t rsize;
 
     DEBUG_ENT("pst_read_block_size");
     DEBUG_READ(("Reading block from %#x, %i bytes\n", offset, size));
@@ -4042,7 +4147,7 @@ size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf, 
         free(*buf);
     }
 
-    *buf = (void*) xmalloc(size+1); //plus one so that we can NUL terminate it later
+    *buf = (void*) xmalloc(size);
     rsize = fread(*buf, (size_t)1, size, pf->fp);
     if (rsize != size) {
         DEBUG_WARN(("Didn't read all that I could. fread returned less [%i instead of %i]\n", rsize, size));
@@ -4056,66 +4161,6 @@ size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf, 
         size = rsize;
     }
 
-    //  DEBUG_HEXDUMP(*buf, size);
-
-    /*  if (is_index) {
-      DEBUG_READ(("pst_read_block_size: ODD_BLOCK should be here\n"));
-      DEBUG_READ(("\t: byte 0-1: %#x %#x\n", (*buf)[0], (*buf)[1]));
-      }*/
-
-    if ((*buf)[0] == 0x01 && (*buf)[1] != 0x00 && is_index) {
-        //don't do this recursion if we should be at a leaf node
-        memcpy(&count, &((*buf)[2]), sizeof(int16_t));
-        LE16_CPU(count);
-        memcpy(&fdepth, &((*buf)[1]), sizeof(fdepth));
-        DEBUG_READ(("Seen indexes to blocks. Depth is %i\n", fdepth));
-        // do fancy stuff! :)
-        DEBUG_READ(("There are %i ids\n", count));
-        // if first 2 blocks are 01 01 then index to blocks
-        size = 0;
-        y = 0;
-        while (y < count) {
-            memcpy(&x, &(*buf)[0x08+(y*4)], sizeof(uint32_t));
-            LE32_CPU(x);
-            if ((ptr = pst_getID(pf, x)) == NULL) {
-                WARN(("Error. Cannot find ID [%#x] during multi-block read\n", x));
-                buf3 = (char*) realloc(buf3, size+1);
-                buf3[size] = '\0';
-                *buf = buf3;
-                (void)fseek(pf->fp, fpos, SEEK_SET);
-                DEBUG_RET();
-                return size;
-            }
-            if ((z = pst_read_block_size(pf, ptr->offset, ptr->size, &buf2, do_enc, fdepth-1)) < ptr->size) {
-                buf3 = (char*) realloc(buf3, size+1);
-                buf3[size] = '\0';
-                *buf = buf3;
-                (void)fseek(pf->fp, fpos, SEEK_SET);
-                DEBUG_RET();
-                return size;
-            }
-            DEBUG_READ(("Melding newley retrieved block with bigger one. New size is %i\n", size+z));
-            buf3 = (char*) realloc(buf3, size+z+1); //plus one so that we can null terminate it later
-            DEBUG_READ(("Doing copy. Start pos is %i, length is %i\n", size, z));
-            memcpy(&(buf3[size]), buf2, z);
-            size += z;
-            y++;
-        }
-        free(*buf);
-        if (buf2) free(buf2);
-        if (!buf3) {
-            // this can happen if count == 0. We should create an empty buffer so we don't
-            // confuse any clients
-            buf3 = (char*) xmalloc((size_t)1);
-        }
-        *buf = buf3;
-    } else if (do_enc && pf->encryption) {
-        (void)pst_decrypt(*buf, size, pf->encryption);
-    } else {
-        // nothing to do
-    }
-
-    (*buf)[size] = '\0'; //should be byte after last one read
     (void)fseek(pf->fp, fpos, SEEK_SET);
     DEBUG_RET();
     return size;
@@ -4190,17 +4235,6 @@ int pst_getAtPos(FILE *fp, off_t pos, void* buf, size_t size) {
     if (fread(buf, (size_t)1, size, fp) < size) {
         DEBUG_RET();
         return 2;
-    }
-    DEBUG_RET();
-    return 0;
-}
-
-
-int pst_get (FILE *fp, void *buf, size_t size) {
-    DEBUG_ENT("pst_get");
-    if (fread(buf, (size_t)1, size, fp) < size) {
-        DEBUG_RET();
-        return 1;
     }
     DEBUG_RET();
     return 0;
@@ -4325,11 +4359,9 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
 
 
 size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) {
-    size_t z, a;
+    size_t z, a, b;
     uint16_t count, y;
-    uint32_t x, b;
     unsigned char * buf3 = NULL, *buf2 = NULL, *t;
-    unsigned char fdepth;
     unsigned char *b_ptr;
     pst_block_hdr  block_hdr;
     pst_table3_rec table3_rec;  //for type 3 (0x0101) blocks

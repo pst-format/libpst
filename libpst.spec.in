@@ -4,8 +4,8 @@ Summary:            @PACKAGE@ Libpst utilities
 Name:               @PACKAGE@
 Version:            @VERSION@
 Release:            %{?custom_release}%{!?custom_release:1}
-License:            GPL
-Group:              System Environment/Daemons
+License:            GPL version 2 or later
+Group:              Applications/Productivity
 Source:             http://www.five-ten-sg.com/@PACKAGE@/packages/@PACKAGE@-@VERSION@.tar.gz
 BuildRoot:          %{_tmppath}/%{name}-%{version}-buildroot
 URL:                http://www.five-ten-sg.com/@PACKAGE@/

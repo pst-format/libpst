@@ -1,3 +1,15 @@
+LibPST 0.6.5 (2008-01-22)
+===============================
+
+    	* More code cleanup, removing obsolete code. All the boolean flags
+	of type 0xb have length 4, so these are all 32 bits in the file.
+	Libpst treats them all as 16 bits, but at least we are consistent.
+	* More fields decoded - for example, see
+        <http://msdn2.microsoft.com/en-us/library/aa454925.aspx>
+	We should be able to use that data for much more complete decoding.
+	* Move the rpm group to Applications/Productivity consistent with
+	Evolution.
+
 LibPST 0.6.4 (2008-01-19)
 ===============================
 

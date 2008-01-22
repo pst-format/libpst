@@ -283,12 +283,16 @@ typedef struct pst_item_folder {
 
 
 typedef struct pst_item_message_store {
-    pst_entryid *deleted_items_folder;
-    pst_entryid *search_root_folder;
-    pst_entryid *top_of_personal_folder;
-    pst_entryid *top_of_folder;
-    int32_t valid_mask; // what folders the message store contains
-    int32_t pwd_chksum;
+    pst_entryid *top_of_personal_folder;        // 0x35e0
+    pst_entryid *default_outbox_folder;         // 0x35e2
+    pst_entryid *deleted_items_folder;          // 0x35e3
+    pst_entryid *sent_items_folder;             // 0x35e4
+    pst_entryid *user_views_folder;             // 0x35e5
+    pst_entryid *common_view_folder;            // 0x35e6
+    pst_entryid *search_root_folder;            // 0x35e7
+    pst_entryid *top_of_folder;                 // 0x7c07
+    int32_t valid_mask;                         // 0x35df  // what folders the message store contains
+    int32_t pwd_chksum;                         // 0x76ff
 } pst_item_message_store;
 
 
@@ -311,7 +315,7 @@ typedef struct pst_item_contact {
     char *assistant_phone;
     char *billing_information;
     FILETIME *birthday;
-    char *business_address;
+    char *business_address;             // 0x801b
     char *business_city;
     char *business_country;
     char *business_fax;
@@ -336,10 +340,10 @@ typedef struct pst_item_contact {
     char *free_busy_address;
     char *ftp_site;
     char *fullname;
-    int32_t  gender;
+    int16_t  gender;
     char *gov_id;
     char *hobbies;
-    char *home_address;
+    char *home_address;                 // 0x801a
     char *home_city;
     char *home_country;
     char *home_fax;
@@ -355,7 +359,7 @@ typedef struct pst_item_contact {
     char *keyword;
     char *language;
     char *location;
-    int   mail_permission;            // 1 = true, 0 = false
+    int   mail_permission;              // 1 = true, 0 = false
     char *manager_name;
     char *middle_name;
     char *mileage;
@@ -363,7 +367,7 @@ typedef struct pst_item_contact {
     char *nickname;
     char *office_loc;
     char *org_id;
-    char *other_address;
+    char *other_address;                // 0x801c
     char *other_city;
     char *other_country;
     char *other_phone;
@@ -378,7 +382,7 @@ typedef struct pst_item_contact {
     char *primary_phone;
     char *profession;
     char *radio_phone;
-    int   rich_text;                  // 1 = true, 0 = false
+    int   rich_text;                    // 1 = true, 0 = false
     char *spouse_name;
     char *suffix;
     char *surname;
@@ -386,6 +390,12 @@ typedef struct pst_item_contact {
     char *transmittable_display_name;
     char *ttytdd_phone;
     FILETIME *wedding_anniversary;
+    char *work_address_street;          // 0x8045
+    char *work_address_city;            // 0x8046
+    char *work_address_state;           // 0x8047
+    char *work_address_postalcode;      // 0x8048
+    char *work_address_country;         // 0x8049
+    char *work_address_postofficebox;   // 0x804a
 } pst_item_contact;
 
 
@@ -573,12 +583,11 @@ pst_index2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* he
 pst_index_ll*  pst_getID(pst_file* pf, uint64_t id);
 pst_index_ll*  pst_getID2(pst_index2_ll * ptr, uint64_t id);
 pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t id);
-size_t         pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf, int32_t do_enc, unsigned char is_index);
+size_t         pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf);
 int            pst_decrypt(unsigned char *buf, size_t size, unsigned char type);
 uint64_t       pst_getIntAt(pst_file *pf, char *buf);
 uint64_t       pst_getIntAtPos(pst_file *pf, off_t pos);
 int            pst_getAtPos(FILE *fp, off_t pos, void* buf, size_t size);
-int            pst_get (FILE *fp, void *buf, size_t size);
 size_t         pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, unsigned char **b);
 size_t         pst_ff_getIDblock(pst_file *pf, uint64_t id, unsigned char** b);
 size_t         pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, unsigned char** buf);
@@ -595,8 +604,8 @@ int            pst_chr_count(char *str, char x);
 char *         pst_rfc2425_datetime_format(FILETIME *ft);
 char *         pst_rfc2445_datetime_format(FILETIME *ft);
 
-int32_t        pst_printDptr(pst_file *pf);
-int32_t        pst_printIDptr(pst_file* pf);
-int32_t        pst_printID2ptr(pst_index2_ll *ptr);
+void           pst_printDptr(pst_file *pf, pst_desc_ll *ptr);
+void           pst_printIDptr(pst_file* pf);
+void           pst_printID2ptr(pst_index2_ll *ptr);
 
 #endif // defined LIBPST_H
