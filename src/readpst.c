@@ -330,6 +330,7 @@ int main(int argc, char** argv) {
         int l=0;
         if (NULL == (fp = fopen(fname, "rb"))) {
             fprintf(stderr, "Couldn't open file %s\n", fname );
+            DEBUG_RET();
             return 1;
         }
 
@@ -339,9 +340,11 @@ int main(int argc, char** argv) {
 
             if (l != fwrite( buf, 1, l, stdout)) {
                 fprintf(stderr, "Couldn't output to stdout?\n");
+                DEBUG_RET();
                 return 1;
             }
         }
+        DEBUG_RET();
         return 0;
     }
 
@@ -662,8 +665,10 @@ char *my_stristr(char *haystack, char *needle) {
     // my_stristr varies from strstr in that its searches are case-insensitive
     char *x=haystack, *y=needle, *z = NULL;
     DEBUG_ENT("my_stristr");
-    if (!haystack || !needle)
+    if (!haystack || !needle) {
+        DEBUG_RET();
         return NULL;
+    }
     while (*y != '\0' && *x != '\0') {
         if (tolower(*y) == tolower(*x)) {
             // move y on one
@@ -687,6 +692,7 @@ void check_filename(char *fname) {
     DEBUG_ENT("check_filename");
     if (!t) {
         DEBUG_RET();
+        return;
     }
     while ((t = strpbrk(t, "/\\:"))) {
         // while there are characters in the second string that we don't want
@@ -767,6 +773,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
         enc = base64_encode (current_attach->data, current_attach->size);
         if (!enc) {
             DEBUG_EMAIL(("ERROR base64_encode returned NULL. Must have failed\n"));
+            DEBUG_RET();
             return;
         }
     }

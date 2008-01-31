@@ -40,21 +40,21 @@
 #define INDEX_BACK32            (off_t)0xC0
 #define SECOND_POINTER32        (off_t)0xBC
 #define SECOND_BACK32           (off_t)0xB8
-#define ENC_OFFSET32            (off_t)0x1CD
+#define ENC_TYPE32              (off_t)0x1CD
 
 #define FILE_SIZE_POINTER64     (off_t)0xB8
 #define INDEX_POINTER64         (off_t)0xF0
 #define INDEX_BACK64            (off_t)0xE8
 #define SECOND_POINTER64        (off_t)0xE0
 #define SECOND_BACK64           (off_t)0xD8
-#define ENC_OFFSET64            (off_t)0x201
+#define ENC_TYPE64              (off_t)0x201
 
 #define FILE_SIZE_POINTER ((pf->do_read64) ? FILE_SIZE_POINTER64 : FILE_SIZE_POINTER32)
 #define INDEX_POINTER     ((pf->do_read64) ? INDEX_POINTER64     : INDEX_POINTER32)
 #define INDEX_BACK        ((pf->do_read64) ? INDEX_BACK64        : INDEX_BACK32)
 #define SECOND_POINTER    ((pf->do_read64) ? SECOND_POINTER64    : SECOND_POINTER32)
 #define SECOND_BACK       ((pf->do_read64) ? SECOND_BACK64       : SECOND_BACK32)
-#define ENC_OFFSET        ((pf->do_read64) ? ENC_OFFSET64        : ENC_OFFSET32)
+#define ENC_TYPE          ((pf->do_read64) ? ENC_TYPE64          : ENC_TYPE32)
 
 #define PST_SIGNATURE 0x4E444221
 
@@ -176,7 +176,7 @@ int pst_open(pst_file *pf, char *name, char *mode) {
     }
 
     // Check pst file magic
-    if (fread(&sig, sizeof(sig), (size_t)1, pf->fp) == 0) {
+    if (pst_getAtPos(pf, 0, &sig, sizeof(sig)) != sizeof(sig)) {
         (void)fclose(pf->fp);
         WARN(("cannot read signature from PST file. Closing on error\n"));
         DEBUG_RET();
@@ -192,7 +192,7 @@ int pst_open(pst_file *pf, char *name, char *mode) {
     }
 
     // read index type
-    (void)pst_getAtPos(pf->fp, INDEX_TYPE_OFFSET, &(pf->ind_type), sizeof(pf->ind_type));
+    (void)pst_getAtPos(pf, INDEX_TYPE_OFFSET, &(pf->ind_type), sizeof(pf->ind_type));
     DEBUG_INFO(("index_type = %i\n", pf->ind_type));
     switch (pf->ind_type) {
         case INDEX_TYPE32 :
@@ -208,7 +208,7 @@ int pst_open(pst_file *pf, char *name, char *mode) {
     }
 
     // read encryption setting
-    (void)pst_getAtPos(pf->fp, ENC_OFFSET, &(pf->encryption), sizeof(pf->encryption));
+    (void)pst_getAtPos(pf, ENC_TYPE, &(pf->encryption), sizeof(pf->encryption));
     DEBUG_INFO(("encrypt = %i\n", pf->encryption));
 
     pf->index2_back  = pst_getIntAtPos(pf, SECOND_BACK);
@@ -264,7 +264,7 @@ pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
 }
 
 
-size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, unsigned char **b){
+size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b){
     size_t size=0;
     pst_index_ll *ptr;
     pst_holder h = {b, NULL, 0, "", 0};
@@ -395,14 +395,15 @@ int pst_load_extended_attributes(pst_file *pf) {
     pst_desc_ll *p;
     pst_num_array *na;
     pst_index2_ll *id2_head = NULL;
-    unsigned char *buffer=NULL, *headerbuffer=NULL;
+    char *buffer=NULL, *headerbuffer=NULL;
     size_t bsize=0, hsize=0, bptr=0;
     pst_x_attrib xattrib;
     int32_t tint, err=0, x;
     pst_x_attrib_ll *ptr, *p_head=NULL, *p_sh=NULL, *p_sh2=NULL;
 
     DEBUG_ENT("pst_loadExtendedAttributes");
-    if ((p = pst_getDptr(pf, (uint64_t)0x61)) == NULL) {
+    p = pst_getDptr(pf, (uint64_t)0x61);
+    if (!p) {
         DEBUG_WARN(("Cannot find DescID 0x61 for loading the Extended Attributes\n"));
         DEBUG_RET();
         return 0;
@@ -527,8 +528,7 @@ int pst_load_extended_attributes(pst_file *pf) {
     return 1;
 }
 
-#define BLOCK_SIZE32               516      // index blocks
-#define DESC_BLOCK_SIZE32          516      // descriptor blocks
+
 #define ITEM_COUNT_OFFSET32        0x1f0    // count byte
 #define LEVEL_INDICATOR_OFFSET32   0x1f3    // node or leaf
 #define BACKLINK_OFFSET32          0x1f8    // backlink u1 value
@@ -537,8 +537,6 @@ int pst_load_extended_attributes(pst_file *pf) {
 #define INDEX_COUNT_MAX32          41       // max active items
 #define DESC_COUNT_MAX32           31       // max active items
 
-#define BLOCK_SIZE64               512      // index blocks
-#define DESC_BLOCK_SIZE64          512      // descriptor blocks
 #define ITEM_COUNT_OFFSET64        0x1e8    // count byte
 #define LEVEL_INDICATOR_OFFSET64   0x1eb    // node or leaf
 #define BACKLINK_OFFSET64          0x1f8    // backlink u1 value
@@ -547,8 +545,8 @@ int pst_load_extended_attributes(pst_file *pf) {
 #define INDEX_COUNT_MAX64          20       // max active items
 #define DESC_COUNT_MAX64           15       // max active items
 
-#define BLOCK_SIZE               (size_t)((pf->do_read64) ? BLOCK_SIZE64             : BLOCK_SIZE32)
-#define DESC_BLOCK_SIZE          (size_t)((pf->do_read64) ? DESC_BLOCK_SIZE64        : DESC_BLOCK_SIZE32)
+#define BLOCK_SIZE                 512      // index blocks
+#define DESC_BLOCK_SIZE            512      // descriptor blocks
 #define ITEM_COUNT_OFFSET        (size_t)((pf->do_read64) ? ITEM_COUNT_OFFSET64      : ITEM_COUNT_OFFSET32)
 #define LEVEL_INDICATOR_OFFSET   (size_t)((pf->do_read64) ? LEVEL_INDICATOR_OFFSET64 : LEVEL_INDICATOR_OFFSET32)
 #define BACKLINK_OFFSET          (size_t)((pf->do_read64) ? BACKLINK_OFFSET64        : BACKLINK_OFFSET32)
@@ -1296,8 +1294,8 @@ static void freeall(pst_subblocks *subs, pst_block_offset_pointer *p1,
 
 
 pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *i2_head, pst_num_array *na_head) {
-    unsigned char *buf = NULL;
-    size_t         read_size = 0;
+    char  *buf       = NULL;
+    size_t read_size = 0;
     pst_subblocks  subblocks;
     pst_num_array *na_ptr = NULL;
     pst_block_offset_pointer block_offset1;
@@ -4005,7 +4003,7 @@ int pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, pst_subblock
 }
 
 
-int pst_getBlockOffset(unsigned char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p) {
+int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p) {
     uint32_t low = offset & 0xf;
     uint32_t of1 = offset >> 4;
     DEBUG_ENT("pst_getBlockOffset");
@@ -4021,6 +4019,7 @@ int pst_getBlockOffset(unsigned char *buf, size_t read_size, uint32_t i_offset, 
     DEBUG_WARN(("get block offset finds from=%i(%#x), to=%i(%#x)\n", p->from, p->from, p->to, p->to));
     if (p->from > p->to) {
         DEBUG_WARN(("get block offset from > to"));
+        DEBUG_RET();
         return 0;
     }
     DEBUG_RET();
@@ -4054,8 +4053,7 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t id) {
 
 pst_index_ll * pst_getID2(pst_index2_ll *ptr, uint64_t id) {
     DEBUG_ENT("pst_getID2");
-    DEBUG_INDEX(("Head = %p\n", ptr));
-    DEBUG_INDEX(("Trying to find %#x\n", id));
+    DEBUG_INDEX(("Head = %p id = %#llx\n", ptr, id));
     while (ptr && (ptr->id2 != id)) {
         ptr = ptr->next;
     }
@@ -4133,24 +4131,29 @@ void pst_printID2ptr(pst_index2_ll *ptr) {
 }
 
 
+/**
+ * Read a block of data from file into memory
+ * @param pf     PST file
+ * @param offset offset in the pst file of the data
+ * @param size   size of the block to be read
+ * @param buf    reference to pointer to buffer. If this pointer
+                 is non-NULL, it will first be free()d
+ * @return       size of block read into memory
+ */
 size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf) {
-    off_t fpos;
     size_t rsize;
-
     DEBUG_ENT("pst_read_block_size");
     DEBUG_READ(("Reading block from %#x, %i bytes\n", offset, size));
 
-    fpos = ftell(pf->fp);
-    (void)fseek(pf->fp, offset, SEEK_SET);
     if (*buf) {
         DEBUG_READ(("Freeing old memory\n"));
         free(*buf);
     }
+    *buf = (char*) xmalloc(size);
 
-    *buf = (void*) xmalloc(size);
-    rsize = fread(*buf, (size_t)1, size, pf->fp);
+    rsize = pst_getAtPos(pf, offset, *buf, size);
     if (rsize != size) {
-        DEBUG_WARN(("Didn't read all that I could. fread returned less [%i instead of %i]\n", rsize, size));
+        DEBUG_WARN(("Didn't read all the data. fread returned less [%i instead of %i]\n", rsize, size));
         if (feof(pf->fp)) {
             DEBUG_WARN(("We tried to read past the end of the file at [offset %#x, size %#x]\n", offset, size));
         } else if (ferror(pf->fp)) {
@@ -4158,12 +4161,10 @@ size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf) 
         } else {
             DEBUG_WARN(("I can't tell why it failed\n"));
         }
-        size = rsize;
     }
 
-    (void)fseek(pf->fp, fpos, SEEK_SET);
     DEBUG_RET();
-    return size;
+    return rsize;
 }
 
 
@@ -4214,51 +4215,81 @@ uint64_t pst_getIntAtPos(pst_file *pf, off_t pos ) {
     uint64_t buf64;
     uint32_t buf32;
     if (pf->do_read64) {
-        (void)pst_getAtPos(pf->fp, pos, &buf64, sizeof(buf64));
+        (void)pst_getAtPos(pf, pos, &buf64, sizeof(buf64));
         LE64_CPU(buf64);
         return buf64;
     }
     else {
-        (void)pst_getAtPos(pf->fp, pos, &buf32, sizeof(buf32));
+        (void)pst_getAtPos(pf, pos, &buf32, sizeof(buf32));
         LE32_CPU(buf32);
         return buf32;
     }
 }
 
+/**
+ * Read part of the pst file.
+ *
+ * @param pf   PST file structure
+ * @param pos  offset of the data in the pst file
+ * @param buf  buffer to contain the data
+ * @param size size of the buffer and the amount of data to be read
+ * @return     actual read size, 0 if seek error
+ */
 
-int pst_getAtPos(FILE *fp, off_t pos, void* buf, size_t size) {
+size_t pst_getAtPos(pst_file *pf, off_t pos, void* buf, size_t size) {
+    size_t rc;
     DEBUG_ENT("pst_getAtPos");
-    if (fseek(fp, pos, SEEK_SET) == -1) {
+//  pst_block_recorder **t = &pf->block_head;
+//  pst_block_recorder *p = pf->block_head;
+//  while (p && ((p->offset+p->size) <= pos)) {
+//      t = &p->next;
+//      p = p->next;
+//  }
+//  if (p && (p->offset <= pos) && (pos < (p->offset+p->size))) {
+//      // bump the count
+//      p->readcount++;
+//  } else {
+//      // add a new block
+//      pst_block_recorder *tail = *t;
+//      p = (pst_block_recorder*)xmalloc(sizeof(*p));
+//      *t = p;
+//      p->next      = tail;
+//      p->offset    = pos;
+//      p->size      = size;
+//      p->readcount = 1;
+//  }
+//  DEBUG_MAIN(("pst file old offset %#llx old size %#x read count %i offset %#llx size %#x\n",
+//              p->offset, p->size, p->readcount, pos, size));
+
+    if (fseek(pf->fp, pos, SEEK_SET) == -1) {
         DEBUG_RET();
-        return 1;
+        return 0;
     }
-    if (fread(buf, (size_t)1, size, fp) < size) {
-        DEBUG_RET();
-        return 2;
-    }
+    rc = fread(buf, (size_t)1, size, pf->fp);
     DEBUG_RET();
-    return 0;
+    return rc;
 }
 
 
 /**
  * Get an ID block from file using _pst_ff_getIDblock and decrypt if necessary
- * @param pf PST file structure
- * @param id ID of block to retrieve
- * @param b  Reference to pointer that will be set to new block. Any memory
-             pointed to by buffer will be free()d beforehand
- * @return   Size of block pointed to by *b
+ *
+ * @param pf   PST file structure
+ * @param id   ID of block to retrieve
+ * @param buf  Reference to pointer that will be set to new block. Any memory
+               pointed to by buffer will be free()d beforehand
+ * @return     Size of block pointed to by *b
  */
-size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, unsigned char **b) {
+size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, char **buf) {
     size_t r;
     int noenc = (int)(id & 2);   // disable encryption
     DEBUG_ENT("pst_ff_getIDblock_dec");
     DEBUG_INDEX(("for id %#x\n", id));
-    r = pst_ff_getIDblock(pf, id, b);
+    r = pst_ff_getIDblock(pf, id, buf);
     if ((pf->encryption) && !(noenc)) {
-        (void)pst_decrypt(*b, r, pf->encryption);
+        (void)pst_decrypt(*buf, r, pf->encryption);
     }
-    DEBUG_HEXDUMPC(*b, r, 16);
+    DEBUG_HEXDUMPC(*buf, r, 16);
     DEBUG_RET();
     return r;
 }
@@ -4266,47 +4297,31 @@ size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, unsigned char **b) {
 
 /**
  * Read a block of data from file into memory
- * @param pf PST file
- * @param id identifier of block to read
- * @param b  reference to pointer to buffer. If this pointer
-             is non-NULL, it will first be free()d
- * @return   size of block read into memory
+ * @param pf   PST file
+ * @param id   identifier of block to read
+ * @param buf  reference to pointer to buffer. If this pointer
+               is non-NULL, it will first be free()d
+ * @return     size of block read into memory
  */
-size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, unsigned char** b) {
+size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, char** buf) {
     pst_index_ll *rec;
-    size_t rsize = 0;
+    size_t rsize;
     DEBUG_ENT("pst_ff_getIDblock");
-    if ((rec = pst_getID(pf, id)) == NULL) {
+    rec = pst_getID(pf, id);
+    if (!rec) {
         DEBUG_INDEX(("Cannot find ID %#llx\n", id));
         DEBUG_RET();
         return 0;
     }
-    (void)fseek(pf->fp, rec->offset, SEEK_SET);
-    if (*b) {
-        DEBUG_INDEX(("freeing old memory in b\n"));
-        free(*b);
-    }
-
     DEBUG_INDEX(("id = %#llx, record size = %#x, offset = %#x\n", id, rec->size, rec->offset));
-    *b = (char*) xmalloc(rec->size+1);
-    rsize = fread(*b, (size_t)1, rec->size, pf->fp);
-    if (rsize != rec->size) {
-        DEBUG_WARN(("Didn't read all the size. fread returned less [%i instead of %i]\n", rsize, rec->size));
-        if (feof(pf->fp)) {
-            DEBUG_WARN(("We tried to read past the end of the file [offset %#x, size %#x]\n", rec->offset, rec->size));
-        } else if (ferror(pf->fp)) {
-            DEBUG_WARN(("Some error occured on the file stream\n"));
-        } else {
-            DEBUG_WARN(("No error has been set on the file stream\n"));
-        }
-    }
+    rsize = pst_read_block_size(pf, rec->offset, rec->size, buf);
     DEBUG_RET();
     return rsize;
 }
 
 
 #define PST_PTR_BLOCK_SIZE 0x120
-size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, unsigned char** buf) {
+size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, char** buf) {
     size_t ret;
     pst_index_ll* ptr;
     pst_holder h = {buf, NULL, 0, "", 0};
@@ -4326,7 +4341,7 @@ size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, u
 
 size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
     size_t ret;
-    unsigned char *b = NULL, *t;
+    char *b = NULL, *t;
     DEBUG_ENT("pst_ff_getID2data");
     if (!(ptr->id & 0x02)) {
         ret = pst_ff_getIDblock_dec(pf, ptr->id, &b);
@@ -4351,8 +4366,8 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
         DEBUG_READ(("Assuming it is a multi-block record because of it's id\n"));
         ret = pst_ff_compile_ID(pf, ptr->id, h, (size_t)0);
     }
-    if (h->buf && *h->buf)
-        (*(h->buf))[ret]='\0';
+    // bogus null termination off the end of the buffer!!
+    //if (h->buf && *h->buf) (*(h->buf))[ret]='\0';
     DEBUG_RET();
     return ret;
 }
@@ -4361,8 +4376,8 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
 size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) {
     size_t z, a, b;
     uint16_t count, y;
-    unsigned char * buf3 = NULL, *buf2 = NULL, *t;
-    unsigned char *b_ptr;
+    char * buf3 = NULL, *buf2 = NULL, *t;
+    char *b_ptr;
     pst_block_hdr  block_hdr;
     pst_table3_rec table3_rec;  //for type 3 (0x0101) blocks
 
@@ -4370,6 +4385,7 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
     a = pst_ff_getIDblock(pf, id, &buf3);
     if (!a) {
         if (buf3) free(buf3);
+        DEBUG_RET();
         return 0;
     }
     DEBUG_HEXDUMPC(buf3, a, 0x10);
@@ -4409,6 +4425,7 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
             DEBUG_WARN(("call to getIDblock returned zero %i\n", z));
             if (buf2) free(buf2);
             free(buf3);
+            DEBUG_RET();
             return z;
         }
         if (h->buf) {

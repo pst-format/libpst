@@ -23,7 +23,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-01-19</date>
+            <date>2008-01-27</date>
         </refentryinfo>
 
         <refmeta>
@@ -206,9 +206,9 @@
         </refsect1>
 
         <refsect1 id='readpst.version.1'>
-            <title>CVS Version</title>
+            <title>Version</title>
             <para>
-                $Id$
+                @VERSION@
             </para>
         </refsect1>
     </refentry>
@@ -216,7 +216,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-01-19</date>
+            <date>2008-01-27</date>
         </refentryinfo>
 
         <refmeta>
@@ -309,9 +309,9 @@
         </refsect1>
 
         <refsect1 id='lspst.version.1'>
-            <title>CVS Version</title>
+            <title>Version</title>
             <para>
-                $Id$
+                @VERSION@
             </para>
         </refsect1>
     </refentry>
@@ -319,7 +319,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-01-19</date>
+            <date>2008-01-27</date>
         </refentryinfo>
 
         <refmeta>
@@ -484,9 +484,9 @@
         </refsect1>
 
         <refsect1 id='readpstlog.version.1'>
-            <title>CVS Version</title>
+            <title>Version</title>
             <para>
-                $Id$
+                @VERSION@
             </para>
         </refsect1>
     </refentry>
@@ -494,7 +494,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-01-19</date>
+            <date>2008-01-27</date>
         </refentryinfo>
 
         <refmeta>
@@ -608,9 +608,9 @@
         </refsect1>
 
         <refsect1 id='pst2ldif.version.1'>
-            <title>CVS Version</title>
+            <title>Version</title>
             <para>
-                $Id$
+                @VERSION@
             </para>
         </refsect1>
     </refentry>
@@ -618,7 +618,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-01-19</date>
+            <date>2008-01-27</date>
         </refentryinfo>
 
         <refmeta>
@@ -772,7 +772,7 @@
         <refsect1 id='pst.file.node1.32.5'>
             <title>32 bit Index 1 Node</title>
             <para>
-                The 32 bit index1 b-tree nodes are 516 byte blocks with the
+                The 32 bit index1 b-tree nodes are 512 byte blocks with the
                 following format.
             </para>
             <literallayout class="monospaced"><![CDATA[
@@ -818,7 +818,7 @@
 01d4  00 00 00 00  00 00 00 00  00 00 00 00
 01e0  00 00 00 00  00 00 00 00  00 00 00 00
 01ec  00 00 00 00  02 29 0c 02  80 80 b6 4a
-01f8  b4 1e 02 00  27 9c cc 56  58 27 03 00
+01f8  b4 1e 02 00  27 9c cc 56
 
 01f0  itemCount       [1 byte]  0x02       in this case
 01f1  maxItemCount    [1 byte]  0x29       constant
@@ -912,7 +912,7 @@
         <refsect1 id='pst.file.leaf1.32.5'>
             <title>32 bit Index 1 Leaf Node</title>
             <para>
-                The 32 bit index1 b-tree leaf nodes are 516 byte blocks with the
+                The 32 bit index1 b-tree leaf nodes are 512 byte blocks with the
                 following format.
             </para>
             <literallayout class="monospaced"><![CDATA[
@@ -958,7 +958,7 @@
 01d4  64 02 00 00  80 fb 00 00  bf 07  02 00
 01e0  64 02 00 00  80 fb 00 00  bf 07  02 00
 01ec  00 00 00 00  1f 29 0c 00  80 80  5b b3
-01f8  5a 67 01 00  4f ae 70 a7  92 06  00 00
+01f8  5a 67 01 00  4f ae 70 a7
 
 01f0  itemCount       [1 byte]  0x1f       in this case
 01f1  maxItemCount    [1 byte]  0x29       constant
@@ -1058,7 +1058,7 @@
         <refsect1 id='pst.file.node2.32.5'>
             <title>32 bit Index 2 Node</title>
             <para>
-                The 32 bit index2 b-tree nodes are 516 byte blocks with the
+                The 32 bit index2 b-tree nodes are 512 byte blocks with the
                 following format.
             </para>
             <literallayout class="monospaced"><![CDATA[
@@ -1104,7 +1104,7 @@
 01d4  00 00 00 00  00 00 00 00  00 00 00 00
 01e0  00 00 00 00  00 00 00 00  00 00 00 00
 01ec  00 00 00 00  02 29 0c 02  81 81 b2 60
-01f8  bc 1e 02 00  7e 70 dc e3  21 00 00 00
+01f8  bc 1e 02 00  7e 70 dc e3
 
 01f0  itemCount       [1 byte]  0x02       in this case
 01f1  maxItemCount    [1 byte]  0x29       constant
@@ -1198,7 +1198,7 @@
         <refsect1 id='pst.file.leaf2.32.5'>
             <title>32 bit Index 2 Leaf Node</title>
             <para>
-                The 32 bit index2 b-tree leaf nodes are 516 byte blocks with the
+                The 32 bit index2 b-tree leaf nodes are 512 byte blocks with the
                 following format.
             </para>
             <literallayout class="monospaced"><![CDATA[
@@ -1234,7 +1234,6 @@
 01D0  6d 80 00 00  34 78 02 00  00 00 00 00  00 00 00 00
 01E0  6e 80 00 00  08 00 00 00  00 00 00 00  00 00 00 00
 01F0  10 1f 10 00  81 81 a0 9a  ae 1e 02 00  89 44 6a 0f
-0200  b8 b1 03 00
 
 01f0  itemCount       [1 byte]  0x10       in this case
 01f1  maxItemCount    [1 byte]  0x1f       constant
@@ -1515,8 +1514,8 @@
 0078  Second Recipient Address
 007d  Email Header. This is the header that was attached to the email
 0c17  Reply Requested
-0c19  Second sender struct
-0c1a  Name of second sender struct
+0c19  Second sender structure
+0c1a  Name of second sender structure
 0c1d  Second outlook name of sender
 0c1e  Second sender access method (SMTP, EX)
 0c1f  Second Sender Address

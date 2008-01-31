@@ -1,3 +1,11 @@
+LibPST 0.6.6 (2008-01-xx)
+===============================
+
+    	* More code cleanup, removing unnecessary null terminations on
+	binary buffers. All pst file reads now go thru one function.
+    	Logging all pst reads to detect cases where we read the same data
+	multiple times - discovers node sizes are actually 512 bytes.
+
 LibPST 0.6.5 (2008-01-22)
 ===============================
 

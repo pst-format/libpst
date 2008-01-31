@@ -145,6 +145,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
         }
     }
     close_enter_dir(&ff);
+    DEBUG_RET();
 }
 
 

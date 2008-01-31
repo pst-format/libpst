@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   pst_file pstfile;
   pst_index_ll *ptr;
   char *outdir=NULL, *file=NULL, *outname=NULL;
-  unsigned char *buf=NULL;
+  char *buf=NULL;
   int c;
   FILE *fp;
 

@@ -147,7 +147,7 @@ static void process(pst_desc_ll *d_ptr) {
 	pst_item *item = NULL;
 	while (d_ptr) {
 		if (d_ptr->desc) {
-			item = (pst_item*)pst_parse_item(&pstfile, d_ptr);
+			item = pst_parse_item(&pstfile, d_ptr);
 			DEBUG_INFO(("item pointer is %p\n", item));
 			if (item) {
 				if (item->message_store) {

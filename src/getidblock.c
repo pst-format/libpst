@@ -21,7 +21,7 @@ int main(int argc, char ** argv) {
   pst_file pstfile;
   unsigned int id;
   int decrypt = 0, process = 0, binary = 0, c;
-  unsigned char *buf = NULL;
+  char *buf = NULL;
   size_t readSize;
   pst_item *item;
   pst_desc_ll* ptr;
