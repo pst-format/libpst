@@ -14,6 +14,10 @@
             url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/</ulink>
             </para>
 
+            <para>A Mercurial source code repository is available at <ulink
+            url="http://hg.five-ten-sg.com/libpst/">http://hg.five-ten-sg.com/libpst</ulink>.
+            </para>
+
     	    <para>This version can now convert both 32 bit Outlook files (pre 2003), and the
     	    64 bit Outlook 2003 pst files.
             </para>

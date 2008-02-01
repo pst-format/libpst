@@ -1,32 +1,33 @@
-LibPST 0.6.6 (2008-01-xx)
+LibPST 0.6.6 (2008-01-31)
 ===============================
 
-    	* More code cleanup, removing unnecessary null terminations on
-	binary buffers. All pst file reads now go thru one function.
-    	Logging all pst reads to detect cases where we read the same data
-	multiple times - discovers node sizes are actually 512 bytes.
+        * More code cleanup, removing unnecessary null terminations on
+        binary buffers. All pst file reads now go thru one function.
+        Logging all pst reads to detect cases where we read the same data
+        multiple times - discovers node sizes are actually 512 bytes.
+        * Switch from cvs to mercurial source control.
 
 LibPST 0.6.5 (2008-01-22)
 ===============================
 
-    	* More code cleanup, removing obsolete code. All the boolean flags
-	of type 0xb have length 4, so these are all 32 bits in the file.
-	Libpst treats them all as 16 bits, but at least we are consistent.
-	* More fields decoded - for example, see
+        * More code cleanup, removing obsolete code. All the boolean flags
+        of type 0xb have length 4, so these are all 32 bits in the file.
+        Libpst treats them all as 16 bits, but at least we are consistent.
+        * More fields decoded - for example, see
         <http://msdn2.microsoft.com/en-us/library/aa454925.aspx>
-	We should be able to use that data for much more complete decoding.
-	* Move the rpm group to Applications/Productivity consistent with
-	Evolution.
+        We should be able to use that data for much more complete decoding.
+        * Move the rpm group to Applications/Productivity consistent with
+        Evolution.
 
 LibPST 0.6.4 (2008-01-19)
 ===============================
 
-	* More fixes for Outlook 2003 64 bit parsing. We observed cases of
-	compressed RTF bodies (type 0x1009) with zero length.
-	* Document type 0x0101 descriptor blocks and process them.
-	* Fix large file support - we need to include config.h before any
-	standard headers.
-	* Merge following changes from svn snapshot from Alioth:
+        * More fixes for Outlook 2003 64 bit parsing. We observed cases of
+        compressed RTF bodies (type 0x1009) with zero length.
+        * Document type 0x0101 descriptor blocks and process them.
+        * Fix large file support - we need to include config.h before any
+        standard headers.
+        * Merge following changes from svn snapshot from Alioth:
             * Add new fields to appointment for recurring events
               (SourceForge #304198)
             * Map IPM.Task items to PST_TYPE_TASK.
@@ -43,28 +44,28 @@ LibPST 0.6.4 (2008-01-19)
 LibPST 0.6.3 (2008-01-13)
 ===============================
 
-    	* More type consistency issues found by splint.
+        * More type consistency issues found by splint.
 
 LibPST 0.6.2 (2008-01-12)
 ===============================
 
-	* More fixes for Outlook 2003 64 bit parsing.
-	* All buffer sizes changed to size_t, all file offsets changed to off_t,
-	all function names start with pst_, many other type consistency issues
-	found by splint. Many changes to #llx in debug printing for 64 bit items.
-	All id values are now uint64_t.
+        * More fixes for Outlook 2003 64 bit parsing.
+        * All buffer sizes changed to size_t, all file offsets changed to off_t,
+        all function names start with pst_, many other type consistency issues
+        found by splint. Many changes to #llx in debug printing for 64 bit items.
+        All id values are now uint64_t.
 
 LibPST 0.6.1 (2008-01-06)
 ===============================
 
-	* Outlook 2003 64 bit parsing. Some documentation from Alexander Grau
-	<alexandergrau@gmx.de> and patches from Sean Loaring <sloaring@tec-man.com>.
-	* fix from Antonio Palama <palama@inwind.it> for email items
-	that happen to have item->contact non null, and were being processed
-	as contacts.
-	* Add large file support so we can read .pst files larger than 2gb.
-	* Change lspst to be similar to readpst, properly using recursion to walk
-	the tree, and testing item types. Add a man page for lspst.
+        * Outlook 2003 64 bit parsing. Some documentation from Alexander Grau
+        <alexandergrau@gmx.de> and patches from Sean Loaring <sloaring@tec-man.com>.
+        * fix from Antonio Palama <palama@inwind.it> for email items
+        that happen to have item->contact non null, and were being processed
+        as contacts.
+        * Add large file support so we can read .pst files larger than 2gb.
+        * Change lspst to be similar to readpst, properly using recursion to walk
+        the tree, and testing item types. Add a man page for lspst.
 
 LibPST 0.5.12 (2007-10-02)
 ===============================
@@ -534,4 +535,3 @@ I hope you enjoy,
 
 Dave Smith
 
-: vim: set tw=72 sw=4 ts=4:
