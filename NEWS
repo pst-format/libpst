@@ -1,5 +1,8 @@
-    $Id$
-
+0.6.6   2008-01-31 Code cleanup, switch from cvs to mercurial source control.
+0.6.5   2008-01-22 Code cleanup, rpm group Applications/Productivity.
+0.6.4   2008-01-19 More fixes for 64 bit format, merge changes from svn Alioth.
+0.6.3   2008-01-13 More type consistency issues found by splint.
+0.6.2   2008-01-12 More fixes for 64 bit format, consistent types size_t, off_t, etc.
 0.6.1   2008-01-06 Outlook 2003 64 bit format and fix for bogus contacts.
 0.5.12  2007-10-02 security fix for possible buffer overruns in liv-zemple decoding
 0.5.11  2007-08-24 fix for unitialized variable
