@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Libpst-devel] Contribution for Outlook 2003 to libpst
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:libpst-devel%40lists.alioth.debian.org?Subject=%5BLibpst-devel%5D%20Contribution%20for%20Outlook%202003%20to%20libpst&In-Reply-To=">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000132.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Libpst-devel] Contribution for Outlook 2003 to libpst</H1>
+    <B>Alexander Grau</B> 
+    <A HREF="mailto:libpst-devel%40lists.alioth.debian.org?Subject=%5BLibpst-devel%5D%20Contribution%20for%20Outlook%202003%20to%20libpst&In-Reply-To="
+       TITLE="[Libpst-devel] Contribution for Outlook 2003 to libpst">alexandergrau at gmx.de
+       </A><BR>
+    <I>Mon Jan  1 23:48:05 CET 2007</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000132.html">[Libpst-devel] libpst 0.5.2 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#130">[ date ]</a>
+              <a href="thread.html#130">[ thread ]</a>
+              <a href="subject.html#130">[ subject ]</a>
+              <a href="author.html#130">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Joseph Nahmias,
+
+To be able to write a recovery software, we did reverse-engineer the
+Outlook 20003 format.
+
+Now I decided to give some contribution (attached), so you can support
+this format in some later version :-) (I recall it is not supported 
+yet?). I welcome all questions or feedback on my information.
+
+A Happy New Year!
+Regards,
+Alexander Grau
+
+
+
+
+
+-------------- next part --------------
+Outlook and Outlook2003 - The differences :-)
+
+
+All values are LE byte order.
+
+File Header
+Ofs	Length		Meaning
+0	4		Signature 0x4e444221
+0x0a	2		Version
+			0x000e: Outlook &lt; 2003 
+			0x0017: Outlook &gt;= 2003
+
+Outlook&lt;2003		
+---------------------------------------------
+Node size				516
+size of ID1/2's	(IDsize)		4
+size of file offsets (fileOfsSize)	4
+
+File Header
+Ofs	Length		Meaning
+0xbc	4		index2RootNodeFileOfs
+0xc4	4		index1RootNodeFileOfs
+
+Index Node
+Ofs	Length		Meaning
+0x1f4	2		index node signature (8080/8181)
+0x1f0	1		index node item count
+0x1f1	1		index node max item count
+0x1f3	1		index node level
+0x29	1		typical index1 leaf node max item count
+0x1f	1		typical index2 leaf node max item count
+0x1f8	IDsize		back pointer
+
+
+Outlook &gt;= 2003
+---------------------------------------------
+Node size				512
+size of ID1/2's	(IDsize)		8
+size of file offsets (fileOfsSize)	8
+
+File Header
+Ofs	Length		Meaning
+0xe0	8		index2RootNodeFileOfs
+0xf0	8		index1RootNodeFileOfs
+
+Index Node
+Ofs	Length		Meaning
+0x1f0	2		index node signature (8080/8181)
+0x1e8	1		index node item count
+0x1e9	1		index node max item count
+0x1eb	1		index node level
+0x14	1		typical index1 leaf node max item count
+0x0f	1		typical index2 leaf node max item count
+0x1f2	IDsize		back pointer
+
+
+In Outlook and Outlook 2003, the values in the other structures (e.g. inner nodes) have the same format, the only difference is the length of the ID1/2's and file offsets.
+
+In my C++ implementation I managed this by using a buf class with functions for reading in all types of bit-lengths like this:
+
+
+// read inner node records
+bool PSTFile::readInnerNode(IndexNode &amp;node){
+  tracef(&quot;readInnerNode fileOfs=%.0f\n&quot;, (float)node.fileOfsFound);
+  unsigned __int64 firstId, backPtr, fileOfs;
+  SaveBuf buf;
+  if (!buf.malloc(olSpecs[olFmt].nodeSize)) return false;
+  if (getAtPos(node.fileOfsFound, buf.buf, olSpecs[olFmt].nodeSize)) return false;
+
+  if (!buf.seek(0)) return false;
+  for (int i=0; i &lt; node.maxItemCnt; i++){
+    IndexNodeRecord rec;
+    if (!buf.numberLE(rec.firstId, olSpecs[olFmt].idSize)) break;
+    if (!buf.numberLE(rec.backPtr, olSpecs[olFmt].idSize)) break;
+    if (!buf.numberLE(rec.fileOfs, olSpecs[olFmt].fileOfsSize)) break;
+    rec.node = NULL;
+    if ( (rec.firstId != 0) || (rec.backPtr != 0) || (rec.fileOfs != 0) ) {
+      node.indexNodeRecordList.push_back(rec);
+      tracef(&quot;node record: firstId=%.0f, backPtr=%.0f, fileOfs=%.0f\n&quot;,
+        (float)rec.firstId, (float)rec.backPtr, (float)rec.fileOfs);
+    }
+  }
+  trace(&quot;\n&quot;);
+  return true;
+}
+
+
+
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000132.html">[Libpst-devel] libpst 0.5.2 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#130">[ date ]</a>
+              <a href="thread.html#130">[ thread ]</a>
+              <a href="subject.html#130">[ subject ]</a>
+              <a href="author.html#130">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://lists.alioth.debian.org/mailman/listinfo/libpst-devel">More information about the Libpst-devel
+mailing list</a><br>
+</body></html>

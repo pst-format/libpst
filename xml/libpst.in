@@ -3,24 +3,26 @@
     <partintro>
         <title>Packages</title>
 
-            <para>This is a fork of the libpst project at SourceForge.  Another fork
-            is located at <ulink
-            url="http://alioth.debian.org/projects/libpst/">http://alioth.debian.org/projects/libpst/</ulink>
-            </para>
+        <para>This is a fork of the libpst project at SourceForge.  Another fork
+        is located at <ulink
+        url="http://alioth.debian.org/projects/libpst/">http://alioth.debian.org/projects/libpst/</ulink>
+        </para>
 
-            <para>The various source and binary packages are available at <ulink
-            url="http://www.five-ten-sg.com/@PACKAGE@/packages/">http://www.five-ten-sg.com/@PACKAGE@/packages/</ulink>
-            The most recent documentation is available at <ulink
-            url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/</ulink>
-            </para>
+        <para>The various source and binary packages are available at <ulink
+        url="http://www.five-ten-sg.com/@PACKAGE@/packages/">http://www.five-ten-sg.com/@PACKAGE@/packages/</ulink>.
+        The most recent documentation is available at <ulink
+        url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/</ulink>.
+        </para>
 
-            <para>A Mercurial source code repository for this project is available at <ulink
-            url="http://hg.five-ten-sg.com/@PACKAGE@/">http://hg.five-ten-sg.com/@PACKAGE@/</ulink>.
-            </para>
+        <para>A <ulink
+        url="http://www.selenic.com/mercurial/wiki/">Mercurial</ulink> source
+        code repository for this project is available at <ulink
+        url="http://hg.five-ten-sg.com/@PACKAGE@/">http://hg.five-ten-sg.com/@PACKAGE@/</ulink>.
+        </para>
 
-    	    <para>This version can now convert both 32 bit Outlook files (pre 2003), and the
-    	    64 bit Outlook 2003 pst files.
-            </para>
+        <para>This version can now convert both 32 bit Outlook files (pre 2003), and the
+        64 bit Outlook 2003 pst files.
+        </para>
 
     </partintro>
 
@@ -275,7 +277,7 @@
             <title>Description</title>
             <para><command>lspst</command> is a program that can read an Outlook
                 PST (Personal Folders) file and produce a simple listing of the
-    	    	data (contacts, email subjects, etc).
+                data (contacts, email subjects, etc).
             </para>
         </refsect1>
 
@@ -647,9 +649,9 @@
             <para>
                 Each item in a .pst file is identified by two id values ID1 and ID2.
                 There are two separate b-trees indexed by these ID1 and ID2 values.
-    	    	Starting with Outlook 2003, the file format changed from one with 32
-    	    	bit pointers, to one with 64 bit pointers. We describe both formats
-    	    	here.
+                Starting with Outlook 2003, the file format changed from one with 32
+                bit pointers, to one with 64 bit pointers. We describe both formats
+                here.
             </para>
         </refsect1>
 
@@ -704,9 +706,9 @@
             <para>
                 We only support index types 0x0e and 0x17,  and encryption types
                 0x00 and 0x01. Index type 0x0e is the older 32 bit Outlook format.
-    	    	Index type 0x17 is the newer 64 bit Outlook format. Encryption
-    	    	type 0x00 is no encryption, and type 0x01 is the only other supported
-    	    	encryption type.
+                Index type 0x17 is the newer 64 bit Outlook format. Encryption
+                type 0x00 is no encryption, and type 0x01 is the only other supported
+                encryption type.
             </para>
             <para>
                 offsetIndex1 is the file offset of the root of the
@@ -1344,7 +1346,7 @@
 
 0000  signature       [2 bytes] 0x0002     constant
 0002  count           [2 bytes] 0x0002     in this case
-0004  unknown         [4 bytes] 0   	   possibly constant
+0004  unknown         [4 bytes] 0          possibly constant
   repeating
 0008  id2             [4 bytes] 0x000692   in this case
 000c  unknown1        [2 bytes] 0          may be a count or size

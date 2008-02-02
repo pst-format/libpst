@@ -1,0 +1,24 @@
+Index: readpst.c
+===================================================================
+--- readpst.c	(revision 45)
++++ readpst.c	(working copy)
+@@ -1396,6 +1396,7 @@
+ // char *rfc2426_escape(char *str) {{{1
+ char *rfc2426_escape(char *str) {
+   static char *buf = NULL;
++  static int buflen = 0;
+   char *a, *b;
+   int x, y, z;
+   DEBUG_ENT("rfc2426_escape");
+@@ -1411,9 +1412,10 @@
+   z = chr_count(str, '\r');
+   x = strlen(str) + y - z;
+ 
+-  if ( (y - z) == 0 )	// resize buffer if needed
++  if ( x + 1 > buflen )	// resize buffer if needed
+   {
+     buf = (char*) realloc(buf, x + 1); // don't forget room for the NUL
++    buflen = x + 1;
+ 	if ( buf == NULL )
+ 	{
+       fprintf(stderr, "Error: rfc2426_escape(): realloc(%d) returned NULL!\n", x + 1);

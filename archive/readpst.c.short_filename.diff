@@ -1,0 +1,63 @@
+Index: readpst.c
+===================================================================
+--- readpst.c	(revision 45)
++++ readpst.c	(working copy)
+@@ -149,6 +149,7 @@
+   int attach_num = 0;
+   int skip_child = 0;
+   struct file_ll  *f, *head;
++  char *attach_filename = NULL;
+   prog_name = argv[0];
+   // }}}2
+   // command-line option handling {{{2
+@@ -832,18 +833,25 @@
+ 	  }
+ 	  if (mode == MODE_SEPERATE) {
+ 	    f->name = check_filename(f->name);
+-	    if (item->current_attach->filename2 == NULL) {
++      // If there is a long filename (filename2) use that, otherwise
++      // use the 8.3 filename (filename1)
++      if (item->current_attach->filename2) {
++        attach_filename = item->current_attach->filename2;
++      } else {
++        attach_filename = item->current_attach->filename1;
++      }
++	    if (attach_filename == NULL) {
+ 	      temp = xmalloc(strlen(f->name)+15);
+ 	      sprintf(temp, "%s-attach%i", f->name, attach_num);
+ 	    } else {
+-	      temp = xmalloc(strlen(f->name)+strlen(item->current_attach->filename2)+15);
++	      temp = xmalloc(strlen(f->name)+strlen(attach_filename)+15);
+ 	      fp = NULL; x=0;
+ 	      do {
+ 		if (fp != NULL) fclose(fp);
+ 		if (x == 0)
+-		  sprintf(temp, "%s-%s", f->name, item->current_attach->filename2);
++		  sprintf(temp, "%s-%s", f->name, attach_filename);
+ 		else
+-		  sprintf(temp, "%s-%s-%i", f->name, item->current_attach->filename2, x);
++		  sprintf(temp, "%s-%s-%i", f->name, attach_filename, x);
+ 	      } while ((fp = fopen(temp, "r"))!=NULL && ++x < 99999999);
+ 	      if (x > 99999999) {
+ 	        DIE(("error finding attachment name. exhausted possibilities to %s\n", temp));
+@@ -878,11 +886,18 @@
+ 		fprintf(f->output, "Content-type: %s\n", item->current_attach->mimetype);
+ 	      }
+ 	      fprintf(f->output, "Content-transfer-encoding: base64\n");
+-	      if (item->current_attach->filename2 == NULL) {
++        // If there is a long filename (filename2) use that, otherwise
++        // use the 8.3 filename (filename1)
++        if (item->current_attach->filename2) {
++          attach_filename = item->current_attach->filename2;
++        } else {
++          attach_filename = item->current_attach->filename1;
++        }
++	      if (attach_filename == NULL) {
+ 		fprintf(f->output, "Content-Disposition: inline\n\n");
+ 	      } else {
+ 		fprintf(f->output, "Content-Disposition: attachment; filename=\"%s\"\n\n",
+-			item->current_attach->filename2);
++			attach_filename);
+ 	      }
+ 	    }
+ 	    if (item->current_attach->data != NULL) {

@@ -1,0 +1,2511 @@
+diff -Naur ../orig/libpst-0.5.1/define.h libpst64-060926/define.h
+--- ../orig/libpst-0.5.1/define.h	2004-11-17 07:48:03.000000000 -0700
++++ libpst64-060926/define.h	2006-09-26 14:09:55.000000000 -0600
+@@ -5,7 +5,7 @@
+  *            dave.s@earthcorp.com
+  */
+ 
+-//#define DEBUG_ALL
++#define DEBUG_ALL
+ #ifndef DEFINEH_H
+ #define DEFINEH_H
+ 
+diff -Naur ../orig/libpst-0.5.1/generic.c libpst64-060926/generic.c
+--- ../orig/libpst-0.5.1/generic.c	1969-12-31 17:00:00.000000000 -0700
++++ libpst64-060926/generic.c	2006-09-26 14:09:55.000000000 -0600
+@@ -0,0 +1,110 @@
++// {{{ includes
++
++#include <ctype.h>
++#include <errno.h>
++#include <malloc.h>
++#include <signal.h>
++#include <stdarg.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include "generic.h"
++
++#ifdef WITH_DMALLOC
++#include <dmalloc.h>
++#endif
++
++// }}}
++
++// {{{ Macros: ASSERT(), DIE(), F_MALLOC()
++void pDIE( char *fmt, ... ) // {{{ Cough...cough
++{
++	va_list ap;
++	va_start( ap, fmt );
++        //fprintf( stderr, "Fatal error (will segfault): ");
++	vfprintf( stderr, fmt, ap );
++	fprintf( stderr, "\n" );
++	va_end(ap);
++        raise( SIGSEGV );
++}
++// }}}
++void pWARN( char *fmt, ... ) // {{{ Cough...cough
++{
++	va_list ap;
++	va_start( ap, fmt );
++        fprintf( stderr, "WARNING: ");
++	vfprintf( stderr, fmt, ap );
++	fprintf( stderr, "\n" );
++	va_end(ap);
++}
++// }}}
++void *F_MALLOC( size_t size ) // {{{ malloc() but dumps core when it fails
++{
++	void *result;
++
++	result = malloc( size );
++	ASSERT( NULL != result, "malloc() failure." );
++
++	return result;
++}
++// }}}
++void *F_REALLOC( void *p, size_t size ) // {{{ realloc() but dumps core when it fails
++{
++	void *result;
++
++	//if( NULL != p ) hexdump((char*)p - 128, 0, 128, 1 );
++	if(!p) {
++		ASSERT( NULL != ( result = malloc( size ) ), "malloc() failure." );
++	}
++	else {
++		ASSERT( NULL != ( result = realloc( p, size ) ), "realloc() failure." );
++	}
++
++	//hexdump((char*)result - 128, 0, 128, 1 );
++	fflush(stderr);
++	return result;
++}
++// }}}
++// }}}
++// {{{ Program logging/debug output
++int DEBUG_LEVEL = DB_INFO;
++
++void db_default( char *file, int line, int level, char *fmt, ... ) // {{{
++{
++	va_list ap;
++	if( level <= DEBUG_LEVEL ) {
++		switch( level ) {
++			case DB_CRASH:
++				fprintf(stderr, "CRASH");
++				break;
++			case DB_ERR:
++				fprintf(stderr, "ERROR");
++				break;
++			case DB_WARN:
++				fprintf(stderr, "WARNING");
++				break;
++			case DB_INFO:
++			case DB_VERB:
++				break;
++			default:
++				fprintf(stderr, "DEBUG(%d)", level );
++		}
++
++		if( level <= DB_WARN )
++			fprintf(stderr, " (%s:%d)", file, line );
++
++		if( DB_INFO != level && DB_VERB != level )
++			fprintf(stderr, ": ");
++
++		va_start( ap, fmt );
++		vfprintf(stderr, fmt, ap );
++		fprintf(stderr, "\n" );
++		va_end( ap );
++	}
++} // }}}
++
++void (*dbfunc)(char *file, int line, int level, char *fmt, ...) = &db_default;
++
++//#define DEBUG(x) { x; }
++//#define DEBUG(x) ;
++// }}}
+diff -Naur ../orig/libpst-0.5.1/generic.h libpst64-060926/generic.h
+--- ../orig/libpst-0.5.1/generic.h	1969-12-31 17:00:00.000000000 -0700
++++ libpst64-060926/generic.h	2006-09-26 14:09:55.000000000 -0600
+@@ -0,0 +1,48 @@
++/* {{{ Generic.h - thigns every program does:
++ *
++ * - user output (log, debug, etc)
++ * - crash and burn
++ * - allocate memory (or explode)
++ * }}} */
++#ifndef GENERIC_H
++#define GENERIC_H
++#include <stdlib.h>
++#include <stdio.h>
++#include <stdarg.h>
++/***************************************************/
++
++#define LOAD_DEBUG 1
++
++#define DIE(...) { fprintf(stderr, "Fatal Error at %s,%d: ", __FILE__, __LINE__); pDIE(__VA_ARGS__); }
++
++//#define WARN(...) { fprintf(stderr, "WARN: %s,%d: ", __FILE__, __LINE__); pWARN(__VA_ARGS__); }
++void pDIE( char *fmt, ... );
++//void pWARN( char *fmt, ... );
++
++#define WARN(...) DB( DB_WARN, __VA_ARGS__ )
++#define ASSERT(x,...) { if( !(x) ) DIE( __VA_ARGS__ ); }
++
++void *F_MALLOC( size_t size );
++void *F_REALLOC( void *p, size_t size );
++
++#define DO_DEBUG 0
++#define DEBUG(x) if( DO_DEBUG ) { x; }
++#define STUPID_CR "\r\n"
++
++#define DB_CRASH   0 // crashing
++#define DB_ERR     1 // error
++#define DB_WARN    2 // warning
++#define DB_INFO    3 // normal, but significant, condition
++#define DB_VERB	   4 // verbose information
++#define DB_0       5 // debug-level message
++#define DB_1       6 // debug-level message
++#define DB_2       7 // debug-level message
++
++extern int DEBUG_LEVEL;
++extern void (*dbfunc)(char *file, int line, int level, char *fmt, ...);
++
++#define DB(...) { dbfunc( __FILE__, __LINE__, __VA_ARGS__ ); }
++
++int set_db_function( void (*func)( char *file, int line, int level, char *fmt, ...) );
++
++#endif
+diff -Naur ../orig/libpst-0.5.1/libpst.c libpst64-060926/libpst.c
+--- ../orig/libpst-0.5.1/libpst.c	2004-11-17 07:48:04.000000000 -0700
++++ libpst64-060926/libpst.c	2006-09-26 14:09:55.000000000 -0600
+@@ -4,6 +4,7 @@
+  * Written by David Smith
+  *            dave.s@earthcorp.com
+  */
++//{{{
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <time.h>
+@@ -12,11 +13,15 @@
+ #include <limits.h>
+ #include <wchar.h>
+ 
++#include <signal.h>
+ #include <errno.h>
+ #include <sys/stat.h> //mkdir
+ #include <fcntl.h> // for Win32 definition of _O_BINARY
+ #include "define.h"
+ #include "libstrfunc.h"
++#include "vbuf.h"
++
++#define ASSERT(x) { if(!(x)) raise( SIGSEGV ); }
+ 
+ #ifdef _MSC_VER
+ # include <windows.h>
+@@ -45,30 +50,54 @@
+ //#define LE32_CPU(x) {}
+ //#define LE16_CPU(x) {}
+ //#endif // _MSC_VER
+-
+-#define FILE_SIZE_POINTER 0xA8
+-#define INDEX_POINTER 0xC4
+-#define SECOND_POINTER 0xBC
++// }}}
++#define FILE_SIZE_POINTER32 0xA8
++#define INDEX_POINTER32 0xC4
++#define INDEX_COUNT32 0xC0
++#define SECOND_POINTER32 0xBC
++#define SECOND_COUNT32 0xB8
+ #define INDEX_DEPTH 0x4C
+ #define SECOND_DEPTH 0x5C
+ // the encryption setting could be at 0x1CC. Will require field testing
+-#define ENC_OFFSET 0x1CD
++#define ENC_OFFSET32 0x1CD
+ // says the type of index we have
+-#define INDEX_TYPE_OFFSET 0x0A
++#define INDEX_TYPE_OFFSET32 0x0A
++#define INDEX_TYPE32 0x0E
++#define INDEX_TYPE64 0x17 //I think this is wrong
+ 
+ // for the 64bit 2003 outlook PST we need new file offsets
+ // perhaps someone can figure out the header format for the pst files...
+-#define FILE_SIZE_POINTER_64 0xB8
+-#define INDEX_POINTER_64 0xF0
+-#define SECOND_POINTER_64 0xE0
++#define FILE_SIZE_POINTER64 0xB8
++#define INDEX_POINTER64 0xF0
++#define INDEX_COUNT64 0xE8
++#define SECOND_POINTER64 0xE0
++#define SECOND_COUNT64 0xD8
++#define INDEX_TYPE_OFFSET64 0x0A
++#define ENC_OFFSET64 0x201
++
++#define FILE_SIZE_POINTER ((do_read64)?FILE_SIZE_POINTER64:FILE_SIZE_POINTER32)
++#define INDEX_POINTER ((do_read64)?INDEX_POINTER64:INDEX_POINTER32)
++#define INDEX_TYPE_OFFSET ((do_read64)?INDEX_TYPE_OFFSET64:INDEX_TYPE_OFFSET32)
++#define INDEX_TYPE ((do_read64)?INDEX_TYPE64:INDEX_TYPE32)
++#define SECOND_POINTER ((do_read64)?SECOND_POINTER64:SECOND_POINTER32)
++#define SECOND_COUNT ((do_read64)?SECOND_COUNT64:SECOND_COUNT32)
++#define ENC_OFFSET ((do_read64)?ENC_OFFSET64:ENC_OFFSET32)
++#define INDEX_COUNT ((do_read64)?INDEX_COUNT64:INDEX_COUNT32)
+ 
+ #define PST_SIGNATURE 0x4E444221
+ 
+-struct _pst_table_ptr_struct{
++int do_read64 = 0; //set this to 1 in order to try and read 64-bit pst files (Outlook 2003)
++
++struct _pst_table_ptr_struct32{
+   int32_t start;
+   int32_t u1;
+   int32_t offset;
+ };
++struct _pst_table_ptr_structn{
++  int64_t start;
++  int64_t u1;
++  int64_t offset;
++};
+ 
+ typedef struct _pst_block_header {
+   int16_t type;
+@@ -119,6 +148,26 @@
+     0xd4, 0xe1, 0x11, 0xd0, 0x08, 0x8b, 0x2a, 0xf2,
+     0xed, 0x9a, 0x64, 0x3f, 0xc1, 0x6c, 0xf9, 0xec}; /*0xff*/
+ 
++void set_read64() { do_read64 = 1; } 
++
++void dump_desc( off_t off, int depth, int i, pst_descn *desc_rec ) { // {{{
++
++	//desc_rec->d_id = 0x0102030405060708;
++      DEBUG_INDEX(("%08x [%i] Item(%#x) = [d_id = %#llx, desc_id = %#llx, "
++		  "list_id = %#llx, parent_id = %#x, u1 = %#x] %#x %p %p\n",
++		  off,
++		  depth, i, desc_rec->d_id, 
++		  desc_rec->desc_id, desc_rec->list_id, desc_rec->parent_id, desc_rec->u1));
++      DEBUG_HEXDUMPC( (char*)desc_rec, sizeof( pst_descn ), 0x10 );
++      DEBUG_INDEX(("WTF? %d %x %x %x %x %x\n",
++			      sizeof( u_int32_t ),
++		      (int)(&desc_rec->d_id) - (int)desc_rec,
++		      (int)(&desc_rec->desc_id) - (int)desc_rec,
++		      (int)(&desc_rec->list_id) - (int)desc_rec,
++		      (int)(&desc_rec->parent_id) - (int)desc_rec,
++		      (int)(&desc_rec->u1) - (int)desc_rec ));
++} // }}}
++
+ int32_t pst_open(pst_file *pf, char *name, char *mode) {
+   u_int32_t sig;
+   //  unsigned char ind_type;
+@@ -158,9 +207,10 @@
+     DEBUG_RET();
+     return -1;
+   }
++
+   _pst_getAtPos(pf->fp, INDEX_TYPE_OFFSET, &(pf->ind_type), sizeof(unsigned char));
+   DEBUG_INFO(("index_type = %i\n", pf->ind_type));
+-  if (pf->ind_type != 0x0E) {
++  if ( pf->ind_type != INDEX_TYPE) {
+     WARN(("unknown index structure. Could this be a new Outlook 2003 PST file?\n"));
+     DEBUG_RET();
+     return -1;
+@@ -170,23 +220,18 @@
+   DEBUG_INFO(("encrypt = %i\n", pf->encryption));
+   //  pf->encryption = encrypt;
+     
+-  _pst_getAtPos(pf->fp, SECOND_POINTER-4, &(pf->index2_count), sizeof(pf->index2_count));
+-  _pst_getAtPos(pf->fp, SECOND_POINTER, &(pf->index2), sizeof(pf->index2));
+-  LE32_CPU(pf->index2_count);
+-  LE32_CPU(pf->index2);
++  pf->index2_count = _pst_getIntAtPos(pf->fp, SECOND_COUNT);
++  pf->index2 = _pst_getIntAtPos(pf->fp, SECOND_POINTER );
+ 
+-  _pst_getAtPos(pf->fp, FILE_SIZE_POINTER, &(pf->size), sizeof(pf->size));
+-  LE32_CPU(pf->size);
++  pf->size = _pst_getIntAtPos( pf->fp, FILE_SIZE_POINTER );
+ 
+   // very tempting to leave these values set way too high and let the exploration of the tables set them...
+   pf->index1_depth = pf->index2_depth = 255;
+ 
+   DEBUG_INFO(("Pointer2 is %#X, count %i[%#x], depth %#x\n", 
+     pf->index2, pf->index2_count, pf->index2_count, pf->index2_depth));
+-  _pst_getAtPos(pf->fp, INDEX_POINTER-4, &(pf->index1_count), sizeof(pf->index1_count));
+-  _pst_getAtPos(pf->fp, INDEX_POINTER, &(pf->index1), sizeof(pf->index1));
+-  LE32_CPU(pf->index1_count);
+-  LE32_CPU(pf->index1);
++  pf->index1_count = _pst_getIntAtPos(pf->fp, INDEX_COUNT);
++  pf->index1 = _pst_getIntAtPos(pf->fp, INDEX_POINTER);
+ 
+   DEBUG_INFO(("Pointer1 is %#X, count %i[%#x], depth %#x\n", 
+     pf->index1, pf->index1_count, pf->index1_count, pf->index1_depth));
+@@ -495,18 +540,110 @@
+ }
+ 
+ #define BLOCK_SIZE 516
++int _pst_decode_desc( pst_descn *desc, char *buf ) { // {{{
++	int r;
++	if( do_read64 ) {
++
++		DEBUG_INDEX(("Decoding desc64 "));
++		DEBUG_HEXDUMPC(buf, sizeof( pst_descn ), 0x10);
++		memcpy(desc, buf, sizeof( pst_descn ));
++		LE64_CPU(desc->d_id);
++		LE64_CPU(desc->desc_id);
++		LE64_CPU(desc->list_id);
++		LE32_CPU(desc->parent_id);
++		LE32_CPU(desc->u1);
++		r = sizeof( pst_descn );
++	}
++	else {
++		pst_desc32 d32;
++		DEBUG_INDEX(("Decoding desc32 "));
++		DEBUG_HEXDUMPC(buf, sizeof( d32 ), 0x10);
++		memcpy(&d32, buf, sizeof(d32));
++		LE32_CPU(d32.d_id);
++		LE32_CPU(d32.desc_id);
++		LE32_CPU(d32.list_id);
++		LE32_CPU(d32.parent_id);
++
++		desc->d_id = d32.d_id;
++		desc->desc_id = d32.desc_id;
++		desc->list_id = d32.list_id;
++		desc->parent_id = d32.parent_id;
++		desc->u1 = 0;
++
++		r = sizeof( d32 );
++	}
++
++	return r;
++} // }}}
++int _pst_decode_table( struct _pst_table_ptr_structn *table, char *buf ) { // {{{
++
++	if( do_read64 ) {
++
++		DEBUG_INDEX(("Decoding table64"));
++		DEBUG_HEXDUMPC(buf, sizeof( struct _pst_table_ptr_structn ), 0x10);
++		memcpy(table, buf, sizeof( struct _pst_table_ptr_structn ) );
++		LE64_CPU(table->start);
++		LE64_CPU(table->u1);
++		LE64_CPU(table->offset);
++
++		return sizeof( struct _pst_table_ptr_structn );
++	}
++	else {
++		struct _pst_table_ptr_struct32 t32;
++		memcpy(&t32, buf, sizeof(t32));
++		LE32_CPU(t32.start);
++		LE32_CPU(t32.u1);
++		LE32_CPU(t32.offset);
++		table->start = t32.start;
++		table->u1 = t32.u1;
++		table->offset = t32.offset;
++
++		return sizeof( struct _pst_table_ptr_struct32 );
++	}
++	return 0;
++} // }}}
++int _pst_decode_index( pst_index *index, char *buf ) { // {{{
++	if( do_read64 ) {
++
++		DEBUG_INDEX(("Decoding index64"));
++		DEBUG_HEXDUMPC(buf, sizeof( pst_index ), 0x10);
++		memcpy(index, buf, sizeof(pst_index));
++		LE64_CPU(index->id);
++		LE64_CPU(index->offset);
++		LE16_CPU(index->size);
++		LE16_CPU(index->u0);
++		LE16_CPU(index->u1);
++		return sizeof( pst_index );
++	} else {
++		pst_index32 index32;
++		memcpy(&index32, buf, sizeof(pst_index32));
++		LE32_CPU(index32->id);
++		LE32_CPU(index32->offset);
++		LE16_CPU(index32->size);
++		LE16_CPU(index32->u1);
++		index->id = index32.id;
++		index->offset = index32.offset;
++		index->size = index32.size;
++		index->u1 = index32.u1;
++
++		return sizeof( pst_index32 );
++	}
+ 
+-int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t start_val, int32_t end_val) {
+-  struct _pst_table_ptr_struct table, table2;
++	return 0;
++} // }}}
++
++int32_t _pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, int32_t start_val, int32_t end_val) {
++  struct _pst_table_ptr_structn table, table2;
+   pst_index_ll *i_ptr=NULL;
+   pst_index index;
+   //  int fpos = ftell(pf->fp);
+   int32_t x, ret;
+   int32_t old = start_val;
++  off_t roff;
+   char *buf = NULL, *bptr = NULL;
+ 
+   DEBUG_ENT("_pst_build_id_ptr");
+-  if (pf->index1_depth - depth == 0) {
++  if (pf->index1_depth - depth == 0) { // {{{ Leaf table, add indexes to linked list
+     // we must be at a leaf table. These are index items
+     DEBUG_INDEX(("Reading Items\n"));
+     //    fseek(pf->fp, offset, SEEK_SET);
+@@ -519,15 +656,14 @@
+     }
+     bptr = buf;
+     //    DEBUG_HEXDUMPC(buf, BLOCK_SIZE, 12);
+-    memcpy(&index, bptr, sizeof(index));
+-    LE32_CPU(index.id);
+-    LE32_CPU(index.offset);
+-    LE16_CPU(index.size);
+-    LE16_CPU(index.u1);
+-    bptr += sizeof(index);
++    roff = offset;
++    bptr += _pst_decode_index( &index, bptr );
+ 
+-    while(index.id != 0 && x < 42 && bptr < buf+BLOCK_SIZE && index.id < end_val) {
+-      DEBUG_INDEX(("[%i]%i Item [id = %#x, offset = %#x, u1 = %#x, size = %i(%#x)]\n", depth, ++x, index.id, index.offset, index.u1, index.size, index.size));
++    while(index.id != 0 && x < 42 && bptr < buf+BLOCK_SIZE && index.id < end_val) { // {{{
++      DEBUG_INDEX(("%08x [%i]%i Item [        id = %#llx, offset = %#llx, u1 = %#x, size = %i(%#x)] %p %p\n",
++			      roff,
++	depth, ++x, index.id, index.offset, index.u1,
++	index.size, index.size, buf, bptr ));
+       if (index.id & 0x02) {
+ 	DEBUG_INDEX(("two-bit set!!\n"));
+       }
+@@ -543,7 +679,7 @@
+ 	pf->id_depth_ok = 1;
+       }
+       // u1 could be a flag. if bit 0x2 is not set, it might be deleted
+-      //      if (index.u1 & 0x2 || index.u1 & 0x4) { 
++      //      if (index.u1 & 0x2 || index.u1 & 0x4)  
+       // ignore the above condition. it doesn't appear to hold
+       if (old > index.id) { // then we have back-slid on the new values
+ 	DEBUG_INDEX(("Back slider detected - Old value [%#x] greater than new [%#x]. Progressing to next table\n", old, index.id));
+@@ -551,6 +687,7 @@
+ 	return 2;
+       }
+       old = index.id;
++      // {{{ Add index to linked list
+       i_ptr = (pst_index_ll*) xmalloc(sizeof(pst_index_ll));
+       i_ptr->id = index.id;
+       i_ptr->offset = index.offset;    	
+@@ -562,15 +699,12 @@
+       if (pf->i_head == NULL)
+ 	pf->i_head = i_ptr;
+       pf->i_tail = i_ptr;
+-      memcpy(&index, bptr, sizeof(index));
+-      LE32_CPU(index.id);
+-      LE32_CPU(index.offset);
+-      LE16_CPU(index.size);
+-      LE16_CPU(index.u1);
+-      bptr += sizeof(index);
+-    }
+-    //    fseek(pf->fp, fpos, SEEK_SET);
+-    if (x < 42) { // we have stopped prematurley. Why?
++      // }}}
++
++      roff = offset + (bptr - buf);
++      bptr +=_pst_decode_index( &index, bptr );
++    } // }}}
++    if (x < 42) { // {{{ we have stopped prematurley. Why?
+       if (index.id == 0) {
+ 	DEBUG_INDEX(("Found index.id == 0\n"));
+       } else if (!(bptr < buf+BLOCK_SIZE)) {
+@@ -581,12 +715,12 @@
+       } else {
+ 	DEBUG_INDEX(("Stopped for unknown reason\n"));
+       }
+-    }
++    } // }}}
+     if (buf) free (buf);
+     DEBUG_RET();
+     return 2;      
+-  } else {
+-    // this is then probably a table of offsets to more tables.
++  } // }}}
++  else { // {{{ probably a table of offsets to tables, recurse
+     DEBUG_INDEX(("Reading Table Items\n"));
+ 
+     x = 0;
+@@ -600,15 +734,10 @@
+     bptr = buf;
+     //    DEBUG_HEXDUMPC(buf, BLOCK_SIZE, 12);
+ 
+-    memcpy(&table, bptr, sizeof(table));
+-    LE32_CPU(table.start);
+-    LE32_CPU(table.u1);
+-    LE32_CPU(table.offset);
+-    bptr += sizeof(table);
+-    memcpy(&table2, bptr, sizeof(table));
+-    LE32_CPU(table2.start);
+-    LE32_CPU(table2.u1);
+-    LE32_CPU(table2.offset);
++
++    roff = offset;
++    bptr += _pst_decode_table( &table, bptr );
++    _pst_decode_table( &table2, bptr );
+ 
+     if (start_val != -1 && table.start != start_val) {
+       DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
+@@ -619,7 +748,9 @@
+     } 
+ 
+     while (table.start != 0 && bptr < buf+BLOCK_SIZE && table.start < end_val) {
+-      DEBUG_INDEX(("[%i] %i Table [start id = %#x, u1 = %#x, offset = %#x]\n", depth, ++x, table.start, table.u1, table.offset));
++      DEBUG_INDEX(("%08x [%i] %i Table [start id = %#x, u1 = %#x, offset = %#x]\n",
++			      roff,
++			      depth, ++x, table.start, table.u1, table.offset));
+ 
+       if (table2.start <= table.start) 
+ 	// this should only be the case when we come to the end of the table
+@@ -643,15 +774,9 @@
+       } else {
+ 	DEBUG_INDEX(("child has returned without a known error [%i]\n", ret));
+       }
+-      memcpy(&table, bptr, sizeof(table));
+-      LE32_CPU(table.start);
+-      LE32_CPU(table.u1);
+-      LE32_CPU(table.offset);
+-      bptr += sizeof(table);
+-      memcpy(&table2, bptr, sizeof(table));
+-      LE32_CPU(table2.start);
+-      LE32_CPU(table2.u1);
+-      LE32_CPU(table2.offset);
++      bptr += _pst_decode_table( &table, bptr );
++      roff = offset + ( bptr - buf );
++      _pst_decode_table( &table2, bptr );
+     }
+ 
+     if (table.start == 0) {
+@@ -669,21 +794,23 @@
+     DEBUG_INDEX(("End of table of pointers\n"));
+     DEBUG_RET();
+     return 3;
+-  }
++  } // }}}
+   DEBUG_WARN(("ERROR ** Shouldn't be here!\n"));
+ 
+   DEBUG_RET();
+   return 1;
+ }
+ 
++
+ #define DESC_BLOCK_SIZE 520
+-int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t *high_id, int32_t start_id, 
++int32_t _pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, int32_t *high_id, int32_t start_id, 
+ 			     int32_t end_val) {
+-  struct _pst_table_ptr_struct table, table2;
+-  pst_desc desc_rec;
++  struct _pst_table_ptr_structn table, table2;
++  pst_descn desc_rec;
+   pst_desc_ll *d_ptr=NULL, *d_par=NULL;
+   int32_t i = 0, y, prev_id=-1;
+   char *buf = NULL, *bptr;
++  off_t roff;
+   
+   struct _pst_d_ptr_ll {
+     pst_desc_ll * ptr;
+@@ -696,8 +823,7 @@
+ 
+   int32_t d_ptr_count = 0;
+   DEBUG_ENT("_pst_build_desc_ptr");
+-  if (pf->index2_depth-depth == 0) {
+-    // leaf node
++  if (pf->index2_depth-depth == 0) { // {{{ leaf node, index it
+     if (_pst_read_block_size(pf, offset, DESC_BLOCK_SIZE, &buf, 0, 0) < DESC_BLOCK_SIZE) {
+       DEBUG_WARN(("I didn't get all the index that I wanted. _pst_read_block_size returned less than requested\n"));
+       DEBUG_RET();
+@@ -707,22 +833,17 @@
+     
+     //DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, 16);
+ 
+-    memcpy(&desc_rec, bptr, sizeof(desc_rec));
+-    LE32_CPU(desc_rec.d_id);
+-    LE32_CPU(desc_rec.desc_id);
+-    LE32_CPU(desc_rec.list_id);
+-    LE32_CPU(desc_rec.parent_id);
+-    bptr+= sizeof(desc_rec);
++    roff = offset;
++    bptr += _pst_decode_desc( &desc_rec, bptr );
+ 
+     if (end_val <= start_id) {
+       DEBUG_WARN(("The end value is BEFORE the start value. This function will quit. Soz. [start:%#x, end:%#x]\n",
+ 		  start_id, end_val));
+     }
+ 
+-    while (i < 0x1F && desc_rec.d_id < end_val && (prev_id == -1 || desc_rec.d_id > prev_id)) {
+-      DEBUG_INDEX(("[%i] Item(%#x) = [d_id = %#x, desc_id = %#x, "
+-		  "list_id = %#x, parent_id = %#x]\n", depth, i, desc_rec.d_id, 
+-		  desc_rec.desc_id, desc_rec.list_id, desc_rec.parent_id));
++    while (i < 0x1F && desc_rec.d_id < end_val && (prev_id == -1 || desc_rec.d_id > prev_id)) { // {{{
++	    DEBUG_INDEX(("Bliss %d: %llx %p %p %p ", i, offset, buf, bptr, bptr ));
++	    dump_desc( roff, depth, i, &desc_rec );
+       i++;
+ 
+       if (start_id != -1 && desc_rec.d_id != start_id) {
+@@ -737,20 +858,16 @@
+       }
+ 
+       if (desc_rec.d_id == 0) {
+-	memcpy(&desc_rec, bptr, sizeof(desc_rec));
+-	LE32_CPU(desc_rec.d_id);
+-	LE32_CPU(desc_rec.desc_id);
+-	LE32_CPU(desc_rec.list_id);
+-	LE32_CPU(desc_rec.parent_id);
+-	bptr+=sizeof(desc_rec);
+-	continue;
++	      roff = offset + ( bptr - buf );
++		bptr+=_pst_decode_desc( &desc_rec, bptr );
++		continue;
+       }
+       prev_id = desc_rec.d_id;
+ 
+       // When duplicates found, just update the info.... perhaps this is correct functionality
+       DEBUG_INDEX(("Searching for existing record\n"));
+ 
+-      if (desc_rec.d_id <= *high_id && (d_ptr = _pst_getDptr(pf, desc_rec.d_id)) !=  NULL) { 
++      if (desc_rec.d_id <= *high_id && (d_ptr = _pst_getDptr(pf, desc_rec.d_id)) !=  NULL) { // {{{
+ 	DEBUG_INDEX(("Updating Existing Values\n"));
+ 	d_ptr->list_index = _pst_getID(pf, desc_rec.list_id);
+ 	d_ptr->desc = _pst_getID(pf, desc_rec.desc_id);
+@@ -802,7 +919,7 @@
+ 	      d_ptr_ptr = d_ptr_ptr->next;
+ 	    }
+ 
+-	    if (d_ptr_ptr == NULL && (d_par = _pst_getDptr(pf, desc_rec.parent_id)) == NULL) {
++	    if (d_ptr_ptr == NULL && (d_par = _pst_getDptr(pf, desc_rec.parent_id)) == NULL) { // {{{
+ 	      // check in the lost/found list
+ 	      lf_ptr = lf_head;
+ 	      while (lf_ptr != NULL && lf_ptr->ptr->id != desc_rec.parent_id) {
+@@ -820,7 +937,7 @@
+ 		d_par = lf_ptr->ptr;
+ 		DEBUG_INDEX(("Found parent (%#x) in Lost and Found\n", d_par->id));
+ 	      }
+-	    }
++	    } // }}}
+ 	    
+ 	    if (d_ptr_ptr != NULL || d_par != NULL) {
+ 	      if (d_ptr_ptr != NULL) 
+@@ -857,7 +974,8 @@
+ 	  }
+ 	}
+ 
+-      } else {     
++      } // }}}
++      else {     
+ 	if (*high_id < desc_rec.d_id) {
+ 	  DEBUG_INDEX(("Updating New High\n"));
+ 	  *high_id = desc_rec.d_id;
+@@ -866,8 +984,10 @@
+ 	d_ptr = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
+ 	//	DEBUG_INDEX(("Item pointer is %p\n", d_ptr));
+ 	d_ptr->id = desc_rec.d_id;
++	DEBUG_INDEX(("Weird %llx moo", desc_rec.list_id ));
+ 	d_ptr->list_index = _pst_getID(pf, desc_rec.list_id);
+ 	d_ptr->desc = _pst_getID(pf, desc_rec.desc_id);
++	//ASSERT( d_ptr->desc != NULL );
+ 	d_ptr->prev = NULL;
+ 	d_ptr->next = NULL;
+ 	d_ptr->parent = NULL;
+@@ -876,7 +996,7 @@
+ 	d_ptr->no_child = 0;
+ 
+         DEBUG_INDEX(("Searching for parent\n"));
+-	if (desc_rec.parent_id == 0 || desc_rec.parent_id == desc_rec.d_id) {
++	if (desc_rec.parent_id == 0 || desc_rec.parent_id == desc_rec.d_id) { // {{{
+ 	  if (desc_rec.parent_id == 0) {
+ 	    DEBUG_INDEX(("No Parent\n"));
+ 	  } else {
+@@ -888,7 +1008,8 @@
+ 	    pf->d_head = d_ptr;
+ 	  d_ptr->prev = pf->d_tail;
+ 	  pf->d_tail = d_ptr;
+-        } else {
++        } // }}}
++	else { // {{{
+ 	  d_ptr_ptr = d_ptr_head;
+ 	  while (d_ptr_ptr != NULL && d_ptr_ptr->ptr->id != desc_rec.parent_id) {
+ 	    d_ptr_ptr = d_ptr_ptr->next;
+@@ -947,7 +1068,7 @@
+ 	    d_ptr->prev = d_par->child_tail;
+ 	    d_par->child_tail = d_ptr;
+ 	  }
+-	}
++	} // }}}
+       }
+       // check here to see if d_ptr is the parent of any of the items in the lost / found list
+       lf_ptr = lf_head; lf_shd = NULL;
+@@ -977,16 +1098,13 @@
+ 	  lf_ptr = lf_ptr->next;
+ 	}
+       }
+-      memcpy(&desc_rec, bptr, sizeof(desc_rec));
+-      LE32_CPU(desc_rec.d_id);
+-      LE32_CPU(desc_rec.desc_id);
+-      LE32_CPU(desc_rec.list_id);
+-      LE32_CPU(desc_rec.parent_id);
+-      bptr+= sizeof(desc_rec);
+-    }
++
++      roff = offset + ( bptr - buf );
++      bptr+= _pst_decode_desc( &desc_rec, bptr );
++    } // }}}
+     //    fseek(pf->fp, fpos, SEEK_SET);
+-  } else {
+-    // hopefully a table of offsets to more tables
++  } // }}}
++  else { // {{{ table of offsets to more tables, recurse
+     if (_pst_read_block_size(pf, offset, DESC_BLOCK_SIZE, &buf, 0, 0) < DESC_BLOCK_SIZE) {
+       DEBUG_WARN(("didn't read enough desc index. _pst_read_block_size returned less than requested\n"));
+       DEBUG_RET();
+@@ -995,15 +1113,8 @@
+     bptr = buf;
+     //    DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, 12);
+ 
+-    memcpy(&table, bptr, sizeof(table));
+-    LE32_CPU(table.start);
+-    LE32_CPU(table.u1);
+-    LE32_CPU(table.offset);
+-    bptr+=sizeof(table);
+-    memcpy(&table2, bptr, sizeof(table));
+-    LE32_CPU(table2.start);
+-    LE32_CPU(table2.u1);
+-    LE32_CPU(table2.offset);
++    bptr+=_pst_decode_table( &table, bptr );
++    _pst_decode_table( &table2, bptr );
+ 
+     if (start_id != -1 && table.start != start_id) {
+       DEBUG_WARN(("This table isn't right. Perhaps we are too deep, or corruption\n"));
+@@ -1034,20 +1145,13 @@
+ 	_pst_build_desc_ptr(pf, table.offset, depth+1, high_id, table.start, table2.start);
+       }
+ 
+-      memcpy(&table, bptr, sizeof(table));
+-      LE32_CPU(table.start);
+-      LE32_CPU(table.u1);
+-      LE32_CPU(table.offset);
+-      bptr+=sizeof(table);
+-      memcpy(&table2, bptr, sizeof(table));
+-      LE32_CPU(table2.start);
+-      LE32_CPU(table2.u1);
+-      LE32_CPU(table2.offset);
++      bptr+=_pst_decode_table( &table, bptr );
++      _pst_decode_table( &table2, bptr );
+     }
+     if (buf) free(buf);
+     DEBUG_RET();
+     return 3;
+-  }
++  } // }}}
+   // ok, lets try freeing the d_ptr_head cache here
+   while (d_ptr_head != NULL) {
+     d_ptr_ptr = d_ptr_head->next;
+@@ -1183,7 +1287,7 @@
+   return item;
+ }
+ 
+-pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll *i2_head) {
++pst_num_array * _pst_parse_block(pst_file *pf, u_int32_t block_id, pst_index2_ll *i2_head) { // {{{ 
+   unsigned char *buf = NULL;
+   pst_num_array *na_ptr = NULL, *na_head = NULL;
+   pst_block_offset block_offset;
+@@ -1194,6 +1298,7 @@
+   size_t read_size=0;
+   pst_x_attrib_ll *mapptr;
+ 
++
+   struct {
+     u_int16_t type;
+     u_int16_t ref_type;
+@@ -1238,13 +1343,13 @@
+ 
+   //  DEBUG_EMAIL(("About to read %i bytes from offset %#x\n", block->size, block->offset));
+ 
+-  if ((read_size = _pst_ff_getIDblock_dec(pf, block_id, &buf)) == 0) {
+-    //  if (_pst_read_block_size(pf, block->offset, block->size, &buf, PST_ENC, 0) < block->size) {
++  if ((read_size = _pst_ff_getIDblock_dec(pf, block_id, &buf)) == 0) { // {{{ error
++    //  if (_pst_read_block_size(pf, block->offset, block->size, &buf, PST_ENC, 0) < block->size) 
+     WARN(("Error reading block id %#x\n", block_id));
+     if (buf) free (buf);
+     DEBUG_RET();
+     return NULL;
+-  }
++  } // }}}
+   DEBUG_EMAIL(("pointer to buf is %p\n", buf));
+ 
+   memcpy(&block_hdr, &(buf[0]), sizeof(block_hdr));
+@@ -1255,7 +1360,7 @@
+ 
+   ind_ptr = block_hdr.index_offset;
+   
+-  if (block_hdr.type == 0xBCEC) { //type 1
++  if (block_hdr.type == 0xBCEC) { // {{{ type 1, populate block_offset
+     block_type = 1;
+     
+     _pst_getBlockOffset(buf, ind_ptr, block_hdr.offset, &block_offset);
+@@ -1281,7 +1386,8 @@
+     num_list = (to_ptr - fr_ptr)/sizeof(table_rec);
+     num_recs = 1; // only going to one object in these blocks
+     rec_size = 0; // doesn't matter cause there is only one object
+-  } else if (block_hdr.type == 0x7CEC) { //type 2
++  } // }}}
++  else if (block_hdr.type == 0x7CEC) { // {{{ type 2, populate block_offset from seven_c_blk
+     block_type = 2;
+     
+     _pst_getBlockOffset(buf, ind_ptr, block_hdr.offset, &block_offset);
+@@ -1340,16 +1446,17 @@
+     
+     _pst_getBlockOffset(buf, ind_ptr, seven_c_blk.ind2_offset, &block_offset);
+     ind2_ptr = block_offset.from;
+-  } else {
++  } // }}}
++  else { // {{{ error
+     WARN(("ERROR: Unknown block constant - %#X for id %#x\n", block_hdr.type, block_id));
+     DEBUG_HEXDUMPC(buf, read_size,0x10);
+     if (buf) free(buf);
+     DEBUG_RET();
+     return NULL;
+-  }
++  } // }}}
+ 
+   DEBUG_EMAIL(("Mallocing number of items %i\n", num_recs));
+-  while (count_rec < num_recs) {
++  while (count_rec < num_recs) { // {{{
+     na_ptr = (pst_num_array*) xmalloc(sizeof(pst_num_array));
+     memset(na_ptr, 0, sizeof(pst_num_array));
+     if (na_head == NULL) {
+@@ -1371,13 +1478,14 @@
+     fr_ptr = list_start; // init fr_ptr to the start of the list.
+     cur_list = 0;
+     stop = 0;
+-    while (!stop && cur_list < num_list) { //we will increase fr_ptr as we progress through index
+-      if (block_type == 1) {
++    while (!stop && cur_list < num_list) { //{{{ we will increase fr_ptr as we progress through index
++      if (block_type == 1) { // {{{
+ 	memcpy(&table_rec, &(buf[fr_ptr]), sizeof(table_rec));
+ 	LE16_CPU(table_rec.type);
+ 	LE16_CPU(table_rec.ref_type);
+ 	fr_ptr += sizeof(table_rec);
+-      } else if (block_type == 2) {
++      } // }}}
++      else if (block_type == 2) { // {{{
+ 	// we will copy the table2_rec values into a table_rec record so that we can keep the rest of the code
+ 	memcpy(&table2_rec, &(buf[fr_ptr]), sizeof(table2_rec));
+ 	LE16_CPU(table2_rec.ref_type);
+@@ -1398,12 +1506,13 @@
+ 	}
+ 
+ 	fr_ptr += sizeof(table2_rec);
+-      } else {
++      } // }}}
++      else { // {{{ ERROR
+ 	WARN(("Missing code for block_type %i\n", block_type));
+ 	if (buf) free(buf);
+ 	DEBUG_RET();
+ 	return NULL;
+-      }
++      } // }}}
+       cur_list++; // get ready to read next bit from list
+       DEBUG_EMAIL(("reading block %i (type=%#x, ref_type=%#x, value=%#x)\n",
+ 		  x, table_rec.type, table_rec.ref_type, table_rec.value));
+@@ -1466,10 +1575,10 @@
+ 		 || table_rec.ref_type == 0x001E || table_rec.ref_type == 0x0102
+ 		 || table_rec.ref_type == 0x0040 || table_rec.ref_type == 0x101E
+ 		 || table_rec.ref_type == 0x0048 || table_rec.ref_type == 0x1102
+-		 || table_rec.ref_type == 0x1014) { 
++		 || table_rec.ref_type == 0x1014 || table_rec.ref_type == 0x001F ) { 
+ 	//contains index_ref to data 
+ 	LE32_CPU(table_rec.value);
+-	if ((table_rec.value & 0x0000000F) == 0xF) { 
++	if ((table_rec.value & 0x0000000F) == 0xF) { // {{{ 
+ 	  // if value ends in 'F' then this should be an id2 value 
+ 	  DEBUG_EMAIL(("Found id2 [%#x] value. Will follow it\n", 
+ 		      table_rec.value)); 
+@@ -1483,7 +1592,8 @@
+ 	  }
+ 	  DEBUG_EMAIL(("Read %i bytes to a buffer at %p\n",
+ 		       na_ptr->items[x]->size, na_ptr->items[x]->data));
+-	} else if (table_rec.value != 0) {
++	} // }}}
++	else if (table_rec.value != 0) {
+ 	  if ((table_rec.value >> 4)+ind_ptr > read_size) { 
+ 	    // check that we will not be outside the buffer we have read
+ 	    DEBUG_WARN(("table_rec.value [%#x] is outside of block [%#x]\n",
+@@ -1507,10 +1617,30 @@
+ 	  }
+ 	  
+ 	  // plus one for good luck (and strings) we will null terminate all reads
+-	  na_ptr->items[x]->data = (char*) xmalloc(size+1); 
+-	  memcpy(na_ptr->items[x]->data, &(buf[t_ptr]), size);
+-	  na_ptr->items[x]->data[size] = '\0'; // null terminate buffer
++	  if( 0x001F == table_rec.ref_type ) {
++		  VBUF_STATIC( strbuf, 1024 );
++		  VBUF_STATIC( unibuf, 1024 );
++		  //need UTF-16 zero-termination
++		  vbset( strbuf, &(buf[t_ptr]), size );
++		  vbappend( strbuf, "\0\0", 2 );
++		  DEBUG_INDEX(("Iconv in: "));
++		  DEBUG_HEXDUMPC( strbuf->b, strbuf->dlen, 0x10 );
++		  vb_utf16to8( unibuf, strbuf->b, strbuf->dlen );
++		  na_ptr->items[x]->data = (char*) xmalloc(unibuf->dlen); 
++		  memcpy(na_ptr->items[x]->data, unibuf->b, unibuf->dlen);
++		  na_ptr->items[x]->size = unibuf->dlen;
++		  DEBUG_INDEX(("Iconv out: "));
++		  DEBUG_HEXDUMPC(na_ptr->items[x]->data, na_ptr->items[x]->size, 0x10 );
++	  }
++	  else {
++		  na_ptr->items[x]->data = (char*) xmalloc(size+1); 
++		  memcpy(na_ptr->items[x]->data, &(buf[t_ptr]), size);
++		  na_ptr->items[x]->data[size] = '\0'; // null terminate buffer
++	  }
+ 	  
++	  DEBUG_INDEX(("Item Puke: type: %x, ref_type: %x, value: %x\n",
++				  table_rec.type, table_rec.ref_type, table_rec.value ));
++	  DEBUG_HEXDUMPC(na_ptr->items[x]->data, size, 0x10 );
+ 	  if (table_rec.ref_type == 0xd) {
+ 	    // there is still more to do for the type of 0xD
+ 	    type_d_rec = (struct _type_d_rec*) na_ptr->items[x]->data;
+@@ -1526,7 +1656,6 @@
+ 	    } 
+ 	    DEBUG_EMAIL(("Read %i bytes into a buffer at %p\n",
+ 			 na_ptr->items[x]->size, na_ptr->items[x]->data));
+-	    //	  } 
+ 	  }
+ 	} else {
+ 	  DEBUG_EMAIL(("Ignoring 0 value in offset\n"));
+@@ -1548,18 +1677,18 @@
+ 	return NULL;
+       }
+       x++;
+-    }
++    } // }}}
+     DEBUG_EMAIL(("increasing ind2_ptr by %i [%#x] bytes. Was %#x, Now %#x\n",
+ 		rec_size, rec_size, ind2_ptr, 
+ 		ind2_ptr+rec_size));
+     ind2_ptr += rec_size;
+     count_rec++;
+-  }
++  } // }}}
+   if (buf != NULL)
+     free(buf);
+   DEBUG_RET();
+   return na_head;
+-}
++} // }}}
+ 
+ // check if item->email is NULL, and init if so
+ #define MALLOC_EMAIL(x) { if (x->email == NULL) { x->email = (pst_item_email*) xmalloc(sizeof(pst_item_email)); memset (x->email, 0, sizeof(pst_item_email));} }
+@@ -3384,7 +3513,7 @@
+   }
+   if (_pst_read_block_size(pf, list->offset, list->size, &buf, PST_NO_ENC,0) < list->size) {
+     //an error occured in block read
+-    WARN(("block read error occured. offset = %#x, size = %#x\n", list->offset, list->size));
++    WARN(("block read error occured. offset = %#llx, size = %#llx\n", list->offset, list->size));
+     DEBUG_RET();
+     return NULL;
+   }
+@@ -3394,7 +3523,7 @@
+   LE16_CPU(block_head.count);
+ 
+   if (block_head.type != 0x0002) { // some sort of constant?
+-    WARN(("Unknown constant [%#x] at start of id2 values [offset %#x].\n", block_head.type, list->offset));
++    WARN(("Unknown constant [%#x] at start of id2 values [offset %#llx].\n", block_head.type, list->offset));
+     DEBUG_RET();
+     return NULL;
+   }
+@@ -3678,7 +3807,7 @@
+   return 0;
+ }
+ 
+-pst_index_ll * _pst_getID(pst_file* pf, u_int32_t id) {
++pst_index_ll * _pst_getID(pst_file* pf, u_int64_t id) {
+   //  static pst_index_ll *old_val = NULL; //this should make it quicker
+   pst_index_ll *ptr = NULL;
+   DEBUG_ENT("_pst_getID");
+@@ -3693,9 +3822,10 @@
+   // Dave: I don't think I should do this. next bit. I really think it doesn't work
+   // it isn't based on sound principles either.
+   // update: seems that the last two sig bits are flags. u tell me!
+-  id &= 0xFFFFFFFE; // remove least sig. bit. seems that it might work if I do this
++  //id &= 0xFFFFFFFE; // remove least sig. bit. seems that it might work if I do this
++  id -= (id & 1 );
+ 
+-  DEBUG_INDEX(("Trying to find %#x\n", id));
++  DEBUG_INDEX(("Trying to find %#llx\n", id));
+   
+   if (ptr == NULL) 
+     ptr = pf->i_head;
+@@ -3927,6 +4057,9 @@
+     return -1;
+   }
+ 
++  DEBUG_INDEX(("_pst_decrypt()"));
++  DEBUG_HEXDUMPC(buf, size, 0x10 );
++
+   if (type == PST_COMP_ENCRYPT) {
+     x = 0;
+     while (x < size) {
+@@ -3935,6 +4068,9 @@
+       buf[x] = comp_enc[y]; // transpose from encrypt array
+       x++;
+     }
++
++	  DEBUG_INDEX(("_pst_decrypt() result"));
++	  DEBUG_HEXDUMPC(buf, size, 0x10 );
+   } else {
+     WARN(("Unknown encryption: %i. Cannot decrypt\n", type));
+     DEBUG_RET();
+@@ -3944,7 +4080,23 @@
+   return 0;
+ }
+ 
+-int32_t _pst_getAtPos(FILE *fp, int32_t pos, void* buf, u_int32_t size) {
++int64_t _pst_getIntAtPos(FILE *fp, off_t pos ) {
++	int64_t buf64;
++	int32_t buf32;
++
++	if(do_read64) {
++		_pst_getAtPos(fp, pos, &buf64, sizeof( buf64 ) );
++		LE64_CPU(buf64);
++		return buf64;
++	}
++	else {
++		_pst_getAtPos(fp, pos, &buf32, sizeof( buf32 ) );
++		LE32_CPU(buf32);
++		return buf32;
++	}
++}
++
++int32_t _pst_getAtPos(FILE *fp, off_t pos, void* buf, u_int32_t size) {
+   DEBUG_ENT("_pst_getAtPos");
+   if (fseek(fp, pos, SEEK_SET) == -1) {
+     DEBUG_RET();
+diff -Naur ../orig/libpst-0.5.1/libpst.h libpst64-060926/libpst.h
+--- ../orig/libpst-0.5.1/libpst.h	2004-11-17 07:48:03.000000000 -0700
++++ libpst64-060926/libpst.h	2006-09-26 14:09:55.000000000 -0600
+@@ -117,6 +117,8 @@
+ #define PST_APP_LABEL_ANNIVERSARY 9 // Anniversary
+ #define PST_APP_LABEL_PHONE_CALL  10// Phone Call
+ 
++extern int do_read64;
++
+ typedef struct _pst_misc_6_struct {
+   int32_t i1;
+   int32_t i2;
+@@ -132,26 +134,72 @@
+   int32_t id;
+ } pst_entryid;
+ 
+-typedef struct _pst_desc_struct {
++typedef struct _pst_desc_struct32 {
+   u_int32_t d_id;
+   u_int32_t desc_id;
+   u_int32_t list_id;
+   u_int32_t parent_id;
+-} pst_desc;
++} pst_desc32;
+ 
+-typedef struct _pst_index_struct{
++typedef struct _pst_desc_structn {
++  u_int64_t d_id;
++  u_int64_t desc_id;
++  u_int64_t list_id;
++//  u_int64_t parent_id;
++  u_int32_t parent_id;
++  u_int32_t u1;
++} pst_descn;
++
++typedef struct _pst_index_struct32{
+   u_int32_t id;
+   int32_t offset;
+   u_int16_t size;
+   int16_t u1;
++} pst_index32;
++
++/*
++typedef struct _pst_index_struct64{
++  u_int64_t id;
++  int64_t offset;
++  u_int16_t size;
++  int16_t u1;
++} pst_index64;
++*/
++
++typedef struct _pst_index_struct{
++  u_int64_t id;
++  int64_t offset;
++  u_int16_t size;
++  int16_t u0;
++  int32_t u1;
+ } pst_index;
+ 
+-typedef struct _pst_index_tree {
++/*
++typedef union _pst_index_struct {
++	pst_index32 i32;
++	pst_index64 i64;
++} pst_index;
++
++#define INDEX_ID(x) ((do_read64)?x.i64.id:x.i32.id)
++#define INDEX_OFFSET(x) ((do_read64)?x.i64.offset:x.i32.offset)
++#define INDEX_SIZE(x) ((do_read64)?x.i64.size:x.i32.size)
++#define INDEX_U1(x) ((do_read64)?x.i64.u1:x.i32.u1)
++*/
++
++typedef struct _pst_index_tree32 {
+   u_int32_t id;
+   int32_t offset;
+-  size_t size;
++  int32_t size;
+   int32_t u1;
+   struct _pst_index_tree * next;
++} pst_index_ll32;
++
++typedef struct _pst_index_tree {
++  u_int64_t id;
++  int64_t offset;
++  int64_t size;
++  int64_t u1;
++  struct _pst_index_tree * next;
+ } pst_index_ll;
+ 
+ typedef struct _pst_index2_tree {
+@@ -421,6 +469,10 @@
+   int32_t index1_count;
+   int32_t index2;
+   int32_t index2_count;
++  int64_t index1_64;
++  int64_t index1_count_64;
++  int64_t index2_64;
++  int64_t index2_count_64;
+   FILE * fp;
+   size_t size;
+   unsigned char index1_depth;
+@@ -460,6 +512,7 @@
+ };
+ 
+ // prototypes
++void set_read64();
+ int32_t pst_open(pst_file *pf, char *name, char *mode);
+ int32_t pst_close(pst_file *pf);
+ pst_desc_ll * pst_getTopOfFolders(pst_file *pf, pst_item *root);
+@@ -470,8 +523,8 @@
+ pst_desc_ll* pst_getNextDptr(pst_desc_ll* d);
+ int32_t pst_load_extended_attributes(pst_file *pf);
+ 
+-int32_t _pst_build_id_ptr(pst_file *pf, int32_t offset, int32_t depth, int32_t start_val, int32_t end_val);
+-int32_t _pst_build_desc_ptr (pst_file *pf, int32_t offset, int32_t depth, int32_t *high_id, 
++int32_t _pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, int32_t start_val, int32_t end_val);
++int32_t _pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, int32_t *high_id, 
+ 			     int32_t start_id, int32_t end_val);
+ pst_item* _pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
+ void * _pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
+@@ -485,13 +538,14 @@
+ int32_t _pst_free_xattrib(pst_x_attrib_ll *x);
+ int32_t _pst_getBlockOffset(char *buf, int32_t i_offset, int32_t offset, pst_block_offset *p);
+ pst_index2_ll * _pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* head_ptr);
+-pst_index_ll * _pst_getID(pst_file* pf, u_int32_t id);
++pst_index_ll * _pst_getID(pst_file* pf, u_int64_t id);
+ pst_index_ll * _pst_getID2(pst_index2_ll * ptr, u_int32_t id);
+ pst_desc_ll * _pst_getDptr(pst_file *pf, u_int32_t id);
+ size_t _pst_read_block_size(pst_file *pf, int32_t offset, size_t size, char ** buf, int32_t do_enc,
+ 			 unsigned char is_index);
+ int32_t _pst_decrypt(unsigned char *buf, size_t size, int32_t type);
+-int32_t _pst_getAtPos(FILE *fp, int32_t pos, void* buf, u_int32_t size);
++int64_t _pst_getIntAtPos(FILE *fp, off_t pos);
++int32_t _pst_getAtPos(FILE *fp, off_t pos, void* buf, u_int32_t size);
+ int32_t _pst_get (FILE *fp, void *buf, u_int32_t size);
+ size_t _pst_ff_getIDblock_dec(pst_file *pf, u_int32_t id, unsigned char **b);
+ size_t _pst_ff_getIDblock(pst_file *pf, u_int32_t id, unsigned char** b);
+diff -Naur ../orig/libpst-0.5.1/libstrfunc.c libpst64-060926/libstrfunc.c
+--- ../orig/libpst-0.5.1/libstrfunc.c	2004-11-17 07:48:03.000000000 -0700
++++ libpst64-060926/libstrfunc.c	2006-09-26 14:09:55.000000000 -0600
+@@ -67,3 +67,30 @@
+   return _sf_b64_buf=output;
+ };
+ 
++void hexdump(char *hbuf, int start, int stop, int ascii) /* {{{ HexDump all or a part of some buffer */
++{
++        char c;
++        int diff,i;
++
++        while (start < stop ) {
++                diff = stop - start;
++                if (diff > 16) diff = 16;
++
++                fprintf(stderr, ":%08X  ",start);
++
++                for (i = 0; i < diff; i++) {
++                        if( 8 == i ) fprintf( stderr, " " );
++                        fprintf(stderr, "%02X ",(unsigned char)*(hbuf+start+i));
++                }
++                if (ascii) {
++                        for (i = diff; i < 16; i++) fprintf(stderr, "   ");
++                        for (i = 0; i < diff; i++) {
++                                c = *(hbuf+start+i);
++                                fprintf(stderr, "%c", isprint(c) ? c : '.');
++                        }
++                }
++                fprintf(stderr, "\n");
++                start += 16;
++        }
++}
++// }}}
+diff -Naur ../orig/libpst-0.5.1/libstrfunc.h libpst64-060926/libstrfunc.h
+--- ../orig/libpst-0.5.1/libstrfunc.h	2004-11-17 07:48:03.000000000 -0700
++++ libpst64-060926/libstrfunc.h	2006-09-26 14:09:55.000000000 -0600
+@@ -1,2 +1,4 @@
+ 
+ char * base64_encode(void *data, size_t size);
++
++void hexdump(char *hbuf, int start, int stop, int ascii);
+diff -Naur ../orig/libpst-0.5.1/lspst.c libpst64-060926/lspst.c
+--- ../orig/libpst-0.5.1/lspst.c	2004-11-17 07:48:03.000000000 -0700
++++ libpst64-060926/lspst.c	2006-09-26 14:09:55.000000000 -0600
+@@ -37,6 +37,7 @@
+ char *rfc2426_escape(char *str);
+ char *rfc2445_datetime_format(FILETIME *ft);
+ // }}}1
++#undef DEBUG_MAIN
+ #define DEBUG_MAIN(x) debug_print x;
+ // int main(int argc, char** argv) {{{1
+ int main(int argc, char** argv) {
+diff -Naur ../orig/libpst-0.5.1/Makefile libpst64-060926/Makefile
+--- ../orig/libpst-0.5.1/Makefile	2004-11-17 09:16:02.000000000 -0700
++++ libpst64-060926/Makefile	2006-09-26 14:09:55.000000000 -0600
+@@ -1,9 +1,12 @@
+ #!/usr/bin/make -f
+ 
+-CFLAGS  ?= -g -Wall
++CFLAGS  ?= -g -Wall 
+ PREFIX ?= /usr/local
+ INSTALL ?= install
+ 
++# You might need this
++#LDLIBS ?= -liconv
++
+ #---------------- Do not modify below this point ------------------
+ 
+ INSTALL_DIR     := $(INSTALL) -p -d -o root -g root -m 0755
+@@ -39,9 +42,11 @@
+ readpstlog.o: XGetopt.h define.h
+ testdebug.o: define.h
+ timeconv.o: timeconv.h common.h
++vbuf.o: vbuf.h
++generic.o: generic.h
+ 
+-readpst: readpst.o libpst.o timeconv.o libstrfunc.o debug.o lzfu.o
+-lspst: debug.o libpst.o libstrfunc.o lspst.o timeconv.o
++readpst: readpst.o libpst.o timeconv.o libstrfunc.o debug.o lzfu.o vbuf.o generic.o
++lspst: debug.o libpst.o libstrfunc.o lspst.o timeconv.o vbuf.o generic.o
+ getidblock: getidblock.o libpst.o debug.o libstrfunc.o
+ testdebug: testdebug.o debug.o
+ readpstlog: readpstlog.o debug.o
+diff -Naur ../orig/libpst-0.5.1/readpst.c libpst64-060926/readpst.c
+--- ../orig/libpst-0.5.1/readpst.c	2004-11-17 07:48:03.000000000 -0700
++++ libpst64-060926/readpst.c	2006-09-26 14:09:55.000000000 -0600
+@@ -13,6 +13,8 @@
+ #include <limits.h>
+ #include <errno.h>
+ 
++#include "vbuf.h"
++
+ #ifndef _WIN32
+ # include <unistd.h>
+ # include <sys/stat.h> //mkdir
+@@ -70,19 +72,19 @@
+ // Function Declarations {{{1
+ void  write_email_body(FILE *f, char *body);
+ char *removeCR (char *c);
+-int32_t   usage();
+-int32_t   version();
++int   usage();
++int   version();
+ char *mk_kmail_dir(char*);
+-int32_t   close_kmail_dir();
++int   close_kmail_dir();
+ char *mk_recurse_dir(char*);
+-int32_t   close_recurse_dir();
++int   close_recurse_dir();
+ char *mk_seperate_dir(char *dir, int overwrite);
+-int32_t   close_seperate_dir();
+-int32_t   mk_seperate_file(struct file_ll *f);
++int   close_seperate_dir();
++int   mk_seperate_file(struct file_ll *f);
+ char *my_stristr(char *haystack, char *needle);
+ char *check_filename(char *fname);
+ char *rfc2426_escape(char *str);
+-int32_t chr_count(char *str, char x);
++int chr_count(char *str, char x);
+ char *rfc2425_datetime_format(FILETIME *ft);
+ char *rfc2445_datetime_format(FILETIME *ft);
+ char *skip_header_prologue(char *headers);
+@@ -107,6 +109,8 @@
+ // saved as email_no-filename (e.g. 1-samplefile.doc or 000001-Attachment2.zip)
+ #define MODE_SEPERATE 3
+ 
++// Decrypt the whole file (even the parts that aren't encrypted) and ralph it to stdout
++#define MODE_DECSPEW 4
+ 
+ // Output Normal just prints the standard information about what is going on
+ #define OUTPUT_NORMAL 0
+@@ -153,7 +157,7 @@
+   prog_name = argv[0];
+   // }}}2
+ 
+-  while ((c = getopt(argc, argv, "d:hko:qrSVwc:"))!= -1) {
++  while ((c = getopt(argc, argv, "C6d:hko:qrSVwc:"))!= -1) {
+     switch (c) {
+     case 'c':
+       if (optarg!=NULL && optarg[0]=='v')
+@@ -168,6 +172,9 @@
+     case 'd':
+       d_log = optarg;
+       break;
++	case '6':
++	  set_read64();
++	  break;
+     case 'h':
+       usage();
+       exit(0);
+@@ -191,6 +198,9 @@
+     case 'S':
+       mode = MODE_SEPERATE;
+       break;
++	case 'C':
++	  mode = MODE_DECSPEW;
++	  break;
+     case 'w':
+       overwrite = 1;
+       break;
+@@ -201,6 +211,8 @@
+     }
+   }
+ 
++  unicode_init();
++
+ #ifdef DEBUG_ALL
+   // initialize log file
+   if (d_log == NULL)
+@@ -218,6 +230,29 @@
+     exit(2);
+   }
+ 
++
++  if ( mode == MODE_DECSPEW ) {
++	  FILE *fp;
++	  char buf[1024];
++	  int l=0;
++	  if( NULL == ( fp = fopen(fname, "rb" ) ) ) {
++		  fprintf(stderr, "Couldn't open file %s\n", fname );
++		  return 1;
++	  }
++
++	  while( 0 != ( l = fread( buf, 1, 1024, fp ) ) ) {
++		  if( 0 != _pst_decrypt( buf, l, PST_COMP_ENCRYPT ) ) 
++			  fprintf(stderr, "_pst_decrypt() failed (I'll try to continue)\n");
++
++		  if( l != fwrite( buf, 1, l, stdout ) ) {
++			  fprintf(stderr, "Couldn't output to stdout?\n");
++			  return 1;
++		  }
++	  }
++
++	  return 0;
++  }
++
+   if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");
+ 
+   DEBUG_MAIN(("main: Opening PST file '%s'\n", fname));
+@@ -1139,6 +1174,8 @@
+   printf("\t-S\t- Seperate. Write emails in the seperate format\n");
+   printf("\t-V\t- Version. Display program version\n");
+   printf("\t-w\t- Overwrite any output mbox files\n");
++  printf("\t-6\t- Attempt to read 64-bit Outlook file (Outlook 2003)\n");
++  printf("\t-C\t- Decrypt the entire file and output on stdout (not typically useful)\n");
+   DEBUG_RET();
+   return 0;
+ }
+diff -Naur ../orig/libpst-0.5.1/vbuf.c libpst64-060926/vbuf.c
+--- ../orig/libpst-0.5.1/vbuf.c	1969-12-31 17:00:00.000000000 -0700
++++ libpst64-060926/vbuf.c	2006-09-26 14:09:55.000000000 -0600
+@@ -0,0 +1,932 @@
++// {{{ includes
++
++#include <ctype.h>
++//#include "defines.h"
++#include <errno.h>
++#include <iconv.h>
++#include <malloc.h>
++#include <signal.h>
++#include <stdarg.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include "vbuf.h"
++#include "generic.h"
++
++#ifdef WITH_DMALLOC
++#include <dmalloc.h>
++#endif
++
++// }}}
++
++int skip_nl( char *s ) // {{{ returns the width of the newline at s[0]
++{
++        if( s[0] == '\n' ) return 1;
++        if( s[0] == '\r' && s[1] == '\n' ) return 2;
++        if( s[0] == '\0' ) return 0;
++        return -1;
++} // }}}
++int find_nl( vstr *vs ) // {{{ find newline of type type in b
++{
++        char *nextr, *nextn;
++
++        nextr = memchr( vs->b, '\r', vs->dlen );
++        nextn = memchr( vs->b, '\n', vs->dlen );
++
++        //case 1: UNIX, we find \n first
++        if( nextn && (nextr == NULL || nextr > nextn ) ) {
++                return nextn - vs->b;
++        }
++
++        //case 2: DOS, we find \r\n
++        if( NULL != nextr && NULL != nextn && 1 == (char*)nextn - (char*)nextr ) {
++                return nextr - vs->b;
++        }
++
++        //case 3: we find nothing
++
++        return -1;
++} // }}}
++
++// {{{ UTF8 <-> UTF16 <-> ISO8859 Character set conversion functions and (ack) their globals
++
++//TODO: the following should not be
++char *wwbuf=NULL;
++size_t nwwbuf=0;
++static int unicode_up=0;
++iconv_t i16to8, i8to16, i8859_1to8, i8toi8859_1;
++
++void unicode_init() // {{{
++{
++	char *wipe = "";
++	char dump[4];
++
++	if( unicode_up ) unicode_close();
++
++	if( (iconv_t)-1 == (i16to8 = iconv_open( "UTF-8", "UTF-16" ) ) ) {
++		fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-16 to UTF-8.\n");
++		exit( 1 );
++	}
++
++	if( (iconv_t)-1 == (i8to16 = iconv_open( "UTF-16", "UTF-8" ) ) ) {
++		fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-8 to UTF-16.\n");
++		exit( 2 );
++	}
++
++	//iconv will prefix output with an FF FE (utf-16 start seq), the following dumps that.
++	memset( dump, 'x', 4 );
++	ASSERT( 0 == utf8to16( wipe, 1, dump, 4 ), "unicode_init(): attempt to dump FF FE failed." );
++
++	if( (iconv_t)-1 == (i8859_1to8 = iconv_open( "UTF-8", "ISO_8859-1" ) ) ) {
++		fprintf(stderr, "doexport(): Couldn't open iconv descriptor for ASCII to UTF-8.\n");
++		exit( 1 );
++	}
++
++
++	if( (iconv_t)-1 == (i8toi8859_1 = iconv_open( "ISO_8859-1", "UTF-8" ) ) ) {
++		fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-8 to ASCII.\n");
++		exit( 1 );
++	}
++
++	unicode_up = 1;
++}
++// }}}
++void unicode_close() // {{{
++{
++	unicode_up = 0;
++	iconv_close( i8to16 );
++	iconv_close( i16to8 );
++	iconv_close( i8859_1to8 );
++	iconv_close( i8toi8859_1 );
++}
++// }}}
++
++//int utf16_write( FILE* stream, const void *buf, size_t count ) // {{{ write utf-8 or iso_8869-1 to stream after converting it to utf-16
++//{
++//
++//	//TODO: if anything big comes through here we are sunk, should do it
++//	//bit-by-bit, not one-big-gulp
++//	
++//	size_t inbytesleft, outbytesleft;
++//	char *inbuf, *outbuf;
++//	size_t icresult;
++//	size_t rl;
++//
++//	//do we have enough buffer space?
++//	if( !wwbuf || nwwbuf < (count * 2 + 2) ) {
++//		wwbuf = F_REALLOC( wwbuf, count * 2 +2 ); 
++//
++//		nwwbuf = count * 2 + 2;
++//	}
++//
++//	inbytesleft = count; outbytesleft = nwwbuf;
++//	inbuf = (char*)buf; outbuf = wwbuf;
++//
++////	fprintf(stderr, "X%s, %dX", (char*)buf, strlen( buf ));
++////	fflush(stderr);
++//
++//	if( (rl = strlen( buf ) + 1) != count ) {
++//		fprintf(stderr, "utf16_write(): reported buffer size (%d) does not match string length (%d)\n",
++//				count,
++//				rl);
++//
++//		//hexdump( (char*)buf, 0, count, 1 );
++//
++//		raise( SIGSEGV );
++//		inbytesleft = rl;
++//	}
++//
++////	fprintf(stderr, "  attempting to convert:\n");
++////	hexdump( (char*)inbuf, 0, count, 1 );
++//
++//	icresult = iconv( i8to16, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
++//
++////	fprintf(stderr, "  converted:\n");
++////	hexdump( (char*)buf, 0, count, 1 );
++//
++////	fprintf(stderr, "  to:\n");
++////	hexdump( (char*)wwbuf, 0, nwwbuf, 1 );
++//
++//	if( (size_t)-1  == icresult ) {
++//		fprintf(stderr, "utf16_write(): iconv failure(%d): %s\n", errno, strerror( errno ) );
++//		fprintf(stderr, "  attempted to convert:\n");
++//		hexdump( (char*)inbuf, 0, count, 1 );
++//
++//		fprintf(stderr, "  result:\n");
++//		hexdump( (char*)outbuf, 0, count, 1 );
++//
++//		fprintf(stderr, "I'm going to segfault now.\n");
++//		raise( SIGSEGV );
++//		exit(1);
++//	}
++//
++//	if( inbytesleft > 0 ) {
++//		fprintf(stderr, "utf16_write(): iconv returned a short count.\n");
++//		exit(1);
++//	}
++//
++//	return fwrite( wwbuf, nwwbuf - outbytesleft - 2, 1, stream  );
++//}
++// }}}
++
++//char *utf16buf = NULL;
++//int utf16buf_len = 0;
++//
++//int utf16_fprintf( FILE* stream, const char *fmt, ... ) // {{{
++//{
++//	int result=0;
++//	va_list ap;
++//
++//	if( utf16buf == NULL ) {
++//		utf16buf = (char*)F_MALLOC( SZ_MAX + 1 );
++//
++//		utf16buf_len = SZ_MAX + 1;
++//	}
++//
++//	va_start( ap, fmt );
++//
++//	result = vsnprintf( utf16buf, utf16buf_len, fmt, ap );
++//
++//	if( result + 1 > utf16buf_len ) { //didn't have space, realloc() and try again
++//		fprintf(stderr, "utf16_fprintf(): buffer too small (%d), F_MALLOC(%d)\n", utf16buf_len, result);
++//		free( utf16buf );
++//		utf16buf_len = result + 1;
++//		utf16buf = (char*)F_MALLOC( utf16buf_len );
++//
++//		result = vsnprintf( utf16buf, utf16buf_len, fmt, ap );
++//	}
++//
++//
++//	//didn't have space...again...something weird is going on...
++//	ASSERT( result + 1 <= utf16buf_len,  "utf16_fprintf(): Unpossible error!\n");
++//
++//	if( 1 != utf16_write( stream, utf16buf, result + 1 ) )
++//		DIE( "Write error?  -> %s or %s\n", strerror( errno ), uerr_str( uerr_get() ) );
++//
++//	return result;
++//}
++//// }}}
++//int utf16to8( char *inbuf_o, char *outbuf_o, int length ) // {{{
++//{
++//	int inbytesleft = length;
++//	int outbytesleft = length;
++//	char *inbuf = inbuf_o;
++//	char *outbuf = outbuf_o;
++//	int rlen = -1, tlen;
++//	int icresult = -1; 
++//
++//	int i, strlen=-1;
++//	
++//	DEBUG(
++//		fprintf(stderr, "  utf16to8(): attempting to convert:\n");
++//		//hexdump( (char*)inbuf_o, 0, length, 1 );
++//		fflush(stderr);
++//	);
++//
++//	for( i=0; i<length ; i+=2 ) {
++//		if( inbuf_o[i] == 0 && inbuf_o[i + 1] == 0 ) {
++//			//fprintf(stderr, "End of string found at: %d\n", i );
++//			strlen = i;
++//		}
++//	}
++//
++//	//hexdump( (char*)inbuf_o, 0, strlen, 1 );
++//
++//	if( -1 == strlen ) WARN("String is not zero-terminated.");
++//
++//	//iconv does not like it when the inbytesleft > actual string length
++//	//enum: zero terminated, length valid
++//	//      zero terminated, length short //we won't go beyond length ever, so this is same as NZT case
++//	//      zero terminated, length long
++//	//      not zero terminated
++//	//      TODO: MEMORY BUG HERE!
++//	for( tlen = 0; tlen <= inbytesleft - 2; tlen+=2 ) {
++//		if( inbuf_o[tlen] == 0 && inbuf_o[tlen+1] == 0 ){
++//			rlen = tlen + 2;
++//			tlen = rlen;
++//			break;
++//		}
++//		if( tlen == inbytesleft )fprintf(stderr, "Space allocated for string > actual string length.  Go windows!\n");
++//	}
++//
++//	if( rlen >= 0 )
++//		icresult = iconv( i16to8, &inbuf, &rlen, &outbuf, &outbytesleft );
++//
++//	if( icresult == (size_t)-1 ) {
++//		fprintf(stderr, "utf16to8(): iconv failure(%d): %s\n", errno, strerror( errno ) );
++//		fprintf(stderr, "  attempted to convert:\n");
++//		hexdump( (char*)inbuf_o, 0, length, 1 );
++//		fprintf(stderr, "  result:\n");
++//		hexdump( (char*)outbuf_o, 0, length, 1 );
++//		fprintf(stderr, "  MyDirtyOut:\n");
++//		for( i=0; i<length; i++) {
++//			if( inbuf_o[i] != '\0' ) fprintf(stderr, "%c", inbuf_o[i] );
++//		}
++//
++//		fprintf( stderr, "\n" );
++//		raise( SIGSEGV );
++//		exit(1);
++//	}
++//
++//	DEBUG(
++//		fprintf(stderr, "  result:\n");
++//		hexdump( (char*)outbuf_o, 0, length, 1 );
++//	     )
++//
++//	//fprintf(stderr, "utf16to8() returning %s\n", outbuf );
++//
++//	return icresult;	
++//}
++//// }}}
++int utf16_is_terminated( char *str, int length ) // {{{
++{
++	VSTR_STATIC( errbuf, 100 );
++	int len = -1;
++	int i;
++	for( i=0; i<length ; i+=2 ) {
++		if( str[i] == 0 && str[i + 1] == 0 ) {
++			//fprintf(stderr, "End of string found at: %d\n", i );
++			len = i;
++		}
++	}
++
++	//hexdump( (char*)inbuf_o, 0, len, 1 );
++
++	if( -1 == len ) {
++		vshexdump( errbuf, str, 0, length, 1 );
++		WARN("String is not zero terminated (probably broken data from registry) %s.", errbuf->b);
++	}
++
++	return (-1 == len )?0:1;
++} // }}}
++int vb_utf16to8( vbuf *dest, char *buf, int len ) // {{{
++{
++	int inbytesleft = len;
++	char *inbuf = buf;
++	//int rlen = -1, tlen;
++	int icresult = -1; 
++	VBUF_STATIC( dumpster, 100 );
++
++	//int i; //, strlen=-1;
++	int outbytesleft; 
++	char *outbuf;
++
++	ASSERT( unicode_up, "vb_utf16to8() called before unicode started." );
++
++	if( 2 > dest->blen ) vbresize( dest, 2 );
++	dest->dlen = 0;
++
++	//Bad Things can happen if a non-zero-terminated utf16 string comes through here
++	if( !utf16_is_terminated( buf, len ) ) return -1;
++
++	do {
++		outbytesleft = dest->blen - dest->dlen;
++		outbuf = dest->b + dest->dlen;
++		icresult = iconv( i16to8, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
++		dest->dlen = outbuf - dest->b;
++		vbgrow( dest, inbytesleft);
++	} while( (size_t)-1 == icresult && E2BIG == errno );
++
++	if( 0 != vb_utf8to16T( dumpster, dest->b, dest->dlen ) )
++		DIE("Reverse conversion failed.");
++
++	if( icresult == (size_t)-1 ) {
++		//TODO: error
++		//ERR_UNIX( errno, "vb_utf16to8():iconv failure: %s", strerror( errno ) );
++		unicode_init();
++		return -1;
++		/*
++		fprintf(stderr, "  attempted to convert:\n");
++		hexdump( (char*)cin, 0, inlen, 1 );
++		fprintf(stderr, "  result:\n");
++		hexdump( (char*)bout->b, 0, bout->dlen, 1 );
++		fprintf(stderr, "  MyDirtyOut:\n");
++		for( i=0; i<inlen; i++) {
++			if( inbuf[i] != '\0' ) fprintf(stderr, "%c", inbuf[i] );
++		}
++
++		fprintf( stderr, "\n" );
++		raise( SIGSEGV );
++		exit(1);
++		*/
++	}
++
++	if( icresult ) {
++		//ERR_UNIX( EILSEQ, "Uhhhh...vb_utf16to8() returning icresult == %d", icresult );
++		return -1;
++	}
++	return icresult;	
++}
++// }}}
++
++int utf8to16( char *inbuf_o, int iblen, char *outbuf_o, int oblen) // {{{ iblen, oblen: bytes including \0
++{
++	//TODO: this is *only* used to dump the utf16 preamble now...
++	//TODO: This (and 8to16) are the most horrible things I have ever seen...
++	int inbytesleft;
++	int outbytesleft = oblen;
++	char *inbuf = inbuf_o;
++	char *outbuf = outbuf_o;
++	//int rlen = -1, tlen;
++	int icresult = -1; 
++
++	char *stend;
++
++	//int i; //, strlen=-1;
++	
++	DEBUG(
++		fprintf(stderr, "  utf8to16(): attempting to convert:\n");
++		//hexdump( (char*)inbuf_o, 0, length, 1 );
++		fflush(stderr);
++	);
++
++	stend = memchr( inbuf_o, '\0', iblen );
++	ASSERT( NULL != stend, "utf8to16(): in string not zero terminated." );
++
++	inbytesleft = ( stend - inbuf_o + 1 < iblen )? stend - inbuf_o + 1: iblen;
++
++	//iconv does not like it when the inbytesleft > actual string length
++	//enum: zero terminated, length valid
++	//      zero terminated, length short //we won't go beyond length ever, so this is same as NZT case
++	//      zero terminated, length long
++	//      not zero terminated
++	//      TODO: MEMORY BUG HERE!
++	//      
++	/*
++	for( tlen = 0; tlen <= inbytesleft - 2; tlen+=2 ) {
++		if( inbuf_o[tlen] == 0 && inbuf_o[tlen+1] == 0 ){
++			rlen = tlen + 2;
++			tlen = rlen;
++			break;
++		}
++		if( tlen == inbytesleft )fprintf(stderr, "Space allocated for string > actual string length.  Go windows!\n");
++	}
++	*/
++
++	//if( rlen >= 0 )
++		icresult = iconv( i8to16, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
++
++	if( icresult == (size_t)-1 ) {
++		DIE("iconv failure(%d): %s\n", errno, strerror( errno ) );
++		//fprintf(stderr, "  attempted to convert:\n");
++		//hexdump( (char*)inbuf_o, 0, iblen, 1 );
++		//fprintf(stderr, "  result:\n");
++		//hexdump( (char*)outbuf_o, 0, oblen, 1 );
++		//fprintf(stderr, "  MyDirtyOut:\n");
++//		for( i=0; i<iblen; i++) {
++//			if( inbuf_o[i] != '\0' ) fprintf(stderr, "%c", inbuf_o[i] );
++//		}
++//
++//		fprintf( stderr, "\n" );
++//		raise( SIGSEGV );
++//		exit(1);
++	}
++
++//	DEBUG(
++//		fprintf(stderr, "  result:\n");
++//		hexdump( (char*)outbuf_o, 0, oblen, 1 );
++//	     )
++
++	//fprintf(stderr, "utf8to16() returning %s\n", outbuf );
++
++	//TODO: error
++	if( icresult ) printf("Uhhhh...utf8to16() returning icresult == %d\n", icresult );
++	return icresult;	
++}
++// }}}
++
++int vb_utf8to16T( vbuf *bout, char *cin, int inlen ) // {{{ 
++{
++	//TODO: This (and 8to16) are the most horrible things I have ever seen...
++	int inbytesleft = inlen;
++	char *inbuf = cin;
++	//int rlen = -1, tlen;
++	int icresult = -1; 
++
++	//int i; //, strlen=-1;
++	
++	//if( rlen >= 0 )
++	int outbytesleft; 
++	char *outbuf;
++	if( 2 > bout->blen ) vbresize( bout, 2 );
++	bout->dlen = 0;
++
++	do {
++		outbytesleft = bout->blen - bout->dlen;
++		outbuf = bout->b + bout->dlen;
++		icresult = iconv( i8to16, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
++		bout->dlen = outbuf - bout->b;
++		vbgrow( bout, 20 );
++	} while( (size_t)-1 == icresult && E2BIG == errno );
++
++	if( icresult == (size_t)-1 ) {
++		WARN("iconv failure: %s", strerror( errno ) );
++		//ERR_UNIX( errno, "vb_utf8to16():iconv failure: %s", strerror( errno ) );
++		unicode_init();
++		return -1;
++		/*
++		fprintf(stderr, "vb_utf8to16(): iconv failure(%d == %d?): %s\n", errno, E2BIG, strerror( errno ) );
++		fprintf(stderr, "  attempted to convert:\n");
++		hexdump( (char*)cin, 0, inlen, 1 );
++		fprintf(stderr, "  result:\n");
++		hexdump( (char*)bout->b, 0, bout->dlen, 1 );
++		fprintf(stderr, "  MyDirtyOut:\n");
++		for( i=0; i<inlen; i++) {
++			if( inbuf[i] != '\0' ) fprintf(stderr, "%c", inbuf[i] );
++		}
++
++		fprintf( stderr, "\n" );
++		raise( SIGSEGV );
++		exit(1);
++		*/
++	}
++
++	//TODO: error
++	if( icresult ) printf("Uhhhh...vb_utf8to16() returning icresult == %d\n", icresult );
++	return icresult;	
++}
++// }}}
++#if 1
++void cheap_uni2ascii(char *src, char *dest, int l) /* {{{ Quick and dirty UNICODE to std. ascii */
++{
++
++	for (; l > 0; l -=2) {
++		*dest = *src;
++		dest++; src +=2;
++	}
++	*dest = 0;
++}
++// }}}
++#endif
++
++void cheap_ascii2uni(char *src, char *dest, int l) /* {{{ Quick and dirty ascii to unicode */
++{
++   for (; l > 0; l--) {
++      *dest++ = *src++;
++      *dest++ = 0;
++
++   }
++}
++// }}}
++
++// }}}
++// {{{ VARBUF Functions 
++vbuf *vballoc( size_t len ) // {{{
++{
++	struct varbuf *result;
++
++	result = F_MALLOC( sizeof( struct varbuf ) );
++
++	result->dlen = 0;
++	result->blen = 0;
++	result->buf = NULL;
++
++	vbresize( result, len );
++
++	return result;
++
++} // }}}
++void vbcheck( vbuf *vb ) // {{{
++{
++	ASSERT( vb->b - vb->buf <= vb->blen, "vbcheck(): vb->b outside of buffer range.");
++	ASSERT( vb->dlen <= vb->blen, "vbcheck(): data length > buffer length.");
++
++	ASSERT( vb->blen < 1024*1024, "vbcheck(): blen is a bit large...hmmm.");
++} // }}}
++void vbfree( vbuf *vb ) // {{{
++{
++	free( vb->buf );
++	free( vb );
++} // }}}
++void vbclear( struct varbuf *vb ) // {{{ditch the data, keep the buffer
++{
++	vbresize( vb, 0 );
++} // }}}
++void vbresize( struct varbuf *vb, size_t len ) // {{{ DESTRUCTIVELY grow or shrink buffer
++{
++	vb->dlen = 0;
++
++	if( vb->blen >= len ) {
++		vb->b = vb->buf;
++		return;
++	}
++
++	vb->buf = F_REALLOC( vb->buf, len );
++	vb->b = vb->buf;
++	vb->blen = len;
++} // }}}
++int vbavail( vbuf *vb ) // {{{
++{
++	return vb->blen - ((char*)vb->b - (char*)vb->buf + vb->dlen);
++} // }}}
++//void vbdump( vbuf *vb ) // {{{ TODO: to stdout?  Yuck
++//{
++//	printf("vb dump-------------\n");
++//        printf("dlen: %d\n", vb->dlen );
++//	printf("blen: %d\n", vb->blen );
++//	printf("b - buf: %d\n", vb->b - vb->buf );
++//	printf("buf:\n");
++//	hexdump( vb->buf, 0, vb->blen, 1 );
++//	printf("b:\n");
++//	hexdump( vb->b, 0, vb->dlen, 1 );
++//	printf("^^^^^^^^^^^^^^^^^^^^\n");
++//} // }}}
++void vbgrow( struct varbuf *vb, size_t len ) // {{{ out: vbavail(vb) >= len, data are preserved
++{
++	if( 0 == len ) return;
++
++	if( 0 == vb->blen ) {
++		vbresize( vb, len );
++		return;
++	}
++
++	if( vb->dlen + len > vb->blen ) {
++		if( vb->dlen + len < vb->blen * 1.5 ) len = vb->blen * 1.5;
++		char *nb = F_MALLOC( vb->blen + len );
++		//printf("vbgrow() got %p back from malloc(%d)\n", nb, vb->blen + len);
++		vb->blen = vb->blen + len;
++		memcpy( nb, vb->b, vb->dlen );
++
++		//printf("vbgrow() I am going to free %p\n", vb->buf );
++		free( vb->buf );
++		vb->buf = nb;
++		vb->b = vb->buf;
++	} else {
++		if( vb->b != vb->buf ) 
++			memcpy( vb->buf, vb->b, vb->dlen );
++	}
++
++	vb->b = vb->buf;
++
++	ASSERT( vbavail( vb ) >= len, "vbgrow(): I have failed in my mission." );
++} // }}}
++void vbset( vbuf *vb, void *b, size_t len ) // {{{ set vbuf b size=len, resize if necessary, relen = how much to over-allocate
++{
++	vbresize( vb, len );
++
++	memcpy( vb->b, b, len );
++	vb->dlen = len;
++} // }}}
++void vsskipws( vstr *vs ) // {{{
++{
++	char *p = vs->b;
++	while( p - vs->b < vs->dlen && isspace( p[0] ) ) p++;
++
++	vbskip( (vbuf*)vs, p - vs->b );
++} // }}}
++void vbappend( struct varbuf *vb, void *b, size_t len ) // {{{ append len bytes of b to vbuf, resize if necessary
++{
++	if( 0 == vb->dlen ) {
++		vbset( vb, b, len );
++		return;
++	}
++
++	vbgrow( vb, len );
++
++	memcpy( vb->b + vb->dlen, b, len );
++	vb->dlen += len;
++
++	//printf("vbappend() end: >%s/%d<\n", vbuf->b, vbuf->dlen );
++} // }}}
++void vbskip( struct varbuf *vb, size_t skip ) // {{{ dumps the first skip bytes from vbuf
++{
++	ASSERT( skip <= vb->dlen, "vbskip(): Attempt to seek past end of buffer." );
++	//memmove( vbuf->b, vbuf->b + skip, vbuf->dlen - skip );
++	vb->b += skip;
++	vb->dlen -= skip;
++} // }}}
++void vboverwrite( struct varbuf *vbdest, struct varbuf *vbsrc ) // {{{ overwrite vbdest with vbsrc
++{
++	vbresize( vbdest, vbsrc->blen );
++	memcpy( vbdest->b, vbsrc->b, vbsrc->dlen );
++	vbdest->blen = vbsrc->blen;
++	vbdest->dlen = vbsrc->dlen;
++} // }}}
++// }}}
++// {{{ VARSTR Functions
++vstr *vsalloc( size_t len ) // {{{
++{
++	vstr *result = (vstr*)vballoc( len + 1 );
++	vsset( result, "" );
++	return result;
++} // }}}
++char *vsstr( vstr *vs ) // {{{
++{
++	return vs->b;
++} // }}}
++size_t vslen( vstr *vs ) // {{{
++{
++	return strlen( vsstr( vs ));
++} // }}}
++void vsfree( vstr *vs ) // {{{
++{
++	vbfree( (vbuf*)vs );
++} // }}}
++void vscharcat( vstr *vb, int ch ) // {{{
++{
++	vbgrow( (vbuf*)vb, 1);
++	vb->b[vb->dlen-1] = ch;
++	vb->b[vb->dlen] = '\0';
++	vb->dlen++;
++} // }}}
++void vsnprepend( vstr *vb, char *str, size_t len ) // {{{ prependappend string str to vbuf, vbuf must already contain a valid string 
++{
++	ASSERT( vb->b[vb->dlen-1] == '\0', "vsncat(): attempt to append string to non-string.");
++	int sl = strlen( str );
++	int n = (sl<len)?sl:len;
++	//string append
++	vbgrow( (vbuf*)vb, n + 1 );
++	memmove( vb->b + n, vb->b, vb->dlen - 1 );
++	memcpy( vb->b, str, n );
++	//strncat( vb->b, str, n );
++
++	vb->dlen += n;
++	vb->b[ vb->dlen - 1 ] = '\0';
++} // }}}
++void vsskip( vstr *vs, size_t len ) // {{{ len < dlen-1 -> skip len chars, else DIE
++{
++	ASSERT( len < vs->dlen - 1, "Attempt to skip past end of string" );
++	vbskip( (vbuf*)vs, len );
++} // }}}
++int vsskipline( vstr *vs ) // {{{ in: vb->b == "stuff\nmore_stuff"; out: vb->b == "more_stuff"
++{
++	int nloff = find_nl( vs );
++	int nll = skip_nl( vs->b + nloff );
++
++	if( nloff < 0 ) {
++		//TODO: error
++		printf("vb_skipline(): there seems to be no newline here.\n");
++		return -1;
++	}
++	if( skip_nl < 0 ) {
++		//TODO: error
++		printf("vb_skipline(): there seems to be no newline here...except there should be. :P\n");
++		return -1;
++	}
++
++	memmove( vs->b, vs->b + nloff + nll, vs->dlen - nloff - nll );
++
++	vs->dlen -= nloff + nll;
++
++	return 0;
++} // }}}
++int vscatprintf( vstr *vs, char *fmt, ... ) // {{{
++{
++	int size;
++	va_list ap;
++
++	/* Guess we need no more than 100 bytes. */
++	//vsresize( vb, 100 );
++	if(!vs->b || vs->dlen == 0) {
++		vsset( vs, "" );
++	}
++
++	while (1) {
++		/* Try to print in the allocated space. */
++		va_start(ap, fmt);
++		size = vsnprintf (vs->b + vs->dlen - 1, vs->blen - vs->dlen, fmt, ap);
++		va_end(ap);
++
++		/* If that worked, return the string. */
++		if (size > -1 && size < vs->blen - vs->dlen ) {
++			vs->dlen += size;
++			return size;
++		}
++		/* Else try again with more space. */
++		if ( size >= 0 )    /* glibc 2.1 */
++			vbgrow( (vbuf*)vs, size+1 ); /* precisely what is needed */
++		else           /* glibc 2.0 */
++			vbgrow( (vbuf*)vs, vs->blen);
++	}
++} // }}}
++int vslast( vstr *vs ) // {{{ returns the last character stored in a vstr 
++{
++	if( vs->dlen < 1 ) return -1;
++	if( vs->b[vs->dlen-1] != '\0' ) return -1;
++	if( vs->dlen == 1 ) return '\0';
++	return vs->b[vs->dlen-2];
++} // }}}
++void vs_printf( vstr *vs, char *fmt, ... ) // {{{ print over vb
++{
++	int size;
++	va_list ap;
++
++	/* Guess we need no more than 100 bytes. */
++	vbresize( (vbuf*)vs, 100 );
++
++	while (1) {
++		/* Try to print in the allocated space. */
++		va_start(ap, fmt);
++		size = vsnprintf (vs->b, vs->blen, fmt, ap);
++		va_end(ap);
++
++		/* If that worked, return the string. */
++		if (size > -1 && size < vs->blen) {
++			vs->dlen = size + 1;
++			return;
++		}
++		/* Else try again with more space. */
++		if ( size >= 0 )    /* glibc 2.1 */
++			vbresize( (vbuf*)vs, size+1 ); /* precisely what is needed */
++		else           /* glibc 2.0 */
++			vbresize( (vbuf*)vs, vs->blen*2);
++	}
++} // }}}
++void vs_printfa( vstr *vs, char *fmt, ... ) // {{{ printf append to vs
++{
++	int size;
++	va_list ap;
++
++	if( vs->blen - vs->dlen < 50 )
++		vbgrow( (vbuf*)vs, 100 );
++
++	while (1) {
++		/* Try to print in the allocated space. */
++		va_start(ap, fmt);
++		size = vsnprintf (vs->b + vs->dlen - 1, vs->blen - vs->dlen + 1, fmt, ap);
++		va_end(ap);
++
++		/* If that worked, return the string. */
++		if (size > -1 && size < vs->blen) {
++			vs->dlen += size;
++			return;
++		}
++		/* Else try again with more space. */
++		if ( size >= 0 )    /* glibc 2.1 */
++			vbgrow( (vbuf*)vs, size+1 - vs->dlen ); /* precisely what is needed */
++		else           /* glibc 2.0 */
++			vbgrow( (vbuf*)vs, size );
++	}
++} // }}}
++void vshexdump( vstr *vs, char *b, size_t start, size_t stop, int ascii ) // {{{
++{
++	char c;
++	int diff,i;
++
++	while (start < stop ) {
++		diff = stop - start;
++		if (diff > 16) diff = 16;
++
++		vs_printfa(vs, ":%08X  ",start);
++
++		for (i = 0; i < diff; i++) {
++			if( 8 == i ) vs_printfa( vs, " " );
++			vs_printfa(vs, "%02X ",(unsigned char)*(b+start+i));
++		}
++		if (ascii) {
++			for (i = diff; i < 16; i++) vs_printfa(vs, "   ");
++			for (i = 0; i < diff; i++) {
++				c = *(b+start+i);
++				vs_printfa(vs, "%c", isprint(c) ? c : '.');
++			}
++		}
++		vs_printfa(vs, "\n");
++		start += 16;
++	}
++} // }}}
++void vsset( vstr *vs, char *s ) // {{{ Store string s in vs
++{
++	vsnset( vs, s, strlen( s ) );
++} // }}}
++void vsnset( vstr *vs, char *s, size_t n ) // {{{ Store string s in vs
++{
++	vbresize( (vbuf*)vs, n + 1 );
++	memcpy( vs->b, s, n);
++	vs->b[n] = '\0';
++	vs->dlen = n+1;
++} // }}}
++void vsgrow(      vstr *vs, size_t len ) // {{{ grow buffer by len bytes, data are preserved
++{
++	vbgrow( (vbuf*)vs, len );
++} // }}}
++size_t vsavail( vstr *vs ) // {{{
++{
++	return vbavail( (vbuf*)vs );
++} // }}}
++void vsnset16( vstr *vs, char *s, size_t len ) // {{{ Like vbstrnset, but for UTF16
++{
++	vbresize( (vbuf*)vs, len+1 );
++	memcpy( vs->b, s, len );
++	
++	vs->b[len] = '\0';
++	vs->dlen = len+1;
++	vs->b[len] = '\0';
++} // }}}
++void vscat( vstr *vs, char *str ) // {{{
++{
++	vsncat( vs, str, strlen(str ) );
++} // }}}
++int vscmp( vstr *vs, char *str ) // {{{
++{
++	return strcmp( vs->b, str );
++} // }}}
++void vsncat( vstr *vs, char *str, size_t len ) // {{{ append string str to vstr, vstr must already contain a valid string 
++{
++	ASSERT( vs->b[vs->dlen-1] == '\0', "vsncat(): attempt to append string to non-string.");
++	int sl = strlen( str );
++	int n = (sl<len)?sl:len;
++	//string append
++	vbgrow( (vbuf*)vs, n + 1 );
++	memcpy( vs->b + vs->dlen - 1, str, n );
++	//strncat( vs->b, str, n );
++
++	vs->dlen += n;
++	vs->b[ vs->dlen - 1 ] = '\0';
++} // }}}
++void vstrunc( vstr *v, int off ) // {{{ Drop chars [off..dlen] 
++{
++	if( off >= v->dlen - 1 ) return; //nothing to do
++	v->b[off] = '\0';
++	v->dlen = off + 1;
++}
++// }}}
++// }}}
++// {{{ User input
++// TODO: not sure how useful this stuff is here
++int fmyinput(char *prmpt, char *ibuf, int maxlen) /* {{{ get user input */
++{
++	printf("%s",prmpt);
++
++	fgets(ibuf,maxlen+1,stdin);
++
++	ibuf[strlen(ibuf)-1] = 0;
++
++	return(strlen(ibuf));
++}
++// }}}
++//}}}
++//
++//
++//{{{ String formatting and output to FILE *stream or just stdout, etc 
++// TODO: a lot of old, unused stuff in here
++void vswinhex8(vstr *vs, unsigned char *hbuf, int start, int stop, int loff ) // {{{ Produce regedit-style hex output */
++{
++	int i;
++	int lineflag=0;
++
++	for( i=start; i<stop; i++)
++	{
++		loff += vscatprintf( vs, "%02x", hbuf[i] );
++		if( i < stop - 1 ) {
++			loff+=vscatprintf( vs, "," );
++			switch( lineflag ) {
++				case 0:
++				if( loff >= 77) {
++					lineflag=1;
++					loff=0;
++					vscatprintf( vs, "\\%s  ", STUPID_CR );
++				}
++				break;
++				case 1:
++				if( loff >= 75 ) {
++					loff=0;
++					vscatprintf( vs, "\\%s  ", STUPID_CR );
++				}
++				break;
++			}
++			//	if( 24 < i || 0 == (i - 17) % 25 ) fprintf( stream, "\\\n  " );
++		}
++	}
++
++	//   fprintf( stream, "\n" );
++} // }}}
+diff -Naur ../orig/libpst-0.5.1/vbuf.h libpst64-060926/vbuf.h
+--- ../orig/libpst-0.5.1/vbuf.h	1969-12-31 17:00:00.000000000 -0700
++++ libpst64-060926/vbuf.h	2006-09-26 14:09:55.000000000 -0600
+@@ -0,0 +1,142 @@
++/* {{{ vbuf.h - variable length buffer functions
++ *
++ * Functions that try to make dealing with buffers easier.
++ *
++ * vbuf
++ *
++ * vstr
++ * - should always contain a valid string
++ *
++ * }}} */
++
++#ifndef VBUF_H
++#define VBUF_H
++#define SZ_MAX     4096
++#include <stdlib.h>
++#include <stdio.h>
++#include <stdarg.h>
++/***************************************************/
++
++// {{{ Tokenizer const TOK_EMPTY, TOK_ELEMENT, DELIM
++#define DELIM '\\'
++
++#define TOK_EMPTY	0
++#define TOK_DELIM	1
++#define TOK_PARENT	2
++#define TOK_CURRENT	3
++#define TOK_ELEMENT	4
++
++#define TOK_ERROR	10
++#define TOK_BUF_SMALL	11
++// }}}
++
++
++// Variable-length buffers 
++struct varbuf { // {{{
++	size_t dlen; 	//length of data stored in buffer
++	size_t blen; 	//length of buffer
++	char *buf; 	//buffer
++	char *b;	//start of stored data
++}; // }}}
++
++
++// The exact same thing as a varbuf but should always contain at least '\0' 
++struct varstr { // {{{
++	size_t dlen; 	//length of data stored in buffer
++	size_t blen; 	//length of buffer
++	char *buf; 	//buffer
++	char *b;	//start of stored data
++}; // }}}
++
++
++typedef struct varbuf vbuf;
++typedef struct varstr vstr;
++
++#define VBUF_STATIC(x,y) static vbuf *x = NULL; if(!x) x = vballoc(y);
++#define VSTR_STATIC(x,y) static vstr *x = NULL; if(!x) x = vsalloc(y);
++
++// vbuf functions
++struct varbuf *vballoc( size_t len );
++void vbfree(      vbuf *vb );
++void vbclear(     vbuf *vb ); //ditch the data, keep the buffer
++void vbresize(    vbuf *vb, size_t len );
++int  vbavail(     vbuf *vb );
++void vbdump(      vbuf *vb );
++void vbgrow(      vbuf *vb, size_t len ); // grow buffer by len bytes, data are preserved
++void vbset(       vbuf *vb, void *data, size_t len );
++void vbskipws(    vbuf *vb ); 
++void vbappend(    vbuf *vb, void *data, size_t length );
++void vbskip(      vbuf *vb, size_t skip ); 
++void vboverwrite( vbuf *vbdest, vbuf *vbsrc );
++
++// vstr functions
++vstr *vsalloc( size_t len );
++char *vsb(      vstr *vs );
++size_t vslen(     vstr *vs ); //strlen
++void vsfree(      vstr *vs );
++void vsset(       vstr *vs, char *s ); // Store string s in vb
++void vsnset(      vstr *vs, char *s, size_t n ); // Store string s in vb
++void vsgrow(      vstr *vs, size_t len ); // grow buffer by len bytes, data are preserved
++size_t vsavail(   vstr *vs );
++void vscat(       vstr *vs, char *str );
++void vsncat(      vstr *vs, char *str, size_t len );
++void vsnprepend(  vstr *vs, char *str, size_t len ) ;
++void vsskip(      vstr *vs, size_t len );
++int  vscmp(       vstr *vs, char *str );
++void vsskipws(    vstr *vs );
++void vs_printf(   vstr *vs, char *fmt, ... );
++void vs_printfa(  vstr *vs, char *fmt, ... );
++void vshexdump(   vstr *vs, char *b, size_t start, size_t stop, int ascii );
++int  vscatprintf( vstr *vs, char *fmt, ... );
++void vsvprintf(   vstr *vs, char *fmt, va_list ap );
++void vstrunc(     vstr *vs, int off ); // Drop chars [off..dlen]
++int  vslast(      vstr *vs ); // returns the last character stored in a vstr string
++void vscharcat(   vstr *vs, int ch );
++int  vsutf16(     vstr *vs, vbuf *in ); //in: in=zero-terminated utf16; out: vs=utf8; returns: 0 on success, else on fail
++
++int vs_parse_escaped_string( vstr *vs, char *str, size_t len );
++
++
++/*
++ * Windows unicode output trash - this stuff sucks
++ * TODO: most of this should not be here
++ */
++
++void unicode_init();
++void unicode_close();
++int utf16_write( FILE* stream, const void *buf, size_t count );
++int utf16_fprintf( FILE* stream, const char *fmt, ... );
++int utf16to8( char *inbuf_o, char *outbuf_o, int length );
++int utf8to16( char *inbuf_o, int iblen, char *outbuf_o, int oblen);
++int vb_utf8to16T( vbuf *bout, char *cin, int inlen );
++int vb_utf16to8( vbuf *dest, char *buf, int len );
++int iso8859_1to8( char *inbuf_o, char *outbuf_o, int length );
++int utf8toascii( const char *inbuf_o, char *outbuf_o, int length );
++
++/* dump ascii hex in windoze format */
++void winhex(FILE* stream, unsigned char *hbuf, int start, int stop, int loff);
++void winhex8(FILE *stream, unsigned char *hbuf, int start, int stop, int loff );
++
++void vbwinhex8(vbuf *vb, unsigned char *hbuf, int start, int stop, int loff );
++
++/* general search routine, find something in something else */
++int find_in_buf(char *buf, char *what, int sz, int len, int start);
++
++/* Get INTEGER from memory. This is probably low-endian specific? */
++int get_int( char *array );
++
++int find_nl( vstr *vs ); // find newline of type type in b
++int skip_nl( char *s ); // returns the width of the newline at s[0]
++//int vb_readline( struct varbuf *vb, int *ctype, FILE *in ); // read *AT LEAST* one full line of data from in
++int vb_skipline( struct varbuf *vb ); // in: vb->b == "stuff\nmore_stuff"; out: vb->b == "more_stuff"
++/* Get a string of HEX bytes (space separated),
++ * or if first char is ' get an ASCII string instead.  */
++int gethexorstr(char **c, char *wb);
++char *esc_index( char *s, int c ); // just like index(3), but works on strings with escape sequences
++char *esc_rindex( char *s, int c ); // just like rindex(3), but works on strings with escape sequences
++
++char *tok_esc_char( char *s, int *is_esc, int *c );
++int vb_path_token( vbuf *tok, char **path ); // returns things like TOK_EMPTY, TOK_ERROR, complete list at top
++
++int gettoken( char *tok, int len, char **path, char delim ); // Path tokenizer: increments path, dumps token in tok
++#endif

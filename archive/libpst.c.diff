@@ -1,0 +1,15 @@
+Index: libpst.c
+===================================================================
+--- libpst.c	(revision 45)
++++ libpst.c	(working copy)
+@@ -296,7 +296,9 @@
+       size = _pst_ff_getID2data(pf, ptr, &h);
+       // will need to encode any bytes left over
+       c = base64_encode(h.base64_extra_chars, h.base64_extra);
+-      pst_fwrite(c, 1, strlen(c), fp);
++      if(c != NULL) {
++        pst_fwrite(c, 1, strlen(c), fp);
++      }
+     } else {
+       DEBUG_WARN (("Couldn't find ID pointer. Cannot save attachement to Base64\n"));
+     }

@@ -1,0 +1,360 @@
+diff libpst-0.5.2/ChangeLog libpst-alioth-2008-01-19/libpst/trunk/ChangeLog
+0a1,19
+> LibPST svn snapshot
+> ===============================
+> 
+>     * Add new fields to appointment for recurring events
+> 	  (SourceForge #304198)
+> 	* Map IPM.Task items to PST_TYPE_TASK.
+> 	* Applied patch to remove compiler warnings, thanks!
+> 	  (SourceForge #304314)
+> 	* Fix crash with unknown reference type
+> 	* Fix more memory issues detected by valgrind
+> 	* lspst: 
+> 	  * Add usage mesage and option parsing using getopt
+> 	    (SourceForge #304199)
+>       * Fix crash caused by invalid free calls
+> 	  * Fix crash when email subject is empty
+> 	* Fix memory and information leak in hex debug dump
+> 
+> --
+> 
+14c33
+< 	* Add more appointment fields, thanks to Chris Hall for tracking
+---
+> 	* Add more appointment fields, thanks to Chris Halls for tracking
+diff libpst-0.5.2/debug.c libpst-alioth-2008-01-19/libpst/trunk/debug.c
+118c118
+<     fprintf(stderr, "debug_fp is NULL\n");
+---
+>     /* fprintf(stderr, "debug_fp is NULL\n"); */
+411a412,413
+>   index[1] = 0; // Unused
+>   index[2] = 0; // Unused
+423a426
+>   lfile_rec.end = 0; // Unused
+439a443
+>   free(index);
+diff libpst-0.5.2/libpst.c libpst-alioth-2008-01-19/libpst/trunk/libpst.c
+290c290
+<   int32_t size;
+---
+>   int32_t size = 0;
+380c380
+<   pst_index2_ll *list2;
+---
+>   pst_index2_ll *list2=NULL;
+383c383
+<   int32_t bptr = 0, bsize, hsize, tint, err=0, x;
+---
+>   int32_t bptr = 0, bsize=0, hsize=0, tint, err=0, x;
+1381a1382
+>     memset(na_ptr->items, 0, sizeof(struct _pst_num_item)*num_list);
+1543d1543
+< 	      na_ptr->items[x]->data = NULL;
+1544a1545,1546
+>               free(na_ptr->items[x]->data);
+> 	      na_ptr->items[x]->data = NULL;
+1565a1568
+> 	if (buf) free (buf);
+1703a1707,1708
+> 	else if (pst_strincmp("IPM.Task", item->ascii_type, 8) == 0)
+> 	  item->type = PST_TYPE_TASK;
+2131,2132c2136,2138
+< 	memcpy(&(attach->size), list->items[x]->data, 
+< 	       sizeof(attach->size));
+---
+> 	t = (*(int32_t*)list->items[x]->data);
+> 	LE32_CPU(t);
+> 	attach->size = t;
+3132a3139,3150
+>       case 0x820d: // Appointment start
+> 	DEBUG_EMAIL(("Appointment Date Start - "));
+> 	MALLOC_APPOINTMENT(item);
+> 	LIST_COPY(item->appointment->start, (FILETIME*));
+> 	DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->start)));
+> 	break;
+>       case 0x820e: // Appointment end
+> 	DEBUG_EMAIL(("Appointment Date End - "));
+> 	MALLOC_APPOINTMENT(item);
+> 	LIST_COPY(item->appointment->end, (FILETIME*));
+> 	DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->end)));
+> 	break;
+3173a3192,3219
+>       case 0x8231: // Recurrence type
+> 	// 1: Daily
+> 	// 2: Weekly
+> 	// 3: Monthly
+> 	// 4: Yearly
+> 	DEBUG_EMAIL(("Appointment reccurs - "));
+> 	MALLOC_APPOINTMENT(item);
+> 	memcpy(&(item->appointment->recurrence_type), list->items[x]->data, sizeof(item->appointment->recurrence_type));
+> 	LE32_CPU(item->appointment->recurrence_type);
+> 	switch (item->appointment->recurrence_type) {
+> 		case PST_APP_RECUR_DAILY:
+> 			DEBUG_EMAIL(("Daily\n")); break;
+> 		case PST_APP_RECUR_WEEKLY:
+> 			DEBUG_EMAIL(("Weekly\n")); break;
+> 		case PST_APP_RECUR_MONTHLY:
+> 			DEBUG_EMAIL(("Monthly\n")); break;
+> 		case PST_APP_RECUR_YEARLY:
+> 			DEBUG_EMAIL(("Yearly\n")); break;
+> 		default:
+> 			DEBUG_EMAIL(("Unknown Value: %d\n", item->appointment->recurrence_type)); break;
+> 	}
+> 	break;
+>       case 0x8232: // Recurrence description
+> 	DEBUG_EMAIL(("Appointment recurrence description - "));
+> 	MALLOC_APPOINTMENT(item);
+> 	LIST_COPY(item->appointment->recurrence, (char*));
+> 	DEBUG_EMAIL(("%s\n", item->appointment->recurrence));
+> 	break;
+3180,3181c3226,3227
+<       case 0x8235: // Appointment start time
+< 	DEBUG_EMAIL(("Appointment Start Time - "));
+---
+>       case 0x8235: // Recurrence start date
+> 	DEBUG_EMAIL(("Recurrence Start Date - "));
+3183,3184c3229,3230
+< 	LIST_COPY(item->appointment->start, (FILETIME*));
+< 	DEBUG_EMAIL(("%s\n", fileTimeToAscii((FILETIME*)item->appointment->start)));
+---
+> 	LIST_COPY(item->appointment->recurrence_start, (FILETIME*));
+> 	DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->recurrence_start)));
+3186,3187c3232,3233
+<       case 0x8236: // Appointment end time
+< 	DEBUG_EMAIL(("Appointment End Time - "));
+---
+>       case 0x8236: // Recurrence end date
+> 	DEBUG_EMAIL(("Recurrence End Date - "));
+3189,3190c3235,3254
+< 	LIST_COPY(item->appointment->end, (FILETIME*));
+< 	DEBUG_EMAIL(("%s\n", fileTimeToAscii((FILETIME*)item->appointment->start)));
+---
+> 	LIST_COPY(item->appointment->recurrence_end, (FILETIME*));
+> 	DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->recurrence_end)));
+> 	break;
+>       case 0x8501: // Reminder minutes before appointment start
+> 	DEBUG_EMAIL(("Alarm minutes - "));
+> 	MALLOC_APPOINTMENT(item);
+> 	memcpy(&(item->appointment->alarm_minutes), list->items[x]->data, sizeof(item->appointment->alarm_minutes));
+> 	LE32_CPU(item->appointment->alarm_minutes);
+> 	DEBUG_EMAIL(("%i\n", item->appointment->alarm_minutes));
+> 	break;
+>       case 0x8503: // Reminder alarm
+> 	DEBUG_EMAIL(("Reminder alarm - "));
+> 	MALLOC_APPOINTMENT(item);
+> 	if (*(int16_t*)list->items[x]->data != 0) {
+> 	  DEBUG_EMAIL(("True\n"));
+> 	  item->appointment->alarm = 1;
+> 	} else {
+> 	  DEBUG_EMAIL(("False\n"));
+> 	  item->appointment->alarm = 0;
+> 	}
+3192,3193c3256,3257
+<       case 0x8516: // Journal time start
+< 	DEBUG_EMAIL(("Duplicate Time Start - "));
+---
+>       case 0x8516:
+> 	DEBUG_EMAIL(("Appointment Start Date 3 - "));
+3196,3197c3260,3261
+<       case 0x8517: // Journal time end
+< 	DEBUG_EMAIL(("Duplicate Time End - "));
+---
+>       case 0x8517:
+> 	DEBUG_EMAIL(("Appointment End Date 3 - "));
+3199a3264,3269
+>       case 0x851f: // Play reminder sound filename
+> 	DEBUG_EMAIL(("Appointment reminder sound filename - "));
+> 	MALLOC_APPOINTMENT(item);
+> 	LIST_COPY(item->appointment->alarm_filename, (char*));
+> 	DEBUG_EMAIL(("%s\n", item->appointment->alarm_filename));
+> 	break;
+3319,3321d3388
+<       if (list->items[x]->data != NULL) {
+< 	free (list->items[x]->data);
+<       }
+3322a3390,3392
+>         if (list->items[x]->data != NULL) {
+>           free (list->items[x]->data);
+>         }
+3421c3491
+<     WARN(("block read error occured. offset = %#x, size = %#x\n", list->offset, list->size));
+---
+>     WARN(("block read error occured. offset = %#x, size = %#zx\n", list->offset, list->size));
+3681a3752
+>       SAFE_FREE(item->appointment->alarm_filename);
+3684a3756,3758
+>       SAFE_FREE(item->appointment->recurrence);
+>       SAFE_FREE(item->appointment->recurrence_start);
+>       SAFE_FREE(item->appointment->recurrence_end);
+4008a4083,4089
+> /**
+>  * Get an ID block from file using _pst_ff_getIDblock and decrypt if necessary
+>  * @param pf PST file structure
+>  * @param id ID of block to retrieve
+>  * @param b  Reference to pointer that will be set to new block. Any memory pointed to by buffer will be free()d beforehand
+>  * @return   Size of block pointed to by *b
+>  */
+4019,4020c4100,4106
+< /** the get ID function for the default file format that I am working with
+<     ie the one in the PST files */
+---
+> /**
+>  * Read a block of data from file into memory
+>  * @param pf PST file
+>  * @param id identifier of block to read
+>  * @param b  reference to pointer to buffer. If this pointer is non-NULL, it will first be free()d
+>  * @return   size of block read into memory
+>  */
+diff libpst-0.5.2/libpst.h libpst-alioth-2008-01-19/libpst/trunk/libpst.h
+116a117,123
+> // define type of reccuring event
+> #define PST_APP_RECUR_NONE        0
+> #define PST_APP_RECUR_DAILY       1
+> #define PST_APP_RECUR_WEEKLY      2
+> #define PST_APP_RECUR_MONTHLY     3
+> #define PST_APP_RECUR_YEARLY      4
+> 
+372a380
+>   int32_t alarm;
+373a382,383
+>   int32_t alarm_minutes;
+>   char *alarm_filename;
+378a389,392
+>   char *recurrence;
+>   int32_t recurrence_type;
+>   FILETIME *recurrence_start;
+>   FILETIME *recurrence_end;
+diff libpst-0.5.2/lspst.c libpst-alioth-2008-01-19/libpst/trunk/lspst.c
+15a16
+> #include <unistd.h>
+38a40,41
+> int usage(char *prog_name);
+> int version();
+50a54,55
+> 	int c;
+> 	char *d_log = NULL;
+53,54c58,91
+< 	if (argc <= 1)
+< 		DIE(("Missing PST filename.\n"));
+---
+> 	while ((c = getopt(argc, argv, "d:hV"))!= -1) {
+> 		switch (c) {
+> 			case 'd':
+> 				d_log = optarg;
+> 				break;
+> 			case 'h':
+> 				usage(argv[0]);
+> 				exit(0);
+> 				break;
+> 			case 'V':
+> 				version();
+> 				exit(0);
+> 				break;
+> 			default:
+> 				usage(argv[0]);
+> 				exit(1);
+> 				break;
+> 		}
+> 	}
+> 	
+> #ifdef DEBUG_ALL
+>   // initialize log file
+> 	if (d_log != NULL) {
+> 		DEBUG_INIT(d_log);
+> 		DEBUG_REGISTER_CLOSE();
+> 	}
+> #endif // defined DEBUG_ALL
+> 
+> 	DEBUG_ENT("main");
+> 
+> 	if (argc <= optind) {
+> 		usage(argv[0]);
+> 		exit(2);
+> 	}
+57c94
+< 	if ( pst_open(&pstfile, argv[1], "r") )
+---
+> 	if ( pst_open(&pstfile, argv[optind], "r") )
+162d198
+< 					free(f->name);
+194c230
+< 				if (item->email->subject->subj != NULL)
+---
+> 				if (item->email->subject != NULL && item->email->subject->subj != NULL)
+251d286
+< 			free(f->name);
+427a463,494
+> // int usage() {{{1
+> int usage(char *prog_name) {
+> 	DEBUG_ENT("usage");
+> 	version();
+> 	printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
+> 	printf("OPTIONS:\n");
+> 	printf("\t-d\t- Debug to file. This is a binary log. Use readlog to print it\n");
+> 	printf("\t-h\t- Help. This screen\n");
+> 	printf("\t-V\t- Version. Display program version\n");
+> 	DEBUG_RET();
+> 	return 0;
+> }
+> // }}}1
+> // int version() {{{1
+> int version() {
+> 	DEBUG_ENT("version");
+> 	printf("lspst / LibPST v%s\n", VERSION);
+> #if BYTE_ORDER == BIG_ENDIAN
+> 	printf("Big Endian implementation being used.\n");
+> #elif BYTE_ORDER == LITTLE_ENDIAN
+> 	printf("Little Endian implementation being used.\n");
+> #else
+> #  error "Byte order not supported by this library"
+> #endif
+> #ifdef __GNUC__
+> 			 printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
+> #endif
+> 	 DEBUG_RET();
+> 	 return 0;
+> }
+> // }}}1
+> 
+diff libpst-0.5.2/Makefile libpst-alioth-2008-01-19/libpst/trunk/Makefile
+49c49
+< dumpblocks: dumpblocks.o libpst.o debug.o libstrfunc.o
+---
+> dumpblocks: dumpblocks.o libpst.o debug.o libstrfunc.o timeconv.o
+diff libpst-0.5.2/readpst.c libpst-alioth-2008-01-19/libpst/trunk/readpst.c
+1203c1203
+< int usage() {
+---
+> int32_t usage() {
+1224c1224
+< int version() {
+---
+> int32_t version() {
+1281c1281
+< int close_kmail_dir() {
+---
+> int32_t close_kmail_dir() {
+1324c1324
+< int close_recurse_dir() {
+---
+> int32_t close_recurse_dir() {
+1404c1404
+< int close_seperate_dir() {
+---
+> int32_t close_seperate_dir() {
+1416c1416
+< int mk_seperate_file(struct file_ll *f) {
+---
+> int32_t mk_seperate_file(struct file_ll *f) {
+1535c1535
+< int chr_count(char *str, char x) {
+---
+> int32_t chr_count(char *str, char x) {
+Only in libpst-alioth-2008-01-19/libpst/trunk: .svn
+diff libpst-0.5.2/VERSION libpst-alioth-2008-01-19/libpst/trunk/VERSION
+1c1
+< 0.5.2
+---
+> 0.5.2+SVN_SNAPSHOT
