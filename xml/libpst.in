@@ -1775,7 +1775,6 @@
 0008  recordSize      [2 bytes] 0x0065     in this case
 000a  b5Offset        [4 bytes] 0x0020     index reference
 000e  index2Offset    [4 bytes] 0x0080     index reference
-0010  unknown         [2 bytes] 0x0000     in this case
 0012  unknown         [2 bytes] 0x0000     in this case
 0014  unknown         [2 bytes] 0x0000     in this case
 ]]></literallayout>

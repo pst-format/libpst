@@ -1496,7 +1496,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         }
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset5)) {
-            DEBUG_WARN(("internal error (7c.5b.desc offset %#x) in reading block id %#llx\n", table_rec.value, block_id));
+            DEBUG_WARN(("internal error (7c.b5.desc offset %#x) in reading block id %#llx\n", table_rec.value, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -4143,7 +4143,7 @@ void pst_printID2ptr(pst_index2_ll *ptr) {
 size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf) {
     size_t rsize;
     DEBUG_ENT("pst_read_block_size");
-    DEBUG_READ(("Reading block from %#x, %i bytes\n", offset, size));
+    DEBUG_READ(("Reading block from %#llx, %x bytes\n", offset, size));
 
     if (*buf) {
         DEBUG_READ(("Freeing old memory\n"));
@@ -4155,7 +4155,7 @@ size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf) 
     if (rsize != size) {
         DEBUG_WARN(("Didn't read all the data. fread returned less [%i instead of %i]\n", rsize, size));
         if (feof(pf->fp)) {
-            DEBUG_WARN(("We tried to read past the end of the file at [offset %#x, size %#x]\n", offset, size));
+            DEBUG_WARN(("We tried to read past the end of the file at [offset %#llx, size %#x]\n", offset, size));
         } else if (ferror(pf->fp)) {
             DEBUG_WARN(("Error is set on file stream.\n"));
         } else {
