@@ -11,6 +11,13 @@ deltasearch_SOURCES = deltasearch.cpp debug.c
 dumpblocks_SOURCES  = dumpblocks.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c generic.c
 getidblock_SOURCES  = getidblock.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c generic.c
 
+if NEED_XGETOPT
+    lspst_SOURCES       += XGetopt.c
+    readpst_SOURCES     += XGetopt.c
+    readpstlog_SOURCES  += XGetopt.c
+    pst2ldif_SOURCES    += XGetopt.c
+endif
+
 EXTRA_DIST = testdebug.c
 
 # set the include path found by configure
@@ -22,8 +29,3 @@ readpst_LDFLAGS    = $(all_libraries)
 readpstlog_LDFLAGS = $(all_libraries)
 pst2ldif_LDFLAGS   = $(all_libraries)
 
-# default compile flags
-# lspst_CXXFLAGS      =
-# readpst_CXXFLAGS    =
-# readpstlog_CXXFLAGS =
-# pst2ldif_CXXFLAGS   =

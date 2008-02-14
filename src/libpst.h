@@ -220,6 +220,7 @@ typedef struct pst_item_email {
     int       autoforward;            // 1 = true, 0 = not set, -1 = false
     char     *body;
     char     *cc_address;
+    char     *bcc_address;
     char     *common_name;
     int32_t   conv_index;
     int       conversion_prohib;      // 1 = true, 0 = false
@@ -563,7 +564,7 @@ typedef struct pst_subblocks {
 
 
 // prototypes
-int            pst_open(pst_file *pf, char *name, char *mode);
+int            pst_open(pst_file *pf, char *name);
 int            pst_close(pst_file *pf);
 pst_desc_ll *  pst_getTopOfFolders(pst_file *pf, pst_item *root);
 size_t         pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b);

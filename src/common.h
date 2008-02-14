@@ -17,6 +17,6 @@
     unsigned int dwLowDateTime;
     unsigned int dwHighDateTime;
   } FILETIME;
-# endif
+# endif // FILETIME_DEFINED
 #endif // _WIN32
 #endif // __COMMON_H

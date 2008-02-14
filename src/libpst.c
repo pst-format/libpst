@@ -5,31 +5,13 @@
  *            dave.s@earthcorp.com
  */
 #include "define.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <string.h>
-#include <ctype.h>
-#include <limits.h>
-#include <wchar.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/stat.h>   // mkdir
-#include <fcntl.h>      // for Win32 definition of _O_BINARY
 #include "libstrfunc.h"
 #include "vbuf.h"
+#include "libpst.h"
+#include "timeconv.h"
 
 #define ASSERT(x) { if(!(x)) raise( SIGSEGV ); }
 
-#ifdef _MSC_VER
-# include <windows.h>
-#else
-# include <unistd.h>
-#endif //ifdef _MSC_VER
-
-#include "libpst.h"
-#include "timeconv.h"
 
 #define INDEX_TYPE32            0x0E
 #define INDEX_TYPE64            0x17
@@ -151,7 +133,7 @@ static unsigned char comp_enc [] =
     0xed, 0x9a, 0x64, 0x3f, 0xc1, 0x6c, 0xf9, 0xec}; /*0xff*/
 
 
-int pst_open(pst_file *pf, char *name, char *mode) {
+int pst_open(pst_file *pf, char *name) {
     int32_t sig;
 
     unicode_init();
@@ -165,11 +147,7 @@ int pst_open(pst_file *pf, char *name, char *mode) {
     }
     memset(pf, 0, sizeof(*pf));
 
-#ifdef _MSC_VER
-    // set the default open mode for windows
-    _fmode = _O_BINARY;
-#endif //_MSC_VER
-    if ((pf->fp = fopen(name, mode)) == NULL) {
+    if ((pf->fp = fopen(name, "rb")) == NULL) {
         WARN(("cannot open PST file. Error\n"));
         DEBUG_RET();
         return -1;
@@ -1758,6 +1736,13 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
     memcpy(targ, list->items[x]->data, list->items[x]->size); \
     memset(((char*)targ)+list->items[x]->size, 0, (size_t)1); \
 }
+// malloc space and copy the item filetime
+#define LIST_COPY_TIME(targ) {                                \
+    targ = (FILETIME*) realloc(targ, sizeof(FILETIME));       \
+    memcpy(targ, list->items[x]->data, list->items[x]->size); \
+    LE32_CPU(targ->dwLowDateTime);                            \
+    LE32_CPU(targ->dwHighDateTime);                           \
+}
 // malloc space and copy the current item's data and size
 #define LIST_COPY_SIZE(targ, type, mysize) {        \
     mysize = list->items[x]->size;                  \
@@ -1987,9 +1972,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x0039: // PR_CLIENT_SUBMIT_TIME Date Email Sent/Created
                     DEBUG_EMAIL(("Date sent - "));
                     MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->sent_date, (FILETIME*));
-                    LE32_CPU(item->email->sent_date->dwLowDateTime);
-                    LE32_CPU(item->email->sent_date->dwHighDateTime);
+                    LIST_COPY_TIME(item->email->sent_date);
                     DEBUG_EMAIL(("%s", fileTimeToAscii(item->email->sent_date)));
                     break;
                 case 0x003B: // PR_SENT_REPRESENTING_SEARCH_KEY Sender address 1
@@ -2188,6 +2171,12 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         item->email->delete_after_submit = 0;
                     }
                     break;
+                case 0x0E02: // PR_DISPLAY_BCC BCC Addresses
+                    DEBUG_EMAIL(("Display BCC Addresses - "));
+                    MALLOC_EMAIL(item);
+                    LIST_COPY(item->email->bcc_address, (char*));
+                    DEBUG_EMAIL(("%s\n", item->email->bcc_address));
+                    break;
                 case 0x0E03: // PR_DISPLAY_CC CC Addresses
                     DEBUG_EMAIL(("Display CC Addresses - "));
                     MALLOC_EMAIL(item);
@@ -2203,7 +2192,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x0E06: // PR_MESSAGE_DELIVERY_TIME Date 3 - Email Arrival Date
                     DEBUG_EMAIL(("Date 3 (Delivery Time) - "));
                     MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->arrival_date, (FILETIME*));
+                    LIST_COPY_TIME(item->email->arrival_date);
                     DEBUG_EMAIL(("%s", fileTimeToAscii(item->email->arrival_date)));
                     break;
                 case 0x0E07: // PR_MESSAGE_FLAGS Email Flag
@@ -2371,12 +2360,12 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     break;
                 case 0x3007: // PR_CREATION_TIME Date 4 - Creation Date?
                     DEBUG_EMAIL(("Date 4 (Item Creation Date) - "));
-                    LIST_COPY(item->create_date, (FILETIME*));
+                    LIST_COPY_TIME(item->create_date);
                     DEBUG_EMAIL(("%s", fileTimeToAscii(item->create_date)));
                     break;
                 case 0x3008: // PR_LAST_MODIFICATION_TIME Date 5 - Modify Date
                     DEBUG_EMAIL(("Date 5 (Modify Date) - "));
-                    LIST_COPY(item->modify_date, (FILETIME*));
+                    LIST_COPY_TIME(item->modify_date);
                     DEBUG_EMAIL(("%s", fileTimeToAscii(item->modify_date)));
                     break;
                 case 0x300B: // PR_SEARCH_KEY Record Header 2
@@ -2872,13 +2861,13 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x3A41: // PR_WEDDING_ANNIVERSARY
                     DEBUG_EMAIL(("Wedding Anniversary - "));
                     MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->wedding_anniversary, (FILETIME*));
+                    LIST_COPY_TIME(item->contact->wedding_anniversary);
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->contact->wedding_anniversary)));
                     break;
                 case 0x3A42: // PR_BIRTHDAY
                     DEBUG_EMAIL(("Birthday - "));
                     MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->birthday, (FILETIME*));
+                    LIST_COPY_TIME(item->contact->birthday);
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->contact->birthday)));
                     break;
                 case 0x3A43: // PR_HOBBIES
@@ -3284,13 +3273,13 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x820d: // Appointment start
                     DEBUG_EMAIL(("Appointment Date Start - "));
                     MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->start, (FILETIME*));
+                    LIST_COPY_TIME(item->appointment->start);
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->start)));
                     break;
                 case 0x820e: // Appointment end
                     DEBUG_EMAIL(("Appointment Date End - "));
                     MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->end, (FILETIME*));
+                    LIST_COPY_TIME(item->appointment->end);
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->end)));
                     break;
                 case 0x8214: // Label for an appointment
@@ -3371,13 +3360,13 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x8235: // Recurrence start date
                     DEBUG_EMAIL(("Recurrence Start Date - "));
                     MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->recurrence_start, (FILETIME*));
+                    LIST_COPY_TIME(item->appointment->recurrence_start);
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->recurrence_start)));
                     break;
                 case 0x8236: // Recurrence end date
                     DEBUG_EMAIL(("Recurrence End Date - "));
                     MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->recurrence_end, (FILETIME*));
+                    LIST_COPY_TIME(item->appointment->recurrence_end);
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->recurrence_end)));
                     break;
                 case 0x8501: // Reminder minutes before appointment start
@@ -3438,7 +3427,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x8560: // Appointment Reminder Time
                     DEBUG_EMAIL(("Appointment Reminder Time - "));
                     MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->reminder, (FILETIME*));
+                    LIST_COPY_TIME(item->appointment->reminder);
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->reminder)));
                     break;
                 case 0x8700: // Journal Type
@@ -3450,13 +3439,13 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x8706: // Journal Start date/time
                     DEBUG_EMAIL(("Start Timestamp - "));
                     MALLOC_JOURNAL(item);
-                    LIST_COPY(item->journal->start, (FILETIME*));
+                    LIST_COPY_TIME(item->journal->start);
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->journal->start)));
                     break;
                 case 0x8708: // Journal End date/time
                     DEBUG_EMAIL(("End Timestamp - "));
                     MALLOC_JOURNAL(item);
-                    LIST_COPY(item->journal->end, (FILETIME*));
+                    LIST_COPY_TIME(item->journal->end);
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->journal->end)));
                     break;
                 case 0x8712: // Title?
@@ -3757,6 +3746,7 @@ void pst_freeItem(pst_item *item) {
             SAFE_FREE(item->email->arrival_date);
             SAFE_FREE(item->email->body);
             SAFE_FREE(item->email->cc_address);
+            SAFE_FREE(item->email->bcc_address);
             SAFE_FREE(item->email->common_name);
             SAFE_FREE(item->email->encrypted_body);
             SAFE_FREE(item->email->encrypted_htmlbody);

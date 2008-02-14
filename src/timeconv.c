@@ -5,7 +5,7 @@
  */
 
 /*** WARNING ****
- * This file is not to be incluided in a Visual C++ Project
+ * This file is not to be included in a Visual C++ Project
  * It will make the whole project fail to compile
  * There are functions in libpst.c to handle the dates
  * Do not use this one

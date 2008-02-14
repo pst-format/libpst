@@ -61,7 +61,7 @@ int main(int argc, char ** argv) {
 
   DEBUG_MAIN(("Opening file\n"));
   memset(&pstfile, 0, sizeof(pstfile));
-  if (pst_open(&pstfile, fname, "r")!=0) {
+  if (pst_open(&pstfile, fname)) {
 	DIE(("Error opening file\n"));
   }
 

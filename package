@@ -1,12 +1,44 @@
 #!/bin/bash
 
-T=`grep AM_INIT_AUTOMAKE configure.in | cut -d'(' -f2`
+find . -name '*~' | while read a; do rm -f "$a"; done
+
+# setup environment
+T=`grep AC_INIT configure.in | cut -d'(' -f2`
 NAME=`echo $T | cut -d, -f1`
-VER=`echo $T | cut -d, -f2 | cut -d')' -f1`
+VER=`echo $T | cut -d, -f2`
 BALL=$NAME-$VER.tar.gz
 web=/home/httpd/html/510sg/$NAME
 distlog=/tmp/distcheck
+repo=/usr/hg-repository/$NAME
+exit
 
+# check for uncommitted changes
+a=$(hg status)
+if [ -n "$a" ]; then
+    hg status
+    echo "fix those first with 'hg commit'"
+    exit 0
+fi
+
+# check for changesets pending push to global repository
+hg outgoing $repo | grep 'no changes found' >/dev/null
+if [ $? -ne 0 ]; then
+    hg outgoing $repo
+    echo "fix those first with 'hg push $repo'"
+    exit 0
+fi
+
+# get a new clean copy from source control
+orig=$(pwd)
+pack=$orig/../$NAME-package
+[ -d "$pack" ] && rm -rf "$pack"
+mkdir "$pack"
+cd "$pack"
+hg clone $repo
+cd $NAME
+
+# build the package
+mkdir -p $web
 chown --recursive root:root *
 make -f *cvs
 ./configure >/dev/null
@@ -24,7 +56,6 @@ if [ $? -eq 0 ]; then
             cd $NAME-$VER
                 ./configure >/dev/null
                 make >/dev/null
-                make install >/dev/null
             cd ..
         cd ..
 
@@ -56,23 +87,8 @@ else
     tail -10 $distlog
 fi
 chown --recursive carl:carl *
-#args="--recursive -z -e ssh --times --perms --links --relative --owner --group --numeric-ids --delete"
-#echo rsync $args $web ns1:/
-#rsync $args $web ns1:/
-#
-#if [ -f /usr/local/bin/pst2ldif ]; then
-#    pushd /home/ldap
-#        pst=outlook.pst
-#        #rm -f pst2ldif.log my.log
-#        /usr/local/bin/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' $pst >ams.ldif2
-#        #./readpstlog pst2ldif.log | less >my.log
-#        #hexdump -C $pst >pst.dump
-#
-#        grep '^dn:' ams.ldif2 | sort >aaa
-#        grep '^dn:' ams.ldif  | sort >bbb
-#        echo 'differences from nightly ldap'
-#        diff aaa bbb
-#        echo 'end differences'
-#        rm -f aaa bbb
-#    popd
-#fi
+
+# throw away the packaging directory
+cd "$pack/.."
+rm -rf $NAME-package
+cd "$orig"

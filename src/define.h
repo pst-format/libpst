@@ -40,15 +40,43 @@
 #define DEBUG_FUNCRET_NO 10
 #define DEBUG_HEXDUMP_NO 11
 
-//variable number of arguments to this macro. will expand them into
-// ## args, then exit with status of 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <time.h>
+#include <string.h>
+#include <ctype.h>
+#include <limits.h>
+#include <wchar.h>
+#include <signal.h>
+#include <errno.h>
 
-#ifdef __LINUX__
-#include <netinet/in.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+    #include <unistd.h>
+#else
+    #include "XGetopt.h"
+    #ifdef HAVE_DIRECT_H
+        #include <direct.h>    // win32
+        #define chdir _chdir
+        #define int32_t __int32
+    #endif
+
+    #ifdef HAVE_WINDOWS_H
+        #include <windows.h>   // win32
+    #endif
+#endif
+
+#ifdef HAVE_SYS_STAT_H
+# include <sys/stat.h> //mkdir
+#endif
+
+// for reading of directory and clearing in function mk_seperate_dir
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+
+#ifdef HAVE_DIRENT_H
+# include <dirent.h>
 #endif
 
 

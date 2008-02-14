@@ -5,39 +5,13 @@
  *            dave.s@earthcorp.com
  */
 #include "define.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <string.h>
-#include <ctype.h>
-#include <limits.h>
-#include <errno.h>
+#include "libstrfunc.h"
 #include "vbuf.h"
-
-#ifndef _WIN32
-# include <unistd.h>
-# include <sys/stat.h> //mkdir
-
-// for reading of directory and clearing in function mk_seperate_dir
-# include <sys/types.h>
-# include <dirent.h>
-#else
-# include <direct.h>
-# define chdir _chdir
-# define int32_t __int32
-#endif
-
-#ifndef __GNUC__
-# include "XGetopt.h"
-#endif
-
-#include "libstrfunc.h" // for base64_encoding
-
 #include "libpst.h"
 #include "common.h"
 #include "timeconv.h"
 #include "lzfu.h"
+
 #define OUTPUT_TEMPLATE "%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
 #define KMAIL_INDEX ".%s.index"
@@ -53,6 +27,7 @@
 #else
 #define D_MKDIR(x) mkdir(x)
 #endif
+
 struct file_ll {
     char *name;
     char *dname;
@@ -350,7 +325,7 @@ int main(int argc, char** argv) {
 
     if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");
 
-    RET_DERROR(pst_open(&pstfile, fname, "r"), 1, ("Error opening File\n"));
+    RET_DERROR(pst_open(&pstfile, fname), 1, ("Error opening File\n"));
     RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
 
     pst_load_extended_attributes(&pstfile);

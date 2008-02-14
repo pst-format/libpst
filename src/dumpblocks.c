@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
   DEBUG_ENT("main");
 
   printf("Opening file %s\n",file);
-  if (pst_open(&pstfile, file, "r")) {
+  if (pst_open(&pstfile, file)) {
     printf("Failed to open file %s\n", file);
     exit(1);
   }
