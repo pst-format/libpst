@@ -1494,7 +1494,7 @@
 002e  Original Sensitivity
 0036  Sensitivity
 0037  Email Subject
-0039  Date. This is likely to be the arrival date
+0039  Client submit time / date sent
 003b  Outlook Address of Sender
 003f  Outlook structure describing the recipient
 0040  Name of the Outlook recipient structure
@@ -1526,10 +1526,21 @@
 0c1e  Second sender access method (SMTP, EX)
 0c1f  Second Sender Address
 0e01  Delete after submit
-0e03  CC Address?
+0e02  BCC Addresses
+0e03  CC Addresses
 0e04  SentTo Address
 0e06  Date.
-0e07  Flag - contains IsSeen value
+0e07  Flag bits
+          0x01 - Read
+          0x02 - Unmodified
+          0x04 - Submit
+          0x08 - Unsent
+          0x10 - Has Attachments
+          0x20 - From Me
+          0x40 - Associated
+          0x80 - Resend
+          0x100 - RN Pending
+          0x200 - NRN Pending
 0e08  Message Size
 0e0a  Sentmail EntryID
 0e1f  Compressed RTF in Sync
@@ -1800,6 +1811,12 @@
                 (0xea, 0xf0) pair.  That gives us (0xf0 - 0xea)/6 = 1, so we have a
                 recordCount of one.  The actual data between 0xea and 0xf0 is unknown
                 and unused here.
+            </para>
+            <para>
+                We have seen cases where the descoffset in the b5 block is zero, and
+                the index2Offset in the 7c block is zero. This has been seen for
+                objects that seem to be attachments on messages that have been
+                read. Before the message was read, it did not have any attachments.
             </para>
             <para>
                 Note the index2Offset above of 0x0080, which again is an index reference. In this

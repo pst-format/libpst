@@ -1,3 +1,4 @@
+0.6.7   2008-02-16 Ignore unknown attachments on some read messages; autoconf cleanup.
 0.6.6   2008-01-31 Code cleanup, switch from cvs to mercurial source control.
 0.6.5   2008-01-22 Code cleanup, rpm group Applications/Productivity.
 0.6.4   2008-01-19 More fixes for 64 bit format, merge changes from svn Alioth.

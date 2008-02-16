@@ -10,7 +10,6 @@ BALL=$NAME-$VER.tar.gz
 web=/home/httpd/html/510sg/$NAME
 distlog=/tmp/distcheck
 repo=/usr/hg-repository/$NAME
-exit
 
 # check for uncommitted changes
 a=$(hg status)

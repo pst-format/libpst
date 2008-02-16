@@ -1171,10 +1171,11 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
         DEBUG_EMAIL(("ATTACHMENT processing attachment\n"));
         if ((list = pst_parse_block(pf, id_ptr->id, id2_head, NULL)) == NULL) {
             DEBUG_WARN(("ERROR error processing main attachment record\n"));
-            if (item) pst_freeItem(item);
+            //if (item) pst_freeItem(item);
             if (id2_head) pst_free_id2(id2_head);
             DEBUG_RET();
-            return NULL;
+            //return NULL;
+            return item;
         }
         else {
             x = 0;
