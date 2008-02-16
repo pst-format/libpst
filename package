@@ -10,6 +10,12 @@ BALL=$NAME-$VER.tar.gz
 web=/home/httpd/html/510sg/$NAME
 distlog=/tmp/distcheck
 repo=/usr/hg-repository/$NAME
+oldone=$web/packages/$BALL
+
+if [ -f $oldone ]; then
+    echo "$oldone already exists, did you update the version in configure.in?"
+    exit 0
+fi
 
 # check for uncommitted changes
 a=$(hg status)
@@ -85,7 +91,6 @@ if [ $? -eq 0 ]; then
 else
     tail -10 $distlog
 fi
-chown --recursive carl:carl *
 
 # throw away the packaging directory
 cd "$pack/.."

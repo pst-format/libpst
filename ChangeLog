@@ -1,13 +1,13 @@
 LibPST 0.6.7 (2008-02-16)
 ===============================
-	* Work around bogus 7c.b5 blocks in some messages that have been
-	read. They appear to have attachments, but of some unknown format.
-	Before the message was read, it did not have any attachments.
-	* Use autoscan to cleanup our autoconf system.
-	* Use autoconf to detect when we need to use our XGetopt files
-	and other header files.
-	* More fields, including BCC.
-	* Fix missing LE32_CPU byte swapping for FILETIME types.
+        * Work around bogus 7c.b5 blocks in some messages that have been
+        read. They appear to have attachments, but of some unknown format.
+        Before the message was read, it did not have any attachments.
+        * Use autoscan to cleanup our autoconf system.
+        * Use autoconf to detect when we need to use our XGetopt files
+        and other header files.
+        * More fields, including BCC.
+        * Fix missing LE32_CPU byte swapping for FILETIME types.
 
 LibPST 0.6.6 (2008-01-31)
 ===============================
