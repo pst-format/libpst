@@ -2,11 +2,11 @@
  * define.h
  * Part of the LibPST project
  * Written by David Smith
- *			  dave.s@earthcorp.com
+ *            dave.s@earthcorp.com
  */
 
 #ifdef HAVE_CONFIG_H
-	#include "config.h"
+    #include "config.h"
 #endif
 #include "version.h"
 
@@ -28,13 +28,13 @@
 //number of items to save in memory between writes
 #define DEBUG_MAX_ITEMS 0
 
-#define DEBUG_FILE_NO	  1
-#define DEBUG_INDEX_NO	  2
-#define DEBUG_EMAIL_NO	  3
-#define DEBUG_WARN_NO	  4
-#define DEBUG_READ_NO	  5
-#define DEBUG_INFO_NO	  6
-#define DEBUG_MAIN_NO	  7
+#define DEBUG_FILE_NO     1
+#define DEBUG_INDEX_NO    2
+#define DEBUG_EMAIL_NO    3
+#define DEBUG_WARN_NO     4
+#define DEBUG_READ_NO     5
+#define DEBUG_INFO_NO     6
+#define DEBUG_MAIN_NO     7
 #define DEBUG_DECRYPT_NO  8
 #define DEBUG_FUNCENT_NO  9
 #define DEBUG_FUNCRET_NO 10
@@ -96,7 +96,7 @@ void pst_debug_write();
 void * xmalloc(size_t size);
 
 #define MESSAGEPRINT(x,y) {pst_debug_msg_info(__LINE__,__FILE__,y);\
-						   pst_debug_msg_text x;}
+                           pst_debug_msg_text x;}
 
 #define LOGSTOP() {MESSAGESTOP();DEBUGSTOP();}
 
@@ -131,7 +131,7 @@ void * xmalloc(size_t size);
 #ifdef DEBUG_MODE_EMAIL
 #define DEBUG_EMAIL(x) MESSAGEPRINT(x, DEBUG_EMAIL_NO);
 #define DEBUG_EMAIL_HEXPRINT(x,y) {pst_debug_msg_info(__LINE__, __FILE__, 11);\
-								   pst_debug_hexdump(x, y, 0x10, 0);}
+                                   pst_debug_hexdump(x, y, 0x10, 0);}
 #else
 #define DEBUG_EMAIL(x) {}
 #define DEBUG_EMAIL_HEXPRINT(x,y) {}
@@ -186,19 +186,19 @@ void * xmalloc(size_t size);
 #endif
 
 #define DEBUG_FILE(x) {pst_debug_msg_info(__LINE__, __FILE__, DEBUG_FILE_NO);\
-					   pst_debug_msg_text x;}
+                       pst_debug_msg_text x;}
 
 #ifdef DEBUG_MODE_FUNC
-# define DEBUG_ENT(x)											\
-	{															\
-		 pst_debug_func(x);										\
-		MESSAGEPRINT(("Entering function\n"),DEBUG_FUNCENT_NO); \
-	}
-# define DEBUG_RET()											\
-	{															\
-		MESSAGEPRINT(("Leaving function\n"),DEBUG_FUNCRET_NO);  \
-		pst_debug_func_ret();										\
-	}
+# define DEBUG_ENT(x)                                           \
+    {                                                           \
+        pst_debug_func(x);                                      \
+        MESSAGEPRINT(("Entering function %s\n",x),DEBUG_FUNCENT_NO); \
+    }
+# define DEBUG_RET()                                            \
+    {                                                           \
+        MESSAGEPRINT(("Leaving function\n"),DEBUG_FUNCRET_NO);  \
+        pst_debug_func_ret();                                   \
+    }
 #else
 # define DEBUG_ENT(x) {}
 # define DEBUG_RET() {}
@@ -209,28 +209,28 @@ void * xmalloc(size_t size);
 #define DEBUG_REGISTER_CLOSE() {if(atexit(pst_debug_close)!=0) fprintf(stderr, "Error registering atexit function\n");}
 
 #define RET_DERROR(res, ret_val, x)\
-	if (res) { DIE(x);}
+    if (res) { DIE(x);}
 
 #define RET_ERROR(res, ret_val)\
-	if (res) {return ret_val;}
+    if (res) {return ret_val;}
 
 #define DEBUG_VERSION 1
 struct pst_debug_file_rec_m {
-  unsigned short int funcname;
-  unsigned short int filename;
-  unsigned short int text;
-  unsigned short int end;
-  unsigned int line;
-  unsigned int type;
+    unsigned short int funcname;
+    unsigned short int filename;
+    unsigned short int text;
+    unsigned short int end;
+    unsigned int line;
+    unsigned int type;
 };
 
 struct pst_debug_file_rec_l {
-  unsigned int funcname;
-  unsigned int filename;
-  unsigned int text;
-  unsigned int end;
-  unsigned int line;
-  unsigned int type;
+    unsigned int funcname;
+    unsigned int filename;
+    unsigned int text;
+    unsigned int end;
+    unsigned int line;
+    unsigned int type;
 };
 
 #endif //DEFINEH_H

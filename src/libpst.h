@@ -240,7 +240,11 @@ typedef struct pst_item_email {
     int       message_to_me;          // 1 = true, 0 = false
     char     *messageid;
     int32_t   orig_sensitivity;
+    char     *original_bcc;
+    char     *original_cc;
+    char     *original_to;
     char     *outlook_recipient;
+    char     *outlook_recipient_name;
     char     *outlook_recipient2;
     char     *outlook_sender;
     char     *outlook_sender_name;
@@ -259,7 +263,7 @@ typedef struct pst_item_email {
     int32_t   rtf_body_crc;
     char     *rtf_body_tag;
     char     *rtf_compressed;
-    uint32_t rtf_compressed_size;
+    uint32_t  rtf_compressed_size;
     int       rtf_in_sync;            // 1 = true, 0 = doesn't exist, -1 = false
     int32_t   rtf_ws_prefix_count;
     int32_t   rtf_ws_trailing_count;

@@ -2002,6 +2002,9 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     break;
                 case 0x0044: // PR_RCVD_REPRESENTING_NAME Name of Recipient Structure 2
                     DEBUG_EMAIL(("Received on behalf of Structure Name -- NOT HANDLED\n"));
+                    MALLOC_EMAIL(item);
+                    LIST_COPY(item->email->outlook_recipient_name, (char*));
+                    DEBUG_EMAIL(("%s\n", item->email->outlook_recipient_name));
                     break;
                 case 0x004F: // PR_REPLY_RECIPIENT_ENTRIES Reply-To Structure
                     DEBUG_EMAIL(("Reply-To Structure -- NOT HANDLED\n"));
@@ -2088,11 +2091,29 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     LIST_COPY(item->email->proc_subject, (char*));
                     DEBUG_EMAIL(("%s\n", item->email->proc_subject));
                     break;
-                case 0x0071: // PR_CONVERSATION_INDEX Date 2
+                case 0x0071: // PR_CONVERSATION_INDEX
                     DEBUG_EMAIL(("Conversation Index - "));
                     MALLOC_EMAIL(item);
                     memcpy(&(item->email->conv_index), list->items[x]->data, sizeof(item->email->conv_index));
                     DEBUG_EMAIL(("%i\n", item->email->conv_index));
+                    break;
+                case 0x0072: // PR_ORIGINAL_DISPLAY_BCC
+                    DEBUG_EMAIL(("Original display bcc - "));
+                    MALLOC_EMAIL(item);
+                    LIST_COPY(item->email->original_bcc, (char*));
+                    DEBUG_EMAIL(("%s\n", item->email->original_bcc));
+                    break;
+                case 0x0073: // PR_ORIGINAL_DISPLAY_CC
+                    DEBUG_EMAIL(("Original display cc - "));
+                    MALLOC_EMAIL(item);
+                    LIST_COPY(item->email->original_cc, (char*));
+                    DEBUG_EMAIL(("%s\n", item->email->original_cc));
+                    break;
+                case 0x0074: // PR_ORIGINAL_DISPLAY_TO
+                    DEBUG_EMAIL(("Original display to - "));
+                    MALLOC_EMAIL(item);
+                    LIST_COPY(item->email->original_to, (char*));
+                    DEBUG_EMAIL(("%s\n", item->email->original_to));
                     break;
                 case 0x0075: // PR_RECEIVED_BY_ADDRTYPE Recipient Access Method
                     DEBUG_EMAIL(("Received by Address type - "));
@@ -3755,7 +3776,11 @@ void pst_freeItem(pst_item *item) {
             SAFE_FREE(item->email->htmlbody);
             SAFE_FREE(item->email->in_reply_to);
             SAFE_FREE(item->email->messageid);
+            SAFE_FREE(item->email->original_bcc);
+            SAFE_FREE(item->email->original_cc);
+            SAFE_FREE(item->email->original_to);
             SAFE_FREE(item->email->outlook_recipient);
+            SAFE_FREE(item->email->outlook_recipient_name);
             SAFE_FREE(item->email->outlook_recipient2);
             SAFE_FREE(item->email->outlook_sender);
             SAFE_FREE(item->email->outlook_sender_name);

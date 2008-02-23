@@ -1,0 +1,734 @@
+/*
+
+Copyright (c) 2008 Carl Byington - 510 Software Group, released under
+the GPL version 2 or any later version at your choice available at
+http://www.fsf.org/licenses/gpl.txt
+
+Based on readpst.c by David Smith
+
+*/
+#include "gd.h"
+#include <stdio.h>
+#include <iostream>
+#include <unistd.h>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+extern "C" {
+    #include "define.h"
+    #include "libstrfunc.h"
+    #include "libpst.h"
+    #include "common.h"
+    #include "timeconv.h"
+    #include "lzfu.h"
+}
+
+struct file_ll {
+    string  name;
+    int32_t stored_count;
+    int32_t email_count;
+    int32_t skip_count;
+    int32_t type;
+    file_ll() {
+        stored_count = 0;
+        email_count  = 0;
+        skip_count   = 0;
+        type         - 0;
+    };
+};
+
+
+// global settings
+char*    convert = "@CONVERT@";     // fully qualified path of the convert program from image magick
+char*    prog_name = NULL;          // our arg0 name
+char*    bates_prefix = "";         // string to prefix bates numbers
+int      bates_index = 0;           // current bates sequence
+char*    output_directory = ".";
+char*    output_file = "load.dii";
+char*    font_file = NULL;
+int      bates_color = 0xff0000;    // color of bates header stamp
+int      email_sequence = 0;        // current pdf sequence number
+char     pdf_name[PATH_MAX];        // current pdf file name
+FILE*    dii_file = NULL;           // the output dii load file
+pst_file pstfile;                   // the input pst file
+
+// pdf writer globals
+bool     pdf_open = false;          // is pdf writer started
+char*    pst_folder;                // current folder name
+int      page_sequence;             // current page number
+string   conversion;                // conversion command
+vector<string>  png_names;
+
+// png writer globals
+bool     png_open = false;          // is current page open
+int      line_height;               // in pixels
+int      char_width;                // in pixels
+int      col_number, col_max;       // in characters
+int      line_number, line_max;     // lines per page
+int      x_position, y_position;    // in pixels
+int      black, red;                // text colors
+gdImagePtr  image;                  // current gd image
+
+const int DPI         = 300;
+const double sz       = 10.0;
+const int margin      = DPI/2;
+const int LINE_SIZE   = 2000;
+const int PAGE_WIDTH  = DPI*17/2;
+const int PAGE_HEIGHT = DPI*11;
+
+// max size of the c_time char*. It will store the date of the email
+#define C_TIME_SIZE 500
+
+static void open_png();
+static void close_png();
+
+
+static int version();
+static int version()
+{
+    printf("pst2dii v%s\n", VERSION);
+#if BYTE_ORDER == BIG_ENDIAN
+    printf("Big Endian implementation being used.\n");
+#elif BYTE_ORDER == LITTLE_ENDIAN
+    printf("Little Endian implementation being used.\n");
+#else
+#  error "Byte order not supported by this library"
+#endif
+#ifdef __GNUC__
+    printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
+#endif
+    return 0;
+}
+
+
+static int usage();
+static int usage()
+{
+    version();
+    printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
+    printf("OPTIONS:\n");
+    printf("\t-B bates-prefix   \t- Set the bates prefix string\n");
+    printf("\t-O dii-output-file\t- Set the dii load file output filename\n");
+    printf("\t-V                \t- Version. Display program version\n");
+    printf("\t-b bates-number   \t- Set the starting bates sequence number\n");
+    printf("\t-c bates-color    \t- Specify the color of the bates stamps as 6 digit hex\n");
+    printf("\t-d filename       \t- Debug to file. This is a binary log. Use readpstlog to print it.\n");
+    printf("\t-f ttf-font-file  \t- Set the font file\n");
+    printf("\t-h                \t- Help. This screen\n");
+    printf("\t-o dirname        \t- Output directory to write files to.\n");
+    return 0;
+}
+
+
+static char *removeCR (char *c);
+static char *removeCR (char *c) {
+    // converts /r/n to /n
+    char *a, *b;
+    DEBUG_ENT("removeCR");
+    a = b = c;
+    while (*a != '\0') {
+        *b = *a;
+        if (*a != '\r')
+            b++;
+        a++;
+    }
+    *b = '\0';
+    DEBUG_RET();
+    return c;
+}
+
+
+// The sole purpose of this function is to bypass the pseudo-header prologue
+// that Microsoft Outlook inserts at the beginning of the internet email
+// headers for emails stored in their "Personal Folders" files.
+static char *skip_header_prologue(char *headers);
+static char *skip_header_prologue(char *headers) {
+    const char *bad = "Microsoft Mail Internet Headers";
+    if (strncmp(headers, bad, strlen(bad)) == 0) {
+        // Found the offensive header prologue
+        char *pc = strchr(headers, '\n');
+        return pc + 1;
+    }
+    return headers;
+}
+
+
+static void check_filename(string &fname);
+static void check_filename(string &fname) {
+    char *t = strdup(fname.c_str());
+    DEBUG_ENT("check_filename");
+    if (!t) {
+        DEBUG_RET();
+        return;
+    }
+    char *tt = t;
+    bool fixed = false;
+    while (t = strpbrk(t, " /\\:")) {
+        // while there are characters in the second string that we don't want
+        *t = '_'; //replace them with an underscore
+        fixed = true;
+    }
+    if (fixed) fname = string(tt);
+    free(tt);
+    DEBUG_RET();
+}
+
+
+static string write_separate_attachment(string fname, pst_item_attach* current_attach, int attach_num, pst_file* pst);
+static string write_separate_attachment(string fname, pst_item_attach* current_attach, int attach_num, pst_file* pst)
+{
+    FILE *fp = NULL;
+    int x = 0;
+    char *temp = NULL;
+
+    // If there is a long filename (filename2) use that, otherwise
+    // use the 8.3 filename (filename1)
+    char *attach_filename = (current_attach->filename2) ? current_attach->filename2
+                                                        : current_attach->filename1;
+    DEBUG_ENT("write_separate_attachment");
+    check_filename(fname);
+    const char* f_name = fname.c_str();
+    DEBUG_EMAIL(("dirname=%s, pathname=%s, filename=%s\n", output_directory, f_name, attach_filename));
+    int len = strlen(output_directory) + 1 + strlen(f_name) + 15;
+    if (!attach_filename) {
+        // generate our own (dummy) filename for the attachement
+        temp = (char*)xmalloc(len);
+        sprintf(temp, "%s/%s_attach%i", output_directory, f_name, attach_num);
+    } else {
+        // have an attachment name, make sure it's unique
+        temp = (char*)xmalloc(len+strlen(attach_filename));
+        do {
+            if (fp) fclose(fp);
+            if (x == 0)
+                sprintf(temp, "%s/%s_%s", output_directory, f_name, attach_filename);
+            else
+                sprintf(temp, "%s/%s_%s-%i", output_directory, f_name, attach_filename, x);
+        } while ((fp = fopen(temp, "r")) && ++x < 99999999);
+        if (x > 99999999) {
+            DIE(("error finding attachment name. exhausted possibilities to %s\n", temp));
+        }
+    }
+    DEBUG_EMAIL(("Saving attachment to %s\n", temp));
+    if (!(fp = fopen(temp, "wb"))) {
+        WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
+    } else {
+        if (current_attach->data)
+            fwrite(current_attach->data, 1, current_attach->size, fp);
+        else {
+            (void)pst_attach_to_file(pst, current_attach, fp);
+        }
+        fclose(fp);
+    }
+    string rc(temp);
+    if (temp) free(temp);
+    DEBUG_RET();
+    return rc;
+}
+
+
+static void print_pdf_short(char *line, int len, int color);
+static void print_pdf_short(char *line, int len, int color)
+{
+    if (line_number >= line_max) {
+        close_png();
+        open_png();
+    }
+    int brect[8];
+    gdFTStringExtra strex;
+    strex.flags       = gdFTEX_RESOLUTION;
+    strex.linespacing = 1.20;
+    strex.charmap     = 0;
+    strex.hdpi        = DPI;
+    strex.vdpi        = DPI;
+    char x = line[len];
+    line[len] = '\0';
+    char *p;
+    char *l = line;
+    while (p = strchr(l, '&')) {
+        *p = '\0';
+        char *err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, l, &strex);
+        if (err) printf(err);
+        x_position += (brect[2]-brect[6]);
+        l = p+1;
+        err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, "&amp;", &strex);
+        if (err) printf(err);
+        x_position += (brect[2]-brect[6]);
+    }
+    char *err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, l, &strex);
+    if (err) printf(err);
+    line[len] = x;
+    x_position += (brect[2]-brect[6]);
+    col_number += len;
+}
+
+
+static void print_pdf_single(char *line, int color);
+static void print_pdf_single(char *line, int color)
+{
+    int n = strlen(line);
+    while (n) {
+        int m = col_max - col_number;   // number of chars that will fit on this line
+        m = (n > m) ? m : n;
+        print_pdf_short(line, m, color);
+        line += m;
+        n    -= m;
+        if (n) {
+            y_position  += line_height;
+            line_number += 1;
+            x_position   = margin;
+            col_number   = 0;
+        }
+    }
+}
+
+
+static void print_pdf_only(char *line, int color);
+static void print_pdf_only(char *line, int color)
+{
+    char *p;
+    while (p = strchr(line, '\n')) {
+        *p = '\0';
+        print_pdf_single(line, color);
+        *p = '\n';
+        line = p+1;
+        y_position  += line_height;
+        line_number += 1;
+        x_position   = margin;
+        col_number   = 0;
+    }
+    print_pdf_single(line, color);
+}
+
+
+static void print_pdf(char *line);
+static void print_pdf(char *line)
+{
+    fwrite(line, 1, strlen(line), dii_file);
+    print_pdf_only(line, black);
+}
+
+
+static void open_png()
+{
+    if (!png_open) {
+        png_open  = true;
+        int brect[8];
+        image = gdImageCreate(PAGE_WIDTH, PAGE_HEIGHT);
+        int w = gdImageColorAllocate(image, 255, 255, 255); // background color first one allocated
+        black = gdImageColorAllocate(image, 0, 0, 0);
+        int r = (bates_color & 0xff0000) >> 16;
+        int g = (bates_color & 0x00ff00) >> 8;
+        int b = (bates_color & 0x0000ff);
+        red   = gdImageColorAllocate(image, r, g, b);
+
+        gdFTStringExtra strex;
+        strex.flags       = gdFTEX_RESOLUTION;
+        strex.linespacing = 1.20;
+        strex.charmap     = 0;
+        strex.hdpi        = DPI;
+        strex.vdpi        = DPI;
+
+        char line[LINE_SIZE];
+        char *err = gdImageStringFTEx(NULL, &brect[0], black, font_file, sz, 0.0, margin, margin, "LMgqQ", &strex);
+        if (err) printf(err);
+        line_height = (brect[3]-brect[7]) * 12/10;
+        char_width  = (brect[2]-brect[6]) / 5;
+        col_number  = 0;
+        col_max     = (PAGE_WIDTH - margin*2) / char_width;
+        line_number = 0;
+        line_max    = (PAGE_HEIGHT - margin*2) / line_height;
+        x_position  = margin;
+        y_position  = margin + line_height;
+        snprintf(line, sizeof(line), "%s%06d\n", bates_prefix, bates_index++);
+        print_pdf_only(line, red);
+        print_pdf_only(pst_folder, red);
+    }
+}
+
+
+static void close_png()
+{
+    if (png_open) {
+        png_open = false;
+        char fn[PATH_MAX];
+        snprintf(fn, sizeof(fn), "page%d.png", ++page_sequence);
+        FILE *pngout = fopen(fn, "wb");
+        if (pngout) {
+            gdImagePng(image, pngout);
+            fclose(pngout);
+        }
+        gdImageDestroy(image); // free memory
+        png_names.push_back(fn);
+        conversion += string(" ") + fn;
+    }
+}
+
+
+static void open_pdf(char *line);
+static void open_pdf(char *line)
+{
+    pst_folder    = line;
+    page_sequence = 0;
+    conversion    = string(convert);
+    png_names.clear();
+    open_png();
+    snprintf(pdf_name, sizeof(pdf_name), "dii%06d", ++email_sequence);
+    fprintf(dii_file, "\n@T %s\n", pdf_name);
+    snprintf(pdf_name, sizeof(pdf_name), "%s/dii%06d.pdf", output_directory, email_sequence);
+}
+
+
+static void close_pdf();
+static void close_pdf()
+{
+    close_png();
+    conversion += string(" ") + pdf_name;
+    system(conversion.c_str());
+    for (vector<string>::iterator i=png_names.begin(); i!=png_names.end(); i++) {
+        remove((*i).c_str());
+    }
+    fprintf(dii_file, "@D %s\n", pdf_name);
+}
+
+
+static void write_simple(char *tag, const char *value);
+static void write_simple(char *tag, const char *value)
+{
+    if (value) fprintf(dii_file, "@%s %s\n", tag, value);
+}
+
+
+static void write_simple(char *tag, string value);
+static void write_simple(char *tag, string value)
+{
+    fprintf(dii_file, "@%s %s\n", tag, value.c_str());
+}
+
+
+static void write_simple(char *tag, const char *value, const char *value2);
+static void write_simple(char *tag, const char *value, const char *value2)
+{
+    if (value) {
+    if (value2) fprintf(dii_file, "@%s \"%s\" <%s>\n", tag, value, value2);
+    else        fprintf(dii_file, "@%s \"%s\"\n", tag, value);
+    }
+}
+
+
+static string extract_header(char *headers, char *field);
+static string extract_header(char *headers, char *field)
+{
+    string rc;
+    int len = strlen(field) + 4;
+    char f[len];
+    snprintf(f, len, "\n%s: ", field);
+    char *p = strstr(headers, f);
+    if (p) {
+        p += strlen(f);
+        char *n = strchr(p, '\n');
+        if (n) {
+            *n = '\0';
+            rc = string(p);
+            *n = '\n';
+        }
+        else {
+            rc = string(p);
+        }
+    }
+    return rc;
+}
+
+
+static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst);
+static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
+{
+    DEBUG_ENT("write_normal_email");
+    char *soh = NULL;  // real start of headers.
+    if (item->email->header) {
+        // some of the headers we get from the file are not properly defined.
+        // they can contain some email stuff too. We will cut off the header
+        // when we see a \n\n or \r\n\r\n
+        removeCR(item->email->header);
+        char *temp = strstr(item->email->header, "\n\n");
+        if (temp) {
+            DEBUG_EMAIL(("Found body text in header\n"));
+            temp[1] = '\0'; // stop after first \n
+        }
+        soh = skip_header_prologue(item->email->header);
+    }
+
+    char folder_line[LINE_SIZE];
+    char line[LINE_SIZE];
+    // reset pdf writer to new file
+    int bates = bates_index;    // save starting index
+    snprintf(folder_line, sizeof(folder_line), "pst folder = %s\n", f.name.c_str());
+    open_pdf(folder_line);
+
+    // start printing this email
+    fprintf(dii_file, "@FOLDERNAME %s\n", f.name.c_str());
+    string myfrom = extract_header(soh, "From");
+    string myto   = extract_header(soh, "To");
+    string mycc   = extract_header(soh, "Cc");
+    string mybcc  = extract_header(soh, "Bcc");
+    if (myfrom.empty()) write_simple("FROM", item->email->outlook_sender_name, item->email->sender_address);
+    else                write_simple("FROM", myfrom);
+    if (myto.empty())   write_simple("TO",   item->email->sentto_address,      item->email->recip_address);
+    else                write_simple("TO", myto);
+    if (mycc.empty())   write_simple("CC",   item->email->cc_address);
+    else                write_simple("CC", mycc);
+    if (mybcc.empty())  write_simple("BCC",  item->email->bcc_address);
+    else                write_simple("BCC", mybcc);
+    if (item->email->sent_date) {
+        time_t t = fileTimeToUnixTime(item->email->sent_date, NULL);
+        char c_time[C_TIME_SIZE];
+        strftime(c_time, C_TIME_SIZE, "%F +0000", gmtime(&t));
+        write_simple("DATESENT", c_time);
+        strftime(c_time, C_TIME_SIZE, "%T +0000", gmtime(&t));
+        write_simple("TIMESENT", c_time);
+    }
+    if (item->email->arrival_date) {
+        time_t t = fileTimeToUnixTime(item->email->arrival_date, NULL);
+        char c_time[C_TIME_SIZE];
+        strftime(c_time, C_TIME_SIZE, "%F +0000", gmtime(&t));
+        write_simple("DATERCVD", c_time);
+        strftime(c_time, C_TIME_SIZE, "%T +0000", gmtime(&t));
+        write_simple("TIMERCVD", c_time);
+    }
+    if (item->email->subject) {
+        write_simple("SUBJECT", item->email->subject->subj);
+    }
+    write_simple("MSGID", item->email->messageid);
+    if (item->email->flag) {
+        write_simple("READ", (item->email->flag & 1) ? "Y" : "N");
+    }
+
+    DEBUG_EMAIL(("About to print Header\n"));
+    fprintf(dii_file, "@HEADER\n");
+
+    if (item && item->email && item->email->subject && item->email->subject->subj) {
+        DEBUG_EMAIL(("item->email->subject->subj = %s\n", item->email->subject->subj));
+    }
+
+    if (soh) {
+        // Now, write out the header...
+        print_pdf(soh);
+        int len = strlen(soh);
+        if (!len || (soh[len-1] != '\n')) {
+            snprintf(line, sizeof(line), "\n");
+            print_pdf(line);
+        }
+
+    } else {
+        //make up our own headers
+        char *temp = item->email->outlook_sender;
+        if (!temp) temp = "";
+        snprintf(line, sizeof(line), "From: \"%s\" <%s>\n", item->email->outlook_sender_name, temp);
+        print_pdf(line);
+
+        if (item->email->subject) {
+            snprintf(line, sizeof(line), "Subject: %s\n", item->email->subject->subj);
+        } else {
+            snprintf(line, sizeof(line), "Subject: \n");
+        }
+        print_pdf(line);
+
+        snprintf(line, sizeof(line), "To: %s\n", item->email->sentto_address);
+        print_pdf(line);
+
+        if (item->email->cc_address) {
+            snprintf(line, sizeof(line), "Cc: %s\n", item->email->cc_address);
+            print_pdf(line);
+        }
+
+        if (item->email->sent_date) {
+            time_t em_time = fileTimeToUnixTime(item->email->sent_date, 0);
+            char c_time[C_TIME_SIZE];
+            strftime(c_time, C_TIME_SIZE, "%a, %d %b %Y %H:%M:%S %z", gmtime(&em_time));
+            snprintf(line, sizeof(line), "Date: %s\n", c_time);
+            print_pdf(line);
+        }
+    }
+    snprintf(line, sizeof(line), "\n");
+    print_pdf_only(line, black);
+    fprintf(dii_file, "@HEADER-END\n");
+
+    DEBUG_EMAIL(("About to print Body\n"));
+    fprintf(dii_file, "@EMAIL-BODY\n");
+    if (item->email->body) {
+        removeCR(item->email->body);
+        print_pdf(item->email->body);
+    } else if (item->email->htmlbody) {
+        removeCR(item->email->htmlbody);
+        print_pdf(item->email->htmlbody);
+    } else if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
+        print_pdf("The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
+    }
+    fprintf(dii_file, "@EMAIL-END\n");
+
+    int attach_num = 0;
+    for (pst_item_attach* current_attach = item->attach; current_attach; current_attach = current_attach->next) {
+        DEBUG_EMAIL(("Attempting Attachment encoding\n"));
+        if (!current_attach->data) {
+            DEBUG_EMAIL(("Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->size));
+        }
+        string an = write_separate_attachment(f.name, current_attach, ++attach_num, pst);
+        fprintf(dii_file, "@EATTACH %s\n", an.c_str());
+    }
+    close_pdf();
+    fprintf(dii_file, "@BATESBEG %d\n", bates);
+    fprintf(dii_file, "@BATESEND %d\n", bates_index-1);
+    DEBUG_RET();
+}
+
+
+static void create_enter_dir(file_ll &f, file_ll *parent, pst_item *item);
+static void create_enter_dir(file_ll &f, file_ll *parent, pst_item *item)
+{
+    f.email_count  = 0;
+    f.skip_count   = 0;
+    f.type         = item->type;
+    f.stored_count = (item->folder) ? item->folder->email_count : 0;
+    f.name         = ((parent) ? parent->name + "/" : "") + string(item->file_as);
+}
+
+
+static void close_enter_dir(file_ll &f);
+static void close_enter_dir(file_ll &f)
+{
+}
+
+
+static void process(pst_item *outeritem, file_ll *parent, pst_desc_ll *d_ptr);
+static void process(pst_item *outeritem, file_ll *parent, pst_desc_ll *d_ptr)
+{
+    file_ll ff;
+    pst_item *item = NULL;
+    DEBUG_ENT("process");
+    create_enter_dir(ff, parent, outeritem);
+    while (d_ptr) {
+        if (d_ptr->desc) {
+            item = pst_parse_item(&pstfile, d_ptr);
+            DEBUG_INFO(("item pointer is %p\n", item));
+            if (item) {
+                if (item->message_store) {
+                    // there should only be one message_store, and we have already done it
+                    DIE(("main: A second message_store has been found. Sorry, this must be an error.\n"));
+                }
+
+                if (item->folder && d_ptr->child )  {
+                    //if this is a non-empty folder other than deleted items, we want to recurse into it
+                    fprintf(stderr, "entering folder %s\n", item->file_as);
+                    process(item, &ff, d_ptr->child);
+                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+                    ff.email_count++;
+                    DEBUG_MAIN(("main: Processing Email\n"));
+                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT)) {
+                        DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
+                    }
+                    write_normal_email(ff, item, &pstfile);
+                                }
+                pst_freeItem(item);
+            } else {
+                ff.skip_count++;
+                DEBUG_MAIN(("main: A NULL item was seen\n"));
+            }
+        }
+        d_ptr = d_ptr->next;
+    }
+    close_enter_dir(ff);
+    DEBUG_RET();
+}
+
+
+int main(int argc, char **argv)
+{
+    pst_desc_ll *d_ptr;
+    char *fname = NULL;
+    char c;
+    char *d_log = NULL;
+    prog_name = argv[0];
+    pst_item *item = NULL;
+
+    while ((c = getopt(argc, argv, "B:b:c:d:f:o:O:Vh"))!= -1) {
+        switch (c) {
+        case 'B':
+            bates_prefix = optarg;
+            break;
+        case 'b':
+            bates_index = atoi(optarg);
+            break;
+        case 'c':
+            bates_color = (int)strtol(optarg, (char**)NULL, 16);
+            break;
+        case 'f':
+            font_file = optarg;
+            break;
+        case 'o':
+            output_directory = optarg;
+            break;
+        case 'O':
+            output_file = optarg;
+            break;
+        case 'd':
+            d_log = optarg;
+            break;
+        case 'h':
+            usage();
+            exit(0);
+            break;
+        case 'V':
+            version();
+            exit(0);
+            break;
+        default:
+            usage();
+            exit(1);
+            break;
+        }
+    }
+
+    if (argc > optind) {
+        fname = argv[optind];
+    } else {
+        usage();
+        exit(2);
+    }
+
+
+    #ifdef DEBUG_ALL
+        // force a log file
+        if (!d_log) d_log = "pst2dii.log";
+    #endif
+    DEBUG_INIT(d_log);
+    DEBUG_REGISTER_CLOSE();
+    DEBUG_ENT("main");
+    RET_DERROR(pst_open(&pstfile, fname), 1, ("Error opening File\n"));
+    RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
+
+    pst_load_extended_attributes(&pstfile);
+
+    d_ptr = pstfile.d_head; // first record is main record
+    item  = (pst_item*)pst_parse_item(&pstfile, d_ptr);
+    if (!item || !item->message_store) {
+        DEBUG_RET();
+        DIE(("main: Could not get root record\n"));
+    }
+
+    d_ptr = pst_getTopOfFolders(&pstfile, item);
+    if (!d_ptr) {
+        DEBUG_RET();
+        DIE(("Top of folders record not found. Cannot continue\n"));
+    }
+
+    dii_file = fopen(output_file, "wb");
+    if (dii_file) {
+        process(item, NULL, d_ptr->child);  // do the children of TOPF
+        pst_freeItem(item);
+        pst_close(&pstfile);
+        fclose(dii_file);
+    }
+    DEBUG_RET();
+    return 0;
+}

@@ -18,13 +18,13 @@
 char * fileTimeToAscii (const FILETIME *filetime) {
   time_t t1;
 
-  t1 = fileTimeToUnixTime(filetime,0);
+  t1 = fileTimeToUnixTime(filetime, NULL);
   return ctime(&t1);
 }
 
 struct tm * fileTimeToStructTM (const FILETIME *filetime) {
   time_t t1;
-  t1 = fileTimeToUnixTime(filetime, 0);
+  t1 = fileTimeToUnixTime(filetime, NULL);
   return gmtime(&t1);
 }
 

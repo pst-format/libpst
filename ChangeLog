@@ -1,3 +1,7 @@
+LibPST 0.6.8 (2008-xx-xx)
+===============================
+    	* Start work on pst2dii to convert to Summation dii load file format.
+
 LibPST 0.6.7 (2008-02-16)
 ===============================
         * Work around bogus 7c.b5 blocks in some messages that have been

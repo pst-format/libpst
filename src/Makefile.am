@@ -1,11 +1,15 @@
 hfiles = $(wildcard *.h)
 bin_PROGRAMS        = lspst readpst readpstlog pst2ldif
+if BUILD_DII
+    bin_PROGRAMS   += pst2dii
+endif
 noinst_PROGRAMS     = deltasearch dumpblocks getidblock
 
-lspst_SOURCES       = $(hfiles) debug.c libpst.c libstrfunc.c lspst.c timeconv.c vbuf.c generic.c
-readpst_SOURCES     = $(hfiles) readpst.c libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c generic.c
-readpstlog_SOURCES  = $(hfiles) readpstlog.c debug.c
+lspst_SOURCES       = $(hfiles) lspst.c      libpst.c timeconv.c libstrfunc.c debug.c        vbuf.c generic.c
+readpst_SOURCES     = $(hfiles) readpst.c    libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c generic.c
+readpstlog_SOURCES  = $(hfiles) readpstlog.c                                  debug.c
 pst2ldif_SOURCES    = $(hfiles) pst2ldif.cpp libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c generic.c
+pst2dii_SOURCES	    = $(hfiles) pst2dii.cpp  libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c generic.c
 
 deltasearch_SOURCES = deltasearch.cpp debug.c
 dumpblocks_SOURCES  = dumpblocks.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c generic.c
@@ -16,6 +20,7 @@ if NEED_XGETOPT
     readpst_SOURCES     += XGetopt.c
     readpstlog_SOURCES  += XGetopt.c
     pst2ldif_SOURCES    += XGetopt.c
+    pst2dii_SOURCES     += XGetopt.c
 endif
 
 EXTRA_DIST = testdebug.c
@@ -28,4 +33,5 @@ lspst_LDFLAGS      = $(all_libraries)
 readpst_LDFLAGS    = $(all_libraries)
 readpstlog_LDFLAGS = $(all_libraries)
 pst2ldif_LDFLAGS   = $(all_libraries)
+pst2dii_LDFLAGS    = $(all_libraries) -lgd -lpng -lz -lfreetype -lm
 

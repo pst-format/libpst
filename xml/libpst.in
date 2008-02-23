@@ -29,7 +29,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-01-27</date>
+            <date>2008-02-23</date>
         </refentryinfo>
 
         <refmeta>
@@ -47,8 +47,11 @@
             <title>Synopsis</title>
             <cmdsynopsis>
                 <command>readpst</command>
-                <arg><option>-b</option></arg>
                 <arg><option>-C</option></arg>
+                <arg><option>-M</option></arg>
+                <arg><option>-S</option></arg>
+                <arg><option>-V</option></arg>
+                <arg><option>-b</option></arg>
                 <arg><option>-c <replaceable class="parameter">format</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
                 <arg><option>-h</option></arg>
@@ -56,9 +59,6 @@
                 <arg><option>-o <replaceable class="parameter">output-directory</replaceable></option></arg>
                 <arg><option>-q</option></arg>
                 <arg><option>-r</option></arg>
-                <arg><option>-S</option></arg>
-                <arg><option>-M</option></arg>
-                <arg><option>-V</option></arg>
                 <arg><option>-w</option></arg>
                 <arg choice='plain'>pstfile</arg>
             </cmdsynopsis>
@@ -76,15 +76,41 @@
             <title>Options</title>
             <variablelist>
                 <varlistentry>
-                    <term>-b</term>
-                    <listitem><para>
-                        Do not save the attachments for the RTF format of the email body.
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
                     <term>-C</term>
                     <listitem><para>
                         Decrypt the entire pst file and dump it to stdout.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-M</term>
+                    <listitem><para>
+                        Output messages in MH format as separate files.  This will create
+                        folders as named in the PST file, and will put each email together with
+                        any attachments into its own file.  These files will be numbered from 1
+                        to n with no leading zeros.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-S</term>
+                    <listitem><para>
+                        Output messages into separate files.  This will create folders as named
+                        in the PST file, and will put each email in its own file.  These files
+                        will be numbered from 1 increasing in intervals of 1 (ie 1, 2, 3, ...).
+                        Any attachments are saved alongside each email as XXXXXXXXX-attach1,
+                        XXXXXXXXX-attach2 and so on, or with the name of the attachment if one
+                        is present.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-V</term>
+                    <listitem><para>
+                        Show program version and exit.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-b</term>
+                    <listitem><para>
+                        Do not save the attachments for the RTF format of the email body.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -135,32 +161,6 @@
                         named in the PST file, and will put all emails in a file called "mbox"
                         inside each folder. These files are then compatible with all
                         mbox-compatible email clients.
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>-S</term>
-                    <listitem><para>
-                        Output messages into separate files.  This will create folders as named
-                        in the PST file, and will put each email in its own file.  These files
-                        will be numbered from 1 increasing in intervals of 1 (ie 1, 2, 3, ...).
-                        Any attachments are saved alongside each email as XXXXXXXXX-attach1,
-                        XXXXXXXXX-attach2 and so on, or with the name of the attachment if one
-                        is present.
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>-M</term>
-                    <listitem><para>
-                        Output messages in MH format as separate files.  This will create
-                        folders as named in the PST file, and will put each email together with
-                        any attachments into its own file.  These files will be numbered from 1
-                        to n with no leading zeros.
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>-V</term>
-                    <listitem><para>
-                        Show program version and exit.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -222,7 +222,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-01-27</date>
+            <date>2008-02-23</date>
         </refentryinfo>
 
         <refmeta>
@@ -240,9 +240,9 @@
             <title>Synopsis</title>
             <cmdsynopsis>
                 <command>lspst</command>
+                <arg><option>-V</option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
                 <arg><option>-h</option></arg>
-                <arg><option>-V</option></arg>
                 <arg choice='plain'>pstfile</arg>
             </cmdsynopsis>
         </refsynopsisdiv>
@@ -250,6 +250,12 @@
         <refsect1 id='lspst.options.1'>
             <title>Options</title>
             <variablelist>
+                <varlistentry>
+                    <term>-V</term>
+                    <listitem><para>
+                        Show program version and exit.
+                    </para></listitem>
+                </varlistentry>
                 <varlistentry>
                     <term>-d <replaceable class="parameter">debug-file</replaceable></term>
                     <listitem><para>
@@ -262,12 +268,6 @@
                     <term>-h</term>
                     <listitem><para>
                         Show summary of options and exit.
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>-V</term>
-                    <listitem><para>
-                        Show program version and exit.
                     </para></listitem>
                 </varlistentry>
             </variablelist>
@@ -325,7 +325,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-01-27</date>
+            <date>2008-02-23</date>
         </refentryinfo>
 
         <refmeta>
@@ -500,7 +500,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-01-27</date>
+            <date>2008-02-23</date>
         </refentryinfo>
 
         <refmeta>
@@ -518,11 +518,11 @@
             <title>Synopsis</title>
             <cmdsynopsis>
                 <command>pst2ldif</command>
-                <arg><option>-h</option></arg>
                 <arg><option>-V</option></arg>
                 <arg><option>-b <replaceable class="parameter">ldap-base</replaceable></option></arg>
                 <arg><option>-c <replaceable class="parameter">class</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
+                <arg><option>-h</option></arg>
                 <arg choice='plain'>pstfilename</arg>
             </cmdsynopsis>
         </refsynopsisdiv>
@@ -531,13 +531,7 @@
             <title>Options</title>
             <variablelist>
                 <varlistentry>
-                    <term>-h</term>
-                    <listitem><para>
-                        Show summary of options. Subsequent options are then ignored.
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>-V <replaceable class="parameter">include-types</replaceable></term>
+                    <term>-V</term>
                     <listitem><para>
                         Show program version. Subsequent options are then ignored.
                     </para></listitem>
@@ -563,6 +557,12 @@
                         Specify name of debug log file. The
                         log file is not an ascii file, it is a binary file readable
                         by <command>readpstlog</command>.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-h</term>
+                    <listitem><para>
+                        Show summary of options. Subsequent options are then ignored.
                     </para></listitem>
                 </varlistentry>
             </variablelist>
@@ -622,9 +622,143 @@
     </refentry>
 
 
+    <refentry id="pst2dii.1">
+        <refentryinfo>
+            <date>2008-02-23</date>
+        </refentryinfo>
+
+        <refmeta>
+            <refentrytitle>pst2dii</refentrytitle>
+            <manvolnum>1</manvolnum>
+            <refmiscinfo>pst2dii @VERSION@</refmiscinfo>
+        </refmeta>
+
+        <refnamediv id='pst2dii.name.1'>
+            <refname>pst2dii</refname>
+            <refpurpose>extract email messages from a MS Outlook .pst file in DII load format</refpurpose>
+        </refnamediv>
+
+        <refsynopsisdiv id='pst2dii.synopsis.1'>
+            <title>Synopsis</title>
+            <cmdsynopsis>
+                <command>pst2dii</command>
+                <arg><option>-B <replaceable class="parameter">bates-prefix</replaceable></option></arg>
+                <arg><option>-O <replaceable class="parameter">dii-output-file</replaceable></option></arg>
+                <arg><option>-V</option></arg>
+                <arg><option>-b <replaceable class="parameter">bates-number</replaceable></option></arg>
+                <arg><option>-c <replaceable class="parameter">bates-color</replaceable></option></arg>
+                <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
+                <arg><option>-f <replaceable class="parameter">ttf-font-file</replaceable></option></arg>
+                <arg><option>-h</option></arg>
+                <arg><option>-o <replaceable class="parameter">output-directory</replaceable></option></arg>
+                <arg choice='plain'>pstfilename</arg>
+            </cmdsynopsis>
+        </refsynopsisdiv>
+
+        <refsect1 id='pst2dii.options.1'>
+            <title>Options</title>
+            <variablelist>
+                <varlistentry>
+                    <term>-B <replaceable class="parameter">bates-prefix</replaceable></term>
+                    <listitem><para>
+                        Sets the bates prefix string. The bates sequence number is appended to
+                        this string, and printed on each page.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-O <replaceable class="parameter">dii-output-file</replaceable></term>
+                    <listitem><para>
+                        Name of the output DII load file.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-V</term>
+                    <listitem><para>
+                        Show program version. Subsequent options are then ignored.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-b <replaceable class="parameter">bates-number</replaceable></term>
+                    <listitem><para>
+                        Starting bates sequence number. The default is zero.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-c <replaceable class="parameter">bates-color</replaceable></term>
+                    <listitem><para>
+                        Font color for the bates stamp on each page, specified as 6 hex digits
+                        as rrggbb values. The default is ff0000 for bright red.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-d <replaceable class="parameter">debug-file</replaceable></term>
+                    <listitem><para>
+                        Specify name of debug log file. The
+                        log file is not an ascii file, it is a binary file readable
+                        by <command>readpstlog</command>.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-f <replaceable class="parameter">ttf-font-file</replaceable></term>
+                    <listitem><para>
+                        Specify name of a true type font file. This should be a fixed pitch font.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-h</term>
+                    <listitem><para>
+                        Show summary of options. Subsequent options are then ignored.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-o <replaceable class="parameter">output-directory</replaceable></term>
+                    <listitem><para>
+                        Specifies the output directory. The directory must already exist.
+                    </para></listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect1>
+
+        <refsect1 id='pst2dii.description.1'>
+            <title>Description</title>
+            <para><command>pst2dii</command>
+                reads the email messages from a MS Outlook .pst file
+                and produces a DII load file that may be used to import message
+                summaries into a Summation DII system. The DII output file contains
+                references to the image and attachment files in the output directory.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst2dii.copyright.1'>
+            <title>Copyright</title>
+            <para>
+                Copyright (C) 2008 by 510 Software Group &lt;carl@five-ten-sg.com&gt;
+            </para>
+            <para>
+                This program is free software; you can redistribute it and/or modify it
+                under the terms of the GNU General Public License as published by the
+                Free Software Foundation; either version 2, or (at your option) any
+                later version.
+            </para>
+            <para>
+                You should have received a copy of the GNU General Public License along
+                with this program; see the file COPYING.  If not, please write to the
+                Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+            </para>
+        </refsect1>
+
+        <refsect1 id='pst2dii.version.1'>
+            <title>Version</title>
+            <para>
+                @VERSION@
+            </para>
+        </refsect1>
+    </refentry>
+
+
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-01-27</date>
+            <date>2008-02-23</date>
         </refentryinfo>
 
         <refmeta>
@@ -1512,8 +1646,11 @@
 0063  Response requested
 0064  Sender's Address access method (SMTP, EX)
 0065  Sender's Address
-0070  Processed Subject (with Fwd:, Re, ... removed)
-0071  Date. Another date
+0070  Conversation topic, processed subject (with Fwd:, Re, ... removed)
+0071  Conversation index
+0072  Original display BCC
+0073  Original display CC
+0074  Original display TO
 0075  Recipient Address Access Method (SMTP, EX)
 0076  Recipient's Address
 0077  Second Recipient Access Method (SMTP, EX)

@@ -6,7 +6,7 @@
  */
 #include "define.h"
 #include "libstrfunc.h"
-#include "vbuf.h"
+//#include "vbuf.h"
 #include "libpst.h"
 #include "common.h"
 #include "timeconv.h"
@@ -198,9 +198,10 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     write_appointment(ff.output, item->appointment, item->email, item->create_date, item->modify_date);
 
                 } else {
-                    ff.skip_count++;
-                    DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n",
-                                item->type, item->ascii_type));
+                    // these all seem to be things that MS agrees are not included in the item count
+                    //ff.skip_count++;
+                    DEBUG_MAIN(("main: Unknown item type %i (%s) name (%s)\n",
+                                item->type, item->ascii_type, item->file_as));
                 }
                 pst_freeItem(item);
             } else {
@@ -367,10 +368,9 @@ int main(int argc, char** argv) {
         DIE(("Top of folders record not found. Cannot continue\n"));
     }
 
-    process(item, d_ptr->child);  // do the children of TOPF
+    process(item, d_ptr->child);    // do the children of TOPF
     pst_freeItem(item);
     pst_close(&pstfile);
-
     DEBUG_RET();
     return 0;
 }
@@ -417,19 +417,19 @@ int usage() {
     version();
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
-    printf("\t-b\t- Don't save RTF-Body attachments\n");
-    printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
-    printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readlog to print it\n");
-    printf("\t-h\t- Help. This screen\n");
-    printf("\t-k\t- KMail. Output in kmail format\n");
+    printf("\t-C\t- Decrypt the entire file and output on stdout (not typically useful)\n");
     printf("\t-M\t- MH. Write emails in the MH format\n");
-    printf("\t-o <dirname>\t- Output Dir. Directory to write files to. CWD is changed *after* opening pst file\n");
-    printf("\t-q\t- Quiet. Only print error messages\n");
-    printf("\t-r\t- Recursive. Output in a recursive format\n");
     printf("\t-S\t- Seperate. Write emails in the seperate format\n");
     printf("\t-V\t- Version. Display program version\n");
+    printf("\t-b\t- Don't save RTF-Body attachments\n");
+    printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
+    printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readpstlog to print it\n");
+    printf("\t-h\t- Help. This screen\n");
+    printf("\t-k\t- KMail. Output in kmail format\n");
+    printf("\t-o <dirname>\t- Output directory to write files to. CWD is changed *after* opening pst file\n");
+    printf("\t-q\t- Quiet. Only print error messages\n");
+    printf("\t-r\t- Recursive. Output in a recursive format\n");
     printf("\t-w\t- Overwrite any output mbox files\n");
-    printf("\t-C\t- Decrypt the entire file and output on stdout (not typically useful)\n");
     DEBUG_RET();
     return 0;
 }
@@ -915,7 +915,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         if (!len || (soh[len-1] != '\n')) fprintf(f_output, "\n");
 
     } else {
-        //make up our own header!
+        //make up our own headers
         if (mode != MODE_SEPERATE) {
             // don't want this first line for this mode
             if (item->email->outlook_sender_name) {
@@ -942,10 +942,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         }
 
         if (item->email->sent_date) {
-            c_time = (char*) xmalloc(C_TIME_SIZE);
+            char c_time[C_TIME_SIZE];
             strftime(c_time, C_TIME_SIZE, "%a, %d %b %Y %H:%M:%S %z", gmtime(&em_time));
             fprintf(f_output, "Date: %s\n", c_time);
-            free(c_time);
         }
     }
 
