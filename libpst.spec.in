@@ -1,75 +1,57 @@
 %define localstatedir   /var/lib
 
-Summary:            @PACKAGE@ Libpst utilities
+Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
-Release:            %{?custom_release}%{!?custom_release:1}
-License:            GPL version 2 or later
+Release:            1%{?dist}
+License:            GPLv2+
 Group:              Applications/Productivity
-Source:             http://www.five-ten-sg.com/@PACKAGE@/packages/@PACKAGE@-@VERSION@.tar.gz
-BuildRoot:          %{_tmppath}/%{name}-%{version}-buildroot
-URL:                http://www.five-ten-sg.com/@PACKAGE@/
-Vendor:             Libpst team
-Packager:           510 Software Group
-AutoReqProv:        no
+Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
+BuildRoot:          %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+URL:                http://www.five-ten-sg.com/%{name}/
+Requires:           freetype gd libpng libjpeg zlib glibc libgcc libstdc++
+BuildRequires:      freetype-devel gd-devel libjpeg-devel zlib-devel
+
 
 %description
-The Libpst utilities include readpst which can extract mail messages from an Outlook .pst file, and pst2ldif which can convert the contacts to .ldif format for import into ldap databases.
+The Libpst utilities include readpst which can convert email messages
+to both mbox and MH mailbox formats, pst2ldif which can convert the
+contacts to .ldif format for import into ldap databases, and pst2dii
+which can convert email messages to the DII load file format used by
+Summation.
 
 
 %prep
-
-
-%setup
-
+%setup -q
 
 %build
-./configure --prefix=%{_prefix} \
-    --bindir=%{_bindir} --mandir=%{_mandir} \
-    --localstatedir=%{localstatedir} --libdir=%{_libdir} \
-    --datadir=%{_datadir} --includedir=%{_includedir} \
-    --sysconfdir=%{_sysconfdir}
-make
-
+%configure
+make %{?_smp_mflags}
 
 %install
-if [ "$RPM_BUILD_ROOT" = "/" -o -z "$RPM_BUILD_ROOT" ] ; then
-        echo sorry, you probably do not want me to delete the old buildroot at $RPM_BUILD_ROOT
-        exit 1
-fi
 rm -rf $RPM_BUILD_ROOT
-make prefix=$RPM_BUILD_ROOT%{_prefix} bindir=$RPM_BUILD_ROOT%{_bindir} \
-    mandir=$RPM_BUILD_ROOT%{_mandir} libdir=$RPM_BUILD_ROOT%{_libdir} \
-    localstatedir=$RPM_BUILD_ROOT%{localstatedir} \
-    datadir=$RPM_BUILD_ROOT%{_datadir} \
-    includedir=$RPM_BUILD_ROOT%{_includedir} \
-    sysconfdir=$RPM_BUILD_ROOT%{_sysconfdir} install
-mkdir -p $RPM_BUILD_ROOT%{_datadir}/doc/@PACKAGE@-@VERSION@
-mv AUTHORS COPYING ChangeLog NEWS README        $RPM_BUILD_ROOT%{_datadir}/doc/@PACKAGE@-@VERSION@
+make DESTDIR=$RPM_BUILD_ROOT install
 
-
-%pre
-
-%post
-
-%preun
-
-%postun
 
 %clean
+rm -rf $RPM_BUILD_ROOT
 
 %files
-%defattr(-,root,root)
+%defattr(-,root,root,-)
 %{_bindir}/*
-%doc %{_mandir}/*
-%docdir %{_datadir}/doc/@PACKAGE@-@VERSION@
-%{_datadir}/doc/@PACKAGE@-@VERSION@
+%{_mandir}/man1/*
+%{_mandir}/man5/*
+%doc AUTHORS COPYING ChangeLog NEWS README
 
 
 %changelog
-* Tue Jul 10 2007 Carl Byington 0.5.5
+* Tue Feb 26 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.8
+- Initial version of pst2dii to convert to Summation dii load file format
+- changes for Fedora packaging guidelines (#434727)
+
+* Tue Jul 10 2007 Carl Byington <carl@five-ten-sg.com> - 0.5.5
 - merge changes from Joe Nahmias version
 
-* Sun Feb 19 2006 Carl Byington 0.5.3
+* Sun Feb 19 2006 Carl Byington <carl@five-ten-sg.com> - 0.5.3
 - initial spec file using autoconf and http://www.fedora.us/docs/rpm-packaging-guidelines.html
 

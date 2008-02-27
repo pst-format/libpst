@@ -35,10 +35,9 @@ struct file_ll {
         stored_count = 0;
         email_count  = 0;
         skip_count   = 0;
-        type         - 0;
+        type         = 0;
     };
 };
-
 
 // global settings
 char*    convert = "@CONVERT@";     // fully qualified path of the convert program from image magick
@@ -483,17 +482,17 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     if (item->email->sent_date) {
         time_t t = fileTimeToUnixTime(item->email->sent_date, NULL);
         char c_time[C_TIME_SIZE];
-        strftime(c_time, C_TIME_SIZE, "%F +0000", gmtime(&t));
+        strftime(c_time, C_TIME_SIZE, "%F", gmtime(&t));
         write_simple("DATESENT", c_time);
-        strftime(c_time, C_TIME_SIZE, "%T +0000", gmtime(&t));
+        strftime(c_time, C_TIME_SIZE, "%T+0000", gmtime(&t));
         write_simple("TIMESENT", c_time);
     }
     if (item->email->arrival_date) {
         time_t t = fileTimeToUnixTime(item->email->arrival_date, NULL);
         char c_time[C_TIME_SIZE];
-        strftime(c_time, C_TIME_SIZE, "%F +0000", gmtime(&t));
+        strftime(c_time, C_TIME_SIZE, "%F", gmtime(&t));
         write_simple("DATERCVD", c_time);
-        strftime(c_time, C_TIME_SIZE, "%T +0000", gmtime(&t));
+        strftime(c_time, C_TIME_SIZE, "%T+0000", gmtime(&t));
         write_simple("TIMERCVD", c_time);
     }
     if (item->email->subject) {
