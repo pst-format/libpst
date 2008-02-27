@@ -9,7 +9,7 @@ Group:              Applications/Productivity
 Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
 BuildRoot:          %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 URL:                http://www.five-ten-sg.com/%{name}/
-Requires:           ImageMagick freetype gd libpng libjpeg zlib glibc libgcc libstdc++
+Requires:           ImageMagick
 BuildRequires:      ImageMagick freetype-devel gd-devel libjpeg-devel zlib-devel
 
 
