@@ -19,6 +19,7 @@ $val  ../src/pst2dii  -f /usr/share/fonts/bitstream-vera/VeraMono.ttf -B "bates-
       ../src/readpstlog -f I dumper >test.log
       ../src/pst2dii  -f /usr/share/fonts/bitstream-vera/VeraMono.ttf -B "bates-" -o output4 -O mydii4 -d dumper big_mail.pst
       ../src/readpstlog -f I dumper >big_mail.log
+exit
 
 $val  ../src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' ams.pst >ams.err  2>&1
 $val  ../src/readpst -cv    -o output1 ams.pst                       >out1.err 2>&1

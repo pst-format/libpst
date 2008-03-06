@@ -1,4 +1,4 @@
-LibPST 0.6.8 (2008-xx-xx)
+LibPST 0.6.8 (2008-03-05)
 ===============================
         * Initial version of pst2dii to convert to Summation dii load file format.
         * Changes for Fedora packaging (#434727)

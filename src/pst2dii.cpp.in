@@ -7,7 +7,7 @@ http://www.fsf.org/licenses/gpl.txt
 Based on readpst.c by David Smith
 
 */
-#include "gd.h"
+#include <gd.h>
 #include <stdio.h>
 #include <iostream>
 #include <unistd.h>
@@ -263,9 +263,26 @@ static void print_pdf_short(char *line, int len, int color)
 }
 
 
+static void new_line();
+static void new_line()
+{
+    y_position  += line_height;
+    line_number += 1;
+    x_position   = margin;
+    col_number   = 0;
+}
+
+
 static void print_pdf_single(char *line, int color);
 static void print_pdf_single(char *line, int color)
 {
+    while (*line == '\t') {
+        char blanks[5];
+        memset(blanks, ' ', 5);
+        print_pdf_short(blanks, 4, color);
+        line++;
+        if (col_number >= col_max) new_line();
+    }
     int n = strlen(line);
     while (n) {
         int m = col_max - col_number;   // number of chars that will fit on this line
@@ -273,12 +290,7 @@ static void print_pdf_single(char *line, int color)
         print_pdf_short(line, m, color);
         line += m;
         n    -= m;
-        if (n) {
-            y_position  += line_height;
-            line_number += 1;
-            x_position   = margin;
-            col_number   = 0;
-        }
+        if (n) new_line();
     }
 }
 
@@ -292,10 +304,7 @@ static void print_pdf_only(char *line, int color)
         print_pdf_single(line, color);
         *p = '\n';
         line = p+1;
-        y_position  += line_height;
-        line_number += 1;
-        x_position   = margin;
-        col_number   = 0;
+        new_line();
     }
     print_pdf_single(line, color);
 }
