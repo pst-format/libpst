@@ -626,7 +626,7 @@ static void process(pst_item *outeritem, file_ll *parent, pst_desc_ll *d_ptr)
                 }
 
                 if (item->folder && d_ptr->child )  {
-                    //if this is a non-empty folder other than deleted items, we want to recurse into it
+                    //if this is a non-empty folder, we want to recurse into it
                     fprintf(stderr, "entering folder %s\n", item->file_as);
                     process(item, &ff, d_ptr->child);
                 } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {

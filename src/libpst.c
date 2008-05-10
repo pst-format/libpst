@@ -4044,7 +4044,7 @@ int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t 
 
 
 pst_index_ll* pst_getID(pst_file* pf, uint64_t id) {
-    pst_index_ll *ptr = NULL;
+    pst_index_ll *ptr;
     DEBUG_ENT("pst_getID");
     if (id == 0) {
         DEBUG_RET();
@@ -4056,7 +4056,7 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t id) {
     id -= (id & 1);
 
     DEBUG_INDEX(("Trying to find %#llx\n", id));
-    if (!ptr) ptr = pf->i_head;
+    ptr = pf->i_head;
     while (ptr && (ptr->id != id)) {
         ptr = ptr->next;
     }
