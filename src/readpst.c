@@ -301,9 +301,9 @@ int main(int argc, char** argv) {
     DEBUG_ENT("main");
 
     if (mode == MODE_DECSPEW) {
-        FILE *fp;
-        char buf[1024];
-        int l=0;
+        FILE  *fp;
+        char   buf[1024];
+        size_t l = 0;
         if (NULL == (fp = fopen(fname, "rb"))) {
             fprintf(stderr, "Couldn't open file %s\n", fname );
             DEBUG_RET();

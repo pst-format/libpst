@@ -47,7 +47,7 @@ void pst_debug(char *fmt, ...) {
 
 #define NUM_COL 30
 void pst_debug_hexdumper(FILE *out, unsigned char *buf, size_t size, int col, int delta) {
-    int off = 0, toff;
+    size_t off = 0, toff;
     int count = 0;
 
     if (!out) return;   // no file

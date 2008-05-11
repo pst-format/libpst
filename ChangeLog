@@ -1,3 +1,10 @@
+LibPST 0.6.9 (2008-05-11)
+===============================
+        * Patch from Joachim Metz <joachim.metz@gmail.com> for 64 bit
+	compile
+	* Signed/unsigned cleanup from 'CFLAGS=-Wextra ./configure'
+	* Reindent vbuf.c to make it readable.
+
 LibPST 0.6.8 (2008-03-05)
 ===============================
         * Initial version of pst2dii to convert to Summation dii load file format.

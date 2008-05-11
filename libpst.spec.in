@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun May 11 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.9
+- Patch from Joachim Metz <joachim.metz@gmail.com> for 64 bit compile.
+
 * Wed Mar 05 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.8
 - Initial version of pst2dii to convert to Summation dii load file format
 - changes for Fedora packaging guidelines (#434727)

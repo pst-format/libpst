@@ -1,4 +1,4 @@
-/* {{{ vbuf.h - variable length buffer functions
+/* vbuf.h - variable length buffer functions
  *
  * Functions that try to make dealing with buffers easier.
  *
@@ -7,7 +7,7 @@
  * vstr
  * - should always contain a valid string
  *
- * }}} */
+ */
 
 #ifndef VBUF_H
 #define VBUF_H
@@ -17,7 +17,7 @@
 #include <stdarg.h>
 /***************************************************/
 
-// {{{ Tokenizer const TOK_EMPTY, TOK_ELEMENT, DELIM
+// Tokenizer const TOK_EMPTY, TOK_ELEMENT, DELIM
 #define DELIM '\\'
 
 #define TOK_EMPTY	0
@@ -28,25 +28,25 @@
 
 #define TOK_ERROR	10
 #define TOK_BUF_SMALL	11
-// }}}
 
 
-// Variable-length buffers 
-struct varbuf { // {{{
+
+// Variable-length buffers
+struct varbuf {
 	size_t dlen; 	//length of data stored in buffer
 	size_t blen; 	//length of buffer
-	char *buf; 	//buffer
-	char *b;	//start of stored data
-}; // }}}
+	char *buf; 	    //buffer
+	char *b;	    //start of stored data
+};
 
 
-// The exact same thing as a varbuf but should always contain at least '\0' 
-struct varstr { // {{{
+// The exact same thing as a varbuf but should always contain at least '\0'
+struct varstr {
 	size_t dlen; 	//length of data stored in buffer
 	size_t blen; 	//length of buffer
-	char *buf; 	//buffer
-	char *b;	//start of stored data
-}; // }}}
+	char *buf; 	    //buffer
+	char *b;	    //start of stored data
+};
 
 
 typedef struct varbuf vbuf;
@@ -60,13 +60,13 @@ struct varbuf *vballoc( size_t len );
 void vbfree(      vbuf *vb );
 void vbclear(     vbuf *vb ); //ditch the data, keep the buffer
 void vbresize(    vbuf *vb, size_t len );
-int  vbavail(     vbuf *vb );
+size_t vbavail(   vbuf *vb );
 void vbdump(      vbuf *vb );
 void vbgrow(      vbuf *vb, size_t len ); // grow buffer by len bytes, data are preserved
 void vbset(       vbuf *vb, void *data, size_t len );
-void vbskipws(    vbuf *vb ); 
+void vbskipws(    vbuf *vb );
 void vbappend(    vbuf *vb, void *data, size_t length );
-void vbskip(      vbuf *vb, size_t skip ); 
+void vbskip(      vbuf *vb, size_t skip );
 void vboverwrite( vbuf *vbdest, vbuf *vbsrc );
 
 // vstr functions
@@ -89,7 +89,7 @@ void vs_printfa(  vstr *vs, char *fmt, ... );
 void vshexdump(   vstr *vs, char *b, size_t start, size_t stop, int ascii );
 int  vscatprintf( vstr *vs, char *fmt, ... );
 void vsvprintf(   vstr *vs, char *fmt, va_list ap );
-void vstrunc(     vstr *vs, int off ); // Drop chars [off..dlen]
+void vstrunc(     vstr *vs, size_t off ); // Drop chars [off..dlen]
 int  vslast(      vstr *vs ); // returns the last character stored in a vstr string
 void vscharcat(   vstr *vs, int ch );
 int  vsutf16(     vstr *vs, vbuf *in ); //in: in=zero-terminated utf16; out: vs=utf8; returns: 0 on success, else on fail

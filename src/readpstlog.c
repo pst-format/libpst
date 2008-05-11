@@ -29,13 +29,16 @@ int main(int argc, char** argv) {
     unsigned char version;
     int *show_type=NULL, show_size=0;
     int *ex_type=NULL, ex_size=0;
-    unsigned int funcname=0, filename=0, text=0, end=0, dtype=0, line=0, c;
+    unsigned int funcname=0, filename=0, text=0, end=0, dtype=0, line=0;
+    int c;
+    char ch;
     FILE *fp;
     struct pst_debug_file_rec_m mfile_rec;
     struct pst_debug_file_rec_l lfile_rec;
     char format = 'D';  // default
     while ((c = getopt(argc, argv, "f:t:x:")) != -1) {
-        switch(c) {
+        ch = c;
+        switch(ch) {
             case 'f':
                 // change the output format
                 format = toupper(optarg[0]);
@@ -112,7 +115,8 @@ int main(int argc, char** argv) {
                 if (dtype == DEBUG_FUNCENT_NO) level++;
                 if ((show_type == NULL || is_in(dtype, show_type, show_size)) &&
                     (ex_type == NULL   || !is_in(dtype, ex_type, ex_size))) {
-                    c = 0; flag = 0;
+                    unsigned int c = 0;
+                    flag = 0;
                     while (c < end) {
                         int ii = (level-1) * 4;
                         if (ii < 0) ii = 0;
