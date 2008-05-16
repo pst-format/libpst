@@ -1,4 +1,4 @@
-0.6.9   2008-05-11 Patch from Joachim Metz <joachim.metz@gmail.com> for 64 bit compile.
+0.6.9   2008-05-16 Patch from Joachim Metz <joachim.metz@gmail.com> for 64 bit compile.
 0.6.8   2008-03-05 Initial version of pst2dii to convert to Summation dii load file format.
 0.6.7   2008-02-16 Ignore unknown attachments on some read messages; autoconf cleanup.
 0.6.6   2008-01-31 Code cleanup, switch from cvs to mercurial source control.

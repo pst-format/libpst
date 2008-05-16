@@ -47,8 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Sun May 11 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.9
+* Fri May 16 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.9
 - Patch from Joachim Metz <joachim.metz@gmail.com> for 64 bit compile.
+- Fix pst format documentation for 8 byte backpointers.
 
 * Wed Mar 05 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.8
 - Initial version of pst2dii to convert to Summation dii load file format

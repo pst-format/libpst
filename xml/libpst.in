@@ -33,7 +33,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-02-23</date>
+            <date>2008-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -226,7 +226,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-02-23</date>
+            <date>2008-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -329,7 +329,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-02-23</date>
+            <date>2008-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -504,7 +504,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-02-23</date>
+            <date>2008-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -628,7 +628,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2008-02-23</date>
+            <date>2008-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -762,7 +762,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-02-23</date>
+            <date>2008-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -966,6 +966,7 @@
 
 01f0  itemCount       [1 byte]  0x02       in this case
 01f1  maxItemCount    [1 byte]  0x29       constant
+01f2  itemSize        [1 byte]  0x0c       constant
 01f3  nodeLevel       [1 byte]  0x02       in this case
 01f8  backPointer     [4 bytes] 0x021eb4   in this case
 ]]></literallayout>
@@ -1036,6 +1037,7 @@
 
 01e8  itemCount       [1 byte]  0x02       in this case
 01e9  maxItemCount    [1 byte]  0x14       constant
+01ea  itemSize        [1 byte]  0x18       constant
 01eb  nodeLevel       [1 byte]  0x01       in this case
 01f8  backPointer     [8 bytes] 0x00008a   in this case
 ]]></literallayout>
@@ -1106,6 +1108,7 @@
 
 01f0  itemCount       [1 byte]  0x1f       in this case
 01f1  maxItemCount    [1 byte]  0x29       constant
+01f2  itemSize        [1 byte]  0x0c       constant
 01f3  nodeLevel       [1 byte]  0x00       defines a leaf node
 01f8  backPointer     [4 bytes] 0x01675a   in this case
 ]]></literallayout>
@@ -1179,6 +1182,7 @@
 
 01e8  itemCount       [1 byte]  0x10       in this case
 01e9  maxItemCount    [1 byte]  0x14       constant
+01ea  itemSize        [1 byte]  0x18       constant
 01eb  nodeLevel       [1 byte]  0x00       defines a leaf node
 01f8  backPointer     [8 bytes] 0x000088   in this case
 ]]></literallayout>
@@ -1252,6 +1256,7 @@
 
 01f0  itemCount       [1 byte]  0x02       in this case
 01f1  maxItemCount    [1 byte]  0x29       constant
+01f2  itemSize        [1 byte]  0x0c       constant
 01f3  nodeLevel       [1 byte]  0x02       in this case
 01f8  backPointer     [4 bytes] 0x021ebc   in this case
 ]]></literallayout>
@@ -1322,8 +1327,9 @@
 
 01e8  itemCount       [1 byte]  0x03       in this case
 01e9  maxItemCount    [1 byte]  0x14       constant
+01ea  itemSize        [1 byte]  0x18       constant
 01eb  nodeLevel       [1 byte]  0x01       in this case
-01f8  backPointer     [4 bytes] 0x000083   in this case
+01f8  backPointer     [8 bytes] 0x000083   in this case
 ]]></literallayout>
             <para>
                 The itemCount specifies the number of 24 byte records that
@@ -1381,6 +1387,7 @@
 
 01f0  itemCount       [1 byte]  0x10       in this case
 01f1  maxItemCount    [1 byte]  0x1f       constant
+01f2  itemSize        [1 byte]  0x10       constant
 01f3  nodeLevel       [1 byte]  0x00       in this case
 01f8  backPointer     [4 bytes] 0x021eae   in this case
 ]]></literallayout>
@@ -1437,8 +1444,9 @@
 
 01e8  itemCount       [1 byte]  0x0e       in this case
 01e9  maxItemCount    [1 byte]  0x0f       constant
+01ea  itemSize        [1 byte]  0x20       constant
 01eb  nodeLevel       [1 byte]  0x00       defines a leaf node
-01f8  backPointer     [4 bytes] 0x000077   in this case
+01f8  backPointer     [8 bytes] 0x000077   in this case
 ]]></literallayout>
             <para>
                 The itemCount specifies the number of 32 byte records that
