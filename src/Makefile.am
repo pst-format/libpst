@@ -5,15 +5,15 @@ if BUILD_DII
 endif
 noinst_PROGRAMS     = deltasearch dumpblocks getidblock
 
-lspst_SOURCES       = $(hfiles) lspst.c      libpst.c timeconv.c libstrfunc.c debug.c        vbuf.c generic.c
-readpst_SOURCES     = $(hfiles) readpst.c    libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c generic.c
+lspst_SOURCES       = $(hfiles) lspst.c      libpst.c timeconv.c libstrfunc.c debug.c        vbuf.c
+readpst_SOURCES     = $(hfiles) readpst.c    libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
 readpstlog_SOURCES  = $(hfiles) readpstlog.c                                  debug.c
-pst2ldif_SOURCES    = $(hfiles) pst2ldif.cpp libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c generic.c
-pst2dii_SOURCES	    = $(hfiles) pst2dii.cpp  libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c generic.c
+pst2ldif_SOURCES    = $(hfiles) pst2ldif.cpp libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
+pst2dii_SOURCES	    = $(hfiles) pst2dii.cpp  libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
 
 deltasearch_SOURCES = deltasearch.cpp debug.c
-dumpblocks_SOURCES  = dumpblocks.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c generic.c
-getidblock_SOURCES  = getidblock.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c generic.c
+dumpblocks_SOURCES  = dumpblocks.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c
+getidblock_SOURCES  = getidblock.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c
 
 if NEED_XGETOPT
     lspst_SOURCES       += XGetopt.c

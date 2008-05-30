@@ -597,7 +597,7 @@ pst_index_ll*  pst_getID(pst_file* pf, uint64_t id);
 pst_index_ll*  pst_getID2(pst_index2_ll * ptr, uint64_t id);
 pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t id);
 size_t         pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf);
-int            pst_decrypt(unsigned char *buf, size_t size, unsigned char type);
+int            pst_decrypt(char *buf, size_t size, unsigned char type);
 uint64_t       pst_getIntAt(pst_file *pf, char *buf);
 uint64_t       pst_getIntAtPos(pst_file *pf, off_t pos);
 size_t         pst_getAtPos(pst_file *pf, off_t pos, void* buf, size_t size);

@@ -40,7 +40,7 @@ typedef struct _lzfuheader {
 } lzfuheader;
 
 
-unsigned char* lzfu_decompress (unsigned char* rtfcomp, uint32_t compsize, size_t *size) {
+char* lzfu_decompress (char* rtfcomp, uint32_t compsize, size_t *size) {
 	// the dictionary buffer
 	unsigned char dict[4096];
 	// the dictionary pointer
@@ -52,7 +52,7 @@ unsigned char* lzfu_decompress (unsigned char* rtfcomp, uint32_t compsize, size_
 	// temp value for determining the bits in the flag
 	unsigned char flag_mask;
 	uint32_t i;
-	unsigned char *out_buf;
+	char *out_buf;
 	uint32_t out_ptr  = 0;
 	uint32_t out_size;
 	uint32_t in_ptr;
@@ -71,11 +71,11 @@ unsigned char* lzfu_decompress (unsigned char* rtfcomp, uint32_t compsize, size_
 	//printf("CRC       : %#x\n", lzfuhdr.dwCRC);
 	//printf("\n");
 	out_size = lzfuhdr.cbRawSize + 3;	// two braces and a null terminator
-	out_buf  = (unsigned char*)xmalloc(out_size);
+	out_buf  = (char*)xmalloc(out_size);
 	in_ptr	 = sizeof(lzfuhdr);
 	in_size  = (lzfuhdr.cbSize < compsize) ? lzfuhdr.cbSize : compsize;
 	while (in_ptr < in_size) {
-		flags = rtfcomp[in_ptr++];
+		flags = (unsigned char)(rtfcomp[in_ptr++]);
 		flag_mask = 1;
 		while (flag_mask) {
 			if (flag_mask & flags) {
@@ -99,7 +99,7 @@ unsigned char* lzfu_decompress (unsigned char* rtfcomp, uint32_t compsize, size_
 						c1 = dict[(offset+i)%4096];
 						dict[dict_length]=c1;
 						dict_length = (dict_length+1) % 4096;
-						if (out_ptr < out_size) out_buf[out_ptr++] = c1;
+						if (out_ptr < out_size) out_buf[out_ptr++] = (char)c1;
 					}
 				}
 			} else {
@@ -109,7 +109,7 @@ unsigned char* lzfu_decompress (unsigned char* rtfcomp, uint32_t compsize, size_
 					char c1 = rtfcomp[in_ptr++];
 					dict[dict_length] = c1;
 					dict_length = (dict_length+1)%4096;
-					if (out_ptr < out_size) out_buf[out_ptr++] = c1;
+					if (out_ptr < out_size) out_buf[out_ptr++] = (char)c1;
 				}
 			}
 			flag_mask <<= 1;

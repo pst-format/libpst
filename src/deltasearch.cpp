@@ -55,14 +55,14 @@ int main(int argc, char *argv[]) {
 		struct stat st;
 		fstat(fd, &st);
 		off_t size = st.st_size;
-		unsigned char buf[size];
+		char buf[size];
 		size_t s = read(fd, buf, size);
 		pst_debug_hexdumper(stdout, buf, s, 16, 0);
 		cout << endl;
 		cout << endl;
 		cout << " dump decrypted data " << endl;
 		for (off_t i=0; i<size; i++) {
-			buf[i] = comp_enc[buf[i]];
+			buf[i] = comp_enc[(unsigned char)buf[i]];
 		}
 		pst_debug_hexdumper(stdout, buf, s, 16, 0);
 		close(fd);

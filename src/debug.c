@@ -28,16 +28,21 @@ struct pst_debug_func {
 } *func_head=NULL, *func_ptr=NULL;
 
 
-void pst_debug_write_msg(struct pst_debug_item *item, char *fmt, va_list *ap, int size);
-void pst_debug_write_hex(struct pst_debug_item *item, unsigned char *buf, size_t size, int col);
+void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *ap, int size);
+void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, int col);
 void * xmalloc(size_t size);
+
+size_t pst_debug_fwrite(const void *ptr, size_t size, size_t nitems, FILE *stream) {
+    return fwrite(ptr, size, nitems, stream);
+}
+
 
 // the largest text size we will store in memory. Otherwise we
 // will do a debug_write, then create a new record, and write the
 // text body directly to the file
 #define MAX_MESSAGE_SIZE 4096
 
-void pst_debug(char *fmt, ...) {
+void pst_debug(const char *fmt, ...) {
     va_list ap;
     va_start(ap,fmt);
     vfprintf(stderr, fmt, ap);
@@ -46,7 +51,7 @@ void pst_debug(char *fmt, ...) {
 
 
 #define NUM_COL 30
-void pst_debug_hexdumper(FILE *out, unsigned char *buf, size_t size, int col, int delta) {
+void pst_debug_hexdumper(FILE *out, char *buf, size_t size, int col, int delta) {
     size_t off = 0, toff;
     int count = 0;
 
@@ -57,7 +62,7 @@ void pst_debug_hexdumper(FILE *out, unsigned char *buf, size_t size, int col, in
         fprintf(out, "%06X\t:", off+delta);
         toff = off;
         while (count < col && off < size) {
-            fprintf(out, "%02hhx ", buf[off]);
+            fprintf(out, "%02hhx ", (unsigned char)buf[off]);
             off++; count++;
         }
         off = toff;
@@ -85,7 +90,7 @@ FILE *debug_fp = NULL;
 unsigned int max_items=DEBUG_MAX_ITEMS, curr_items=0;
 
 
-void pst_debug_init(char* fname) {
+void pst_debug_init(const char* fname) {
     unsigned char version = DEBUG_VERSION;
     item_head = item_tail = NULL;
     curr_items = 0;
@@ -95,13 +100,13 @@ void pst_debug_init(char* fname) {
       fprintf(stderr, "Opening of file %s failed\n", fname);
       exit(1);
     }
-    fwrite(&version, 1, sizeof(char), debug_fp);
+    pst_debug_fwrite(&version, 1, sizeof(char), debug_fp);
 }
 
 
 // function must be called before pst_debug_msg. It sets up the
 // structure for the function that follows
-void pst_debug_msg_info(int line, char* file, int type) {
+void pst_debug_msg_info(int line, const char* file, int type) {
     char *x;
     if (!debug_fp) return;  // no file
     info_ptr = (struct pst_debug_item*) xmalloc(sizeof(struct pst_debug_item));
@@ -120,7 +125,7 @@ void pst_debug_msg_info(int line, char* file, int type) {
 }
 
 
-void pst_debug_msg_text(char* fmt, ...) {
+void pst_debug_msg_text(const char* fmt, ...) {
     va_list ap;
     int f, g;
     char x[2];
@@ -192,7 +197,7 @@ void pst_debug_msg_text(char* fmt, ...) {
 }
 
 
-void pst_debug_hexdump(unsigned char *x, size_t y, int cols, int delta) {
+void pst_debug_hexdump(char *x, size_t y, int cols, int delta) {
     struct pst_debug_item *temp;
     if (!debug_fp) return;  // no file
     info_ptr = temp_list;
@@ -208,7 +213,7 @@ void pst_debug_hexdump(unsigned char *x, size_t y, int cols, int delta) {
 }
 
 
-void pst_debug_func(char *function) {
+void pst_debug_func(const char *function) {
     func_ptr = xmalloc (sizeof(struct pst_debug_func));
     func_ptr->name = xmalloc(strlen(function)+1);
     strcpy(func_ptr->name, function);
@@ -264,7 +269,7 @@ void pst_debug_write() {
     file_pos += index_size;
     // write the index first, we will re-write it later, but
     // we want to allocate the space
-    fwrite(index, index_size, 1, debug_fp);
+    pst_debug_fwrite(index, index_size, 1, debug_fp);
     index[index_ptr++] = curr_items;
 
     item_ptr = item_head;
@@ -286,26 +291,26 @@ void pst_debug_write() {
         end=ptr;
         if (end > USHRT_MAX) { // bigger than can be stored in a short
             rec_type = 'L';
-            fwrite(&rec_type, 1, sizeof(char), debug_fp);
+            pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
             lfile_rec.type = item_ptr->type;
             lfile_rec.line = item_ptr->line;
             lfile_rec.funcname = funcname;
             lfile_rec.filename = filename;
             lfile_rec.text = text;
             lfile_rec.end = end;
-            fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
+            pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
         } else {
             rec_type = 'M';
-            fwrite(&rec_type, 1, sizeof(char), debug_fp);
+            pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
             mfile_rec.type = item_ptr->type;
             mfile_rec.line = item_ptr->line;
             mfile_rec.funcname = funcname;
             mfile_rec.filename = filename;
             mfile_rec.text = text;
             mfile_rec.end = end;
-            fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
+            pst_debug_fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
         }
-        fwrite(buf, 1, ptr, debug_fp);
+        pst_debug_fwrite(buf, 1, ptr, debug_fp);
         if (buf) free(buf); buf = NULL;
         item_head = item_ptr->next;
         free(item_ptr->function);
@@ -319,7 +324,7 @@ void pst_debug_write() {
 
     // we should now have a complete index
     fseek(debug_fp, index_pos, SEEK_SET);
-    fwrite(index, index_size, 1, debug_fp);
+    pst_debug_fwrite(index, index_size, 1, debug_fp);
     fseek(debug_fp, 0, SEEK_END);
     item_ptr = item_head = item_tail = NULL;
     free(index);
@@ -327,7 +332,7 @@ void pst_debug_write() {
 }
 
 
-void pst_debug_write_msg(struct pst_debug_item *item, char *fmt, va_list *ap, int size) {
+void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *ap, int size) {
     struct pst_debug_file_rec_l lfile_rec;
     struct pst_debug_file_rec_m mfile_rec;
     unsigned char rec_type;
@@ -339,54 +344,54 @@ void pst_debug_write_msg(struct pst_debug_item *item, char *fmt, va_list *ap, in
     if (!debug_fp) return;  // no file
     index[0] = 1; //only one item in this index
     index_pos = ftell(debug_fp);
-    fwrite(index, index_size, 1, debug_fp);
+    pst_debug_fwrite(index, index_size, 1, debug_fp);
 
     index[1] = ftell(debug_fp);
 
     if (size > USHRT_MAX) { // bigger than can be stored in a short
         rec_type = 'L';
-        fwrite(&rec_type, 1, sizeof(char), debug_fp);
+        pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
         lfile_rec.type = item->type;
         lfile_rec.line = item->line;
         lfile_rec.funcname = 0;
         lfile_rec.filename = strlen(item->function)+1;
         lfile_rec.text = lfile_rec.filename+strlen(item->file)+1;
-        fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
+        pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
     } else {
         rec_type = 'M';
-        fwrite(&rec_type, 1, sizeof(char), debug_fp);
+        pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
         mfile_rec.type = item->type;
         mfile_rec.line = item->line;
         mfile_rec.funcname = 0;
         mfile_rec.filename = strlen(item->function)+1;
         mfile_rec.text = mfile_rec.filename+strlen(item->file)+1;
-        fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
+        pst_debug_fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
     }
     file_pos = ftell(debug_fp);
-    fwrite(item->function, strlen(item->function)+1, 1, debug_fp);
-    fwrite(item->file, strlen(item->file)+1, 1, debug_fp);
+    pst_debug_fwrite(item->function, strlen(item->function)+1, 1, debug_fp);
+    pst_debug_fwrite(item->file, strlen(item->file)+1, 1, debug_fp);
     vfprintf(debug_fp, fmt, *ap);
-    fwrite(&zero, 1, 1, debug_fp);
+    pst_debug_fwrite(&zero, 1, 1, debug_fp);
 
     end = ftell(debug_fp)-file_pos;
 
     index[2] = ftell(debug_fp);
     fseek(debug_fp, index_pos, SEEK_SET);
-    fwrite(index, index_size, 1, debug_fp);
+    pst_debug_fwrite(index, index_size, 1, debug_fp);
     if (size > USHRT_MAX) {
-        fwrite(&rec_type, 1, sizeof(char), debug_fp);
+        pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
         lfile_rec.end = end;
-        fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
+        pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
     } else {
-        fwrite(&rec_type, 1, sizeof(char), debug_fp);
+        pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
         mfile_rec.end = end;
-        fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
+        pst_debug_fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
     }
     fseek(debug_fp, 0, SEEK_END);
 }
 
 
-void pst_debug_write_hex(struct pst_debug_item *item, unsigned char *buf, size_t size, int col) {
+void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, int col) {
     struct pst_debug_file_rec_l lfile_rec;
     unsigned char rec_type;
     int index_size = 3 * sizeof(off_t);
@@ -397,33 +402,33 @@ void pst_debug_write_hex(struct pst_debug_item *item, unsigned char *buf, size_t
     index[1] = 0; // valgrind, avoid writing uninitialized data
     index[2] = 0; // ""
     index_pos = ftell(debug_fp);
-    fwrite(index, index_size, 1, debug_fp);
+    pst_debug_fwrite(index, index_size, 1, debug_fp);
     index[1] = ftell(debug_fp);
 
     // always use the long
     rec_type = 'L';
-    fwrite(&rec_type, 1, sizeof(char), debug_fp);
+    pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
     lfile_rec.funcname = 0;
     lfile_rec.filename = strlen(item->function)+1;
     lfile_rec.text = lfile_rec.filename+strlen(item->file)+1;
     lfile_rec.end  = 0; // valgrind, avoid writing uninitialized data
     lfile_rec.line = item->line;
     lfile_rec.type = item->type;
-    fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
+    pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
 
     file_pos = ftell(debug_fp);
-    fwrite(item->function, strlen(item->function)+1, 1, debug_fp);
-    fwrite(item->file, strlen(item->file)+1, 1, debug_fp);
+    pst_debug_fwrite(item->function, strlen(item->function)+1, 1, debug_fp);
+    pst_debug_fwrite(item->file, strlen(item->file)+1, 1, debug_fp);
 
     pst_debug_hexdumper(debug_fp, buf, size, col, 0);
-    fwrite(&zero, 1, 1, debug_fp);
+    pst_debug_fwrite(&zero, 1, 1, debug_fp);
     lfile_rec.end = ftell(debug_fp) - file_pos;
 
     index[2] = ftell(debug_fp);
     fseek(debug_fp, index_pos, SEEK_SET);
-    fwrite(index, index_size, 1, debug_fp);
-    fwrite(&rec_type, 1, sizeof(char), debug_fp);
-    fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
+    pst_debug_fwrite(index, index_size, 1, debug_fp);
+    pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
+    pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
     fseek(debug_fp, 0, SEEK_END);
 }
 

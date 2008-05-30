@@ -869,14 +869,16 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, uint64_t parent_
                 cache_ptr->prev = NULL;
                 cache_ptr->next = cache_head;
                 cache_ptr->ptr  = parent;
-                cache_head = cache_ptr;
+                if (cache_head)  cache_head->prev = cache_ptr;
                 if (!cache_tail) cache_tail = cache_ptr;
+                cache_head = cache_ptr;
                 cache_count++;
                 if (cache_count > 100) {
                     DEBUG_INDEX(("trimming quick cache\n"));
                     //remove one from the end
                     cache_ptr  = cache_tail;
                     cache_tail = cache_ptr->prev;
+                    if (cache_tail) cache_tail->next = NULL;
                     free (cache_ptr);
                     cache_count--;
                 }
@@ -1291,11 +1293,11 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
     int32_t  cur_list;
     int      block_type;
     uint32_t rec_size = 0;
-    unsigned char* list_start;
-    unsigned char* fr_ptr;
-    unsigned char* to_ptr;
-    unsigned char* ind2_end = NULL;
-    unsigned char* ind2_ptr = NULL;
+    char*    list_start;
+    char*    fr_ptr;
+    char*    to_ptr;
+    char*    ind2_end = NULL;
+    char*    ind2_ptr = NULL;
     pst_x_attrib_ll *mapptr;
     pst_block_hdr    block_hdr;
     pst_table3_rec   table3_rec;  //for type 3 (0x0101) blocks
@@ -1517,7 +1519,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
 
         fr_ptr = list_start; // initialize fr_ptr to the start of the list.
         for (cur_list=0; cur_list<num_list; cur_list++) { //we will increase fr_ptr as we progress through index
-            unsigned char* value_pointer = NULL;    // needed for block type 2 with values larger than 4 bytes
+            char* value_pointer = NULL;     // needed for block type 2 with values larger than 4 bytes
             size_t value_size = 0;
             if (block_type == 1) {
                 memcpy(&table_rec, fr_ptr, sizeof(table_rec));
@@ -1631,6 +1633,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
                        table_rec.ref_type == (uint16_t)0x1003 ||
                        table_rec.ref_type == (uint16_t)0x1014 ||
                        table_rec.ref_type == (uint16_t)0x101e ||
+                       table_rec.ref_type == (uint16_t)0x101f ||
                        table_rec.ref_type == (uint16_t)0x1102) {
                 //contains index reference to data
                 LE32_CPU(table_rec.value);
@@ -3562,6 +3565,11 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                             list->items[x]->size));
                         DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
 
+                    } else if (list->items[x]->type == (uint32_t)0x101F) {
+                        DEBUG_EMAIL(("Unknown type %#x Array of Unicode Strings [size = %#x]\n", list->items[x]->id,
+                            list->items[x]->size));
+                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+
                     } else if (list->items[x]->type == (uint32_t)0x1102) {
                         DEBUG_EMAIL(("Unknown type %#x Array of binary data blobs [size = %#x]\n", list->items[x]->id,
                             list->items[x]->size));
@@ -4184,7 +4192,7 @@ size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf) 
 }
 
 
-int pst_decrypt(unsigned char *buf, size_t size, unsigned char type) {
+int pst_decrypt(char *buf, size_t size, unsigned char type) {
     size_t x = 0;
     unsigned char y;
     DEBUG_ENT("pst_decrypt");
@@ -4196,9 +4204,9 @@ int pst_decrypt(unsigned char *buf, size_t size, unsigned char type) {
     if (type == PST_COMP_ENCRYPT) {
         x = 0;
         while (x < size) {
-            y = buf[x];
+            y = (unsigned char)(buf[x]);
             DEBUG_DECRYPT(("Transposing %#hhx to %#hhx [%#x]\n", buf[x], comp_enc[y], y));
-            buf[x] = comp_enc[y]; // transpose from encrypt array
+            buf[x] = (char)comp_enc[y]; // transpose from encrypt array
             x++;
         }
     } else {
@@ -4392,7 +4400,7 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
 size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) {
     size_t z, a, b;
     uint16_t count, y;
-    char * buf3 = NULL, *buf2 = NULL, *t;
+    char *buf3 = NULL, *buf2 = NULL, *t;
     char *b_ptr;
     pst_block_hdr  block_hdr;
     pst_table3_rec table3_rec;  //for type 3 (0x0101) blocks
@@ -4550,7 +4558,7 @@ int pst_strincmp(char *a, char *b, size_t x) {
 }
 
 
-size_t pst_fwrite(const void*ptr, size_t size, size_t nmemb, FILE*stream) {
+size_t pst_fwrite(const void* ptr, size_t size, size_t nmemb, FILE *stream) {
     size_t r;
     DEBUG_ENT("pst_fwrite");
     if (ptr)

@@ -310,11 +310,11 @@ int main(int argc, char** argv) {
             return 1;
         }
 
-        while (0 != ( l = fread( buf, 1, 1024, fp))) {
-            if (0 != pst_decrypt( buf, l, PST_COMP_ENCRYPT))
+        while (0 != (l = fread(buf, 1, 1024, fp))) {
+            if (0 != pst_decrypt(buf, l, PST_COMP_ENCRYPT))
                 fprintf(stderr, "pst_decrypt() failed (I'll try to continue)\n");
 
-            if (l != fwrite( buf, 1, l, stdout)) {
+            if (l != pst_fwrite(buf, 1, l, stdout)) {
                 fprintf(stderr, "Couldn't output to stdout?\n");
                 DEBUG_RET();
                 return 1;
@@ -385,12 +385,11 @@ void write_email_body(FILE *f, char *body) {
             fprintf(f, ">");
         if ((n = strchr(body, '\n'))) {
             n++;
-            fwrite(body, n-body, 1, f); //write just a line
-
+            pst_fwrite(body, n-body, 1, f); //write just a line
             body = n;
         }
     }
-    fwrite(body, strlen(body), 1, f);
+    pst_fwrite(body, strlen(body), 1, f);
     DEBUG_RET();
 }
 
@@ -682,7 +681,7 @@ void check_filename(char *fname) {
 // headers for emails stored in their "Personal Folders" files.
 char *skip_header_prologue(char *headers) {
     const char *bad = "Microsoft Mail Internet Headers";
-    if ( strncmp(headers, bad, strlen(bad)) == 0 ) {
+    if (strncmp(headers, bad, strlen(bad)) == 0) {
         // Found the offensive header prologue
         char *pc = strchr(headers, '\n');
         return pc + 1;
@@ -727,7 +726,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* current_attach, i
         WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
         if (current_attach->data)
-            fwrite(current_attach->data, 1, current_attach->size, fp);
+            pst_fwrite(current_attach->data, 1, current_attach->size, fp);
         else {
             (void)pst_attach_to_file(pst, current_attach, fp);
         }
@@ -775,7 +774,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
         }
     }
     if (current_attach->data) {
-        fwrite(enc, 1, strlen(enc), f_output);
+        pst_fwrite(enc, 1, strlen(enc), f_output);
         DEBUG_EMAIL(("Attachment Size after encoding is %i\n", strlen(enc)));
         free(enc);  // caught by valgrind
     } else {

@@ -9,12 +9,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "define.h"
 #include "vbuf.h"
-#include "generic.h"
 
 #ifdef WITH_DMALLOC
 #include <dmalloc.h>
 #endif
+
+#define STUPID_CR "\r\n"
+#define ASSERT(x,...) { if( !(x) ) DIE(( __VA_ARGS__)); }
 
 
 int skip_nl(char *s)
@@ -104,184 +108,6 @@ void unicode_close()
 }
 
 
-//int utf16_write( FILE* stream, const void *buf, size_t count ) // write utf-8 or iso_8869-1 to stream after converting it to utf-16
-//{
-//
-//      //TODO: if anything big comes through here we are sunk, should do it
-//      //bit-by-bit, not one-big-gulp
-//
-//      size_t inbytesleft, outbytesleft;
-//      char *inbuf, *outbuf;
-//      size_t icresult;
-//      size_t rl;
-//
-//      //do we have enough buffer space?
-//      if( !wwbuf || nwwbuf < (count * 2 + 2) ) {
-//              wwbuf = F_REALLOC( wwbuf, count * 2 +2 );
-//
-//              nwwbuf = count * 2 + 2;
-//      }
-//
-//      inbytesleft = count; outbytesleft = nwwbuf;
-//      inbuf = (char*)buf; outbuf = wwbuf;
-//
-////    fprintf(stderr, "X%s, %dX", (char*)buf, strlen( buf ));
-////    fflush(stderr);
-//
-//      if( (rl = strlen( buf ) + 1) != count ) {
-//              fprintf(stderr, "utf16_write(): reported buffer size (%d) does not match string length (%d)\n",
-//                              count,
-//                              rl);
-//
-//              //hexdump( (char*)buf, 0, count, 1 );
-//
-//              raise( SIGSEGV );
-//              inbytesleft = rl;
-//      }
-//
-////    fprintf(stderr, "  attempting to convert:\n");
-////    hexdump( (char*)inbuf, 0, count, 1 );
-//
-//      icresult = iconv( i8to16, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
-//
-////    fprintf(stderr, "  converted:\n");
-////    hexdump( (char*)buf, 0, count, 1 );
-//
-////    fprintf(stderr, "  to:\n");
-////    hexdump( (char*)wwbuf, 0, nwwbuf, 1 );
-//
-//      if( (size_t)-1  == icresult ) {
-//              fprintf(stderr, "utf16_write(): iconv failure(%d): %s\n", errno, strerror( errno ) );
-//              fprintf(stderr, "  attempted to convert:\n");
-//              hexdump( (char*)inbuf, 0, count, 1 );
-//
-//              fprintf(stderr, "  result:\n");
-//              hexdump( (char*)outbuf, 0, count, 1 );
-//
-//              fprintf(stderr, "I'm going to segfault now.\n");
-//              raise( SIGSEGV );
-//              exit(1);
-//      }
-//
-//      if( inbytesleft > 0 ) {
-//              fprintf(stderr, "utf16_write(): iconv returned a short count.\n");
-//              exit(1);
-//      }
-//
-//      return fwrite( wwbuf, nwwbuf - outbytesleft - 2, 1, stream  );
-//}
-
-//char *utf16buf = NULL;
-//int utf16buf_len = 0;
-//
-//int utf16_fprintf( FILE* stream, const char *fmt, ... )
-//{
-//      int result=0;
-//      va_list ap;
-//
-//      if( utf16buf == NULL ) {
-//              utf16buf = (char*)F_MALLOC( SZ_MAX + 1 );
-//
-//              utf16buf_len = SZ_MAX + 1;
-//      }
-//
-//      va_start( ap, fmt );
-//
-//      result = vsnprintf( utf16buf, utf16buf_len, fmt, ap );
-//
-//      if( result + 1 > utf16buf_len ) { //didn't have space, realloc() and try again
-//              fprintf(stderr, "utf16_fprintf(): buffer too small (%d), F_MALLOC(%d)\n", utf16buf_len, result);
-//              free( utf16buf );
-//              utf16buf_len = result + 1;
-//              utf16buf = (char*)F_MALLOC( utf16buf_len );
-//
-//              result = vsnprintf( utf16buf, utf16buf_len, fmt, ap );
-//      }
-//
-//
-//      //didn't have space...again...something weird is going on...
-//      ASSERT( result + 1 <= utf16buf_len,  "utf16_fprintf(): Unpossible error!\n");
-//
-//      if( 1 != utf16_write( stream, utf16buf, result + 1 ) )
-//              DIE( "Write error?  -> %s or %s\n", strerror( errno ), uerr_str( uerr_get() ) );
-//
-//      return result;
-//}
-//
-//int utf16to8( char *inbuf_o, char *outbuf_o, int length )
-//{
-//      int inbytesleft = length;
-//      int outbytesleft = length;
-//      char *inbuf = inbuf_o;
-//      char *outbuf = outbuf_o;
-//      int rlen = -1, tlen;
-//      int icresult = -1;
-//
-//      int i, strlen=-1;
-//
-//      DEBUG(
-//              fprintf(stderr, "  utf16to8(): attempting to convert:\n");
-//              //hexdump( (char*)inbuf_o, 0, length, 1 );
-//              fflush(stderr);
-//      );
-//
-//      for( i=0; i<length ; i+=2 ) {
-//              if( inbuf_o[i] == 0 && inbuf_o[i + 1] == 0 ) {
-//                      //fprintf(stderr, "End of string found at: %d\n", i );
-//                      strlen = i;
-//              }
-//      }
-//
-//      //hexdump( (char*)inbuf_o, 0, strlen, 1 );
-//
-//      if( -1 == strlen ) WARN("String is not zero-terminated.");
-//
-//      //iconv does not like it when the inbytesleft > actual string length
-//      //enum: zero terminated, length valid
-//      //      zero terminated, length short //we won't go beyond length ever, so this is same as NZT case
-//      //      zero terminated, length long
-//      //      not zero terminated
-//      //      TODO: MEMORY BUG HERE!
-//      for( tlen = 0; tlen <= inbytesleft - 2; tlen+=2 ) {
-//              if( inbuf_o[tlen] == 0 && inbuf_o[tlen+1] == 0 ){
-//                      rlen = tlen + 2;
-//                      tlen = rlen;
-//                      break;
-//              }
-//              if( tlen == inbytesleft )fprintf(stderr, "Space allocated for string > actual string length.  Go windows!\n");
-//      }
-//
-//      if( rlen >= 0 )
-//              icresult = iconv( i16to8, &inbuf, &rlen, &outbuf, &outbytesleft );
-//
-//      if( icresult == (size_t)-1 ) {
-//              fprintf(stderr, "utf16to8(): iconv failure(%d): %s\n", errno, strerror( errno ) );
-//              fprintf(stderr, "  attempted to convert:\n");
-//              hexdump( (char*)inbuf_o, 0, length, 1 );
-//              fprintf(stderr, "  result:\n");
-//              hexdump( (char*)outbuf_o, 0, length, 1 );
-//              fprintf(stderr, "  MyDirtyOut:\n");
-//              for( i=0; i<length; i++) {
-//                      if( inbuf_o[i] != '\0' ) fprintf(stderr, "%c", inbuf_o[i] );
-//              }
-//
-//              fprintf( stderr, "\n" );
-//              raise( SIGSEGV );
-//              exit(1);
-//      }
-//
-//      DEBUG(
-//              fprintf(stderr, "  result:\n");
-//              hexdump( (char*)outbuf_o, 0, length, 1 );
-//           )
-//
-//      //fprintf(stderr, "utf16to8() returning %s\n", outbuf );
-//
-//      return icresult;
-//}
-//
-
-
 int utf16_is_terminated(char *str, int length)
 {
     VSTR_STATIC(errbuf, 100);
@@ -295,7 +121,7 @@ int utf16_is_terminated(char *str, int length)
 
     if (-1 == len) {
         vshexdump(errbuf, str, 0, length, 1);
-        WARN("String is not zero terminated (probably broken data from registry) %s.", errbuf->b);
+        WARN(("String is not zero terminated (probably broken data from registry) %s.", errbuf->b));
     }
 
     return (-1 == len) ? 0 : 1;
@@ -331,7 +157,7 @@ int vb_utf16to8(vbuf * dest, char *buf, int len)
     } while ((size_t)-1 == icresult && E2BIG == errno);
 
     if (0 != vb_utf8to16T(dumpster, dest->b, dest->dlen))
-        DIE("Reverse conversion failed.");
+        DIE(("Reverse conversion failed."));
 
     if (icresult == (size_t)-1) {
         //TODO: error
@@ -373,64 +199,14 @@ int utf8to16(char *inbuf_o, int iblen, char *outbuf_o, int oblen)       // iblen
     size_t icresult = (size_t)-1;
     char *stend;
 
-    DEBUG(fprintf(stderr, "  utf8to16(): attempting to convert:\n");
-          //hexdump( (char*)inbuf_o, 0, length, 1 );
-          fflush(stderr););
-
     stend = memchr(inbuf_o, '\0', iblen);
     ASSERT(NULL != stend, "utf8to16(): in string not zero terminated.");
-
     inbytesleft = (stend - inbuf_o + 1 < iblen) ? stend - inbuf_o + 1 : iblen;
-
-    //iconv does not like it when the inbytesleft > actual string length
-    //enum: zero terminated, length valid
-    //      zero terminated, length short //we won't go beyond length ever, so this is same as NZT case
-    //      zero terminated, length long
-    //      not zero terminated
-    //      TODO: MEMORY BUG HERE!
-    //
-    /*
-       for( tlen = 0; tlen <= inbytesleft - 2; tlen+=2 ) {
-       if( inbuf_o[tlen] == 0 && inbuf_o[tlen+1] == 0 ){
-       rlen = tlen + 2;
-       tlen = rlen;
-       break;
-       }
-       if( tlen == inbytesleft )fprintf(stderr, "Space allocated for string > actual string length.  Go windows!\n");
-       }
-     */
-
-    //if( rlen >= 0 )
     icresult = iconv(i8to16, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
 
     if (icresult == (size_t)-1) {
-        DIE("iconv failure(%d): %s\n", errno, strerror(errno));
-        //fprintf(stderr, "  attempted to convert:\n");
-        //hexdump( (char*)inbuf_o, 0, iblen, 1 );
-        //fprintf(stderr, "  result:\n");
-        //hexdump( (char*)outbuf_o, 0, oblen, 1 );
-        //fprintf(stderr, "  MyDirtyOut:\n");
-//              for( i=0; i<iblen; i++) {
-//                      if( inbuf_o[i] != '\0' ) fprintf(stderr, "%c", inbuf_o[i] );
-//              }
-//
-//              fprintf( stderr, "\n" );
-//              raise( SIGSEGV );
-//              exit(1);
+        DIE(("iconv failure(%d): %s\n", errno, strerror(errno)));
     }
-//      DEBUG(
-//              fprintf(stderr, "  result:\n");
-//              hexdump( (char*)outbuf_o, 0, oblen, 1 );
-//           )
-
-    //fprintf(stderr, "utf8to16() returning %s\n", outbuf );
-
-    //TODO: error
-    DEBUG(
-        if (icresult)
-            printf("Uhhhh...utf8to16() returning icresult == %d\n", icresult);
-    );
-
     if (icresult > (size_t)INT_MAX) {
         return (-1);
     }
@@ -461,31 +237,10 @@ int vb_utf8to16T(vbuf * bout, char *cin, int inlen)
     } while ((size_t)-1 == icresult && E2BIG == errno);
 
     if (icresult == (size_t)-1) {
-        WARN("iconv failure: %s", strerror(errno));
-        //ERR_UNIX( errno, "vb_utf8to16():iconv failure: %s", strerror( errno ) );
+        WARN(("iconv failure: %s", strerror(errno)));
         unicode_init();
         return -1;
-        /*
-           fprintf(stderr, "vb_utf8to16(): iconv failure(%d == %d?): %s\n", errno, E2BIG, strerror( errno ) );
-           fprintf(stderr, "  attempted to convert:\n");
-           hexdump( (char*)cin, 0, inlen, 1 );
-           fprintf(stderr, "  result:\n");
-           hexdump( (char*)bout->b, 0, bout->dlen, 1 );
-           fprintf(stderr, "  MyDirtyOut:\n");
-           for( i=0; i<inlen; i++) {
-           if( inbuf[i] != '\0' ) fprintf(stderr, "%c", inbuf[i] );
-           }
-
-           fprintf( stderr, "\n" );
-           raise( SIGSEGV );
-           exit(1);
-         */
     }
-    DEBUG(
-        if (icresult)
-            printf("Uhhhh...vb_utf8to16() returning icresult == %d\n", icresult);
-    );
-
     if (icresult > (size_t) INT_MAX) {
         return (-1);
     }
@@ -519,18 +274,15 @@ void cheap_ascii2uni(char *src, char *dest, int l)
 
 vbuf *vballoc(size_t len)
 {
-    struct varbuf *result;
-
-    result = F_MALLOC(sizeof(struct varbuf));
-
-    result->dlen = 0;
-    result->blen = 0;
-    result->buf = NULL;
-
-    vbresize(result, len);
-
+    struct varbuf *result = malloc(sizeof(struct varbuf));
+    if (result) {
+        result->dlen = 0;
+        result->blen = 0;
+        result->buf = NULL;
+        vbresize(result, len);
+    }
+    else DIE(("malloc() failure"));
     return result;
-
 }
 
 
@@ -565,8 +317,8 @@ void vbresize(struct varbuf *vb, size_t len)    // DESTRUCTIVELY grow or shrink 
         return;
     }
 
-    vb->buf = F_REALLOC(vb->buf, len);
-    vb->b = vb->buf;
+    vb->buf  = realloc(vb->buf, len);
+    vb->b    = vb->buf;
     vb->blen = len;
 }
 
@@ -604,12 +356,11 @@ void vbgrow(struct varbuf *vb, size_t len)      // out: vbavail(vb) >= len, data
     if (vb->dlen + len > vb->blen) {
         if (vb->dlen + len < vb->blen * 1.5)
             len = vb->blen * 1.5;
-        char *nb = F_MALLOC(vb->blen + len);
-        //printf("vbgrow() got %p back from malloc(%d)\n", nb, vb->blen + len);
+        char *nb = malloc(vb->blen + len);
+        if (!nb) DIE(("malloc() failure"));
         vb->blen = vb->blen + len;
         memcpy(nb, vb->b, vb->dlen);
 
-        //printf("vbgrow() I am going to free %p\n", vb->buf );
         free(vb->buf);
         vb->buf = nb;
         vb->b = vb->buf;
@@ -962,45 +713,3 @@ void vstrunc(vstr * v, size_t off) // Drop chars [off..dlen]
 }
 
 
-// TODO: not sure how useful this stuff is here
-int fmyinput(char *prmpt, char *ibuf, int maxlen)
-{                               /* get user input */
-    printf("%s", prmpt);
-
-    fgets(ibuf, maxlen + 1, stdin);
-
-    ibuf[strlen(ibuf) - 1] = 0;
-
-    return (strlen(ibuf));
-}
-
-
-// String formatting and output to FILE *stream or just stdout, etc
-// TODO: a lot of old, unused stuff in here
-void vswinhex8(vstr * vs, unsigned char *hbuf, int start, int stop, int loff)   // Produce regedit-style hex output */
-{
-    int i;
-    int lineflag = 0;
-
-    for (i = start; i < stop; i++) {
-        loff += vscatprintf(vs, "%02x", hbuf[i]);
-        if (i < stop - 1) {
-            loff += vscatprintf(vs, ",");
-            switch (lineflag) {
-                case 0:
-                    if (loff >= 77) {
-                        lineflag = 1;
-                        loff = 0;
-                        vscatprintf(vs, "\\%s  ", STUPID_CR);
-                    }
-                    break;
-                case 1:
-                    if (loff >= 75) {
-                        loff = 0;
-                        vscatprintf(vs, "\\%s  ", STUPID_CR);
-                    }
-                    break;
-            }
-        }
-    }
-}

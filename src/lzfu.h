@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-unsigned char* lzfu_decompress (unsigned char* rtfcomp, uint32_t compsize, size_t *size);
+char* lzfu_decompress (char* rtfcomp, uint32_t compsize, size_t *size);
 
 #endif

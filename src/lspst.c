@@ -270,7 +270,7 @@ void canonicalize_filename(char *fname) {
         DEBUG_RET();
         return;
     }
-    while (fname = strpbrk(fname, "/\\:"))
+    while ((fname = strpbrk(fname, "/\\:")))
         *fname = '_';
     DEBUG_RET();
 }

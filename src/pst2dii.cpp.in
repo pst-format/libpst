@@ -40,12 +40,12 @@ struct file_ll {
 };
 
 // global settings
-char*    convert = "@CONVERT@";     // fully qualified path of the convert program from image magick
-char*    prog_name = NULL;          // our arg0 name
-char*    bates_prefix = "";         // string to prefix bates numbers
-int      bates_index = 0;           // current bates sequence
-char*    output_directory = ".";
-char*    output_file = "load.dii";
+const char*    convert = "@CONVERT@";     // fully qualified path of the convert program from image magick
+const char*    prog_name = NULL;          // our arg0 name
+const char*    bates_prefix = "";         // string to prefix bates numbers
+int            bates_index = 0;           // current bates sequence
+const char*    output_directory = ".";
+const char*    output_file = "load.dii";
 char*    font_file = NULL;
 int      bates_color = 0xff0000;    // color of bates header stamp
 int      email_sequence = 0;        // current pdf sequence number
@@ -164,7 +164,7 @@ static void check_filename(string &fname) {
     }
     char *tt = t;
     bool fixed = false;
-    while (t = strpbrk(t, " /\\:")) {
+    while ((t = strpbrk(t, " /\\:"))) {
         // while there are characters in the second string that we don't want
         *t = '_'; //replace them with an underscore
         fixed = true;
@@ -214,7 +214,7 @@ static string write_separate_attachment(string fname, pst_item_attach* current_a
         WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
         if (current_attach->data)
-            fwrite(current_attach->data, 1, current_attach->size, fp);
+            pst_fwrite(current_attach->data, 1, current_attach->size, fp);
         else {
             (void)pst_attach_to_file(pst, current_attach, fp);
         }
@@ -227,8 +227,8 @@ static string write_separate_attachment(string fname, pst_item_attach* current_a
 }
 
 
-static void print_pdf_short(char *line, int len, int color);
-static void print_pdf_short(char *line, int len, int color)
+static void print_pdf_short(const char *line, int len, int color);
+static void print_pdf_short(const char *line, int len, int color)
 {
     if (line_number >= line_max) {
         close_png();
@@ -241,23 +241,23 @@ static void print_pdf_short(char *line, int len, int color)
     strex.charmap     = 0;
     strex.hdpi        = DPI;
     strex.vdpi        = DPI;
-    char x = line[len];
-    line[len] = '\0';
+    char xline[len+1];
+    memcpy(xline, line, len);
+    xline[len] = '\0';
     char *p;
-    char *l = line;
-    while (p = strchr(l, '&')) {
+    char *l = xline;
+    while ((p = strchr(l, '&'))) {
         *p = '\0';
         char *err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, l, &strex);
         if (err) printf(err);
         x_position += (brect[2]-brect[6]);
         l = p+1;
-        err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, "&amp;", &strex);
+        err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, (char*)"&amp;", &strex);
         if (err) printf(err);
         x_position += (brect[2]-brect[6]);
     }
     char *err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, l, &strex);
     if (err) printf(err);
-    line[len] = x;
     x_position += (brect[2]-brect[6]);
     col_number += len;
 }
@@ -273,8 +273,8 @@ static void new_line()
 }
 
 
-static void print_pdf_single(char *line, int color);
-static void print_pdf_single(char *line, int color)
+static void print_pdf_single(const char *line, int color);
+static void print_pdf_single(const char *line, int color)
 {
     while (*line == '\t') {
         char blanks[5];
@@ -295,11 +295,11 @@ static void print_pdf_single(char *line, int color)
 }
 
 
-static void print_pdf_only(char *line, int color);
-static void print_pdf_only(char *line, int color)
+static void print_pdf_only(const char *line, int color);
+static void print_pdf_only(const char *line, int color)
 {
     char *p;
-    while (p = strchr(line, '\n')) {
+    while ((p = strchr(line, '\n'))) {
         *p = '\0';
         print_pdf_single(line, color);
         *p = '\n';
@@ -310,10 +310,10 @@ static void print_pdf_only(char *line, int color)
 }
 
 
-static void print_pdf(char *line);
-static void print_pdf(char *line)
+static void print_pdf(const char *line);
+static void print_pdf(const char *line)
 {
-    fwrite(line, 1, strlen(line), dii_file);
+    pst_fwrite(line, 1, strlen(line), dii_file);
     print_pdf_only(line, black);
 }
 
@@ -324,7 +324,7 @@ static void open_png()
         png_open  = true;
         int brect[8];
         image = gdImageCreate(PAGE_WIDTH, PAGE_HEIGHT);
-        int w = gdImageColorAllocate(image, 255, 255, 255); // background color first one allocated
+                gdImageColorAllocate(image, 255, 255, 255); // background color first one allocated
         black = gdImageColorAllocate(image, 0, 0, 0);
         int r = (bates_color & 0xff0000) >> 16;
         int g = (bates_color & 0x00ff00) >> 8;
@@ -339,7 +339,7 @@ static void open_png()
         strex.vdpi        = DPI;
 
         char line[LINE_SIZE];
-        char *err = gdImageStringFTEx(NULL, &brect[0], black, font_file, sz, 0.0, margin, margin, "LMgqQ", &strex);
+        char *err = gdImageStringFTEx(NULL, &brect[0], black, font_file, sz, 0.0, margin, margin, (char*)"LMgqQ", &strex);
         if (err) printf(err);
         line_height = (brect[3]-brect[7]) * 12/10;
         char_width  = (brect[2]-brect[6]) / 5;
@@ -401,22 +401,22 @@ static void close_pdf()
 }
 
 
-static void write_simple(char *tag, const char *value);
-static void write_simple(char *tag, const char *value)
+static void write_simple(const char *tag, const char *value);
+static void write_simple(const char *tag, const char *value)
 {
     if (value) fprintf(dii_file, "@%s %s\n", tag, value);
 }
 
 
-static void write_simple(char *tag, string value);
-static void write_simple(char *tag, string value)
+static void write_simple(const char *tag, string value);
+static void write_simple(const char *tag, string value)
 {
     fprintf(dii_file, "@%s %s\n", tag, value.c_str());
 }
 
 
-static void write_simple(char *tag, const char *value, const char *value2);
-static void write_simple(char *tag, const char *value, const char *value2)
+static void write_simple(const char *tag, const char *value, const char *value2);
+static void write_simple(const char *tag, const char *value, const char *value2)
 {
     if (value) {
     if (value2) fprintf(dii_file, "@%s \"%s\" <%s>\n", tag, value, value2);
@@ -425,8 +425,8 @@ static void write_simple(char *tag, const char *value, const char *value2)
 }
 
 
-static string extract_header(char *headers, char *field);
-static string extract_header(char *headers, char *field)
+static string extract_header(char *headers, const char *field);
+static string extract_header(char *headers, const char *field)
 {
     string rc;
     int len = strlen(field) + 4;
@@ -530,7 +530,7 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
 
     } else {
         //make up our own headers
-        char *temp = item->email->outlook_sender;
+        const char *temp = item->email->outlook_sender;
         if (!temp) temp = "";
         snprintf(line, sizeof(line), "From: \"%s\" <%s>\n", item->email->outlook_sender_name, temp);
         print_pdf(line);
