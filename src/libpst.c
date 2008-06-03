@@ -973,12 +973,13 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
             // When duplicates found, just update the info.... perhaps this is correct functionality
             DEBUG_INDEX(("Searching for existing record\n"));
             if (desc_rec.d_id <= *high_id && (d_ptr = pst_getDptr(pf, desc_rec.d_id))) {
+                uint64_t bigzero = 0;
                 DEBUG_INDEX(("Updating Existing Values\n"));
                 d_ptr->list_index = pst_getID(pf, desc_rec.list_id);
                 d_ptr->desc = pst_getID(pf, desc_rec.desc_id);
                 DEBUG_INDEX(("\tdesc = %#llx\tlist_index=%#llx\n",
-                        (d_ptr->desc==NULL?0LL:d_ptr->desc->id),
-                        (d_ptr->list_index==NULL?0LL:d_ptr->list_index->id)));
+                        (d_ptr->desc==NULL       ? bigzero : d_ptr->desc->id),
+                        (d_ptr->list_index==NULL ? bigzero : d_ptr->list_index->id)));
                 if (d_ptr->parent && desc_rec.parent_id != d_ptr->parent->id) {
                     DEBUG_INDEX(("WARNING -- Parent of record has changed. Moving it\n"));
                     //hmmm, we must move the record.
@@ -1406,9 +1407,8 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         LE32_CPU(table_rec.value);
         DEBUG_EMAIL(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
 
-        if (table_rec.type != (uint16_t)0x02B5) {
-            WARN(("Unknown second block constant - %#hx for id %#llx\n", table_rec.type, block_id));
-            DEBUG_HEXDUMPC(buf, sizeof(table_rec), 0x10);
+        if ((table_rec.type != (uint16_t)0x02B5) || (table_rec.ref_type != 6)) {
+            WARN(("Unknown second block constant - %#hx %#hx for id %#llx\n", table_rec.type, table_rec.ref_type, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1468,6 +1468,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         LE16_CPU(table_rec.type);
         LE16_CPU(table_rec.ref_type);
         LE32_CPU(table_rec.value);
+        DEBUG_EMAIL(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
 
         if (table_rec.type != (uint16_t)0x04B5) { // different constant than a type 1 record
             WARN(("Unknown second block constant - %#hx for id %#llx\n", table_rec.type, block_id));
@@ -1482,7 +1483,9 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
             DEBUG_RET();
             return NULL;
         }
-        num_recs = (block_offset5.to - block_offset5.from) / 6; // this will give the number of records in this block
+
+        // this will give the number of records in this block
+        num_recs = (block_offset5.to - block_offset5.from) / (4 + table_rec.ref_type);
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, seven_c_blk.ind2_offset, &block_offset6)) {
             DEBUG_WARN(("internal error (7c.ind2 offset %#x) in reading block id %#x\n", seven_c_blk.ind2_offset, block_id));
@@ -1495,7 +1498,6 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
     }
     else {
         WARN(("ERROR: Unknown block constant - %#hx for id %#llx\n", block_hdr.type, block_id));
-        DEBUG_HEXDUMPC(buf, read_size,0x10);
         freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
         DEBUG_RET();
         return NULL;
@@ -4285,7 +4287,7 @@ size_t pst_getAtPos(pst_file *pf, off_t pos, void* buf, size_t size) {
 //  DEBUG_MAIN(("pst file old offset %#llx old size %#x read count %i offset %#llx size %#x\n",
 //              p->offset, p->size, p->readcount, pos, size));
 
-    if (fseek(pf->fp, pos, SEEK_SET) == -1) {
+    if (fseeko(pf->fp, pos, SEEK_SET) == -1) {
         DEBUG_RET();
         return 0;
     }

@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(libpst,0.6.10,carl@five-ten-sg.com)
+AC_INIT(libpst,0.6.11,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
 
@@ -24,6 +24,7 @@ AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 
 AC_SYS_LARGEFILE
+AC_CHECK_SIZEOF(off_t)
 
 # Checks for header files.
 AC_CHECK_HEADER([unistd.h],
@@ -45,6 +46,7 @@ AC_TYPE_SIZE_T
 AC_STRUCT_TM
 
 # Checks for library functions.
+AC_FUNC_FSEEKO
 AC_FUNC_LSTAT
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC

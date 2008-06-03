@@ -7,6 +7,12 @@
 
 #ifdef HAVE_CONFIG_H
     #include "config.h"
+#else
+    #ifdef _MSC_VER
+        #undef  HAVE_UNISTD_H
+        #define HAVE_DIRECT_H
+        #define HAVE_WINDOWS_H
+    #endif
 #endif
 #include "version.h"
 
@@ -51,32 +57,55 @@
 #include <signal.h>
 #include <errno.h>
 
+#define PERM_DIRS 0777
+
 #ifdef HAVE_UNISTD_H
     #include <unistd.h>
+    #define D_MKDIR(x) mkdir(x, PERM_DIRS)
 #else
     #include "XGetopt.h"
     #ifdef HAVE_DIRECT_H
         #include <direct.h>    // win32
-        #define chdir _chdir
-        #define int32_t __int32
+        #define D_MKDIR(x) mkdir(x)
+        #define chdir      _chdir
     #endif
 
     #ifdef HAVE_WINDOWS_H
-        #include <windows.h>   // win32
+        #include <windows.h>
+    #endif
+
+    #ifdef _MSC_VER
+        #define vsnprintf  _vsnprintf
+        #define snprintf   _snprintf
+        #define ftello     _ftelli64
+        #define fseeko     _fseeki64
+        #define strcasecmp _stricmp
+        #define off_t      __int64
+        #define size_t     __int64
+        #define int64_t    __int64
+        #define uint64_t   unsigned __int64
+        #define int32_t    __int32
+        #define uint32_t   unsigned int
+        #define int16_t    short int
+        #define uint16_t   unsigned short int
+        #define int8_t     signed char
+        #define uint8_t    unsigned char
+        #define UINT64_MAX ((uint64_t)0xffffffffffffffff)
+        int __cdecl _fseeki64(FILE *, __int64, int);
+        __int64 __cdecl _ftelli64(FILE *);
     #endif
 #endif
 
 #ifdef HAVE_SYS_STAT_H
-# include <sys/stat.h> //mkdir
+    #include <sys/stat.h>
 #endif
 
-// for reading of directory and clearing in function mk_seperate_dir
 #ifdef HAVE_SYS_TYPES_H
-# include <sys/types.h>
+    #include <sys/types.h>
 #endif
 
 #ifdef HAVE_DIRENT_H
-# include <dirent.h>
+    #include <dirent.h>
 #endif
 
 

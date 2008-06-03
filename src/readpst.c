@@ -6,7 +6,6 @@
  */
 #include "define.h"
 #include "libstrfunc.h"
-//#include "vbuf.h"
 #include "libpst.h"
 #include "common.h"
 #include "timeconv.h"
@@ -19,14 +18,6 @@
 
 // max size of the c_time char*. It will store the date of the email
 #define C_TIME_SIZE 500
-#define PERM_DIRS 0777
-
-// macro used for creating directories
-#ifndef WIN32
-#define D_MKDIR(x) mkdir(x, PERM_DIRS)
-#else
-#define D_MKDIR(x) mkdir(x)
-#endif
 
 struct file_ll {
     char *name;
@@ -573,7 +564,7 @@ char *mk_seperate_dir(char *dir) {
 
     if (chdir(dir_name)) {
         x = errno;
-        DIE(("mk_recurse_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
+        DIE(("mk_seperate_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
     }
 
     if (overwrite) {

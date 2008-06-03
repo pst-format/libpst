@@ -1,16 +1,5 @@
+
 #include "define.h"
-
-#include <stdio.h>
-#include <string.h>
-
-#ifndef __GNUC__
-# include "XGetopt.h"
-#endif
-
-#ifndef _WIN32
-# include <unistd.h>
-#endif
-
 #include "libpst.h"
 
 static void usage();

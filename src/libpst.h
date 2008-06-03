@@ -10,19 +10,17 @@
 #ifndef LIBPST_H
 #define LIBPST_H
 
-#include <stdint.h>
-
 #ifndef  _MSC_VER
-
-#ifndef FILETIME_DEFINED
-#define FILETIME_DEFINED
-//Win32 Filetime struct - copied from WINE
-typedef struct {
-  uint32_t dwLowDateTime;
-  uint32_t dwHighDateTime;
-} FILETIME;
-#endif //ifndef FILETIME_DEFINED
-#endif //ifndef  _MSC_VER
+    #include <stdint.h>
+    #ifndef FILETIME_DEFINED
+        #define FILETIME_DEFINED
+        //Win32 Filetime struct - copied from WINE
+        typedef struct {
+          uint32_t dwLowDateTime;
+          uint32_t dwHighDateTime;
+        } FILETIME;
+    #endif
+#endif
 
 // According to Jan Wolter, sys/param.h is the most portable source of endian
 // information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html
@@ -58,14 +56,6 @@ typedef struct {
 #  error "Byte order not supported by this library"
 #endif // BYTE_ORDER
 
-
-#ifdef _MSC_VER
-#include "windows.h"
-#define int32_t  int
-#define uint32_t unsigned int
-#define int16_t  short int
-#define uint16_t unsigned short int
-#endif // _MSC_VER
 
 #define PST_TYPE_NOTE 1
 #define PST_TYPE_APPOINTMENT 8

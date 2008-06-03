@@ -1,18 +1,5 @@
 #include "define.h"
 
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-
-#ifndef _WIN32
-# include <unistd.h>
-#endif
-
-#ifndef __GNUC__
-# include "XGetopt.h"
-#endif
-
-
 #define BUF_SIZE 4096
 
 int usage();
@@ -23,7 +10,6 @@ int is_in(int a, int *b, int c);
 int main(int argc, char** argv) {
     int identity = 0;
     int level = 0;
-    off_t *i = NULL;
     int x, ptr, stop=0, flag;
     char *fname, *buf, rec_type;
     unsigned char version;
@@ -84,16 +70,14 @@ int main(int argc, char** argv) {
         x = (int)temp;
         ptr = 0;
         if (x > 0) {
-            if (i) free(i);
-            i = (off_t*)xmalloc(sizeof(off_t)*(x+1));
-            // plus 1 cause we want to read the offset of the next index
+            off_t i[x+1]; // plus 1 because we want to read the offset of the next index
             if (get(i, sizeof(off_t), x+1, fp)==0) {
                 // we have reached the end of the debug file
                 printf("oh dear. we must now end\n");
                 break;
             }
             while (ptr < x) {
-                fseek(fp, i[ptr++], SEEK_SET);
+                fseeko(fp, i[ptr++], SEEK_SET);
                 get(&rec_type, 1, sizeof(char), fp);
                 if (rec_type == 'L') {
                     get(&lfile_rec, sizeof(lfile_rec), 1, fp);
@@ -182,7 +166,7 @@ int main(int argc, char** argv) {
                 }
                 if (dtype == DEBUG_FUNCRET_NO) level--;
             }
-            if (fseek(fp, i[ptr], SEEK_SET)==-1) {
+            if (fseeko(fp, i[ptr], SEEK_SET)==-1) {
                 printf("finished\n");
                 break;
             }

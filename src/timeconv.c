@@ -12,7 +12,6 @@
  */
 
 #include <time.h>
-#include "common.h"
 #include "timeconv.h"
 
 char * fileTimeToAscii (const FILETIME *filetime) {

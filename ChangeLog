@@ -1,3 +1,9 @@
+LibPST 0.6.11 (2008-06-03)
+===============================
+        * Use ftello/fseeko to properly handle large files.
+        * Document and properly use datasize field in b5 blocks.
+        * Fix some MSVC compile issues and collect MSVC dependencies into one place.
+
 LibPST 0.6.10 (2008-05-29)
 ===============================
         * Patch from Robert Simpson <rsimpson@idiscoverglobal.com>

@@ -8,10 +8,6 @@
 #include <string.h>
 #include <limits.h>
 
-#ifdef _WIN32
-# define vsnprintf _vsnprintf
-#endif
-
 struct pst_debug_item {
     int type;
     char * function;
@@ -129,9 +125,9 @@ void pst_debug_msg_text(const char* fmt, ...) {
     va_list ap;
     int f, g;
     char x[2];
+    char *buf = NULL;
     struct pst_debug_item *temp;
     if (!debug_fp) return;  // no file
-    va_start(ap, fmt);
     // get the record off of the temp_list
     info_ptr = temp_list;
     if (info_ptr)
@@ -140,23 +136,32 @@ void pst_debug_msg_text(const char* fmt, ...) {
         fprintf(stderr, "NULL info_ptr. ERROR!!\n");
         exit(-2);
     }
-    // according to glibc 2.1, this should return the req. number of bytes for
-    // the string
-  #ifdef _WIN32
-    // vsnprintf trick doesn't work. must use function called _vscprintf
-    // cannot find much documentation about this on internet or anywhere.
-    // I assume it isn't a standard function, but only in VisualC++
-    f = _vscprintf(fmt, ap);
-  #else
-    f = vsnprintf(x, 1, fmt, ap);
-  #endif
-    va_end(ap);  // must be called after vsnprintf()
+
+    #ifdef _WIN32
+        // vsnprintf trick doesn't work on msvc.
+        g = 2000;
+        f = -1;
+        while (f < 0) {
+            buf = realloc(buf, g+1);
+            va_start(ap, fmt);
+            f = vsnprintf(buf, g, fmt, ap);
+            va_end(ap);
+            g += g/2;
+        }
+        free(buf);
+    #else
+        // according to glibc 2.1, this should return the req. number of bytes for
+        // the string
+        va_start(ap, fmt);
+        f = vsnprintf(x, 1, fmt, ap);
+        va_end(ap);
+    #endif
 
     if (f > 0 && f < MAX_MESSAGE_SIZE) {
         info_ptr->text = (char*) xmalloc(f+1);
         va_start(ap, fmt);
         if ((g = vsnprintf(info_ptr->text, f, fmt, ap)) == -1) {
-            fprintf(stderr, "_debug_msg: Dieing! vsnprintf returned -1 for format \"%s\"\n", fmt);
+            fprintf(stderr, "_debug_msg: Dying! vsnprintf returned -1 for format \"%s\"\n", fmt);
             exit(-2);
         }
         va_end(ap);
@@ -252,7 +257,7 @@ void pst_debug_write() {
     size_t size, ptr, funcname, filename, text, end;
     char *buf = NULL, rec_type;
     if (!debug_fp) return;  // no file
-    off_t index_pos = ftell(debug_fp);
+    off_t index_pos = ftello(debug_fp);
     off_t file_pos  = index_pos;
     // add 2. One for the pointer to the next index,
     // one for the count of this index
@@ -274,7 +279,7 @@ void pst_debug_write() {
 
     item_ptr = item_head;
     while (item_ptr) {
-        file_pos = ftell(debug_fp);
+        file_pos = ftello(debug_fp);
         index[index_ptr++] = file_pos;
         size = strlen(item_ptr->function) +
                strlen(item_ptr->file)     +
@@ -320,12 +325,12 @@ void pst_debug_write() {
         item_ptr = item_head;
     }
     curr_items = 0;
-    index[index_ptr] = ftell(debug_fp);
+    index[index_ptr] = ftello(debug_fp);
 
     // we should now have a complete index
-    fseek(debug_fp, index_pos, SEEK_SET);
+    fseeko(debug_fp, index_pos, SEEK_SET);
     pst_debug_fwrite(index, index_size, 1, debug_fp);
-    fseek(debug_fp, 0, SEEK_END);
+    fseeko(debug_fp, 0, SEEK_END);
     item_ptr = item_head = item_tail = NULL;
     free(index);
     if (buf) free(buf);
@@ -343,10 +348,10 @@ void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *
     unsigned int end;
     if (!debug_fp) return;  // no file
     index[0] = 1; //only one item in this index
-    index_pos = ftell(debug_fp);
+    index_pos = ftello(debug_fp);
     pst_debug_fwrite(index, index_size, 1, debug_fp);
 
-    index[1] = ftell(debug_fp);
+    index[1] = ftello(debug_fp);
 
     if (size > USHRT_MAX) { // bigger than can be stored in a short
         rec_type = 'L';
@@ -367,16 +372,16 @@ void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *
         mfile_rec.text = mfile_rec.filename+strlen(item->file)+1;
         pst_debug_fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
     }
-    file_pos = ftell(debug_fp);
+    file_pos = ftello(debug_fp);
     pst_debug_fwrite(item->function, strlen(item->function)+1, 1, debug_fp);
     pst_debug_fwrite(item->file, strlen(item->file)+1, 1, debug_fp);
     vfprintf(debug_fp, fmt, *ap);
     pst_debug_fwrite(&zero, 1, 1, debug_fp);
 
-    end = ftell(debug_fp)-file_pos;
+    end = (unsigned int) (ftello(debug_fp) - file_pos);
 
-    index[2] = ftell(debug_fp);
-    fseek(debug_fp, index_pos, SEEK_SET);
+    index[2] = ftello(debug_fp);
+    fseeko(debug_fp, index_pos, SEEK_SET);
     pst_debug_fwrite(index, index_size, 1, debug_fp);
     if (size > USHRT_MAX) {
         pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
@@ -387,7 +392,7 @@ void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *
         mfile_rec.end = end;
         pst_debug_fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
     }
-    fseek(debug_fp, 0, SEEK_END);
+    fseeko(debug_fp, 0, SEEK_END);
 }
 
 
@@ -401,9 +406,9 @@ void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, in
     index[0] = 1; // only one item in this index run
     index[1] = 0; // valgrind, avoid writing uninitialized data
     index[2] = 0; // ""
-    index_pos = ftell(debug_fp);
+    index_pos = ftello(debug_fp);
     pst_debug_fwrite(index, index_size, 1, debug_fp);
-    index[1] = ftell(debug_fp);
+    index[1] = ftello(debug_fp);
 
     // always use the long
     rec_type = 'L';
@@ -416,20 +421,20 @@ void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, in
     lfile_rec.type = item->type;
     pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
 
-    file_pos = ftell(debug_fp);
+    file_pos = ftello(debug_fp);
     pst_debug_fwrite(item->function, strlen(item->function)+1, 1, debug_fp);
     pst_debug_fwrite(item->file, strlen(item->file)+1, 1, debug_fp);
 
     pst_debug_hexdumper(debug_fp, buf, size, col, 0);
     pst_debug_fwrite(&zero, 1, 1, debug_fp);
-    lfile_rec.end = ftell(debug_fp) - file_pos;
+    lfile_rec.end = ftello(debug_fp) - file_pos;
 
-    index[2] = ftell(debug_fp);
-    fseek(debug_fp, index_pos, SEEK_SET);
+    index[2] = ftello(debug_fp);
+    fseeko(debug_fp, index_pos, SEEK_SET);
     pst_debug_fwrite(index, index_size, 1, debug_fp);
     pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
     pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
-    fseek(debug_fp, 0, SEEK_END);
+    fseeko(debug_fp, 0, SEEK_END);
 }
 
 
