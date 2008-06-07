@@ -38,9 +38,9 @@ char*     mk_kmail_dir(char*);
 int       close_kmail_dir();
 char*     mk_recurse_dir(char*);
 int       close_recurse_dir();
-char*     mk_seperate_dir(char *dir);
-int       close_seperate_dir();
-int       mk_seperate_file(struct file_ll *f);
+char*     mk_separate_dir(char *dir);
+int       close_separate_dir();
+int       mk_separate_file(struct file_ll *f);
 char*     my_stristr(char *haystack, char *needle);
 void      check_filename(char *fname);
 char*     skip_header_prologue(char *headers);
@@ -56,25 +56,31 @@ void      close_enter_dir(struct file_ll *f);
 char*  prog_name;
 char*  output_dir = ".";
 char*  kmail_chdir = NULL;
+
 // Normal mode just creates mbox format files in the current directory. Each file is named
 // the same as the folder's name that it represents
 #define MODE_NORMAL 0
+
 // KMail mode creates a directory structure suitable for being used directly
 // by the KMail application
 #define MODE_KMAIL 1
+
 // recurse mode creates a directory structure like the PST file. Each directory
 // contains only one file which stores the emails in mbox format.
 #define MODE_RECURSE 2
-// seperate mode is similar directory structure to RECURSE. The emails are stored in
-// seperate files, numbering from 1 upward. Attachments belonging to the emails are
+
+// separate mode creates the same directory structure as recurse. The emails are stored in
+// separate files, numbering from 1 upward. Attachments belonging to the emails are
 // saved as email_no-filename (e.g. 1-samplefile.doc or 000001-Attachment2.zip)
-#define MODE_SEPERATE 3
+#define MODE_SEPARATE 3
+
 // Decrypt the whole file (even the parts that aren't encrypted) and ralph it to stdout
 #define MODE_DECSPEW 4
 
 
 // Output Normal just prints the standard information about what is going on
 #define OUTPUT_NORMAL 0
+
 // Output Quiet is provided so that only errors are printed
 #define OUTPUT_QUIET 1
 
@@ -141,7 +147,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     // deal with a contact
                     // write them to the file, one per line in this format
                     // Desc Name <email@address>\n
-                    if (mode == MODE_SEPERATE) mk_seperate_file(&ff);
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Contact\n"));
                     if (ff.type != PST_TYPE_CONTACT) {
@@ -153,7 +159,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         fprintf(ff.output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
 
                 } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
-                    if (mode == MODE_SEPERATE) mk_seperate_file(&ff);
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Email\n"));
                     if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT)) {
@@ -163,7 +169,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
 
                 } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
                     // deal with journal items
-                    if (mode == MODE_SEPERATE) mk_seperate_file(&ff);
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Journal Entry\n"));
                     if (ff.type != PST_TYPE_JOURNAL) {
@@ -180,7 +186,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
 
                 } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
                     // deal with Calendar appointments
-                    if (mode == MODE_SEPERATE) mk_seperate_file(&ff);
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Appointment Entry\n"));
                     if (ff.type != PST_TYPE_APPOINTMENT) {
@@ -251,7 +257,7 @@ int main(int argc, char** argv) {
             mode = MODE_KMAIL;
             break;
         case 'M':
-            mode = MODE_SEPERATE;
+            mode = MODE_SEPARATE;
             mode_MH = 1;
             break;
         case 'o':
@@ -264,7 +270,7 @@ int main(int argc, char** argv) {
             mode = MODE_RECURSE;
             break;
         case 'S':
-            mode = MODE_SEPERATE;
+            mode = MODE_SEPARATE;
             break;
         case 'w':
             overwrite = 1;
@@ -409,7 +415,7 @@ int usage() {
     printf("OPTIONS:\n");
     printf("\t-C\t- Decrypt the entire file and output on stdout (not typically useful)\n");
     printf("\t-M\t- MH. Write emails in the MH format\n");
-    printf("\t-S\t- Seperate. Write emails in the seperate format\n");
+    printf("\t-S\t- Separate. Write emails in the separate format\n");
     printf("\t-V\t- Version. Display program version\n");
     printf("\t-b\t- Don't save RTF-Body attachments\n");
     printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
@@ -537,12 +543,12 @@ int close_recurse_dir() {
 }
 
 
-char *mk_seperate_dir(char *dir) {
+char *mk_separate_dir(char *dir) {
     size_t dirsize = strlen(dir) + 10;
     char dir_name[dirsize];
     int x = 0, y = 0;
 
-    DEBUG_ENT("mk_seperate_dir");
+    DEBUG_ENT("mk_separate_dir");
     do {
         if (y == 0)
             snprintf(dir_name, dirsize, "%s", dir);
@@ -554,7 +560,7 @@ char *mk_seperate_dir(char *dir) {
         if (D_MKDIR(dir_name)) {
             if (errno != EEXIST) { // if there is an error, and it doesn't already exist
                 x = errno;
-                DIE(("mk_seperate_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
+                DIE(("mk_separate_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
             }
         } else {
             break;
@@ -564,7 +570,7 @@ char *mk_seperate_dir(char *dir) {
 
     if (chdir(dir_name)) {
         x = errno;
-        DIE(("mk_seperate_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
+        DIE(("mk_separate_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
     }
 
     if (overwrite) {
@@ -574,14 +580,14 @@ char *mk_seperate_dir(char *dir) {
         struct dirent *dirent = NULL;
         struct stat filestat;
         if (!(sdir = opendir("./"))) {
-            WARN(("mk_seperate_dir: Cannot open dir \"%s\" for deletion of old contents\n", "./"));
+            WARN(("mk_separate_dir: Cannot open dir \"%s\" for deletion of old contents\n", "./"));
         } else {
             while ((dirent = readdir(sdir))) {
                 if (lstat(dirent->d_name, &filestat) != -1)
                     if (S_ISREG(filestat.st_mode)) {
                         if (unlink(dirent->d_name)) {
                             y = errno;
-                            DIE(("mk_seperate_dir: unlink returned error on file %s: %s\n", dirent->d_name, strerror(y)));
+                            DIE(("mk_separate_dir: unlink returned error on file %s: %s\n", dirent->d_name, strerror(y)));
                         }
                     }
             }
@@ -595,31 +601,31 @@ char *mk_seperate_dir(char *dir) {
 }
 
 
-int close_seperate_dir() {
+int close_separate_dir() {
     int x;
-    DEBUG_ENT("close_seperate_dir");
+    DEBUG_ENT("close_separate_dir");
     if (chdir("..")) {
         x = errno;
-        DIE(("close_seperate_dir: Cannot go up dir (..): %s\n", strerror(x)));
+        DIE(("close_separate_dir: Cannot go up dir (..): %s\n", strerror(x)));
     }
     DEBUG_RET();
     return 0;
 }
 
 
-int mk_seperate_file(struct file_ll *f) {
+int mk_separate_file(struct file_ll *f) {
     const int name_offset = 1;
-    DEBUG_ENT("mk_seperate_file");
+    DEBUG_ENT("mk_separate_file");
     DEBUG_MAIN(("opening next file to save email\n"));
     if (f->email_count > 999999999) { // bigger than nine 9's
-        DIE(("mk_seperate_file: The number of emails in this folder has become too high to handle"));
+        DIE(("mk_separate_file: The number of emails in this folder has become too high to handle"));
     }
     sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count + name_offset);
     if (f->output) fclose(f->output);
     f->output = NULL;
     check_filename(f->name);
     if (!(f->output = fopen(f->name, "w"))) {
-        DIE(("mk_seperate_file: Cannot open file to save email \"%s\"\n", f->name));
+        DIE(("mk_separate_file: Cannot open file to save email \"%s\"\n", f->name));
     }
     DEBUG_RET();
     return 0;
@@ -892,8 +898,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
         // Now, write out the header...
         soh = skip_header_prologue(item->email->header);
-        if (mode != MODE_SEPERATE) {
-            // don't put rubbish in if we are doing seperate
+        if (mode != MODE_SEPARATE) {
+            // don't put rubbish in if we are doing separate
             if (strncmp(soh, "X-From_: ", 9) == 0 ) {
                 fputs("From ", f_output);
                 soh += 9;
@@ -906,7 +912,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     } else {
         //make up our own headers
-        if (mode != MODE_SEPERATE) {
+        if (mode != MODE_SEPARATE) {
             // don't want this first line for this mode
             if (item->email->outlook_sender_name) {
                 temp = item->email->outlook_sender_name;
@@ -1046,12 +1052,12 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         if (!current_attach->data) {
             DEBUG_EMAIL(("Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->size));
         }
-        if (mode == MODE_SEPERATE && !mode_MH)
+        if (mode == MODE_SEPARATE && !mode_MH)
             write_separate_attachment(f_name, current_attach, ++attach_num, pst);
         else
             write_inline_attachment(f_output, current_attach, boundary, pst);
     }
-    if (mode != MODE_SEPERATE) { /* do not add a boundary after the last attachment for mode_MH */
+    if (mode != MODE_SEPARATE) { /* do not add a boundary after the last attachment for mode_MH */
         DEBUG_EMAIL(("Writing buffer between emails\n"));
         if (boundary) fprintf(f_output, "\n--%s--\n", boundary);
         fprintf(f_output, "\n\n");
@@ -1247,9 +1253,9 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
         f->name = mk_kmail_dir(item->file_as); //create directory and form filename
     else if (mode == MODE_RECURSE)
         f->name = mk_recurse_dir(item->file_as);
-    else if (mode == MODE_SEPERATE) {
+    else if (mode == MODE_SEPARATE) {
         // do similar stuff to recurse here.
-        mk_seperate_dir(item->file_as);
+        mk_separate_dir(item->file_as);
         f->name = (char*) xmalloc(10);
         memset(f->name, 0, 10);
         //      sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count);
@@ -1287,7 +1293,7 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
     }
 
     DEBUG_MAIN(("f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as));
-    if (mode != MODE_SEPERATE) {
+    if (mode != MODE_SEPARATE) {
         check_filename(f->name);
         if (!(f->output = fopen(f->name, "w"))) {
             DIE(("create_enter_dir: Could not open file \"%s\" for write\n", f->name));
@@ -1311,7 +1317,7 @@ void close_enter_dir(struct file_ll *f)
         close_kmail_dir();
     else if (mode == MODE_RECURSE)
         close_recurse_dir();
-    else if (mode == MODE_SEPERATE)
-        close_seperate_dir();
+    else if (mode == MODE_SEPARATE)
+        close_separate_dir();
 }
 

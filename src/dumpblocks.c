@@ -28,7 +28,7 @@ int main(int argc, char **argv)
         file = argv[optind];
     } else {
         printf("Usage: dumpblocks [options] pstfile\n");
-        printf("\tcopies the datablocks from the pst file into seperate files\n");
+        printf("\tcopies the datablocks from the pst file into separate files\n");
         printf("Options: \n");
         printf("\t-o target\tSpecify the output directory\n");
         exit(1);

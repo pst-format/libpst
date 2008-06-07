@@ -1585,7 +1585,7 @@
                 case, it is an internal pointer reference, which needs to be right shifted by 4 bits
                 to become 0x0004, which is then a byte offset to be added to the above
                 indexOffset plus two (to skip the count), so it points to the (0x14, 0x7c)
-                pair. The datasize (6) plus the b5 code (02) gives size of the entries,
+                pair. The datasize (6) plus the b5 code (02) gives the size of the entries,
                 in this case 8 bytes. We now have the offset 0x14 of the descriptor array,
                 composed of 8 byte entries. Each descriptor entry has the following format:
             </para>
