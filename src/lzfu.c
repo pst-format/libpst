@@ -70,10 +70,12 @@ char* lzfu_decompress (char* rtfcomp, uint32_t compsize, size_t *size) {
 	//printf("compressed: %s\n", (lzfuhdr.dwMagic == LZFU_COMPRESSED ? "yes" : "no"));
 	//printf("CRC       : %#x\n", lzfuhdr.dwCRC);
 	//printf("\n");
-	out_size = lzfuhdr.cbRawSize + 3;	// two braces and a null terminator
+	out_size = lzfuhdr.cbRawSize;
 	out_buf  = (char*)xmalloc(out_size);
 	in_ptr	 = sizeof(lzfuhdr);
-	in_size  = (lzfuhdr.cbSize < compsize) ? lzfuhdr.cbSize : compsize;
+	// Make sure to correct lzfuhdr.cbSize with 4 bytes before comparing
+	// to compsize
+	in_size  = (lzfuhdr.cbSize + 4 < compsize) ? lzfuhdr.cbSize + 4 : compsize;
 	while (in_ptr < in_size) {
 		flags = (unsigned char)(rtfcomp[in_ptr++]);
 		flag_mask = 1;
@@ -100,6 +102,9 @@ char* lzfu_decompress (char* rtfcomp, uint32_t compsize, size_t *size) {
 						dict[dict_length]=c1;
 						dict_length = (dict_length+1) % 4096;
 						if (out_ptr < out_size) out_buf[out_ptr++] = (char)c1;
+						// required for dictionary wrap around
+						// otherwise 0 byte values are referenced incorrectly
+						dict[dict_length] = 0;
 					}
 				}
 			} else {
@@ -110,16 +115,14 @@ char* lzfu_decompress (char* rtfcomp, uint32_t compsize, size_t *size) {
 					dict[dict_length] = c1;
 					dict_length = (dict_length+1)%4096;
 					if (out_ptr < out_size) out_buf[out_ptr++] = (char)c1;
+					// required for dictionary wrap around
+					// otherwise 0 byte values are referenced incorrect
+					dict[dict_length] = 0;
 				}
 			}
 			flag_mask <<= 1;
 		}
 	}
-	// the compressed version doesn't appear to drop the closing
-	// braces onto the doc, so we do that here.
-	if (out_ptr < out_size) out_buf[out_ptr++] = '}';
-	if (out_ptr < out_size) out_buf[out_ptr++] = '}';
-	*size = out_ptr;
-	if (out_ptr < out_size) out_buf[out_ptr++] = '\0';
+	// the RTF data is terminated with }}\0\0
 	return out_buf;
 }
