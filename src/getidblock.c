@@ -9,7 +9,7 @@ int main(int argc, char **argv)
     // pass the id number to display on the command line
     char *fname, *sid;
     pst_file pstfile;
-    unsigned int id;
+    uint64_t id;
     int decrypt = 0, process = 0, binary = 0, c;
     char *buf = NULL;
     size_t readSize;
@@ -46,8 +46,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
     fname = argv[optind];
-    sid = argv[optind + 1];
-    id = (unsigned int) strtol(sid, NULL, 0);
+    sid   = argv[optind + 1];
+    id    = (uint64_t)strtoll(sid, NULL, 0);
 
     DEBUG_MAIN(("Opening file\n"));
     memset(&pstfile, 0, sizeof(pstfile));
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
         printf("Block %#x, size %#x[%i]\n", id, (unsigned int) readSize, (int) readSize);
 
     if (decrypt != 0)
-        if (pst_decrypt(buf, readSize, (int) pstfile.encryption) != 0) {
+        if (pst_decrypt(id, buf, readSize, (int) pstfile.encryption) != 0) {
             DIE(("Error decrypting block\n"));
         }
 

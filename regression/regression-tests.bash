@@ -3,7 +3,7 @@
 val="valgrind --leak-check=full"
 val=''
 
-for i in {1..10}; do
+for i in {1..12}; do
     rm -rf output$i
     mkdir output$i
 done
@@ -47,7 +47,13 @@ $val  ../src/readpst -cv    -o output9 -d dumper Single2003-read.pst >out9.err 2
 $val  ../src/readpst -cv    -o output10 -d dumper Single2003-unread.pst >out10.err 2>&1
       ../src/readpstlog -f I dumper >Single2003-unread.log
 
-$val  ../src/lspst -d dumper ams.pst                                 >out11.err 2>&1
+$val  ../src/readpst -cv    -o output11 -d dumper ol2k3high.pst      >out11.err 2>&1
+      ../src/readpstlog -f I dumper >ol2k3high.log
+
+$val  ../src/readpst -cv    -o output12 -d dumper ol97high.pst       >out12.err 2>&1
+      ../src/readpstlog -f I dumper >ol97high.log
+
+$val  ../src/lspst -d dumper ams.pst                                 >out13.err 2>&1
       ../src/readpstlog -f I dumper >ams.log
 
 rm -f dumper

@@ -620,11 +620,6 @@ static void process(pst_item *outeritem, file_ll *parent, pst_desc_ll *d_ptr)
             item = pst_parse_item(&pstfile, d_ptr);
             DEBUG_INFO(("item pointer is %p\n", item));
             if (item) {
-                if (item->message_store) {
-                    // there should only be one message_store, and we have already done it
-                    DIE(("main: A second message_store has been found. Sorry, this must be an error.\n"));
-                }
-
                 if (item->folder && d_ptr->child )  {
                     //if this is a non-empty folder, we want to recurse into it
                     fprintf(stderr, "entering folder %s\n", item->file_as);
@@ -636,7 +631,7 @@ static void process(pst_item *outeritem, file_ll *parent, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
                     write_normal_email(ff, item, &pstfile);
-                                }
+                }
                 pst_freeItem(item);
             } else {
                 ff.skip_count++;

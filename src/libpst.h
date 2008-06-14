@@ -57,23 +57,23 @@
 #endif // BYTE_ORDER
 
 
-#define PST_TYPE_NOTE 1
+#define PST_TYPE_NOTE        1
 #define PST_TYPE_APPOINTMENT 8
-#define PST_TYPE_CONTACT 9
-#define PST_TYPE_JOURNAL 10
+#define PST_TYPE_CONTACT     9
+#define PST_TYPE_JOURNAL    10
 #define PST_TYPE_STICKYNOTE 11
-#define PST_TYPE_TASK 12
-#define PST_TYPE_OTHER 13
-#define PST_TYPE_REPORT 14
+#define PST_TYPE_TASK       12
+#define PST_TYPE_OTHER      13
+#define PST_TYPE_REPORT     14
 
 // defines whether decryption is done on this bit of data
 #define PST_NO_ENC 0
-#define PST_ENC 1
+#define PST_ENC    1
 
 // defines types of possible encryption
-#define PST_NO_ENCRYPT 0
+#define PST_NO_ENCRYPT   0
 #define PST_COMP_ENCRYPT 1
-#define PST_ENCRYPT 2
+#define PST_ENCRYPT      2
 
 // defines different types of mappings
 #define PST_MAP_ATTRIB (uint32_t)1
@@ -587,7 +587,7 @@ pst_index_ll*  pst_getID(pst_file* pf, uint64_t id);
 pst_index_ll*  pst_getID2(pst_index2_ll * ptr, uint64_t id);
 pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t id);
 size_t         pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf);
-int            pst_decrypt(char *buf, size_t size, unsigned char type);
+int            pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type);
 uint64_t       pst_getIntAt(pst_file *pf, char *buf);
 uint64_t       pst_getIntAtPos(pst_file *pf, off_t pos);
 size_t         pst_getAtPos(pst_file *pf, off_t pos, void* buf, size_t size);

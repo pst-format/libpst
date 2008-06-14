@@ -133,11 +133,6 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                 DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
             }
             if (item) {
-                if (item->message_store) {
-                    // there should only be one message_store, and we have already done it
-                    DIE(("main: A second message_store has been found. Sorry, this must be an error.\n"));
-                }
-
                 if (item->folder && d_ptr->child && strcasecmp(item->file_as, "Deleted Items")) {
                     //if this is a non-empty folder other than deleted items, we want to recurse into it
                     if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as);
@@ -193,6 +188,10 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
                     }
                     write_appointment(ff.output, item->appointment, item->email, item->create_date, item->modify_date);
+
+                } else if (item->message_store) {
+                    // there should only be one message_store, and we have already done it
+                    DEBUG_MAIN(("item with message store content, type %i %s folder type %i, skipping it\n", item->type, item->ascii_type, ff.type));
 
                 } else {
                     // these all seem to be things that MS agrees are not included in the item count
@@ -308,7 +307,7 @@ int main(int argc, char** argv) {
         }
 
         while (0 != (l = fread(buf, 1, 1024, fp))) {
-            if (0 != pst_decrypt(buf, l, PST_COMP_ENCRYPT))
+            if (0 != pst_decrypt(0, buf, l, PST_COMP_ENCRYPT))
                 fprintf(stderr, "pst_decrypt() failed (I'll try to continue)\n");
 
             if (l != pst_fwrite(buf, 1, l, stdout)) {
@@ -413,7 +412,7 @@ int usage() {
     version();
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
-    printf("\t-C\t- Decrypt the entire file and output on stdout (not typically useful)\n");
+    printf("\t-C\t- Decrypt (compressible encryption) the entire file and output on stdout (not typically useful)\n");
     printf("\t-M\t- MH. Write emails in the MH format\n");
     printf("\t-S\t- Separate. Write emails in the separate format\n");
     printf("\t-V\t- Version. Display program version\n");

@@ -33,7 +33,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-06-03</date>
+            <date>2008-06-13</date>
         </refentryinfo>
 
         <refmeta>
@@ -226,7 +226,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-06-03</date>
+            <date>2008-06-13</date>
         </refentryinfo>
 
         <refmeta>
@@ -329,7 +329,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-06-03</date>
+            <date>2008-06-13</date>
         </refentryinfo>
 
         <refmeta>
@@ -504,7 +504,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-06-03</date>
+            <date>2008-06-13</date>
         </refentryinfo>
 
         <refmeta>
@@ -628,7 +628,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2008-06-03</date>
+            <date>2008-06-13</date>
         </refentryinfo>
 
         <refmeta>
@@ -762,7 +762,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-06-03</date>
+            <date>2008-06-13</date>
         </refentryinfo>
 
         <refmeta>
@@ -843,10 +843,11 @@
 ]]></literallayout>
             <para>
                 We only support index types 0x0e and 0x17,  and encryption types
-                0x00 and 0x01. Index type 0x0e is the older 32 bit Outlook format.
+                0x00, 0x01 and 0x02. Index type 0x0e is the older 32 bit Outlook format.
                 Index type 0x17 is the newer 64 bit Outlook format. Encryption
-                type 0x00 is no encryption, and type 0x01 is the only other supported
-                encryption type.
+                type 0x00 is no encryption, type 0x01 is "compressible" encryption
+                which is a simple substitution cipher, and type 0x02 is "strong"
+                encryption, which seems to be related to a three rotor Enigma cipher.
             </para>
             <para>
                 offsetIndex1 is the file offset of the root of the

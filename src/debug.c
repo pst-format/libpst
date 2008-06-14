@@ -125,7 +125,9 @@ void pst_debug_msg_text(const char* fmt, ...) {
     va_list ap;
     int f, g;
     char x[2];
-    char *buf = NULL;
+    #ifdef _WIN32
+        char *buf = NULL;
+    #endif
     struct pst_debug_item *temp;
     if (!debug_fp) return;  // no file
     // get the record off of the temp_list

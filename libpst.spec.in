@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jun 13 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.13-1
+- Patch from Robert Simpson for encryption type 2.
+
 * Tue Jun 10 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.12-1
 - Patch from Joachim Metz for debian packaging and
 - fix for incorrect length on lz decompression

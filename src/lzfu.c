@@ -40,26 +40,23 @@ typedef struct _lzfuheader {
 } lzfuheader;
 
 
-char* lzfu_decompress (char* rtfcomp, uint32_t compsize, size_t *size) {
-	// the dictionary buffer
-	unsigned char dict[4096];
-	// the dictionary pointer
-	unsigned int dict_length=0;
-	// the header of the lzfu block
-	lzfuheader lzfuhdr;
-	// container for the data blocks
-	unsigned char flags;
-	// temp value for determining the bits in the flag
-	unsigned char flag_mask;
+char* lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
+	unsigned char dict[4096];       // the dictionary buffer
+	unsigned int dict_length = 0;   // the dictionary pointer
+	lzfuheader lzfuhdr;             // the header of the lzfu block
+	unsigned char flags;            // 8 bits of flags (1=2byte block pointer into the dict, 0=1 byte literal)
+	unsigned char flag_mask;        // look at one flag bit each time thru the loop
 	uint32_t i;
-	char *out_buf;
+	char    *out_buf;
 	uint32_t out_ptr  = 0;
 	uint32_t out_size;
 	uint32_t in_ptr;
 	uint32_t in_size;
 
 	memcpy(dict, LZFU_INITDICT, LZFU_INITLENGTH);
+    memset(dict + LZFU_INITLENGTH, 0, sizeof(dict) - LZFU_INITLENGTH);
 	dict_length = LZFU_INITLENGTH;
+
 	memcpy(&lzfuhdr, rtfcomp, sizeof(lzfuhdr));
 	LE32_CPU(lzfuhdr.cbSize);
 	LE32_CPU(lzfuhdr.cbRawSize);
@@ -99,7 +96,7 @@ char* lzfu_decompress (char* rtfcomp, uint32_t compsize, size_t *size) {
 					for (i=0; i < length; i++) {
 						unsigned char c1;
 						c1 = dict[(offset+i)%4096];
-						dict[dict_length]=c1;
+						dict[dict_length] = c1;
 						dict_length = (dict_length+1) % 4096;
 						if (out_ptr < out_size) out_buf[out_ptr++] = (char)c1;
 						// required for dictionary wrap around
