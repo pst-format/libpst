@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Jun 15 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.14-1
+- Fix my mistake in debian packaging.
+
 * Fri Jun 13 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.13-1
 - Patch from Robert Simpson for encryption type 2.
 
