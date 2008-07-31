@@ -47,6 +47,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 30 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.15-1
+- Patch from Robert Simpson for file handle leak in error case.
+- Fix for missing length on lz decompression, bug found by Chris White.
+
 * Sun Jun 15 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.14-1
 - Fix my mistake in debian packaging.
 

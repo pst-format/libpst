@@ -1,17 +1,21 @@
+LibPST 0.6.15 (2008-07-30)
+	* Patch from Robert Simpson for file handle leak in error case.
+	* Fix for missing length on lz decompression, bug found by Chris White.
+
 LibPST 0.6.14 (2008-06-15)
 ===============================
-	* Fix my mistake in debian packaging.
+        * Fix my mistake in debian packaging.
 
 LibPST 0.6.13 (2008-06-13)
 ===============================
-	* Patch from Robert Simpson for encryption type 2.
-	* Fix the order of testing item types to avoid claiming
-	there are multiple message stores.
+        * Patch from Robert Simpson for encryption type 2.
+        * Fix the order of testing item types to avoid claiming
+        there are multiple message stores.
 
 LibPST 0.6.12 (2008-06-10)
 ===============================
-	* Patch from Joachim Metz for debian packaging, and fix
-	for incorrect length on lz decompression.
+        * Patch from Joachim Metz for debian packaging, and fix
+        for incorrect length on lz decompression.
 
 LibPST 0.6.11 (2008-06-03)
 ===============================
@@ -23,9 +27,9 @@ LibPST 0.6.10 (2008-05-29)
 ===============================
         * Patch from Robert Simpson <rsimpson@idiscoverglobal.com>
         fix doubly-linked list in the cache_ptr code, and allow
-	arrays of unicode strings (without converting them).
+        arrays of unicode strings (without converting them).
         * More changes for Fedora packaging (#434727)
-	* Fixes for const correctness.
+        * Fixes for const correctness.
 
 LibPST 0.6.9 (2008-05-16)
 ===============================

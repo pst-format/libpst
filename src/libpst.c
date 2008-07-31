@@ -202,6 +202,7 @@ int pst_open(pst_file *pf, char *name) {
             pf->do_read64 = 1;
             break;
         default:
+            (void)fclose(pf->fp);
             WARN(("unknown .pst format, possibly newer than Outlook 2003 PST file?\n"));
             DEBUG_RET();
             return -1;

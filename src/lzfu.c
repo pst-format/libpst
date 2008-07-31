@@ -120,6 +120,6 @@ char* lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
 			flag_mask <<= 1;
 		}
 	}
-	// the RTF data is terminated with }}\0\0
+    *size = out_ptr;
 	return out_buf;
 }
