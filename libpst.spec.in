@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Aug 03 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.16-1
+- Use inttypes.h for portable printing of 64 bit items.
+
 * Wed Jul 30 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.15-1
 - Patch from Robert Simpson for file handle leak in error case.
 - Fix for missing length on lz decompression, bug found by Chris White.

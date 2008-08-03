@@ -12,6 +12,7 @@
 
 #ifndef  _MSC_VER
     #include <stdint.h>
+    #include <inttypes.h>
     #ifndef FILETIME_DEFINED
         #define FILETIME_DEFINED
         //Win32 Filetime struct - copied from WINE

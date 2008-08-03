@@ -215,11 +215,11 @@ int pst_open(pst_file *pf, char *name) {
     pf->index2_back  = pst_getIntAtPos(pf, SECOND_BACK);
     pf->index2       = pst_getIntAtPos(pf, SECOND_POINTER);
     pf->size         = pst_getIntAtPos(pf, FILE_SIZE_POINTER);
-    DEBUG_INFO(("Pointer2 is %#llx, back pointer2 is %#llx\n", pf->index2, pf->index2_back));
+    DEBUG_INFO(("Pointer2 is %#"PRIx64", back pointer2 is %#"PRIx64"\n", pf->index2, pf->index2_back));
 
     pf->index1_back  = pst_getIntAtPos(pf, INDEX_BACK);
     pf->index1       = pst_getIntAtPos(pf, INDEX_POINTER);
-    DEBUG_INFO(("Pointer1 is %#llx, back pointer2 is %#llx\n", pf->index1, pf->index1_back));
+    DEBUG_INFO(("Pointer1 is %#"PRIx64", back pointer2 is %#"PRIx64"\n", pf->index1, pf->index1_back));
 
     DEBUG_RET();
     return 0;
@@ -711,9 +711,9 @@ int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1,
     char *buf = NULL, *bptr;
 
     DEBUG_ENT("pst_build_id_ptr");
-    DEBUG_INDEX(("offset %llx depth %i linku1 %llx start %llx end %llx\n", offset, depth, linku1, start_val, end_val));
+    DEBUG_INDEX(("offset %#"PRIx64" depth %i linku1 %#"PRIx64" start %#"PRIx64" end %#"PRIx64"\n", offset, depth, linku1, start_val, end_val));
     if (end_val <= start_val) {
-        DEBUG_WARN(("The end value is BEFORE the start value. This function will quit. Soz. [start:%#llx, end:%#llx]\n", start_val, end_val));
+        DEBUG_WARN(("The end value is BEFORE the start value. This function will quit. Soz. [start:%#"PRIx64", end:%#"PRIx64"]\n", start_val, end_val));
         DEBUG_RET();
         return -1;
     }
@@ -735,7 +735,7 @@ int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1,
     }
     index.id = pst_getIntAt(pf, buf+BACKLINK_OFFSET);
     if (index.id != linku1) {
-        DEBUG_WARN(("Backlink %#llx in this node does not match required %#llx\n", index.id, linku1));
+        DEBUG_WARN(("Backlink %#"PRIx64" in this node does not match required %#"PRIx64"\n", index.id, linku1));
         if (buf) free(buf);
         DEBUG_RET();
         return -1;
@@ -748,7 +748,7 @@ int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1,
             bptr += pst_decode_index(pf, &index, bptr);
             x++;
             if (index.id == 0) break;
-            DEBUG_INDEX(("[%i]%i Item [id = %#llx, offset = %#llx, u1 = %#x, size = %i(%#x)]\n",
+            DEBUG_INDEX(("[%i]%i Item [id = %#"PRIx64", offset = %#"PRIx64", u1 = %#x, size = %i(%#x)]\n",
                         depth, x, index.id, index.offset, index.u1, index.size, index.size));
             // if (index.id & 0x02) DEBUG_INDEX(("two-bit set!!\n"));
             if ((index.id >= end_val) || (index.id < old)) {
@@ -789,7 +789,7 @@ int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1,
             else {
                 table2.start = end_val;
             }
-            DEBUG_INDEX(("[%i] %i Index Table [start id = %#llx, u1 = %#llx, offset = %#llx, end id = %#llx]\n",
+            DEBUG_INDEX(("[%i] %i Index Table [start id = %#"PRIx64", u1 = %#"PRIx64", offset = %#"PRIx64", end id = %#"PRIx64"]\n",
                         depth, x, table.start, table.u1, table.offset, table2.start));
             if ((table.start >= end_val) || (table.start < old)) {
                 DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
@@ -868,7 +868,7 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, uint64_t parent_
                 lostfound_ptr = lostfound_ptr->next;
             }
             if (!lostfound_ptr) {
-                DEBUG_WARN(("ERROR -- cannot find parent with id %#llx. Adding to lost/found\n", parent_id));
+                DEBUG_WARN(("ERROR -- cannot find parent with id %#"PRIx64". Adding to lost/found\n", parent_id));
                 lostfound_ptr = (struct cache_list_node*) xmalloc(sizeof(struct cache_list_node));
                 lostfound_ptr->prev   = NULL;
                 lostfound_ptr->next   = lostfound_head;
@@ -877,7 +877,7 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, uint64_t parent_
                 lostfound_head = lostfound_ptr;
             } else {
                 parent = lostfound_ptr->ptr;
-                DEBUG_INDEX(("Found parent (%#llx) in Lost and Found\n", parent->id));
+                DEBUG_INDEX(("Found parent (%#"PRIx64") in Lost and Found\n", parent->id));
             }
         }
 
@@ -938,9 +938,9 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
     }
 
     DEBUG_ENT("pst_build_desc_ptr");
-    DEBUG_INDEX(("offset %llx depth %i linku1 %llx start %llx end %llx\n", offset, depth, linku1, start_val, end_val));
+    DEBUG_INDEX(("offset %#"PRIx64" depth %i linku1 %#"PRIx64" start %#"PRIx64" end %#"PRIx64"\n", offset, depth, linku1, start_val, end_val));
     if (end_val <= start_val) {
-        DEBUG_WARN(("The end value is BEFORE the start value. This function will quit. Soz. [start:%#llx, end:%#llx]\n", start_val, end_val));
+        DEBUG_WARN(("The end value is BEFORE the start value. This function will quit. Soz. [start:%#"PRIx64", end:%#"PRIx64"]\n", start_val, end_val));
         DEBUG_RET();
         return -1;
     }
@@ -956,7 +956,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
 
     desc_rec.d_id = pst_getIntAt(pf, buf+BACKLINK_OFFSET);
     if (desc_rec.d_id != linku1) {
-        DEBUG_WARN(("Backlink %#llx in this node does not match required %#llx\n", desc_rec.d_id, linku1));
+        DEBUG_WARN(("Backlink %#"PRIx64" in this node does not match required %#"PRIx64"\n", desc_rec.d_id, linku1));
         if (buf) free(buf);
         DEBUG_RET();
         return -1;
@@ -975,7 +975,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
             bptr += pst_decode_desc(pf, &desc_rec, bptr);
             x++;
             if (desc_rec.d_id == 0) break;
-            DEBUG_INDEX(("[%i] Item(%#x) = [d_id = %#llx, desc_id = %#llx, list_id = %#llx, parent_id = %#x]\n",
+            DEBUG_INDEX(("[%i] Item(%#x) = [d_id = %#"PRIx64", desc_id = %#"PRIx64", list_id = %#"PRIx64", parent_id = %#x]\n",
                         depth, x, desc_rec.d_id, desc_rec.desc_id, desc_rec.list_id, desc_rec.parent_id));
             if ((desc_rec.d_id >= end_val) || (desc_rec.d_id < old)) {
                 DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
@@ -1000,7 +1000,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                 DEBUG_INDEX(("Updating Existing Values\n"));
                 d_ptr->list_index = pst_getID(pf, desc_rec.list_id);
                 d_ptr->desc = pst_getID(pf, desc_rec.desc_id);
-                DEBUG_INDEX(("\tdesc = %#llx\tlist_index=%#llx\n",
+                DEBUG_INDEX(("\tdesc = %#"PRIx64"\tlist_index=%#"PRIx64"\n",
                         (d_ptr->desc==NULL       ? bigzero : d_ptr->desc->id),
                         (d_ptr->list_index==NULL ? bigzero : d_ptr->list_index->id)));
                 if (d_ptr->parent && desc_rec.parent_id != d_ptr->parent->id) {
@@ -1056,7 +1056,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
             lostfound_shd = NULL;
             while (lostfound_ptr) {
                 if (lostfound_ptr->parent == d_ptr->id) {
-                    DEBUG_INDEX(("Found a child  (%#llx) of the current record. Joining to main structure.\n", lostfound_ptr->ptr->id));
+                    DEBUG_INDEX(("Found a child  (%#"PRIx64") of the current record. Joining to main structure.\n", lostfound_ptr->ptr->id));
                     parent = d_ptr;
                     d_ptr = lostfound_ptr->ptr;
                     parent->no_child++;
@@ -1096,7 +1096,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
             else {
                 table2.start = end_val;
             }
-            DEBUG_INDEX(("[%i] %i Descriptor Table [start id = %#llx, u1 = %#llx, offset = %#llx, end id = %#llx]\n",
+            DEBUG_INDEX(("[%i] %i Descriptor Table [start id = %#"PRIx64", u1 = %#"PRIx64", offset = %#"PRIx64", end id = %#"PRIx64"]\n",
                         depth, x, table.start, table.u1, table.offset, table2.start));
             if ((table.start >= end_val) || (table.start < old)) {
                 DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
@@ -1126,7 +1126,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
         // free the lost and found
         while (lostfound_head) {
             lostfound_ptr = lostfound_head->next;
-            WARN(("unused lost/found item with parent %lld))", lostfound_head->parent));
+            WARN(("unused lost/found item with parent %#"PRIx64"))", lostfound_head->parent));
             free(lostfound_head);
             lostfound_head = lostfound_ptr;
         }
@@ -1166,7 +1166,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 
     list = pst_parse_block(pf, d_ptr->desc->id, id2_head, NULL);
     if (!list) {
-        DEBUG_WARN(("pst_parse_block() returned an error for d_ptr->desc->id [%#llx]\n", d_ptr->desc->id));
+        DEBUG_WARN(("pst_parse_block() returned an error for d_ptr->desc->id [%#"PRIx64"]\n", d_ptr->desc->id));
         if (id2_head) pst_free_id2(id2_head);
         DEBUG_RET();
         return NULL;
@@ -1253,10 +1253,10 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
                       // attachment data
                       attach->id_val = id_ptr->id;
                   } else {
-                      DEBUG_WARN(("have not located the correct value for the attachment [%#llx]\n", attach->id2_val));
+                      DEBUG_WARN(("have not located the correct value for the attachment [%#"PRIx64"]\n", attach->id2_val));
                   }
               } else {
-                  DEBUG_WARN(("ERROR cannot locate id2 value %#llx\n", attach->id2_val));
+                  DEBUG_WARN(("ERROR cannot locate id2 value %#"PRIx64"\n", attach->id2_val));
               }
               attach = attach->next;
             }
@@ -1360,7 +1360,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
 
     DEBUG_ENT("pst_parse_block");
     if ((read_size = pst_ff_getIDblock_dec(pf, block_id, &buf)) == 0) {
-        WARN(("Error reading block id %#llx\n", block_id));
+        WARN(("Error reading block id %#"PRIx64"\n", block_id));
         if (buf) free (buf);
         DEBUG_RET();
         return NULL;
@@ -1431,7 +1431,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         DEBUG_EMAIL(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
 
         if ((table_rec.type != (uint16_t)0x02B5) || (table_rec.ref_type != 6)) {
-            WARN(("Unknown second block constant - %#hx %#hx for id %#llx\n", table_rec.type, table_rec.ref_type, block_id));
+            WARN(("Unknown second block constant - %#hx %#hx for id %#"PRIx64"\n", table_rec.type, table_rec.ref_type, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1494,14 +1494,14 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         DEBUG_EMAIL(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
 
         if (table_rec.type != (uint16_t)0x04B5) { // different constant than a type 1 record
-            WARN(("Unknown second block constant - %#hx for id %#llx\n", table_rec.type, block_id));
+            WARN(("Unknown second block constant - %#hx for id %#"PRIx64"\n", table_rec.type, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
         }
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset5)) {
-            DEBUG_WARN(("internal error (7c.b5.desc offset %#x) in reading block id %#llx\n", table_rec.value, block_id));
+            DEBUG_WARN(("internal error (7c.b5.desc offset %#x) in reading block id %#"PRIx64"\n", table_rec.value, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1520,7 +1520,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         ind2_end = block_offset6.to;
     }
     else {
-        WARN(("ERROR: Unknown block constant - %#hx for id %#llx\n", block_hdr.type, block_id));
+        WARN(("ERROR: Unknown block constant - %#hx for id %#"PRIx64"\n", block_hdr.type, block_id));
         freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
         DEBUG_RET();
         return NULL;
@@ -2545,7 +2545,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     MOVE_NEXT(attach);
                     if (!list->items[x]->data) { //special case
                         attach->id2_val = list->items[x]->type;
-                        DEBUG_EMAIL(("Seen a Reference. The data hasn't been loaded yet. [%#llx][%#x]\n",
+                        DEBUG_EMAIL(("Seen a Reference. The data hasn't been loaded yet. [%#"PRIx64"][%#x]\n",
                                  attach->id2_val, list->items[x]->type));
                     } else {
                         LIST_COPY(attach->data, (char*));
@@ -3119,7 +3119,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         memcpy(&(tempid), list->items[x]->data, sizeof(tempid));
                         LE32_CPU(tempid);
                         attach->id2_val = tempid;
-                        DEBUG_EMAIL(("%#llx\n", attach->id2_val));
+                        DEBUG_EMAIL(("%#"PRIx64"\n", attach->id2_val));
                     } else {
                         DEBUG_EMAIL(("NOT AN ATTACHMENT: %#x\n", list->items[x]->id));
                     }
@@ -3722,7 +3722,7 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* h
     }
     if (pst_read_block_size(pf, list->offset, list->size, &buf) < list->size) {
         //an error occured in block read
-        WARN(("block read error occured. offset = %#llx, size = %#llx\n", list->offset, list->size));
+        WARN(("block read error occured. offset = %#"PRIx64", size = %#"PRIx64"\n", list->offset, list->size));
         if (buf) free(buf);
         DEBUG_RET();
         return NULL;
@@ -3734,23 +3734,23 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* h
     LE16_CPU(block_head.count);
 
     if (block_head.type != (uint16_t)0x0002) { // some sort of constant?
-        WARN(("Unknown constant [%#hx] at start of id2 values [offset %#llx].\n", block_head.type, list->offset));
+        WARN(("Unknown constant [%#hx] at start of id2 values [offset %#"PRIx64"].\n", block_head.type, list->offset));
         if (buf) free(buf);
         DEBUG_RET();
         return NULL;
     }
 
-    DEBUG_INDEX(("ID %#llx is likely to be a description record. Count is %i (offset %#llx)\n",
+    DEBUG_INDEX(("ID %#"PRIx64" is likely to be a description record. Count is %i (offset %#"PRIx64")\n",
             list->id, block_head.count, list->offset));
     x = 0;
     b_ptr = buf + ((pf->do_read64) ? 0x08 : 0x04);
     while (x < block_head.count) {
         b_ptr += pst_decode_assoc(pf, &id2_rec, b_ptr);
-        DEBUG_INDEX(("\tid2 = %#x, id = %#llx, table2 = %#llx\n", id2_rec.id2, id2_rec.id, id2_rec.table2));
+        DEBUG_INDEX(("\tid2 = %#x, id = %#"PRIx64", table2 = %#"PRIx64"\n", id2_rec.id2, id2_rec.id, id2_rec.table2));
         if ((i_ptr = pst_getID(pf, id2_rec.id)) == NULL) {
-            DEBUG_WARN(("\t\t%#llx - Not Found\n", id2_rec.id));
+            DEBUG_WARN(("\t\t%#"PRIx64" - Not Found\n", id2_rec.id));
         } else {
-            DEBUG_INDEX(("\t\t%#llx - Offset %#llx, u1 %#llx, Size %lli(%#llx)\n", i_ptr->id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
+            DEBUG_INDEX(("\t\t%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %lli(%#"PRIx64")\n", i_ptr->id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
             // add it to the linked list
             i2_ptr = (pst_index2_ll*) xmalloc(sizeof(pst_index2_ll));
             i2_ptr->id2  = id2_rec.id2;
@@ -4084,17 +4084,17 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t id) {
         return NULL;
     }
 
-    //if (id & 1) DEBUG_INDEX(("have odd id bit %#llx\n", id));
-    //if (id & 2) DEBUG_INDEX(("have two id bit %#llx\n", id));
+    //if (id & 1) DEBUG_INDEX(("have odd id bit %#"PRIx64"\n", id));
+    //if (id & 2) DEBUG_INDEX(("have two id bit %#"PRIx64"\n", id));
     id -= (id & 1);
 
-    DEBUG_INDEX(("Trying to find %#llx\n", id));
+    DEBUG_INDEX(("Trying to find %#"PRIx64"\n", id));
     ptr = pf->i_head;
     while (ptr && (ptr->id != id)) {
         ptr = ptr->next;
     }
-    if (ptr) {DEBUG_INDEX(("Found Value %#llx\n", id));            }
-    else     {DEBUG_INDEX(("ERROR: Value %#llx not found\n", id)); }
+    if (ptr) {DEBUG_INDEX(("Found Value %#"PRIx64"\n", id));            }
+    else     {DEBUG_INDEX(("ERROR: Value %#"PRIx64" not found\n", id)); }
     DEBUG_RET();
     return ptr;
 }
@@ -4102,12 +4102,12 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t id) {
 
 pst_index_ll * pst_getID2(pst_index2_ll *ptr, uint64_t id) {
     DEBUG_ENT("pst_getID2");
-    DEBUG_INDEX(("Head = %p id = %#llx\n", ptr, id));
+    DEBUG_INDEX(("Head = %p id = %#"PRIx64"\n", ptr, id));
     while (ptr && (ptr->id2 != id)) {
         ptr = ptr->next;
     }
     if (ptr) {
-        if (ptr->id) {DEBUG_INDEX(("Found value %#llx\n", ptr->id->id));   }
+        if (ptr->id) {DEBUG_INDEX(("Found value %#"PRIx64"\n", ptr->id->id));   }
         else         {DEBUG_INDEX(("Found value, though it is NULL!\n"));}
         DEBUG_RET();
         return ptr->id;
@@ -4192,7 +4192,7 @@ void pst_printID2ptr(pst_index2_ll *ptr) {
 size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf) {
     size_t rsize;
     DEBUG_ENT("pst_read_block_size");
-    DEBUG_READ(("Reading block from %#llx, %x bytes\n", offset, size));
+    DEBUG_READ(("Reading block from %#"PRIx64", %x bytes\n", offset, size));
 
     if (*buf) {
         DEBUG_READ(("Freeing old memory\n"));
@@ -4204,7 +4204,7 @@ size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf) 
     if (rsize != size) {
         DEBUG_WARN(("Didn't read all the data. fread returned less [%i instead of %i]\n", rsize, size));
         if (feof(pf->fp)) {
-            DEBUG_WARN(("We tried to read past the end of the file at [offset %#llx, size %#x]\n", offset, size));
+            DEBUG_WARN(("We tried to read past the end of the file at [offset %#"PRIx64", size %#x]\n", offset, size));
         } else if (ferror(pf->fp)) {
             DEBUG_WARN(("Error is set on file stream.\n"));
         } else {
@@ -4328,7 +4328,7 @@ size_t pst_getAtPos(pst_file *pf, off_t pos, void* buf, size_t size) {
 //      p->size      = size;
 //      p->readcount = 1;
 //  }
-//  DEBUG_MAIN(("pst file old offset %#llx old size %#x read count %i offset %#llx size %#x\n",
+//  DEBUG_MAIN(("pst file old offset %#"PRIx64" old size %#x read count %i offset %#"PRIx64" size %#x\n",
 //              p->offset, p->size, p->readcount, pos, size));
 
     if (fseeko(pf->fp, pos, SEEK_SET) == -1) {
@@ -4379,11 +4379,11 @@ size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, char** buf) {
     DEBUG_ENT("pst_ff_getIDblock");
     rec = pst_getID(pf, id);
     if (!rec) {
-        DEBUG_INDEX(("Cannot find ID %#llx\n", id));
+        DEBUG_INDEX(("Cannot find ID %#"PRIx64"\n", id));
         DEBUG_RET();
         return 0;
     }
-    DEBUG_INDEX(("id = %#llx, record size = %#x, offset = %#x\n", id, rec->size, rec->offset));
+    DEBUG_INDEX(("id = %#"PRIx64", record size = %#x, offset = %#x\n", id, rec->size, rec->offset));
     rsize = pst_read_block_size(pf, rec->offset, rec->size, buf);
     DEBUG_RET();
     return rsize;

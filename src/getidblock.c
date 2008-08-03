@@ -70,7 +70,7 @@ int main(int argc, char **argv)
         DIE(("Error loading block\n"));
     }
     if (binary == 0)
-        printf("Block %#x, size %#x[%i]\n", id, (unsigned int) readSize, (int) readSize);
+        printf("Block %#"PRIx64", size %#x[%i]\n", id, (unsigned int) readSize, (int) readSize);
 
     if (decrypt != 0)
         if (pst_decrypt(id, buf, readSize, (int) pstfile.encryption) != 0) {

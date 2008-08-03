@@ -69,7 +69,7 @@ int main(int argc, char **argv)
         }
 
         if (c > 0) {
-            snprintf(outname, OUT_BUF, "%llx", ptr->id);
+            snprintf(outname, OUT_BUF, "%#"PRIx64, ptr->id);
             if ((fp = fopen(outname, "wb")) == NULL) {
                 printf("Failed to open file %s\n", outname);
                 continue;
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
             pst_fwrite(buf, 1, c, fp);
             fclose(fp);
         } else {
-            printf("Failed to read block id %#llx\n", ptr->id);
+            printf("Failed to read block id %#"PRIx64"\n", ptr->id);
         }
         ptr = ptr->next;
     }
