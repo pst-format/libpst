@@ -1,3 +1,4 @@
+0.6.17  2008-08-05 More fixes for 32/64 bit portability on big endian ppc.
 0.6.16  2008-08-05 Use inttypes.h for portable printing of 64 bit items.
 0.6.15  2008-07-30 Fix file handle leak in error case, missing length on lz decompression.
 0.6.14  2008-06-15 Fix my mistake in debian packaging.

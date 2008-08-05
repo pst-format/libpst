@@ -1,3 +1,7 @@
+LibPST 0.6.17 (2008-08-05)
+===============================
+    	* More fixes for 32/64 bit portability on big endian ppc.
+
 LibPST 0.6.16 (2008-08-05)
 ===============================
     	* Use inttypes.h for portable printing of 64 bit items.

@@ -55,7 +55,7 @@ void pst_debug_hexdumper(FILE *out, char *buf, size_t size, int col, int delta) 
     if (col == -1) col = NUM_COL;
     fprintf(out, "\n");
     while (off < size) {
-        fprintf(out, "%06X\t:", off+delta);
+        fprintf(out, "%06"PRIx64"\t:", (uint64_t)(off+delta));
         toff = off;
         while (count < col && off < size) {
             fprintf(out, "%02hhx ", (unsigned char)buf[off]);

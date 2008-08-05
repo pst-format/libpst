@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(libpst,0.6.16,carl@five-ten-sg.com)
+AC_INIT(libpst,0.6.17,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
 

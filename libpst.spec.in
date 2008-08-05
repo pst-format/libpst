@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Aug 05 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.17-1
+- More fixes for 32/64 bit portability on big endian ppc.
+
 * Tue Aug 05 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.16-1
 - Use inttypes.h for portable printing of 64 bit items.
 
