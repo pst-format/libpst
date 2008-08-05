@@ -7,6 +7,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 struct pst_debug_item {
     int type;
