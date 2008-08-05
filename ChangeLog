@@ -1,4 +1,4 @@
-LibPST 0.6.16 (2008-xx-xx)
+LibPST 0.6.16 (2008-08-05)
 ===============================
     	* Use inttypes.h for portable printing of 64 bit items.
 
