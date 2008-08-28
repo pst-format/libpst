@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(libpst,0.6.17,carl@five-ten-sg.com)
+AC_INIT(libpst,0.6.18,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
 
@@ -55,6 +55,9 @@ AC_FUNC_REALLOC
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([memchr memmove memset strcasecmp strchr strdup strerror strpbrk strrchr strstr strtol])
+
+# iconv on mac is a library
+AC_SEARCH_LIBS([iconv_open], [iconv])
 
 # The following lines adds the --enable-pst-debug option to configure:
 #

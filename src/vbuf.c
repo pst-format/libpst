@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <iconv.h>
 #include <limits.h>
-#include <malloc.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -71,13 +70,13 @@ void unicode_init()
     if (unicode_up)
         unicode_close();
 
-    if ((iconv_t) - 1 == (i16to8 = iconv_open("UTF-8", "UTF-16"))) {
-        fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-16 to UTF-8.\n");
+    if ((iconv_t) - 1 == (i16to8 = iconv_open("UTF-8", "UTF-16LE"))) {
+        fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-16LE to UTF-8.\n");
         exit(1);
     }
 
-    if ((iconv_t) - 1 == (i8to16 = iconv_open("UTF-16", "UTF-8"))) {
-        fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-8 to UTF-16.\n");
+    if ((iconv_t) - 1 == (i8to16 = iconv_open("UTF-16LE", "UTF-8"))) {
+        fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-8 to UTF-16LE.\n");
         exit(2);
     }
     //iconv will prefix output with an FF FE (utf-16 start seq), the following dumps that.

@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Aug 28 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.18-1
+- Fixes for iconv on Mac from Justin Greer.
+
 * Tue Aug 05 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.17-1
 - More fixes for 32/64 bit portability on big endian ppc.
 

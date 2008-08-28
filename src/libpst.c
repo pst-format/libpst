@@ -290,15 +290,21 @@ size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b){
 size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     pst_index_ll *ptr;
     pst_holder h = {NULL, fp, 0, "", 0};
-    size_t size;
+    size_t size = 0;
+    int32_t x;
     DEBUG_ENT("pst_attach_to_file");
     if (attach->id_val != (uint64_t)-1) {
         ptr = pst_getID(pf, attach->id_val);
         if (ptr) {
+            // pst_num_array *list = pst_parse_block(pf, ptr->id, NULL, NULL);
+            // DEBUG_WARN(("writing file data attachment\n"));
+            // for (x=0; x<list->count_item; x++) {
+            //     DEBUG_HEXDUMPC(list->items[x]->data, list->items[x]->size, 0x10);
+            //     (void)pst_fwrite(list->items[x]->data, (size_t)1, list->items[x]->size, fp);
+            // }
             size = pst_ff_getID2data(pf, ptr, &h);
         } else {
             DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
-            size = 0;
         }
         attach->size = size;
     } else {
@@ -314,12 +320,23 @@ size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
 size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     pst_index_ll *ptr;
     pst_holder h = {NULL, fp, 1, "", 0};
-    size_t size;
+    size_t size = 0;
+    int32_t x;
     char *c;
     DEBUG_ENT("pst_attach_to_file_base64");
     if (attach->id_val != (uint64_t)-1) {
         ptr = pst_getID(pf, attach->id_val);
         if (ptr) {
+            // pst_num_array *list = pst_parse_block(pf, ptr->id, NULL, NULL);
+            // DEBUG_WARN(("writing base64 data attachment\n"));
+            // for (x=0; x<list->count_item; x++) {
+            //     DEBUG_HEXDUMPC(list->items[x]->data, list->items[x]->size, 0x10);
+            //     c = base64_encode(list->items[x]->data, list->items[x]->size);
+            //     if (c) {
+            //         (void)pst_fwrite(c, (size_t)1, strlen(c), fp);
+            //         free(c);    // caught by valgrind
+            //     }
+            // }
             size = pst_ff_getID2data(pf, ptr, &h);
             // will need to encode any bytes left over
             c = base64_encode(h.base64_extra_chars, (size_t)h.base64_extra);
@@ -328,8 +345,7 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
                 free(c);    // caught by valgrind
             }
         } else {
-            DEBUG_WARN (("Couldn't find ID pointer. Cannot save attachment to Base64\n"));
-            size = 0;
+            DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to Base64\n"));
         }
         attach->size = size;
     } else {
@@ -431,8 +447,7 @@ int pst_load_extended_attributes(pst_file *pf) {
         return 0;
     }
 
-    x = 0;
-    while (x < na->count_item) {
+    for (x=0; x < na->count_item; x++) {
         if (na->items[x]->id == (uint32_t)0x0003) {
             buffer = na->items[x]->data;
             bsize = na->items[x]->size;
@@ -442,7 +457,6 @@ int pst_load_extended_attributes(pst_file *pf) {
         } else {
             // leave them null
         }
-        x++;
     }
 
     if (!buffer) {
@@ -1204,13 +1218,11 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
             return item;
         }
         else {
-            x = 0;
-            while (x < list->count_array) {
-                attach = (pst_item_attach*) xmalloc (sizeof(pst_item_attach));
-                memset (attach, 0, sizeof(pst_item_attach));
+            for (x=0; x < list->count_array; x++) {
+                attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+                memset(attach, 0, sizeof(pst_item_attach));
                 attach->next = item->attach;
                 item->attach = attach;
-                x++;
             }
 
             if (pst_process(list, item, item->attach)) {
@@ -4436,8 +4448,6 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
         DEBUG_READ(("Assuming it is a multi-block record because of it's id\n"));
         ret = pst_ff_compile_ID(pf, ptr->id, h, (size_t)0);
     }
-    // bogus null termination off the end of the buffer!!
-    //if (h->buf && *h->buf) (*(h->buf))[ret]='\0';
     DEBUG_RET();
     return ret;
 }

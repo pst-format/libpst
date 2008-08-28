@@ -3,7 +3,11 @@
 val="valgrind --leak-check=full"
 val=''
 
-for i in {1..12}; do
+pushd ..
+make || exit
+popd
+
+for i in {1..13}; do
     rm -rf output$i
     mkdir output$i
 done
@@ -27,7 +31,8 @@ $val  ../src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' ams.pst >ams.err  2
 $val  ../src/readpst -cv    -o output1 ams.pst                       >out1.err 2>&1
 $val  ../src/readpst -cl -r -o output2 ams.pst                       >out2.err 2>&1
 $val  ../src/readpst -S     -o output3 ams.pst                       >out3.err 2>&1
-$val  ../src/readpst -M     -o output4 ams.pst                       >out4.err 2>&1
+$val  ../src/readpst -M     -o output4 -d dumper ams.pst              >out4.err 2>&1
+      ../src/readpstlog -f I dumper >ams.log
 
 $val  ../src/readpst        -o output5 -d dumper mbmg.archive.pst    >out5.err 2>&1
       ../src/readpstlog -f I dumper >mbmg.archive.log
@@ -53,7 +58,10 @@ $val  ../src/readpst -cv    -o output11 -d dumper ol2k3high.pst      >out11.err 
 $val  ../src/readpst -cv    -o output12 -d dumper ol97high.pst       >out12.err 2>&1
       ../src/readpstlog -f I dumper >ol97high.log
 
-$val  ../src/lspst -d dumper ams.pst                                 >out13.err 2>&1
+$val  ../src/readpst -cv    -o output13 -d dumper returned_message.pst >out13.err 2>&1
+      ../src/readpstlog -f I dumper >returned_message.log
+
+$val  ../src/lspst -d dumper ams.pst                                 >out14.err 2>&1
       ../src/readpstlog -f I dumper >ams.log
 
 rm -f dumper
