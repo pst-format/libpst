@@ -537,11 +537,9 @@ typedef struct pst_num_array {
 
 
 typedef struct pst_holder {
-    char **buf;
-    FILE *    fp;
-    int       base64;
-    char      base64_extra_chars[3];
-    uint32_t  base64_extra;
+    char  **buf;
+    FILE   *fp;
+    int     base64;
 } pst_holder;
 
 

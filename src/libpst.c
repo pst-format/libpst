@@ -268,7 +268,7 @@ pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
 size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b){
     size_t size=0;
     pst_index_ll *ptr;
-    pst_holder h = {b, NULL, 0, "", 0};
+    pst_holder h = {b, NULL, 0};
     DEBUG_ENT("pst_attach_to_mem");
     if (attach->id_val != (uint64_t)-1) {
         ptr = pst_getID(pf, attach->id_val);
@@ -289,7 +289,7 @@ size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b){
 
 size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     pst_index_ll *ptr;
-    pst_holder h = {NULL, fp, 0, "", 0};
+    pst_holder h = {NULL, fp, 0};
     size_t size = 0;
     int32_t x;
     DEBUG_ENT("pst_attach_to_file");
@@ -319,7 +319,7 @@ size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
 
 size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     pst_index_ll *ptr;
-    pst_holder h = {NULL, fp, 1, "", 0};
+    pst_holder h = {NULL, fp, 1};
     size_t size = 0;
     int32_t x;
     char *c;
@@ -338,12 +338,6 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
             //     }
             // }
             size = pst_ff_getID2data(pf, ptr, &h);
-            // will need to encode any bytes left over
-            c = base64_encode(h.base64_extra_chars, (size_t)h.base64_extra);
-            if (c) {
-                (void)pst_fwrite(c, (size_t)1, strlen(c), fp);
-                free(c);    // caught by valgrind
-            }
         } else {
             DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to Base64\n"));
         }
@@ -1241,36 +1235,39 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
             // each attachment
             attach = item->attach;
             while (attach) {
-              if ((id_ptr = pst_getID2(id2_head, attach->id2_val))) {
-                  // id_ptr is a record describing the attachment
-                  // we pass NULL instead of id2_head cause we don't want it to
-                  // load all the extra stuff here.
-                  if ((list = pst_parse_block(pf, id_ptr->id, NULL, NULL)) == NULL) {
-                      DEBUG_WARN(("ERROR error processing an attachment record\n"));
-                      attach = attach->next;
-                      continue;
-                  }
-                  if (pst_process(list, item, attach)) {
-                      DEBUG_WARN(("ERROR pst_process() failed with an attachment\n"));
-                      if (list) pst_free_list(list);
-                      list = NULL;
-                      attach = attach->next;
-                      continue;
-                  }
-                  if (list) pst_free_list(list);
-                  list = NULL;
-                  id_ptr = pst_getID2(id2_head, attach->id2_val);
-                  if (id_ptr) {
-                      // id2_val has been updated to the ID2 value of the datablock containing the
-                      // attachment data
-                      attach->id_val = id_ptr->id;
-                  } else {
-                      DEBUG_WARN(("have not located the correct value for the attachment [%#"PRIx64"]\n", attach->id2_val));
-                  }
-              } else {
-                  DEBUG_WARN(("ERROR cannot locate id2 value %#"PRIx64"\n", attach->id2_val));
-              }
-              attach = attach->next;
+                DEBUG_WARN(("initial attachment id2 %#"PRIx64"\n", attach->id2_val));
+                if ((id_ptr = pst_getID2(id2_head, attach->id2_val))) {
+                    DEBUG_WARN(("initial attachment id2 found id %#"PRIx64"\n", id_ptr->id));
+                    // id_ptr is a record describing the attachment
+                    // we pass NULL instead of id2_head cause we don't want it to
+                    // load all the extra stuff here.
+                    if ((list = pst_parse_block(pf, id_ptr->id, NULL, NULL)) == NULL) {
+                        DEBUG_WARN(("ERROR error processing an attachment record\n"));
+                        attach = attach->next;
+                        continue;
+                    }
+                    if (pst_process(list, item, attach)) {
+                        DEBUG_WARN(("ERROR pst_process() failed with an attachment\n"));
+                        if (list) pst_free_list(list);
+                        list = NULL;
+                        attach = attach->next;
+                        continue;
+                    }
+                    if (list) pst_free_list(list);
+                    list = NULL;
+                    id_ptr = pst_getID2(id2_head, attach->id2_val);
+                    if (id_ptr) {
+                        DEBUG_WARN(("second pass attachment updating id2 found id %#"PRIx64"\n", id_ptr->id));
+                        // id2_val has been updated to the ID2 value of the datablock containing the
+                        // attachment data
+                        attach->id_val = id_ptr->id;
+                    } else {
+                        DEBUG_WARN(("have not located the correct value for the attachment [%#"PRIx64"]\n", attach->id2_val));
+                    }
+                } else {
+                    DEBUG_WARN(("ERROR cannot locate id2 value %#"PRIx64"\n", attach->id2_val));
+                }
+                attach = attach->next;
             }
         }
     }
@@ -1620,6 +1617,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
                     na_ptr->items[x]->extra = mapptr->data;
                 }
                 else {
+                    DEBUG_WARN(("Missing assertion failure\n"));
                     // nothing, should be assertion failure here
                 }
             } else {
@@ -2184,7 +2182,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     MALLOC_EMAIL(item);
                     LIST_COPY(item->email->header, (char*));
                     DEBUG_EMAIL(("%s\n", item->email->header));
-                    DEBUG_EMAIL(("NOT PRINTED\n"));
                     break;
                 case 0x0C17: // PR_REPLY_REQUESTED
                     DEBUG_EMAIL(("Reply Requested - "));
@@ -4406,7 +4403,7 @@ size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, char** buf) {
 size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, char** buf) {
     size_t ret;
     pst_index_ll* ptr;
-    pst_holder h = {buf, NULL, 0, "", 0};
+    pst_holder h = {buf, NULL, 0};
     DEBUG_ENT("pst_ff_getID2block");
     ptr = pst_getID2(id2_head, id2);
 
@@ -4458,6 +4455,9 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
     uint16_t count, y;
     char *buf3 = NULL, *buf2 = NULL, *t;
     char *b_ptr;
+    int  line_count = 0;
+    char      base64_extra_chars[3];
+    uint32_t  base64_extra = 0;
     pst_block_hdr  block_hdr;
     pst_table3_rec table3_rec;  //for type 3 (0x0101) blocks
 
@@ -4498,6 +4498,7 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
     }
     count = block_hdr.type;
     b_ptr = buf3 + 8;
+    line_count = 0;
     for (y=0; y<count; y++) {
         b_ptr += pst_decode_type3(pf, &table3_rec, b_ptr);
         z = pst_ff_getIDblock_dec(pf, table3_rec.id, &buf2);
@@ -4513,17 +4514,23 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
             DEBUG_READ(("appending read data of size %i onto main buffer from pos %i\n", z, size));
             memcpy(&((*(h->buf))[size]), buf2, z);
         } else if ((h->base64 == 1) && h->fp) {
-            // include any byte left over from the last one encoding
-            buf2 = (char*)realloc(buf2, z+h->base64_extra);
-            memmove(buf2+h->base64_extra, buf2, z);
-            memcpy(buf2, h->base64_extra_chars, h->base64_extra);
-            z += h->base64_extra;
+            if (base64_extra) {
+                // include any bytes left over from the last encoding
+                buf2 = (char*)realloc(buf2, z+base64_extra);
+                memmove(buf2+base64_extra, buf2, z);
+                memcpy(buf2, base64_extra_chars, base64_extra);
+                z += base64_extra;
+            }
 
-            b = z % 3; // find out how many bytes will be left over after the encoding.
-            // and save them
-            memcpy(h->base64_extra_chars, &(buf2[z-b]), b);
-            h->base64_extra = b;
-            t = base64_encode(buf2, z-b);
+            // find out how many bytes will be left over after this encoding and save them
+            base64_extra = z % 3;
+            if (base64_extra) {
+                z -= base64_extra;
+                memcpy(base64_extra_chars, buf2+z, base64_extra);
+            }
+
+            // encode this chunk
+            t = base64_encode_multiple(buf2, z, &line_count);
             if (t) {
                 DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
                 (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
@@ -4536,6 +4543,14 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
             // h-> does not specify any output
         }
         size += z;
+    }
+    if ((h->base64 == 1) && h->fp && base64_extra) {
+        // need to encode any bytes left over
+        t = base64_encode_multiple(base64_extra_chars, (size_t)base64_extra, &line_count);
+        if (t) {
+            (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
+            free(t);    // caught by valgrind
+        }
     }
     free(buf3);
     if (buf2) free(buf2);

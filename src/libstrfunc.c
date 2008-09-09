@@ -7,47 +7,61 @@
 #include "libstrfunc.h"
 
 
-static unsigned char _sf_uc_ib[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/==";
+static char base64_code_chars[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/==";
 
-char *base64_encode(void *data, size_t size) {
+void base64_append(char **ou, int *line_count, char data)
+{
+    if (*line_count == 76) {
+        *(*ou)++ = '\n';
+        *line_count = 0;
+    }
+    *(*ou)++ = data;
+    (*line_count)++;
+}
+
+
+char *base64_encode(void *data, size_t size)
+{
+    int line_count = 0;
+    return base64_encode_multiple(data, size, &line_count);
+}
+
+
+char *base64_encode_multiple(void *data, size_t size, int *line_count)
+{
     char *output;
-    register char *ou;
-    register unsigned char *p=(unsigned char *)data;
-    register void * dte = (void*)((char*)data + size);
-    register int nc=0;
+    char *ou;
+    unsigned char *p   = (unsigned char *)data;
+    unsigned char *dte = p + size;
 
-    if ( data == NULL || size == 0 ) return NULL;
+    if (data == NULL || size == 0) return NULL;
 
     ou = output = (char *)malloc(size / 3 * 4 + (size / 57) + 5);
-    if(!output) return NULL;
+    if (!output) return NULL;
 
-    while((char *)dte - (char *)p >= 3) {
+    while((dte-p) >= 3) {
         unsigned char x = p[0];
         unsigned char y = p[1];
         unsigned char z = p[2];
-        ou[0] = _sf_uc_ib[ x >> 2 ];
-        ou[1] = _sf_uc_ib[ ((x & 0x03) << 4) | (y >> 4) ];
-        ou[2] = _sf_uc_ib[ ((y & 0x0F) << 2) | (z >> 6) ];
-        ou[3] = _sf_uc_ib[ z & 0x3F ];
+        base64_append(&ou, line_count, base64_code_chars[ x >> 2 ]);
+        base64_append(&ou, line_count, base64_code_chars[ ((x & 0x03) << 4) | (y >> 4) ]);
+        base64_append(&ou, line_count, base64_code_chars[ ((y & 0x0F) << 2) | (z >> 6) ]);
+        base64_append(&ou, line_count, base64_code_chars[ z & 0x3F ]);
         p+=3;
-        ou+=4;
-        nc+=4;
-        if(!(nc % 76)) *ou++='\n';
     };
-    if ((char *)dte - (char *)p == 2) {
-        *ou++ = _sf_uc_ib[ *p >> 2 ];
-        *ou++ = _sf_uc_ib[ ((*p & 0x03) << 4) | (p[1] >> 4) ];
-        *ou++ = _sf_uc_ib[ ((p[1] & 0x0F) << 2) ];
-        *ou++ = '=';
-    } else if((char *)dte - (char *)p == 1) {
-        *ou++ = _sf_uc_ib[ *p >> 2 ];
-        *ou++ = _sf_uc_ib[ ((*p & 0x03) << 4) ];
-        *ou++ = '=';
-        *ou++ = '=';
+    if ((dte-p) == 2) {
+        base64_append(&ou, line_count, base64_code_chars[ *p >> 2 ]);
+        base64_append(&ou, line_count, base64_code_chars[ ((*p & 0x03) << 4) | (p[1] >> 4) ]);
+        base64_append(&ou, line_count, base64_code_chars[ ((p[1] & 0x0F) << 2) ]);
+        base64_append(&ou, line_count, '=');
+    } else if ((dte-p) == 1) {
+        base64_append(&ou, line_count, base64_code_chars[ *p >> 2 ]);
+        base64_append(&ou, line_count, base64_code_chars[ ((*p & 0x03) << 4) ]);
+        base64_append(&ou, line_count, '=');
+        base64_append(&ou, line_count, '=');
     };
 
     *ou=0;
-
     return output;
 };
 
