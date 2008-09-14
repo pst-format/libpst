@@ -9,11 +9,43 @@ lspst_SOURCES       = $(hfiles) lspst.c      libpst.c timeconv.c libstrfunc.c de
 readpst_SOURCES     = $(hfiles) readpst.c    libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
 readpstlog_SOURCES  = $(hfiles) readpstlog.c                                  debug.c
 pst2ldif_SOURCES    = $(hfiles) pst2ldif.cpp libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
-pst2dii_SOURCES	    = $(hfiles) pst2dii.cpp  libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
-
+pst2dii_SOURCES     = $(hfiles) pst2dii.cpp  libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
 deltasearch_SOURCES = deltasearch.cpp debug.c
 dumpblocks_SOURCES  = dumpblocks.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c
 getidblock_SOURCES  = getidblock.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c
+
+if BUILD_LIBPST_SHARED
+    lspst_CFLAGS        = $(AM_CFLAGS)
+    readpst_CFLAGS      = $(AM_CFLAGS)
+    readpstlog_CFLAGS   = $(AM_CFLAGS)
+    pst2ldif_CFLAGS     = $(AM_CFLAGS)
+    pst2dii_CFLAGS      = $(AM_CFLAGS)
+    deltasearch_CFLAGS  = $(AM_CFLAGS)
+    dumpblocks_CFLAGS   = $(AM_CFLAGS)
+    getidblock_CFLAGS   = $(AM_CFLAGS)
+    lib_LTLIBRARIES = libpst.la
+    libpst_la_SOURCES = common.h        \
+                        debug.c 		\
+                        libpst.c        \
+                        libpst.h        \
+                        libstrfunc.c    \
+                        libstrfunc.h    \
+                        lspst.c         \
+                        timeconv.c      \
+                        timeconv.h      \
+                        vbuf.c          \
+                        vbuf.h          \
+                        version.h
+    libpst_la_LDFLAGS = -no-undefined
+    libpstincludedir = $(includedir)/libpst
+    libpstinclude_HEADERS = common.h        \
+                            define.h        \
+                            libpst.h        \
+                            libstrfunc.h	\
+                            timeconv.h      \
+                            vbuf.h          \
+                            version.h
+endif
 
 if NEED_XGETOPT
     lspst_SOURCES       += XGetopt.c
