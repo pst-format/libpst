@@ -1,3 +1,8 @@
+LibPST 0.6.19 (2008-09-14)
+===============================
+	* Fix base64 encoding that could create long lines
+	* Initial work on a .so shared library from Bharath Acharya.
+
 LibPST 0.6.18 (2008-08-28)
 ===============================
     	* Fixes for iconv on Mac from Justin Greer.
