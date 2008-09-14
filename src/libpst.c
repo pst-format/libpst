@@ -291,14 +291,13 @@ size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     pst_index_ll *ptr;
     pst_holder h = {NULL, fp, 0};
     size_t size = 0;
-    int32_t x;
     DEBUG_ENT("pst_attach_to_file");
     if (attach->id_val != (uint64_t)-1) {
         ptr = pst_getID(pf, attach->id_val);
         if (ptr) {
             // pst_num_array *list = pst_parse_block(pf, ptr->id, NULL, NULL);
             // DEBUG_WARN(("writing file data attachment\n"));
-            // for (x=0; x<list->count_item; x++) {
+            // for (int32_t x=0; x<list->count_item; x++) {
             //     DEBUG_HEXDUMPC(list->items[x]->data, list->items[x]->size, 0x10);
             //     (void)pst_fwrite(list->items[x]->data, (size_t)1, list->items[x]->size, fp);
             // }
@@ -321,7 +320,6 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
     pst_index_ll *ptr;
     pst_holder h = {NULL, fp, 1};
     size_t size = 0;
-    int32_t x;
     char *c;
     DEBUG_ENT("pst_attach_to_file_base64");
     if (attach->id_val != (uint64_t)-1) {
@@ -329,7 +327,7 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
         if (ptr) {
             // pst_num_array *list = pst_parse_block(pf, ptr->id, NULL, NULL);
             // DEBUG_WARN(("writing base64 data attachment\n"));
-            // for (x=0; x<list->count_item; x++) {
+            // for (int32_t x=0; x<list->count_item; x++) {
             //     DEBUG_HEXDUMPC(list->items[x]->data, list->items[x]->size, 0x10);
             //     c = base64_encode(list->items[x]->data, list->items[x]->size);
             //     if (c) {
@@ -4451,7 +4449,7 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
 
 
 size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) {
-    size_t z, a, b;
+    size_t z, a;
     uint16_t count, y;
     char *buf3 = NULL, *buf2 = NULL, *t;
     char *b_ptr;
