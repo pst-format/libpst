@@ -33,7 +33,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-06-13</date>
+            <date>2008-09-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -200,7 +200,7 @@
             <title>Copyright</title>
             <para>
                 Copyright (C) 2002 by David Smith &lt;dave.s@earthcorp.com&gt;.
-                XML version Copyright (C) 2006 by 510 Software Group &lt;carl@five-ten-sg.com&gt;.
+                XML version Copyright (C) 2008 by 510 Software Group &lt;carl@five-ten-sg.com&gt;.
             </para>
             <para>
                 This program is free software; you can redistribute it and/or modify it
@@ -226,7 +226,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-06-13</date>
+            <date>2008-09-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -329,7 +329,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-06-13</date>
+            <date>2008-09-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -478,7 +478,7 @@
             <title>Copyright</title>
             <para>
                 Copyright (C) 2002 by David Smith &lt;dave.s@earthcorp.com&gt;.
-                XML version Copyright (C) 2005 by 510 Software Group &lt;carl@five-ten-sg.com&gt;.
+                XML version Copyright (C) 2008 by 510 Software Group &lt;carl@five-ten-sg.com&gt;.
             </para>
             <para>
                 This program is free software; you can redistribute it and/or modify it
@@ -504,7 +504,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-06-13</date>
+            <date>2008-09-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -525,6 +525,7 @@
                 <arg><option>-V</option></arg>
                 <arg><option>-b <replaceable class="parameter">ldap-base</replaceable></option></arg>
                 <arg><option>-c <replaceable class="parameter">class</replaceable></option></arg>
+                <arg><option>-C <replaceable class="parameter">character-set</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
                 <arg><option>-h</option></arg>
                 <arg choice='plain'>pstfilename</arg>
@@ -553,6 +554,12 @@
                         Sets the objectClass values for the contact items. This class needs to be
                         defined in the schema used by your LDAP server, and at a minimum it must
                         contain the ldap attributes given below.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-C <replaceable class="parameter">character-set</replaceable></term>
+                    <listitem><para>
+                        Specify the name of the character set used in your pst file for contacts.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -602,7 +609,7 @@
         <refsect1 id='pst2ldif.copyright.1'>
             <title>Copyright</title>
             <para>
-                Copyright (C) 2006 by 510 Software Group &lt;carl@five-ten-sg.com&gt;
+                Copyright (C) 2008 by 510 Software Group &lt;carl@five-ten-sg.com&gt;
             </para>
             <para>
                 This program is free software; you can redistribute it and/or modify it
@@ -628,7 +635,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2008-06-13</date>
+            <date>2008-09-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -762,7 +769,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-06-13</date>
+            <date>2008-09-28</date>
         </refentryinfo>
 
         <refmeta>

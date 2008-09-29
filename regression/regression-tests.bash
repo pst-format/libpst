@@ -1,7 +1,7 @@
 #!/bin/bash
 
 val="valgrind --leak-check=full"
-val=''
+#val=''
 
 pushd ..
 make || exit
@@ -28,6 +28,7 @@ if [ "$1" == "dii" ]; then
 fi
 
 $val  ../src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' ams.pst >ams.err  2>&1
+exit
 
 $val  ../src/readpst -cv    -o output1 -d dumper ams.pst             >out1.err 2>&1
       ../src/readpstlog -f I dumper >ams1.log

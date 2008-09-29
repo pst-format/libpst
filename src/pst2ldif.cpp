@@ -20,23 +20,26 @@ extern "C" {
     #include "common.h"
     #include "timeconv.h"
     #include "lzfu.h"
+    #include "stdarg.h"
+    #include "iconv.h"
 }
 
-int32_t   usage();
-int32_t   version();
-char       *my_stristr(char *haystack, char *needle);
+int32_t     usage();
+int32_t     version();
 char       *check_filename(char *fname);
-const char *single(char *str);
-const char *folded(char *str);
-void        multi(const char *fmt, char *str);
-char       *rfc2426_escape(char *str);
-int32_t     chr_count(char *str, char x);
+char       *dn_escape(const char *str);
+void        print_ldif(const char *dn, const char *value);
+void        print_ldif_single(const char *dn, const char *value);
+void        print_ldif_multi(const char *dn, const char *value);
+void        print_ldif_two(const char *dn, const char *value1, const char *value2);
+void        build_cn(char *cn, size_t len, int nvalues, char *value, ...);
 
 char *prog_name;
 pst_file pstfile;
 char *ldap_base  = NULL;    // 'o=some.domain.tld, c=US'
 char *ldap_class = NULL;    // 'newPerson'
-char *ldap_org   = NULL;    // 'o=some.domain.tld', computed from ldap_base
+char *ldap_org   = NULL;    // 'some.domain.tld', computed from ldap_base
+iconv_t cd       = 0;       // Character set conversion descriptor
 
 
 ////////////////////////////////////////////////
@@ -77,6 +80,7 @@ static const char* register_string(string_set &s, const char *name) {
     return x;
 }
 
+
 ////////////////////////////////////////////////
 // register a global string
 //
@@ -103,19 +107,6 @@ static const char* unique_string(const char *name) {
 }
 
 
-////////////////////////////////////////////////
-// remove leading and trailing blanks
-//
-static char *trim(char *name);
-static char *trim(char *name) {
-    char *p;
-    while (*name == ' ') name++;
-    p = name + strlen(name) - 1;
-    while ((p >= name) && (*p == ' ')) *p-- = '\0';
-    return name;
-}
-
-
 static void process(pst_desc_ll *d_ptr);
 static void process(pst_desc_ll *d_ptr) {
     pst_item *item = NULL;
@@ -132,108 +123,110 @@ static void process(pst_desc_ll *d_ptr) {
                 } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
                     // deal with a contact
                     char cn[1000];
-                    snprintf(cn, sizeof(cn), "%s %s %s %s",
-                        single(item->contact->display_name_prefix),
-                        single(item->contact->first_name),
-                        single(item->contact->surname),
-                        single(item->contact->suffix));
-                    if (strcmp(cn, "   ")) {
+                    build_cn(cn, sizeof(cn), 4,
+                        item->contact->display_name_prefix,
+                        item->contact->first_name,
+                        item->contact->surname,
+                        item->contact->suffix);
+                    if (cn[0] != 0) {
                         // have a valid cn
-                        const char *ucn = unique_string(folded(trim(cn)));
-                        printf("dn: cn=%s, %s\n", ucn, ldap_base);
-                        printf("cn: %s\n", ucn);
+                        const char *ucn = unique_string(cn);
+                        char dn[strlen(ucn) + strlen(ldap_base) + 6];
+
+                        sprintf(dn, "cn=%s, %s", ucn, ldap_base);
+                        print_ldif_single("dn", dn);
+                        print_ldif_single("cn", ucn);
                         if (item->contact->first_name) {
-                            snprintf(cn, sizeof(cn), "%s %s",
-                                single(item->contact->display_name_prefix),
-                                single(item->contact->first_name));
-                            printf("givenName: %s\n", trim(cn));
+                            print_ldif_two("givenName",
+                                           item->contact->display_name_prefix,
+                                           item->contact->first_name);
                         }
                         if (item->contact->surname) {
-                            snprintf(cn, sizeof(cn), "%s %s",
-                                single(item->contact->surname),
-                                single(item->contact->suffix));
-                            printf("sn: %s\n", trim(cn));
+                            print_ldif_two("sn",
+                                           item->contact->surname,
+                                           item->contact->suffix);
                         }
                         else if (item->contact->company_name) {
-                            printf("sn: %s\n", single(item->contact->company_name));
+                            print_ldif_single("sn", item->contact->company_name);
                         }
                         else
-                            printf("sn: %s\n", ucn);    // use cn as sn if we cannot find something better
+                            print_ldif_single("sn", ucn); // use cn as sn if we cannot find something better
 
                         if (item->contact->job_title)
-                            printf("personalTitle: %s\n", single(item->contact->job_title));
+                            print_ldif_single("personalTitle", item->contact->job_title);
                         if (item->contact->company_name)
-                            printf("company: %s\n", single(item->contact->company_name));
+                            print_ldif_single("company", item->contact->company_name);
                         if (item->contact->address1  && *item->contact->address1)
-                            printf("mail: %s\n", single(item->contact->address1));
+                            print_ldif_single("mail", item->contact->address1);
                         if (item->contact->address2  && *item->contact->address2)
-                            printf("mail: %s\n", single(item->contact->address2));
+                            print_ldif_single("mail", item->contact->address2);
                         if (item->contact->address3  && *item->contact->address3)
-                            printf("mail: %s\n", single(item->contact->address3));
+                            print_ldif_single("mail", item->contact->address3);
                         if (item->contact->address1a && *item->contact->address1a)
-                            printf("mail: %s\n", single(item->contact->address1a));
+                            print_ldif_single("mail", item->contact->address1a);
                         if (item->contact->address2a && *item->contact->address2a)
-                            printf("mail: %s\n", single(item->contact->address2a));
+                            print_ldif_single("mail", item->contact->address2a);
                         if (item->contact->address3a && *item->contact->address3a)
-                            printf("mail: %s\n", single(item->contact->address3a));
+                            print_ldif_single("mail", item->contact->address3a);
                         if (item->contact->business_address) {
                             if (item->contact->business_po_box)
-                                printf("postalAddress: %s\n", single(item->contact->business_po_box));
+                                print_ldif_single("postalAddress", item->contact->business_po_box);
                             if (item->contact->business_street)
-                                multi("postalAddress: %s\n", item->contact->business_street);
+                                print_ldif_multi("postalAddress", item->contact->business_street);
                             if (item->contact->business_city)
-                                printf("l: %s\n", single(item->contact->business_city));
+                                print_ldif_single("l", item->contact->business_city);
                             if (item->contact->business_state)
-                                printf("st: %s\n", single(item->contact->business_state));
+                                print_ldif_single("st", item->contact->business_state);
                             if (item->contact->business_postal_code)
-                                printf("postalCode: %s\n", single(item->contact->business_postal_code));
+                                print_ldif_single("postalCode", item->contact->business_postal_code);
                         }
                         else if (item->contact->home_address) {
                             if (item->contact->home_po_box)
-                                printf("postalAddress: %s\n", single(item->contact->home_po_box));
+                                print_ldif_single("postalAddress", item->contact->home_po_box);
                             if (item->contact->home_street)
-                                multi("postalAddress: %s\n", item->contact->home_street);
+                                print_ldif_multi("postalAddress", item->contact->home_street);
                             if (item->contact->home_city)
-                                printf("l: %s\n", single(item->contact->home_city));
+                                print_ldif_single("l", item->contact->home_city);
                             if (item->contact->home_state)
-                                printf("st: %s\n", single(item->contact->home_state));
+                                print_ldif_single("st", item->contact->home_state);
                             if (item->contact->home_postal_code)
-                                printf("postalCode: %s\n", single(item->contact->home_postal_code));
+                                print_ldif_single("postalCode", item->contact->home_postal_code);
                         }
                         else if (item->contact->other_address) {
                             if (item->contact->other_po_box)
-                                printf("postalAddress: %s\n", single(item->contact->other_po_box));
+                                print_ldif_single("postalAddress", item->contact->other_po_box);
                             if (item->contact->other_street)
-                                multi("postalAddress: %s\n", item->contact->other_street);
+                                print_ldif_multi("postalAddress", item->contact->other_street);
                             if (item->contact->other_city)
-                                printf("l: %s\n", single(item->contact->other_city));
+                                print_ldif_single("l", item->contact->other_city);
                             if (item->contact->other_state)
-                                printf("st: %s\n", single(item->contact->other_state));
+                                print_ldif_single("st", item->contact->other_state);
                             if (item->contact->other_postal_code)
-                                printf("postalCode: %s\n", single(item->contact->other_postal_code));
+                                print_ldif_single("postalCode", item->contact->other_postal_code);
                         }
                         if (item->contact->business_fax)
-                            printf("facsimileTelephoneNumber: %s\n", single(item->contact->business_fax));
+                            print_ldif_single("facsimileTelephoneNumber", item->contact->business_fax);
                         else if (item->contact->home_fax)
-                            printf("facsimileTelephoneNumber: %s\n", single(item->contact->home_fax));
+                            print_ldif_single("facsimileTelephoneNumber", item->contact->home_fax);
 
                         if (item->contact->business_phone)
-                            printf("telephoneNumber: %s\n", single(item->contact->business_phone));
+                            print_ldif_single("telephoneNumber", item->contact->business_phone);
                         if (item->contact->home_phone)
-                            printf("homePhone: %s\n", single(item->contact->home_phone));
+                            print_ldif_single("homePhone", item->contact->home_phone);
 
                         if (item->contact->car_phone)
-                            printf("mobile: %s\n", single(item->contact->car_phone));
+                            print_ldif_single("mobile", item->contact->car_phone);
                         else if (item->contact->mobile_phone)
-                            printf("mobile: %s\n", single(item->contact->mobile_phone));
+                            print_ldif_single("mobile", item->contact->mobile_phone);
                         else if (item->contact->other_phone)
-                            printf("mobile: %s\n", single(item->contact->other_phone));
+                            print_ldif_single("mobile", item->contact->other_phone);
 
 
                         if (item->comment)
-                            printf("description: %s\n", single(item->comment));
+                            print_ldif_single("description", item->comment);
 
-                        printf("objectClass: %s\n\n", ldap_class);
+                        print_ldif("objectClass", ldap_class);
+                        putchar('\n');
                     }
                 }
                 else {
@@ -247,16 +240,183 @@ static void process(pst_desc_ll *d_ptr) {
 }
 
 
+void print_ldif(const char *dn, const char *value)
+{
+    printf("%s: %s\n", dn, value);
+}
+
+
+// Prints a Distinguished Name together with its value.
+// If the value isn't a "SAFE STRING" (as defined in RFC2849),
+// then it is output as a BASE-64 encoded value
+void print_ldif_single(const char *dn, const char *value)
+{
+    size_t len;
+    bool is_safe_string = true;
+    bool needs_code_conversion = false;
+    bool space_flag = false;
+
+    // Strip leading spaces
+    while (*value == ' ') value++;
+    len = strlen(value) + 1;
+    char buffer[len];
+    char *p = buffer;
+    // See if "value" is a "SAFE STRING"
+
+    // First check characters that are safe but not safe as initial characters
+    if (*value == ':' || *value == '<')
+        is_safe_string = false;
+    for (;;) {
+        char ch = *value++;
+
+        if (ch == 0 || ch == '\n')
+            break;
+        else if (ch == '\r')
+            continue;
+        else if (ch == ' ') {
+            space_flag = true;
+            continue;
+        }
+        else {
+            if ((ch & 0x80) == 0x80) {
+                needs_code_conversion = true;
+                is_safe_string = false;
+            }
+            if (space_flag) {
+                *p++ = ' ';
+                space_flag = false;
+            }
+            *p++ = ch;
+        }
+    }
+    *p = 0;
+    if (is_safe_string) {
+        printf("%s: %s\n", dn, buffer);
+        return;
+    }
+
+    if (needs_code_conversion && cd != 0) {
+        size_t inlen = p - buffer;
+        size_t utf8_len = 2 * inlen + 1;
+        char utf8_buffer[utf8_len];
+        char *utf8_p = utf8_buffer;
+
+        iconv(cd, NULL, NULL, NULL, NULL);
+        p = buffer;
+        int ret = iconv(cd, &p, &inlen, &utf8_p, &utf8_len);
+
+        if (ret >= 0) {
+            *utf8_p = 0;
+            p = base64_encode(utf8_buffer, utf8_p - utf8_buffer);
+        }
+        else
+            p = base64_encode(buffer, strlen(buffer));
+    }
+    else
+        p = base64_encode(buffer, strlen(buffer));
+    printf("%s:: %s\n", dn, p);
+    free(p);
+}
+
+
+void print_ldif_multi(const char *dn, const char *value)
+{
+    const char *n;
+    while ((n = strchr(value, '\n'))) {
+        print_ldif_single(dn, value);
+        value = n + 1;
+    }
+    print_ldif_single(dn, value);
+}
+
+
+void print_ldif_two(const char *dn, const char *value1, const char *value2)
+{
+    size_t len1, len2;
+    if (value1 && *value1)
+        len1 = strlen(value1);
+    else {
+        print_ldif_single(dn, value2);
+        return;
+    }
+
+    if (value2 && *value2)
+        len2 = strlen(value2);
+    else {
+        print_ldif_single(dn, value1);
+        return;
+    }
+
+    char value[len1 + len2 + 2];
+    memcpy(value, value1, len1);
+    value[len1] = ' ';
+    memcpy(value + len1 + 1, value2, len2 + 1);
+    print_ldif_single(dn, value);
+}
+
+
+void build_cn(char *cn, size_t len, int nvalues, char *value, ...)
+{
+    bool space_flag = false;
+    int i = 0;
+    va_list ap;
+
+    va_start(ap, value);
+
+    while (!value) {
+       nvalues--;
+       if (nvalues == 0) {
+           va_end(ap);
+           return;
+       }
+       value = va_arg(ap, char *);
+    }
+    for (;;) {
+        char ch = *value++;
+
+        if (ch == 0 || ch == '\n') {
+            do {
+                value = NULL;
+                nvalues--;
+                if (nvalues == 0) break;
+                value = va_arg(ap, char *);
+            } while (!value);
+            if (!value) break;
+            space_flag = true;
+        }
+        else if (ch == '\r')
+            continue;
+        else if (ch == ' ') {
+            space_flag = true;
+            continue;
+        }
+        else {
+            if (space_flag) {
+                if (i > 0) {
+                    if (i < (len - 2)) cn[i++] = ' ';
+                    else               break;
+                }
+                space_flag = false;
+            }
+            if (i < (len - 1)) cn[i++] = ch;
+            else               break;
+        }
+    }
+    cn[i] = 0;
+    va_end(ap);
+}
+
+
 int main(int argc, char** argv) {
     pst_desc_ll *d_ptr;
     char *fname = NULL;
     char *temp = NULL;        //temporary char pointer
-    char c;
+    int c;
     char *d_log = NULL;
     prog_name = argv[0];
     pst_item *item = NULL;
 
-    while ((c = getopt(argc, argv, "b:c:d:Vh"))!= -1) {
+    while ((c = getopt(argc, argv, "b:c:C:d:Vh"))!= -1) {
         switch (c) {
         case 'b':
             ldap_base = optarg;
@@ -269,6 +429,14 @@ int main(int argc, char** argv) {
             break;
         case 'c':
             ldap_class = optarg;
+            break;
+        case 'C':
+            cd = iconv_open("UTF-8", optarg);
+            if (cd == (iconv_t)(-1)) {
+                fprintf(stderr, "I don't know character set \"%s\"!\n\n", optarg);
+                fprintf(stderr, "Type: \"iconv --list\" to get list of known character sets\n");
+                return 1;
+            }
             break;
         case 'd':
             d_log = optarg;
@@ -344,8 +512,9 @@ int usage() {
     printf("OPTIONS:\n");
     printf("\t-h\t- Help. This screen\n");
     printf("\t-V\t- Version. Display program version\n");
-    printf("\t-b ldapbase\t- set the ldap base value\n");
-    printf("\t-c class   \t- set the class of the ldap objects\n");
+    printf("\t-b ldapbase\t- set the LDAP base value\n");
+    printf("\t-c class   \t- set the class of the LDAP objects\n");
+    printf("\t-C charset \t- assumed character set of non-ASCII characters\n");
     return 0;
 }
 
@@ -366,28 +535,6 @@ int version() {
 }
 
 
-// my_stristr varies from strstr in that its searches are case-insensitive
-char * my_stristr(char *haystack, char *needle) {
-    char *x=haystack, *y=needle, *z = NULL;
-    if (haystack == NULL || needle == NULL)
-        return NULL;
-    while (*y != '\0' && *x != '\0') {
-        if (tolower(*y) == tolower(*x)) {
-            // move y on one
-            y++;
-            if (z == NULL) {
-        z = x; // store first position in haystack where a match is made
-            }
-        } else {
-            y = needle; // reset y to the beginning of the needle
-            z = NULL; // reset the haystack storage point
-        }
-        x++; // advance the search in the haystack
-    }
-    return z;
-}
-
-
 char *check_filename(char *fname) {
     char *t = fname;
     if (t == NULL) {
@@ -400,95 +547,52 @@ char *check_filename(char *fname) {
     return fname;
 }
 
-
-const char *single(char *str) {
-    if (!str) return "";
-    char *ret = rfc2426_escape(str);
-    char *n = strchr(ret, '\n');
-    if (n) *n = '\0';
-    return ret;
-}
-
-
-const char *folded(char *str) {
-    if (!str) return "";
-    char *ret = rfc2426_escape(str);
-    char *n = ret;
-    while ((n = strchr(n, '\n'))) {
-        *n = ' ';
-    }
-    n = ret;
-    while ((n = strchr(n, ','))) {
-        *n = ' ';
-    }
-    return ret;
-}
-
-
-void multi(const char *fmt, char *str) {
-    if (!str) return;
-    char *ret = rfc2426_escape(str);
-    char *n = ret;
-    while ((n = strchr(ret, '\n'))) {
-        *n = '\0';
-        printf(fmt, ret);
-        ret = n+1;
-    }
-    if (*ret) printf(fmt, ret);
-}
-
-
-char *rfc2426_escape(char *str) {
+#if 0
+// This function escapes Distinguished Names (as per RFC4514)
+char *dn_escape(const char *str) {
     static char* buf = NULL;
-    char *ret, *a, *b;
-    int x = 0, y, z;
+    const char *a;
+    char *ret, *b;
     if (str == NULL)
-        ret = str;
+        ret = NULL;
     else {
+        // Calculate maximum space needed (if every character must be escaped)
+        int x = 2 * strlen(str) + 1;  // don't forget room for the NUL
+        buf = (char*) realloc(buf, x);
+        a = str;
+        b = buf;
 
-        // calculate space required to escape all the following characters
-        y = chr_count(str, '\\')
-          + chr_count(str, ';');
-        z = chr_count(str, '\r');
-        if (y == 0 && z == 0)
-            // there isn't any extra space required
-            ret = str;
-        else {
-            x = strlen(str) + y - z + 1; // don't forget room for the NUL
-            buf = (char*) realloc(buf, x);
-            a = str;
-            b = buf;
-            while (*a != '\0') {
-                switch(*a) {
-                    case '\\':
-                    case ';' :
-                        *(b++)='\\';
-                        *b=*a;
+        // remove leading spaces (RFC says escape them)
+        while (*a == ' ')
+            a++;
+
+        // escape initial '#'
+        if (*a == '#')
+            *b++ = '\\';
+
+        while (*a != '\0') {
+            switch(*a) {
+                case '\\':
+                case '"' :
+                case '+' :
+                case ';' :
+                case '<' :
+                case '>' :
+                    *(b++)='\\';
+                    *b=*a;
+                break;
+                case '\r':  // skip cr
+                    b--;
                     break;
-                    case '\r':  // skip cr
-                        b--;
-                        break;
-                    default:
-                        *b=*a;
-                }
-                b++;
-                a++;
+                default:
+                    *b=*a;
             }
-            *b = '\0'; // NUL-terminate the string (buf)
-            ret = buf;
+            b++;
+            a++;
         }
+        *b = '\0'; // NUL-terminate the string (buf)
+        ret = buf;
     }
     return ret;
 }
-
-
-int chr_count(char *str, char x) {
-    int r = 0;
-    while (*str != '\0') {
-        if (*str == x)
-            r++;
-        str++;
-    }
-    return r;
-}
-
+#endif
