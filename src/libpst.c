@@ -874,7 +874,7 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, uint64_t parent_
                 lostfound_ptr = lostfound_ptr->next;
             }
             if (!lostfound_ptr) {
-                DEBUG_WARN(("ERROR -- cannot find parent with id %#"PRIx64". Adding to lost/found\n", parent_id));
+                DEBUG_WARN(("ERROR -- cannot find parent with id %#"PRIx64". Adding id %#"PRIx64" to lost/found\n", parent_id, d_ptr->id));
                 lostfound_ptr = (struct cache_list_node*) xmalloc(sizeof(struct cache_list_node));
                 lostfound_ptr->prev   = NULL;
                 lostfound_ptr->next   = lostfound_head;
@@ -883,7 +883,7 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, uint64_t parent_
                 lostfound_head = lostfound_ptr;
             } else {
                 parent = lostfound_ptr->ptr;
-                DEBUG_INDEX(("Found parent (%#"PRIx64") in Lost and Found\n", parent->id));
+                DEBUG_INDEX(("Found parent (%#"PRIx64") in lost/found\n", parent->id));
             }
         }
 
@@ -1062,7 +1062,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
             lostfound_shd = NULL;
             while (lostfound_ptr) {
                 if (lostfound_ptr->parent == d_ptr->id) {
-                    DEBUG_INDEX(("Found a child  (%#"PRIx64") of the current record. Joining to main structure.\n", lostfound_ptr->ptr->id));
+                    DEBUG_INDEX(("Found a lost/found child (%#"PRIx64") of the current record. Joining to main structure.\n", lostfound_ptr->ptr->id));
                     parent = d_ptr;
                     d_ptr = lostfound_ptr->ptr;
                     parent->no_child++;
@@ -1132,7 +1132,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
         // free the lost and found
         while (lostfound_head) {
             lostfound_ptr = lostfound_head->next;
-            WARN(("unused lost/found item with parent %#"PRIx64"))", lostfound_head->parent));
+            WARN(("unused lost/found item %#"PRIx64" with parent %#"PRIx64, lostfound_head->parent, lostfound_head->ptr->id));
             free(lostfound_head);
             lostfound_head = lostfound_ptr;
         }

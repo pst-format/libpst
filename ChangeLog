@@ -1,7 +1,10 @@
-LibPST 0.6.20 (2008-09-28)
+LibPST 0.6.20 (2008-10-02)
 ===============================
     	* add configure option --enable-dii=no to remove dependency on libgd.
 	* many fixes in pst2ldif by Robert Harris.
+	* add -D option to include deleted items, from Justin Greer
+        * fix from Justin Greer to add missing email headers
+        * fix from Justin Greer for my_stristr()
 
 LibPST 0.6.19 (2008-09-14)
 ===============================

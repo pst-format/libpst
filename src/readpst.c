@@ -91,6 +91,10 @@ char*  kmail_chdir = NULL;
 #define CMODE_VCARD 0
 #define CMODE_LIST  1
 
+// output mode for deleted items
+#define DMODE_EXCLUDE 0
+#define DMODE_INCLUDE 1
+
 // output settings for RTF bodies
 // filename for the attachment
 #define RTF_ATTACH_NAME "rtf-body.rtf"
@@ -102,6 +106,7 @@ int mode = MODE_NORMAL;
 int mode_MH = 0;
 int output_mode = OUTPUT_NORMAL;
 int contact_mode = CMODE_VCARD;
+int deleted_mode = DMODE_EXCLUDE;
 int overwrite = 0;
 int save_rtf_body = 1;
 pst_file pstfile;
@@ -133,7 +138,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                 DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
             }
             if (item) {
-                if (item->folder && d_ptr->child && strcasecmp(item->file_as, "Deleted Items")) {
+                if (item->folder && d_ptr->child && (deleted_mode == DMODE_INCLUDE || strcasecmp(item->file_as, "Deleted Items"))) {
                     //if this is a non-empty folder other than deleted items, we want to recurse into it
                     if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as);
                     process(item, d_ptr->child);
@@ -223,7 +228,7 @@ int main(int argc, char** argv) {
     prog_name = argv[0];
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "bCc:d:hko:qrSMVw"))!= -1) {
+    while ((c = getopt(argc, argv, "bCc:Dd:hko:qrSMVw"))!= -1) {
         switch (c) {
         case 'b':
             save_rtf_body = 0;
@@ -240,6 +245,9 @@ int main(int argc, char** argv) {
                 usage();
                 exit(0);
             }
+            break;
+        case 'D':
+            deleted_mode = DMODE_INCLUDE;
             break;
         case 'd':
             d_log = optarg;
@@ -413,6 +421,7 @@ int usage() {
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
     printf("\t-C\t- Decrypt (compressible encryption) the entire file and output on stdout (not typically useful)\n");
+    printf("\t-D\t- Include deleted items in output\n");
     printf("\t-M\t- MH. Write emails in the MH format\n");
     printf("\t-S\t- Separate. Write emails in the separate format\n");
     printf("\t-V\t- Version. Display program version\n");
@@ -653,6 +662,8 @@ char *my_stristr(char *haystack, char *needle) {
         x++; // advance the search in the haystack
     }
     DEBUG_RET();
+    // If the haystack ended before our search finished, it's not a match.
+    if (*y != '\0') return NULL;
     return z;
 }
 
@@ -790,6 +801,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     time_t em_time;
     char *c_time;
     pst_item_attach* current_attach;
+    int has_from, has_subject, has_to, has_cc, has_bcc, has_date;
+    has_from = has_subject = has_to = has_cc = has_bcc = has_date = 0;
     DEBUG_ENT("write_normal_email");
 
     // convert the sent date if it exists, or set it to a fixed date
@@ -860,18 +873,44 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
                 DEBUG_WARN(("found a ':' during the my_stristr, but not after that..\n"));
             }
         }
+
+        // Check if the header block has all the necessary headers.
+        if (my_stristr(item->email->header, "\nFrom:") || (strncasecmp(item->email->header, "From: ", 6) == 0) || my_stristr(item->email->header, "\nX-From:")) {
+            DEBUG_EMAIL(("header block has From header\n"));
+            has_from = 1;
+        }
+        if (my_stristr(item->email->header, "\nTo:") || (strncasecmp(item->email->header, "To: ", 4) == 0)) {
+            DEBUG_EMAIL(("header block has To header\n"));
+            has_to = 1;
+        }
+        if (my_stristr(item->email->header, "\nSubject:") || (strncasecmp(item->email->header, "Subject: ", 9) == 0)) {
+            DEBUG_EMAIL(("header block has Subject header\n"));
+            has_subject = 1;
+        }
+        if (my_stristr(item->email->header, "\nDate:") || (strncasecmp(item->email->header, "Date: ", 6) == 0)) {
+            DEBUG_EMAIL(("header block has Date header\n"));
+            has_date = 1;
+        }
+        if (my_stristr(item->email->header, "\nCC:") || (strncasecmp(item->email->header, "CC: ", 4) == 0)) {
+            DEBUG_EMAIL(("header block has CC header\n"));
+            has_cc = 1;
+        }
+        if (my_stristr(item->email->header, "\nBCC:") || (strncasecmp(item->email->header, "BCC: ", 5) == 0)) {
+            DEBUG_EMAIL(("header block has BCC header\n"));
+            has_bcc = 1;
+        }
     }
 
     if (!boundary && (item->attach || (item->email->body && item->email->htmlbody)
                  || item->email->rtf_compressed || item->email->encrypted_body
                  || item->email->encrypted_htmlbody)) {
-      // we need to create a boundary here.
-      DEBUG_EMAIL(("must create own boundary. oh dear.\n"));
-      boundary = malloc(50 * sizeof(char)); // allow 50 chars for boundary
-      boundary[0] = '\0';
-      sprintf(boundary, "--boundary-LibPST-iamunique-%i_-_-", rand());
-      DEBUG_EMAIL(("created boundary is %s\n", boundary));
-      boundary_created = 1;
+        // we need to create a boundary here.
+        DEBUG_EMAIL(("must create own boundary. oh dear.\n"));
+        boundary = malloc(50 * sizeof(char)); // allow 50 chars for boundary
+        boundary[0] = '\0';
+        sprintf(boundary, "--boundary-LibPST-iamunique-%i_-_-", rand());
+        DEBUG_EMAIL(("created boundary is %s\n", boundary));
+        boundary_created = 1;
     }
 
     DEBUG_EMAIL(("About to print Header\n"));
@@ -893,6 +932,39 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         if (temp) {
             DEBUG_EMAIL(("Found body text in header\n"));
             temp[1] = '\0'; // stop after first \n
+        }
+
+        // Write out any fields that weren't included in the header.
+        if (!has_from) {
+            temp = item->email->outlook_sender;
+            if (!temp) temp = "";
+            fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name, temp);
+        }
+
+        if (!has_subject) {
+            if (item->email->subject && item->email->subject->subj) {
+                fprintf(f_output, "Subject: %s\n", item->email->subject->subj);
+            } else {
+                fprintf(f_output, "Subject: \n");
+            }
+        }
+
+        if (!has_to && item->email->sentto_address) {
+            fprintf(f_output, "To: %s\n", item->email->sentto_address);
+        }
+
+        if (!has_cc && item->email->cc_address) {
+            fprintf(f_output, "Cc: %s\n", item->email->cc_address);
+        }
+
+        if (!has_bcc && item->email->bcc_address) {
+            fprintf(f_output, "Bcc: %s\n", item->email->bcc_address);
+        }
+
+        if (!has_date && item->email->sent_date) {
+            char c_time[C_TIME_SIZE];
+            strftime(c_time, C_TIME_SIZE, "%a, %d %b %Y %H:%M:%S %z", gmtime(&em_time));
+            fprintf(f_output, "Date: %s\n", c_time);
         }
 
         // Now, write out the header...
@@ -925,13 +997,16 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         if (!temp) temp = "";
         fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name, temp);
 
-        if (item->email->subject) {
+        if (item->email->subject && item->email->subject->subj) {
             fprintf(f_output, "Subject: %s\n", item->email->subject->subj);
         } else {
             fprintf(f_output, "Subject: \n");
         }
 
-        fprintf(f_output, "To: %s\n", item->email->sentto_address);
+        if (item->email->sentto_address) {
+            fprintf(f_output, "To: %s\n", item->email->sentto_address);
+        }
+
         if (item->email->cc_address) {
             fprintf(f_output, "Cc: %s\n", item->email->cc_address);
         }

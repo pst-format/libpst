@@ -47,9 +47,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Sun Sep 28 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.20-1
+* Thu Oct 02 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.20-1
 - add configure option --enable-dii=no to remove dependency on libgd.
 - many fixes in pst2ldif by Robert Harris.
+- add -D option to include deleted items, from Justin Greer
+- fix from Justin Greer to add missing email headers
+- fix from Justin Greer for my_stristr()
 
 * Sun Sep 14 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.19-1
 - Fix base64 encoding that could create long lines.

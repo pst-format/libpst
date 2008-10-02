@@ -83,8 +83,9 @@ AC_CHECK_FUNCS([memchr memmove memset strcasecmp strchr strdup strerror strpbrk 
 SAVELIBS="${LIBS}"
 AC_SEARCH_LIBS([iconv_open], [iconv])
 if test "x${SAVELIBS}" != "x${LIBS}"; then
-    all_libraries="/usr/lib $all_libraries"
+    all_libraries="-L/usr/lib $all_libraries"
     AC_SUBST(all_libraries)
+    AC_MSG_WARN([This should be building on Mac OSX, adding /usr/lib to the library path])
 fi
 
 # The following lines adds the --enable-pst-debug option to configure:

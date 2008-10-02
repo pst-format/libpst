@@ -52,6 +52,7 @@
             <cmdsynopsis>
                 <command>readpst</command>
                 <arg><option>-C</option></arg>
+                <arg><option>-D</option></arg>
                 <arg><option>-M</option></arg>
                 <arg><option>-S</option></arg>
                 <arg><option>-V</option></arg>
@@ -83,6 +84,12 @@
                     <term>-C</term>
                     <listitem><para>
                         Decrypt the entire pst file and dump it to stdout.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-D</term>
+                    <listitem><para>
+                        Include deleted items in the output.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
