@@ -188,6 +188,7 @@ typedef struct pst_index2_tree {
 
 typedef struct pst_desc_tree {
     uint64_t id;
+    uint64_t parent_id;
     pst_index_ll * list_index;
     pst_index_ll * desc;
     int32_t no_child;

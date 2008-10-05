@@ -33,7 +33,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-09-28</date>
+            <date>2008-10-05</date>
         </refentryinfo>
 
         <refmeta>
@@ -233,7 +233,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-09-28</date>
+            <date>2008-10-05</date>
         </refentryinfo>
 
         <refmeta>
@@ -336,7 +336,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-09-28</date>
+            <date>2008-10-05</date>
         </refentryinfo>
 
         <refmeta>
@@ -481,6 +481,15 @@
             </para>
         </refsect1>
 
+        <refsect1 id='readpstlog.todo.1'>
+            <title>TODO</title>
+            <para>
+                The binary debug log file is generally much larger than the .pst file,
+                so we need to switch to ftello/fseeko there also to handle files
+                larger than 2GB.
+            </para>
+        </refsect1>
+
         <refsect1 id='readpstlog.copyright.1'>
             <title>Copyright</title>
             <para>
@@ -511,7 +520,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-09-28</date>
+            <date>2008-10-05</date>
         </refentryinfo>
 
         <refmeta>
@@ -642,7 +651,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2008-09-28</date>
+            <date>2008-10-05</date>
         </refentryinfo>
 
         <refmeta>
@@ -776,7 +785,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-09-28</date>
+            <date>2008-10-05</date>
         </refentryinfo>
 
         <refmeta>

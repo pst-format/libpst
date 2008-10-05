@@ -98,7 +98,7 @@ void pst_debug_init(const char* fname) {
       fprintf(stderr, "Opening of file %s failed\n", fname);
       exit(1);
     }
-    pst_debug_fwrite(&version, 1, sizeof(char), debug_fp);
+    pst_debug_fwrite(&version, sizeof(char), 1, debug_fp);
 }
 
 
@@ -191,9 +191,8 @@ void pst_debug_msg_text(const char* fmt, ...) {
         info_ptr->text = "ERROR Saving\n";
     }
 
-    if (!item_head)
-      item_head = info_ptr;
-
+    // add to the linked list of pending items
+    if (!item_head) item_head = info_ptr;
     info_ptr->next = NULL;
     if (item_tail) item_tail->next = info_ptr;
     item_tail = info_ptr;
@@ -300,26 +299,26 @@ void pst_debug_write() {
         end=ptr;
         if (end > USHRT_MAX) { // bigger than can be stored in a short
             rec_type = 'L';
-            pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
-            lfile_rec.type = item_ptr->type;
-            lfile_rec.line = item_ptr->line;
+            pst_debug_fwrite(&rec_type, sizeof(char), 1, debug_fp);
+            lfile_rec.type     = item_ptr->type;
+            lfile_rec.line     = item_ptr->line;
             lfile_rec.funcname = funcname;
             lfile_rec.filename = filename;
-            lfile_rec.text = text;
-            lfile_rec.end = end;
+            lfile_rec.text     = text;
+            lfile_rec.end      = end;
             pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
         } else {
             rec_type = 'M';
-            pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
-            mfile_rec.type = item_ptr->type;
-            mfile_rec.line = item_ptr->line;
+            pst_debug_fwrite(&rec_type, sizeof(char), 1, debug_fp);
+            mfile_rec.type     = item_ptr->type;
+            mfile_rec.line     = item_ptr->line;
             mfile_rec.funcname = funcname;
             mfile_rec.filename = filename;
-            mfile_rec.text = text;
-            mfile_rec.end = end;
+            mfile_rec.text     = text;
+            mfile_rec.end      = end;
             pst_debug_fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
         }
-        pst_debug_fwrite(buf, 1, ptr, debug_fp);
+        pst_debug_fwrite(buf, ptr, 1, debug_fp);
         if (buf) free(buf); buf = NULL;
         item_head = item_ptr->next;
         free(item_ptr->function);
@@ -348,10 +347,12 @@ void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *
     int index_size = 3 * sizeof(off_t);
     off_t index[3];
     off_t index_pos, file_pos;
-    char zero='\0';
+    char zero = '\0';
     unsigned int end;
     if (!debug_fp) return;  // no file
-    index[0] = 1; //only one item in this index
+    index[0] = 1; // only one item in this index
+    index[1] = 0; // valgrind, avoid writing uninitialized data
+    index[2] = 0; // ""
     index_pos = ftello(debug_fp);
     pst_debug_fwrite(index, index_size, 1, debug_fp);
 
@@ -359,21 +360,23 @@ void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *
 
     if (size > USHRT_MAX) { // bigger than can be stored in a short
         rec_type = 'L';
-        pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
-        lfile_rec.type = item->type;
-        lfile_rec.line = item->line;
+        pst_debug_fwrite(&rec_type, sizeof(char), 1, debug_fp);
+        lfile_rec.type     = item->type;
+        lfile_rec.line     = item->line;
         lfile_rec.funcname = 0;
         lfile_rec.filename = strlen(item->function)+1;
-        lfile_rec.text = lfile_rec.filename+strlen(item->file)+1;
+        lfile_rec.text     = lfile_rec.filename+strlen(item->file)+1;
+        lfile_rec.end      = 0; // valgrind, avoid writing uninitialized data
         pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
     } else {
         rec_type = 'M';
-        pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
-        mfile_rec.type = item->type;
-        mfile_rec.line = item->line;
+        pst_debug_fwrite(&rec_type, sizeof(char), 1, debug_fp);
+        mfile_rec.type     = item->type;
+        mfile_rec.line     = item->line;
         mfile_rec.funcname = 0;
         mfile_rec.filename = strlen(item->function)+1;
-        mfile_rec.text = mfile_rec.filename+strlen(item->file)+1;
+        mfile_rec.text     = mfile_rec.filename+strlen(item->file)+1;
+        mfile_rec.end      = 0; // valgrind, avoid writing uninitialized data
         pst_debug_fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
     }
     file_pos = ftello(debug_fp);
@@ -388,11 +391,11 @@ void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *
     fseeko(debug_fp, index_pos, SEEK_SET);
     pst_debug_fwrite(index, index_size, 1, debug_fp);
     if (size > USHRT_MAX) {
-        pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
+        pst_debug_fwrite(&rec_type, sizeof(char), 1, debug_fp);
         lfile_rec.end = end;
         pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
     } else {
-        pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
+        pst_debug_fwrite(&rec_type, sizeof(char), 1, debug_fp);
         mfile_rec.end = end;
         pst_debug_fwrite(&mfile_rec, sizeof(mfile_rec), 1, debug_fp);
     }
@@ -416,7 +419,7 @@ void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, in
 
     // always use the long
     rec_type = 'L';
-    pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
+    pst_debug_fwrite(&rec_type, sizeof(char), 1, debug_fp);
     lfile_rec.funcname = 0;
     lfile_rec.filename = strlen(item->function)+1;
     lfile_rec.text = lfile_rec.filename+strlen(item->file)+1;
@@ -436,7 +439,7 @@ void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, in
     index[2] = ftello(debug_fp);
     fseeko(debug_fp, index_pos, SEEK_SET);
     pst_debug_fwrite(index, index_size, 1, debug_fp);
-    pst_debug_fwrite(&rec_type, 1, sizeof(char), debug_fp);
+    pst_debug_fwrite(&rec_type, sizeof(char), 1, debug_fp);
     pst_debug_fwrite(&lfile_rec, sizeof(lfile_rec), 1, debug_fp);
     fseeko(debug_fp, 0, SEEK_END);
 }

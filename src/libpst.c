@@ -821,107 +821,87 @@ int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1,
 }
 
 
-/** this list node type is used for a quick cache
-    of the descriptor tree nodes (rooted at pf->d_head)
-    and for a "lost and found" list.
-    If the parent isn't found yet, put it on the lost and found
-    list and check it each time you read a new item.
-*/
-struct cache_list_node {
-    pst_desc_ll *ptr;
-    /** only used for lost and found lists */
-    uint64_t parent;
-    struct cache_list_node *next;
-    struct cache_list_node *prev;
-};
-static struct cache_list_node *cache_head;
-static struct cache_list_node *cache_tail;
-static struct cache_list_node *lostfound_head;
-static int cache_count;
+/**
+ * add a pst descriptor node to a linked list of such nodes.
+ *
+ * @param node  pointer to the node to be added to the list
+ * @param head  pointer to the list head pointer
+ * @param tail  pointer to the list tail pointer
+ */
+static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_desc_ll **tail);
+static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_desc_ll **tail)
+{
+    DEBUG_ENT("add_descriptor_to_list");
+    //DEBUG_INDEX(("Added node %#"PRIx64" parent %#"PRIx64" real parent %#"PRIx64" prev %#"PRIx64" next %#"PRIx64"\n",
+    //             node->id, node->parent_id,
+    //             (node->parent ? node->parent->id : (uint64_t)0),
+    //             (node->prev   ? node->prev->id   : (uint64_t)0),
+    //             (node->next   ? node->next->id   : (uint64_t)0)));
+    if (*tail) (*tail)->next = node;
+    if (!(*head)) *head = node;
+    node->prev = *tail;
+    *tail = node;
+    DEBUG_RET();
+}
 
 
 /**
-    add the d_ptr descriptor into the global tree
-*/
-static void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, uint64_t parent_id);
-static void record_descriptor(pst_file *pf, pst_desc_ll *d_ptr, uint64_t parent_id) {
-    struct cache_list_node *lostfound_ptr = NULL;
-    struct cache_list_node *cache_ptr     = NULL;
-    pst_desc_ll            *parent        = NULL;
+ * add a pst descriptor node into the global tree.
+ *
+ * @param pf   global pst file pointer
+ * @param node pointer to the node to be added to the tree
+ */
+static void record_descriptor(pst_file *pf, pst_desc_ll *node);
+static void record_descriptor(pst_file *pf, pst_desc_ll *node)
+{
+    // find any orphan children of this node, and collect them
+    pst_desc_ll *n = pf->d_head;
+    while (n) {
+        if (n->parent_id == node->id) {
+            // found a child of this node
+            DEBUG_INDEX(("Found orphan child %#"PRIx64" of parent %#"PRIx64"\n", n->id, node->id));
+            pst_desc_ll *nn = n->next;
+            pst_desc_ll *pp = n->prev;
+            node->no_child++;
+            n->parent = node;
+            n->prev   = NULL;
+            n->next   = NULL;
+            add_descriptor_to_list(n, &node->child, &node->child_tail);
+            if (pp) pp->next = nn; else pf->d_head = nn;
+            if (nn) nn->prev = pp; else pf->d_tail = pp;
+            n = nn;
+        }
+        else {
+            n = n->next;
+        }
+    }
 
-    if (parent_id == 0 || parent_id == d_ptr->id) {
+    // now hook this node into the global tree
+    if (node->parent_id == 0) {
         // add top level node to the descriptor tree
-        if (parent_id == 0) {
-            DEBUG_INDEX(("No Parent\n"));
-        } else {
-            DEBUG_INDEX(("Record is its own parent. What is this world coming to?\n"));
-        }
-        if (pf->d_tail)  pf->d_tail->next = d_ptr;
-        if (!pf->d_head) pf->d_head = d_ptr;
-        d_ptr->prev = pf->d_tail;
-        pf->d_tail  = d_ptr;
+        //DEBUG_INDEX(("Null parent\n"));
+        add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
+    }
+    else if (node->parent_id == node->id) {
+        // add top level node to the descriptor tree
+        DEBUG_INDEX(("%#"PRIx64" is its own parent. What is this world coming to?\n"));
+        add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
     } else {
-        DEBUG_INDEX(("Searching for parent\n"));
-        // check in the cache for the parent
-        cache_ptr = cache_head;
-        while (cache_ptr && (cache_ptr->ptr->id != parent_id)) {
-            cache_ptr = cache_ptr->next;
-        }
-        if (!cache_ptr && (parent = pst_getDptr(pf, parent_id)) == NULL) {
-            // check in the lost/found list
-            lostfound_ptr = lostfound_head;
-            while (lostfound_ptr && (lostfound_ptr->ptr->id != parent_id)) {
-                lostfound_ptr = lostfound_ptr->next;
-            }
-            if (!lostfound_ptr) {
-                DEBUG_WARN(("ERROR -- cannot find parent with id %#"PRIx64". Adding id %#"PRIx64" to lost/found\n", parent_id, d_ptr->id));
-                lostfound_ptr = (struct cache_list_node*) xmalloc(sizeof(struct cache_list_node));
-                lostfound_ptr->prev   = NULL;
-                lostfound_ptr->next   = lostfound_head;
-                lostfound_ptr->parent = parent_id;
-                lostfound_ptr->ptr    = d_ptr;
-                lostfound_head = lostfound_ptr;
-            } else {
-                parent = lostfound_ptr->ptr;
-                DEBUG_INDEX(("Found parent (%#"PRIx64") in lost/found\n", parent->id));
-            }
-        }
-
-        if (cache_ptr || parent) {
-            if (cache_ptr)
-                // parent is already in the cache
-                parent = cache_ptr->ptr;
-            else {
-                //add the parent to the cache
-                DEBUG_INDEX(("Cache addition\n"));
-                cache_ptr = (struct cache_list_node*) xmalloc(sizeof(struct cache_list_node));
-                cache_ptr->prev = NULL;
-                cache_ptr->next = cache_head;
-                cache_ptr->ptr  = parent;
-                if (cache_head)  cache_head->prev = cache_ptr;
-                if (!cache_tail) cache_tail = cache_ptr;
-                cache_head = cache_ptr;
-                cache_count++;
-                if (cache_count > 100) {
-                    DEBUG_INDEX(("trimming quick cache\n"));
-                    //remove one from the end
-                    cache_ptr  = cache_tail;
-                    cache_tail = cache_ptr->prev;
-                    if (cache_tail) cache_tail->next = NULL;
-                    free (cache_ptr);
-                    cache_count--;
-                }
-            }
-            DEBUG_INDEX(("Found a parent\n"));
+        //DEBUG_INDEX(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_id, node->id));
+        pst_desc_ll *parent = pst_getDptr(pf, node->parent_id);
+        if (parent) {
+            //DEBUG_INDEX(("Found parent %#"PRIx64"\n", node->parent_id));
             parent->no_child++;
-            d_ptr->parent = parent;
-            if (parent->child_tail)  parent->child_tail->next = d_ptr;
-            if (!parent->child)      parent->child = d_ptr;
-            d_ptr->prev = parent->child_tail;
-            parent->child_tail = d_ptr;
+            node->parent = parent;
+            add_descriptor_to_list(node, &parent->child, &parent->child_tail);
+        }
+        else {
+            //DEBUG_INDEX(("No parent %#"PRIx64", have an orphan child %#"PRIx64"\n", node->parent_id, node->id));
+            add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
         }
     }
 }
+
 
 int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t *high_id, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_structn table, table2;
@@ -930,18 +910,6 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
     int32_t x, item_count;
     uint64_t old = start_val;
     char *buf = NULL, *bptr;
-    struct cache_list_node *cache_ptr = NULL;
-    struct cache_list_node *lostfound_ptr = NULL;
-    struct cache_list_node *lostfound_shd = NULL;
-    struct cache_list_node *lostfound_tmp = NULL;
-
-    if (depth == 0) {
-        // initialize the linked list and lost/found list.
-        cache_head     = NULL;
-        cache_tail     = NULL;
-        lostfound_head = NULL;
-        cache_count    = 0;
-    }
 
     DEBUG_ENT("pst_build_desc_ptr");
     DEBUG_INDEX(("offset %#"PRIx64" depth %i linku1 %#"PRIx64" start %#"PRIx64" end %#"PRIx64"\n", offset, depth, linku1, start_val, end_val));
@@ -1000,8 +968,13 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                 }
             }
             // When duplicates found, just update the info.... perhaps this is correct functionality
-            DEBUG_INDEX(("Searching for existing record\n"));
+            DEBUG_INDEX(("Searching for existing record %#"PRIx64"\n", desc_rec.d_id));
             if (desc_rec.d_id <= *high_id && (d_ptr = pst_getDptr(pf, desc_rec.d_id))) {
+                // This is probably unreachable code, originally written when the
+                // tree walking code was broken since it did not know about the node
+                // count. It always processed all the items in the node, even unused
+                // items, and that probably made it look like there were duplicate
+                // entries.
                 uint64_t bigzero = 0;
                 DEBUG_INDEX(("Updating Existing Values\n"));
                 d_ptr->list_index = pst_getID(pf, desc_rec.list_id);
@@ -1033,19 +1006,21 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                     else
                         pf->d_tail = d_ptr->prev;
 
-                    d_ptr->prev   = NULL;
-                    d_ptr->next   = NULL;
-                    d_ptr->parent = NULL;
-                    record_descriptor(pf, d_ptr, desc_rec.parent_id);   // add to the global tree
+                    d_ptr->parent_id  = desc_rec.parent_id;
+                    d_ptr->prev       = NULL;
+                    d_ptr->next       = NULL;
+                    d_ptr->parent     = NULL;
+                    record_descriptor(pf, d_ptr);   // add to the global tree
                 }
             } else {
                 if (*high_id < desc_rec.d_id) {
                     DEBUG_INDEX(("Updating New High\n"));
                     *high_id = desc_rec.d_id;
                 }
-                DEBUG_INDEX(("New Record\n"));
+                DEBUG_INDEX(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_id));
                 d_ptr             = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
                 d_ptr->id         = desc_rec.d_id;
+                d_ptr->parent_id  = desc_rec.parent_id;
                 d_ptr->list_index = pst_getID(pf, desc_rec.list_id);
                 d_ptr->desc       = pst_getID(pf, desc_rec.desc_id);
                 d_ptr->prev       = NULL;
@@ -1054,32 +1029,9 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                 d_ptr->child      = NULL;
                 d_ptr->child_tail = NULL;
                 d_ptr->no_child   = 0;
-                record_descriptor(pf, d_ptr, desc_rec.parent_id);   // add to the global tree
-
-            }
-            // check here to see if d_ptr is the parent of any of the items in the lost / found list
-            lostfound_ptr = lostfound_head;
-            lostfound_shd = NULL;
-            while (lostfound_ptr) {
-                if (lostfound_ptr->parent == d_ptr->id) {
-                    DEBUG_INDEX(("Found a lost/found child (%#"PRIx64") of the current record. Joining to main structure.\n", lostfound_ptr->ptr->id));
-                    parent = d_ptr;
-                    d_ptr = lostfound_ptr->ptr;
-                    parent->no_child++;
-                    d_ptr->parent = parent;
-                    if (parent->child_tail) parent->child_tail->next = d_ptr;
-                    if (!parent->child)     parent->child = d_ptr;
-                    d_ptr->prev = parent->child_tail;
-                    parent->child_tail = d_ptr;
-                    if (!lostfound_shd) lostfound_head      = lostfound_ptr->next;
-                    else                lostfound_shd->next = lostfound_ptr->next;
-                    lostfound_tmp = lostfound_ptr->next;
-                    free(lostfound_ptr);
-                    lostfound_ptr = lostfound_tmp;
-                } else {
-                    lostfound_shd = lostfound_ptr;
-                    lostfound_ptr = lostfound_ptr->next;
-                }
+                record_descriptor(pf, d_ptr);   // add to the global tree
+                //DEBUG_INDEX(("dump parent descriptor tree\n")); //!!
+                //d_ptr = pst_getDptr(pf, (uint64_t)-1);          //!!
             }
         }
     } else {
@@ -1120,21 +1072,6 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                 }
             }
             (void)pst_build_desc_ptr(pf, table.offset, depth+1, table.u1, high_id, table.start, table2.start);
-        }
-    }
-    if (depth == 0) {
-        // free the quick cache
-        while (cache_head) {
-            cache_ptr = cache_head->next;
-            free(cache_head);
-            cache_head = cache_ptr;
-        }
-        // free the lost and found
-        while (lostfound_head) {
-            lostfound_ptr = lostfound_head->next;
-            WARN(("unused lost/found item %#"PRIx64" with parent %#"PRIx64, lostfound_head->parent, lostfound_head->ptr->id));
-            free(lostfound_head);
-            lostfound_head = lostfound_ptr;
         }
     }
     if (buf) free(buf);
@@ -4137,6 +4074,7 @@ pst_desc_ll* pst_getDptr(pst_file *pf, uint64_t id) {
     pst_desc_ll *ptr = pf->d_head;
     DEBUG_ENT("pst_getDptr");
     while (ptr && (ptr->id != id)) {
+        //DEBUG_INDEX(("Looking for %#"PRIx64" at node %#"PRIx64" with parent %#"PRIx64"\n", id, ptr->id, ptr->parent_id));
         if (ptr->child) {
             ptr = ptr->child;
             continue;
