@@ -356,7 +356,6 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
 
 int pst_load_index (pst_file *pf) {
     int  x;
-    uint64_t y;
     DEBUG_ENT("pst_load_index");
     if (!pf) {
         WARN(("Cannot load index for a NULL pst_file\n"));
@@ -367,8 +366,7 @@ int pst_load_index (pst_file *pf) {
     x = pst_build_id_ptr(pf, pf->index1, 0, pf->index1_back, 0, UINT64_MAX);
     DEBUG_INDEX(("build id ptr returns %i\n", x));
 
-    y = 0;
-    x = pst_build_desc_ptr(pf, pf->index2, 0, pf->index2_back, &y, (uint64_t)0x21, UINT64_MAX);
+    x = pst_build_desc_ptr(pf, pf->index2, 0, pf->index2_back, (uint64_t)0x21, UINT64_MAX);
     DEBUG_INDEX(("build desc ptr returns %i\n", x));
 
     DEBUG_CODE((void)pst_printDptr(pf, pf->d_head););
@@ -896,19 +894,20 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
             add_descriptor_to_list(node, &parent->child, &parent->child_tail);
         }
         else {
-            //DEBUG_INDEX(("No parent %#"PRIx64", have an orphan child %#"PRIx64"\n", node->parent_id, node->id));
+            DEBUG_INDEX(("No parent %#"PRIx64", have an orphan child %#"PRIx64"\n", node->parent_id, node->id));
             add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
         }
     }
 }
 
 
-int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t *high_id, uint64_t start_val, uint64_t end_val) {
+int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_structn table, table2;
     pst_descn desc_rec;
     pst_desc_ll *d_ptr=NULL, *parent=NULL;
-    int32_t x, item_count;
+    int32_t item_count;
     uint64_t old = start_val;
+    int x;
     char *buf = NULL, *bptr;
 
     DEBUG_ENT("pst_build_desc_ptr");
@@ -944,11 +943,8 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
             DEBUG_RET();
             return -1;
         }
-        x = 0;
-        while (x < item_count) {
+        for (x=0; x<item_count; x++) {
             bptr += pst_decode_desc(pf, &desc_rec, bptr);
-            x++;
-            if (desc_rec.d_id == 0) break;
             DEBUG_INDEX(("[%i] Item(%#x) = [d_id = %#"PRIx64", desc_id = %#"PRIx64", list_id = %#"PRIx64", parent_id = %#x]\n",
                         depth, x, desc_rec.d_id, desc_rec.desc_id, desc_rec.list_id, desc_rec.parent_id));
             if ((desc_rec.d_id >= end_val) || (desc_rec.d_id < old)) {
@@ -959,7 +955,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                 return -1;
             }
             old = desc_rec.d_id;
-            if (x == (int32_t)1) {   // first entry
+            if (x == 0) {   // first entry
                 if (start_val && (desc_rec.d_id != start_val)) {
                     DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
                     if (buf) free(buf);
@@ -967,72 +963,21 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                     return -1;
                 }
             }
-            // When duplicates found, just update the info.... perhaps this is correct functionality
-            DEBUG_INDEX(("Searching for existing record %#"PRIx64"\n", desc_rec.d_id));
-            if (desc_rec.d_id <= *high_id && (d_ptr = pst_getDptr(pf, desc_rec.d_id))) {
-                // This is probably unreachable code, originally written when the
-                // tree walking code was broken since it did not know about the node
-                // count. It always processed all the items in the node, even unused
-                // items, and that probably made it look like there were duplicate
-                // entries.
-                uint64_t bigzero = 0;
-                DEBUG_INDEX(("Updating Existing Values\n"));
-                d_ptr->list_index = pst_getID(pf, desc_rec.list_id);
-                d_ptr->desc = pst_getID(pf, desc_rec.desc_id);
-                DEBUG_INDEX(("\tdesc = %#"PRIx64"\tlist_index=%#"PRIx64"\n",
-                        (d_ptr->desc==NULL       ? bigzero : d_ptr->desc->id),
-                        (d_ptr->list_index==NULL ? bigzero : d_ptr->list_index->id)));
-                if (d_ptr->parent && desc_rec.parent_id != d_ptr->parent->id) {
-                    DEBUG_INDEX(("WARNING -- Parent of record has changed. Moving it\n"));
-                    //hmmm, we must move the record.
-                    // first we must remove from current location
-                    //   change previous record to point next to our next
-                    //     if no previous, then use parent's child
-                    //     if no parent then change pf->d_head;
-                    //   change next's prev to our prev
-                    //     if no next then change parent's child_tail
-                    //     if no parent then change pf->d_tail
-                    if (d_ptr->prev)
-                        d_ptr->prev->next = d_ptr->next;
-                    else if (d_ptr->parent)
-                        d_ptr->parent->child = d_ptr->next;
-                    else
-                        pf->d_head = d_ptr->next;
-
-                    if (d_ptr->next)
-                        d_ptr->next->prev = d_ptr->prev;
-                    else if (d_ptr->parent)
-                        d_ptr->parent->child_tail = d_ptr->prev;
-                    else
-                        pf->d_tail = d_ptr->prev;
-
-                    d_ptr->parent_id  = desc_rec.parent_id;
-                    d_ptr->prev       = NULL;
-                    d_ptr->next       = NULL;
-                    d_ptr->parent     = NULL;
-                    record_descriptor(pf, d_ptr);   // add to the global tree
-                }
-            } else {
-                if (*high_id < desc_rec.d_id) {
-                    DEBUG_INDEX(("Updating New High\n"));
-                    *high_id = desc_rec.d_id;
-                }
-                DEBUG_INDEX(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_id));
-                d_ptr             = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
-                d_ptr->id         = desc_rec.d_id;
-                d_ptr->parent_id  = desc_rec.parent_id;
-                d_ptr->list_index = pst_getID(pf, desc_rec.list_id);
-                d_ptr->desc       = pst_getID(pf, desc_rec.desc_id);
-                d_ptr->prev       = NULL;
-                d_ptr->next       = NULL;
-                d_ptr->parent     = NULL;
-                d_ptr->child      = NULL;
-                d_ptr->child_tail = NULL;
-                d_ptr->no_child   = 0;
-                record_descriptor(pf, d_ptr);   // add to the global tree
-                //DEBUG_INDEX(("dump parent descriptor tree\n")); //!!
-                //d_ptr = pst_getDptr(pf, (uint64_t)-1);          //!!
-            }
+            DEBUG_INDEX(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_id));
+            d_ptr             = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
+            d_ptr->id         = desc_rec.d_id;
+            d_ptr->parent_id  = desc_rec.parent_id;
+            d_ptr->list_index = pst_getID(pf, desc_rec.list_id);
+            d_ptr->desc       = pst_getID(pf, desc_rec.desc_id);
+            d_ptr->prev       = NULL;
+            d_ptr->next       = NULL;
+            d_ptr->parent     = NULL;
+            d_ptr->child      = NULL;
+            d_ptr->child_tail = NULL;
+            d_ptr->no_child   = 0;
+            record_descriptor(pf, d_ptr);   // add to the global tree
+            //DEBUG_INDEX(("dump parent descriptor tree\n")); //!!
+            //d_ptr = pst_getDptr(pf, (uint64_t)-1);          //!!
         }
     } else {
         // this node contains node pointers
@@ -1043,12 +988,10 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
             DEBUG_RET();
             return -1;
         }
-        x = 0;
-        while (x < item_count) {
+        for (x=0; x<item_count; x++) {
             bptr += pst_decode_table(pf, &table, bptr);
-            x++;
             if (table.start == 0) break;
-            if (x < item_count) {
+            if (x < (item_count-1)) {
                 (void)pst_decode_table(pf, &table2, bptr);
             }
             else {
@@ -1063,7 +1006,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                 return -1;
             }
             old = table.start;
-            if (x == (int32_t)1) {   // first entry
+            if (x == 0) {   // first entry
                 if (start_val && (table.start != start_val)) {
                     DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
                     if (buf) free(buf);
@@ -1071,7 +1014,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                     return -1;
                 }
             }
-            (void)pst_build_desc_ptr(pf, table.offset, depth+1, table.u1, high_id, table.start, table2.start);
+            (void)pst_build_desc_ptr(pf, table.offset, depth+1, table.u1, table.start, table2.start);
         }
     }
     if (buf) free(buf);
