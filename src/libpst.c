@@ -247,21 +247,122 @@ int pst_close(pst_file *pf) {
 }
 
 
+/**
+ * add a pst descriptor node to a linked list of such nodes.
+ *
+ * @param node  pointer to the node to be added to the list
+ * @param head  pointer to the list head pointer
+ * @param tail  pointer to the list tail pointer
+ */
+static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_desc_ll **tail);
+static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_desc_ll **tail)
+{
+    DEBUG_ENT("add_descriptor_to_list");
+    //DEBUG_INDEX(("Added node %#"PRIx64" parent %#"PRIx64" real parent %#"PRIx64" prev %#"PRIx64" next %#"PRIx64"\n",
+    //             node->id, node->parent_id,
+    //             (node->parent ? node->parent->id : (uint64_t)0),
+    //             (node->prev   ? node->prev->id   : (uint64_t)0),
+    //             (node->next   ? node->next->id   : (uint64_t)0)));
+    if (*tail) (*tail)->next = node;
+    if (!(*head)) *head = node;
+    node->prev = *tail;
+    node->next = NULL;
+    *tail = node;
+    DEBUG_RET();
+}
+
+
+/**
+ * add a pst descriptor node into the global tree.
+ *
+ * @param pf   global pst file pointer
+ * @param node pointer to the new node to be added to the tree
+ */
+static void record_descriptor(pst_file *pf, pst_desc_ll *node);
+static void record_descriptor(pst_file *pf, pst_desc_ll *node)
+{
+    // finish node initialization
+    node->parent     = NULL;
+    node->child      = NULL;
+    node->child_tail = NULL;
+    node->no_child   = 0;
+
+    // find any orphan children of this node, and collect them
+    pst_desc_ll *n = pf->d_head;
+    while (n) {
+        if (n->parent_id == node->id) {
+            // found a child of this node
+            DEBUG_INDEX(("Found orphan child %#"PRIx64" of parent %#"PRIx64"\n", n->id, node->id));
+            pst_desc_ll *nn = n->next;
+            pst_desc_ll *pp = n->prev;
+            node->no_child++;
+            n->parent = node;
+            add_descriptor_to_list(n, &node->child, &node->child_tail);
+            if (pp) pp->next = nn; else pf->d_head = nn;
+            if (nn) nn->prev = pp; else pf->d_tail = pp;
+            n = nn;
+        }
+        else {
+            n = n->next;
+        }
+    }
+
+    // now hook this node into the global tree
+    if (node->parent_id == 0) {
+        // add top level node to the descriptor tree
+        //DEBUG_INDEX(("Null parent\n"));
+        add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
+    }
+    else if (node->parent_id == node->id) {
+        // add top level node to the descriptor tree
+        DEBUG_INDEX(("%#"PRIx64" is its own parent. What is this world coming to?\n"));
+        add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
+    } else {
+        //DEBUG_INDEX(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_id, node->id));
+        pst_desc_ll *parent = pst_getDptr(pf, node->parent_id);
+        if (parent) {
+            //DEBUG_INDEX(("Found parent %#"PRIx64"\n", node->parent_id));
+            parent->no_child++;
+            node->parent = parent;
+            add_descriptor_to_list(node, &parent->child, &parent->child_tail);
+        }
+        else {
+            DEBUG_INDEX(("No parent %#"PRIx64", have an orphan child %#"PRIx64"\n", node->parent_id, node->id));
+            add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
+        }
+    }
+}
+
+
 pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
-    pst_desc_ll *ret;
+    pst_desc_ll *topnode;
+    uint32_t topid;
     DEBUG_ENT("pst_getTopOfFolders");
     if (!root || !root->message_store) {
         DEBUG_INDEX(("There isn't a top of folder record here.\n"));
-        ret = NULL;
-    } else if (!root->message_store->top_of_personal_folder) {
+        DEBUG_RET();
+        return NULL;
+    }
+    if (!root->message_store->top_of_personal_folder) {
         // this is the OST way
         // ASSUMPTION: Top Of Folders record in PST files is *always* descid 0x2142
-        ret = pst_getDptr(pf, (uint64_t)0x2142);
+        topid = 0x2142;
     } else {
-        ret = pst_getDptr(pf, root->message_store->top_of_personal_folder->id);
+        topid = root->message_store->top_of_personal_folder->id;
+    }
+    DEBUG_INDEX(("looking for top of folder descriptor %#"PRIx32"\n", topid));
+    topnode = pst_getDptr(pf, (uint64_t)topid);
+    if (!topnode) {
+        // add dummy top record to pickup orphan children
+        topnode             = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
+        topnode->id         = topid;
+        topnode->parent_id  = 0;
+        topnode->list_index = NULL;
+        topnode->desc       = NULL;
+        record_descriptor(pf, topnode);   // add to the global tree
     }
     DEBUG_RET();
-    return ret;
+    return topnode;
 }
 
 
@@ -819,88 +920,6 @@ int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1,
 }
 
 
-/**
- * add a pst descriptor node to a linked list of such nodes.
- *
- * @param node  pointer to the node to be added to the list
- * @param head  pointer to the list head pointer
- * @param tail  pointer to the list tail pointer
- */
-static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_desc_ll **tail);
-static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_desc_ll **tail)
-{
-    DEBUG_ENT("add_descriptor_to_list");
-    //DEBUG_INDEX(("Added node %#"PRIx64" parent %#"PRIx64" real parent %#"PRIx64" prev %#"PRIx64" next %#"PRIx64"\n",
-    //             node->id, node->parent_id,
-    //             (node->parent ? node->parent->id : (uint64_t)0),
-    //             (node->prev   ? node->prev->id   : (uint64_t)0),
-    //             (node->next   ? node->next->id   : (uint64_t)0)));
-    if (*tail) (*tail)->next = node;
-    if (!(*head)) *head = node;
-    node->prev = *tail;
-    *tail = node;
-    DEBUG_RET();
-}
-
-
-/**
- * add a pst descriptor node into the global tree.
- *
- * @param pf   global pst file pointer
- * @param node pointer to the node to be added to the tree
- */
-static void record_descriptor(pst_file *pf, pst_desc_ll *node);
-static void record_descriptor(pst_file *pf, pst_desc_ll *node)
-{
-    // find any orphan children of this node, and collect them
-    pst_desc_ll *n = pf->d_head;
-    while (n) {
-        if (n->parent_id == node->id) {
-            // found a child of this node
-            DEBUG_INDEX(("Found orphan child %#"PRIx64" of parent %#"PRIx64"\n", n->id, node->id));
-            pst_desc_ll *nn = n->next;
-            pst_desc_ll *pp = n->prev;
-            node->no_child++;
-            n->parent = node;
-            n->prev   = NULL;
-            n->next   = NULL;
-            add_descriptor_to_list(n, &node->child, &node->child_tail);
-            if (pp) pp->next = nn; else pf->d_head = nn;
-            if (nn) nn->prev = pp; else pf->d_tail = pp;
-            n = nn;
-        }
-        else {
-            n = n->next;
-        }
-    }
-
-    // now hook this node into the global tree
-    if (node->parent_id == 0) {
-        // add top level node to the descriptor tree
-        //DEBUG_INDEX(("Null parent\n"));
-        add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
-    }
-    else if (node->parent_id == node->id) {
-        // add top level node to the descriptor tree
-        DEBUG_INDEX(("%#"PRIx64" is its own parent. What is this world coming to?\n"));
-        add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
-    } else {
-        //DEBUG_INDEX(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_id, node->id));
-        pst_desc_ll *parent = pst_getDptr(pf, node->parent_id);
-        if (parent) {
-            //DEBUG_INDEX(("Found parent %#"PRIx64"\n", node->parent_id));
-            parent->no_child++;
-            node->parent = parent;
-            add_descriptor_to_list(node, &parent->child, &parent->child_tail);
-        }
-        else {
-            DEBUG_INDEX(("No parent %#"PRIx64", have an orphan child %#"PRIx64"\n", node->parent_id, node->id));
-            add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
-        }
-    }
-}
-
-
 int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_structn table, table2;
     pst_descn desc_rec;
@@ -969,15 +988,7 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
             d_ptr->parent_id  = desc_rec.parent_id;
             d_ptr->list_index = pst_getID(pf, desc_rec.list_id);
             d_ptr->desc       = pst_getID(pf, desc_rec.desc_id);
-            d_ptr->prev       = NULL;
-            d_ptr->next       = NULL;
-            d_ptr->parent     = NULL;
-            d_ptr->child      = NULL;
-            d_ptr->child_tail = NULL;
-            d_ptr->no_child   = 0;
             record_descriptor(pf, d_ptr);   // add to the global tree
-            //DEBUG_INDEX(("dump parent descriptor tree\n")); //!!
-            //d_ptr = pst_getDptr(pf, (uint64_t)-1);          //!!
         }
     } else {
         // this node contains node pointers
@@ -3411,7 +3422,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
 
                     } else if (list->items[x]->type == (uint32_t)0x0006) {
-                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %lli\n", list->items[x]->id,
+                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %"PRIi64"\n", list->items[x]->id,
                             *(int64_t*)list->items[x]->data));
                         DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
 
@@ -3435,7 +3446,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
 
                     } else if (list->items[x]->type == (uint32_t)0x0014) {
-                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %lli\n", list->items[x]->id,
+                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %"PRIi64"\n", list->items[x]->id,
                             *(int64_t*)list->items[x]->data));
                         DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
 
@@ -3637,7 +3648,8 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* h
         if ((i_ptr = pst_getID(pf, id2_rec.id)) == NULL) {
             DEBUG_WARN(("\t\t%#"PRIx64" - Not Found\n", id2_rec.id));
         } else {
-            DEBUG_INDEX(("\t\t%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %lli(%#"PRIx64")\n", i_ptr->id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
+            DEBUG_INDEX(("\t\t%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
+                         i_ptr->id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
             // add it to the linked list
             i2_ptr = (pst_index2_ll*) xmalloc(sizeof(pst_index2_ll));
             i2_ptr->id2  = id2_rec.id2;
@@ -4035,9 +4047,9 @@ pst_desc_ll* pst_getDptr(pst_file *pf, uint64_t id) {
 void pst_printDptr(pst_file *pf, pst_desc_ll *ptr) {
     DEBUG_ENT("pst_printDptr");
     while (ptr) {
-        DEBUG_INDEX(("%#x [%i] desc=%#x, list=%#x\n", ptr->id, ptr->no_child,
-                    (ptr->desc==NULL?0:ptr->desc->id),
-                    (ptr->list_index==NULL?0:ptr->list_index->id)));
+        DEBUG_INDEX(("%#"PRIx64" [%i] desc=%#"PRIx64", list=%#"PRIx64"\n", ptr->id, ptr->no_child,
+                    (ptr->desc ? ptr->desc->id : (uint64_t)0),
+                    (ptr->list_index ? ptr->list_index->id : (uint64_t)0)));
         if (ptr->child) {
             pst_printDptr(pf, ptr->child);
         }
@@ -4051,7 +4063,7 @@ void pst_printIDptr(pst_file* pf) {
     pst_index_ll *ptr = pf->i_head;
     DEBUG_ENT("pst_printIDptr");
     while (ptr) {
-        DEBUG_INDEX(("%#x offset=%#x size=%#x\n", ptr->id, ptr->offset, ptr->size));
+        DEBUG_INDEX(("%#"PRIx64" offset=%#"PRIx64" size=%#"PRIx64"\n", ptr->id, ptr->offset, ptr->size));
         ptr = ptr->next;
     }
     DEBUG_RET();
@@ -4061,7 +4073,7 @@ void pst_printIDptr(pst_file* pf) {
 void pst_printID2ptr(pst_index2_ll *ptr) {
     DEBUG_ENT("pst_printID2ptr");
     while (ptr) {
-        DEBUG_INDEX(("%#x id=%#x\n", ptr->id2, (ptr->id!=NULL?ptr->id->id:0)));
+        DEBUG_INDEX(("%#"PRIx64" id=%#"PRIx64"\n", ptr->id2, (ptr->id ? ptr->id->id : (uint64_t)0)));
         ptr = ptr->next;
     }
     DEBUG_RET();

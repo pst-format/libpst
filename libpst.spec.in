@@ -47,7 +47,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Sun Oct 05 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.20-1
+* Tue Oct 07 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.20-1
 - add configure option --enable-dii=no to remove dependency on libgd.
 - many fixes in pst2ldif by Robert Harris.
 - add -D option to include deleted items, from Justin Greer
@@ -56,6 +56,7 @@ rm -rf $RPM_BUILD_ROOT
 - fix for orphan children when building descriptor tree
 - avoid writing uninitialized data to debug log file
 - remove unreachable code
+- create dummy top-of-folder descriptor if needed for corrupt pst files
 
 * Sun Sep 14 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.19-1
 - Fix base64 encoding that could create long lines.

@@ -28,7 +28,7 @@ function dopst()
 
 
 val="valgrind --leak-check=full"
-#val=''
+val=''
 
 pushd ..
 make || exit
