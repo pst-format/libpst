@@ -1,4 +1,4 @@
-LibPST 0.6.20 (2008-10-07)
+LibPST 0.6.20 (2008-10-09)
 ===============================
     	* add configure option --enable-dii=no to remove dependency on libgd.
 	* many fixes in pst2ldif by Robert Harris.

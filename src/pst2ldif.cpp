@@ -12,6 +12,8 @@ using namespace std;
 
 // needed for std c++ collections
 #include <set>
+#include <vector>
+#include <string>
 
 extern "C" {
     #include "define.h"
@@ -27,19 +29,22 @@ extern "C" {
 int32_t     usage();
 int32_t     version();
 char       *check_filename(char *fname);
-char       *dn_escape(const char *str);
-void        print_ldif(const char *dn, const char *value);
-void        print_ldif_single(const char *dn, const char *value);
+void        print_ldif_single(const char *attr, const char *value);
+void        print_ldif_address(const char *attr, int nvalues, char *value, ...);
+void        print_ldif_dn(const char *attr, const char *value, const char *base);
 void        print_ldif_multi(const char *dn, const char *value);
-void        print_ldif_two(const char *dn, const char *value1, const char *value2);
+void        print_ldif_two(const char *attr, const char *value1, const char *value2);
+void        print_escaped_dn(const char *value);
 void        build_cn(char *cn, size_t len, int nvalues, char *value, ...);
 
 char *prog_name;
 pst_file pstfile;
-char *ldap_base  = NULL;    // 'o=some.domain.tld, c=US'
-char *ldap_class = NULL;    // 'newPerson'
-char *ldap_org   = NULL;    // 'some.domain.tld', computed from ldap_base
-iconv_t cd       = 0;       // Character set conversion descriptor
+bool    old_schema            = false;
+char    *ldap_base            = NULL;   // 'o=some.domain.tld,c=US'
+int     ldif_extra_line_count = 0;
+iconv_t cd                    = 0;      // Character set conversion descriptor
+vector<string> ldap_class;              // 'newPerson' or 'inetOrgPerson'
+vector<string> ldif_extra_line;         // 'o: myorg'
 
 
 ////////////////////////////////////////////////
@@ -123,6 +128,7 @@ static void process(pst_desc_ll *d_ptr) {
                 } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
                     // deal with a contact
                     char cn[1000];
+
                     build_cn(cn, sizeof(cn), 4,
                         item->contact->display_name_prefix,
                         item->contact->first_name,
@@ -131,10 +137,8 @@ static void process(pst_desc_ll *d_ptr) {
                     if (cn[0] != 0) {
                         // have a valid cn
                         const char *ucn = unique_string(cn);
-                        char dn[strlen(ucn) + strlen(ldap_base) + 6];
 
-                        sprintf(dn, "cn=%s, %s", ucn, ldap_base);
-                        print_ldif_single("dn", dn);
+                        print_ldif_dn("dn", ucn, ldap_base);
                         print_ldif_single("cn", ucn);
                         if (item->contact->first_name) {
                             print_ldif_two("givenName",
@@ -152,10 +156,19 @@ static void process(pst_desc_ll *d_ptr) {
                         else
                             print_ldif_single("sn", ucn); // use cn as sn if we cannot find something better
 
-                        if (item->contact->job_title)
-                            print_ldif_single("personalTitle", item->contact->job_title);
-                        if (item->contact->company_name)
-                            print_ldif_single("company", item->contact->company_name);
+                        if (old_schema) {
+                            if (item->contact->job_title)
+                                print_ldif_single("personalTitle", item->contact->job_title);
+                            if (item->contact->company_name)
+                                print_ldif_single("company", item->contact->company_name);
+                        else {
+                            // new schema
+                            if (item->contact->job_title)
+                                print_ldif_single("title", item->contact->job_title);
+                            if (item->contact->company_name)
+                                print_ldif_single("o", item->contact->company_name);
+                            }
+                        }
                         if (item->contact->address1  && *item->contact->address1)
                             print_ldif_single("mail", item->contact->address1);
                         if (item->contact->address2  && *item->contact->address2)
@@ -168,42 +181,96 @@ static void process(pst_desc_ll *d_ptr) {
                             print_ldif_single("mail", item->contact->address2a);
                         if (item->contact->address3a && *item->contact->address3a)
                             print_ldif_single("mail", item->contact->address3a);
-                        if (item->contact->business_address) {
-                            if (item->contact->business_po_box)
-                                print_ldif_single("postalAddress", item->contact->business_po_box);
-                            if (item->contact->business_street)
-                                print_ldif_multi("postalAddress", item->contact->business_street);
-                            if (item->contact->business_city)
-                                print_ldif_single("l", item->contact->business_city);
-                            if (item->contact->business_state)
-                                print_ldif_single("st", item->contact->business_state);
-                            if (item->contact->business_postal_code)
-                                print_ldif_single("postalCode", item->contact->business_postal_code);
+
+                        if (old_schema) {
+                            if (item->contact->business_address) {
+                                if (item->contact->business_po_box)
+                                    print_ldif_single("postalAddress", item->contact->business_po_box);
+                                if (item->contact->business_street)
+                                    print_ldif_multi("postalAddress", item->contact->business_street);
+                                if (item->contact->business_city)
+                                    print_ldif_single("l", item->contact->business_city);
+                                if (item->contact->business_state)
+                                    print_ldif_single("st", item->contact->business_state);
+                                if (item->contact->business_postal_code)
+                                    print_ldif_single("postalCode", item->contact->business_postal_code);
+                            }
+                            else if (item->contact->home_address) {
+                                if (item->contact->home_po_box)
+                                    print_ldif_single("postalAddress", item->contact->home_po_box);
+                                if (item->contact->home_street)
+                                    print_ldif_multi("postalAddress", item->contact->home_street);
+                                if (item->contact->home_city)
+                                    print_ldif_single("l", item->contact->home_city);
+                                if (item->contact->home_state)
+                                    print_ldif_single("st", item->contact->home_state);
+                                if (item->contact->home_postal_code)
+                                    print_ldif_single("postalCode", item->contact->home_postal_code);
+                            }
+                            else if (item->contact->other_address) {
+                                if (item->contact->other_po_box)
+                                    print_ldif_single("postalAddress", item->contact->other_po_box);
+                                if (item->contact->other_street)
+                                    print_ldif_multi("postalAddress", item->contact->other_street);
+                                if (item->contact->other_city)
+                                    print_ldif_single("l", item->contact->other_city);
+                                if (item->contact->other_state)
+                                    print_ldif_single("st", item->contact->other_state);
+                                if (item->contact->other_postal_code)
+                                    print_ldif_single("postalCode", item->contact->other_postal_code);
+                            }
                         }
-                        else if (item->contact->home_address) {
-                            if (item->contact->home_po_box)
-                                print_ldif_single("postalAddress", item->contact->home_po_box);
-                            if (item->contact->home_street)
-                                print_ldif_multi("postalAddress", item->contact->home_street);
-                            if (item->contact->home_city)
-                                print_ldif_single("l", item->contact->home_city);
-                            if (item->contact->home_state)
-                                print_ldif_single("st", item->contact->home_state);
-                            if (item->contact->home_postal_code)
-                                print_ldif_single("postalCode", item->contact->home_postal_code);
+                        else {
+                            // new schema, with proper RFC4517 postal addresses
+                            if (item->contact->business_address) {
+                                print_ldif_address("postalAddress", 6,
+                                    item->contact->business_po_box,
+                                    item->contact->business_street,
+                                    item->contact->business_city,
+                                    item->contact->business_state,
+                                    item->contact->business_postal_code,
+                                    item->contact->business_country);
+                                if (item->contact->business_city)
+                                    print_ldif_single("l", item->contact->business_city);
+                                if (item->contact->business_state)
+                                    print_ldif_single("st", item->contact->business_state);
+                                if (item->contact->business_postal_code)
+                                    print_ldif_single("postalCode", item->contact->business_postal_code);
+                            }
+                            else if (item->contact->home_address) {
+                                if (item->contact->home_city)
+                                    print_ldif_single("l", item->contact->home_city);
+                                if (item->contact->home_state)
+                                    print_ldif_single("st", item->contact->home_state);
+                                if (item->contact->home_postal_code)
+                                    print_ldif_single("postalCode", item->contact->home_postal_code);
+                            }
+                            else if (item->contact->other_address) {
+                                print_ldif_address("postalAddress", 6,
+                                    item->contact->other_po_box,
+                                    item->contact->other_street,
+                                    item->contact->other_city,
+                                    item->contact->other_state,
+                                    item->contact->other_postal_code,
+                                    item->contact->other_country);
+                                if (item->contact->other_city)
+                                    print_ldif_single("l", item->contact->other_city);
+                                if (item->contact->other_state)
+                                    print_ldif_single("st", item->contact->other_state);
+                                if (item->contact->other_postal_code)
+                                    print_ldif_single("postalCode", item->contact->other_postal_code);
+                            }
+                            if (item->contact->home_address) {
+                                print_ldif_address("homePostalAddress", 6,
+                                    item->contact->home_po_box,
+                                    item->contact->home_street,
+                                    item->contact->home_city,
+                                    item->contact->home_state,
+                                    item->contact->home_postal_code,
+                                    item->contact->home_country);
+                            }
                         }
-                        else if (item->contact->other_address) {
-                            if (item->contact->other_po_box)
-                                print_ldif_single("postalAddress", item->contact->other_po_box);
-                            if (item->contact->other_street)
-                                print_ldif_multi("postalAddress", item->contact->other_street);
-                            if (item->contact->other_city)
-                                print_ldif_single("l", item->contact->other_city);
-                            if (item->contact->other_state)
-                                print_ldif_single("st", item->contact->other_state);
-                            if (item->contact->other_postal_code)
-                                print_ldif_single("postalCode", item->contact->other_postal_code);
-                        }
+
                         if (item->contact->business_fax)
                             print_ldif_single("facsimileTelephoneNumber", item->contact->business_fax);
                         else if (item->contact->home_fax)
@@ -221,12 +288,19 @@ static void process(pst_desc_ll *d_ptr) {
                         else if (item->contact->other_phone)
                             print_ldif_single("mobile", item->contact->other_phone);
 
+                        if (!old_schema) {
+                            if (item->contact->business_homepage)
+                                print_ldif_single("labeledURI", item->contact->business_homepage);
+                            if (item->contact->personal_homepage)
+                                print_ldif_single("labeledURI", item->contact->personal_homepage);
+                        }
 
                         if (item->comment)
                             print_ldif_single("description", item->comment);
 
-                        print_ldif("objectClass", ldap_class);
-                        putchar('\n');
+                        for (int i=0; i<ldap_class.size(); i++)
+                            print_ldif_single("objectClass", ldap_class[i].c_str());
+                        printf("\n");
                     }
                 }
                 else {
@@ -240,16 +314,10 @@ static void process(pst_desc_ll *d_ptr) {
 }
 
 
-void print_ldif(const char *dn, const char *value)
-{
-    printf("%s: %s\n", dn, value);
-}
-
-
-// Prints a Distinguished Name together with its value.
+// Prints an attribute together with its value.
 // If the value isn't a "SAFE STRING" (as defined in RFC2849),
 // then it is output as a BASE-64 encoded value
-void print_ldif_single(const char *dn, const char *value)
+void print_ldif_single(const char *attr, const char *value)
 {
     size_t len;
     bool is_safe_string = true;
@@ -261,8 +329,8 @@ void print_ldif_single(const char *dn, const char *value)
     len = strlen(value) + 1;
     char buffer[len];
     char *p = buffer;
-    // See if "value" is a "SAFE STRING"
 
+    // See if "value" is a "SAFE STRING"
     // First check characters that are safe but not safe as initial characters
     if (*value == ':' || *value == '<')
         is_safe_string = false;
@@ -291,7 +359,7 @@ void print_ldif_single(const char *dn, const char *value)
     }
     *p = 0;
     if (is_safe_string) {
-        printf("%s: %s\n", dn, buffer);
+        printf("%s: %s\n", attr, buffer);
         return;
     }
 
@@ -314,8 +382,79 @@ void print_ldif_single(const char *dn, const char *value)
     }
     else
         p = base64_encode(buffer, strlen(buffer));
-    printf("%s:: %s\n", dn, p);
+    printf("%s:: %s\n", attr, p);
     free(p);
+}
+
+
+// Combines values representing address lines into an address,i
+// lines separated with "$" as per PostalAddress syntax in RFC4517
+void print_ldif_address(const char *attr, int nvalues, char *value, ...)
+{
+    bool space_flag = false;
+    bool newline_flag = false;
+    char *address = NULL;    // Buffer where address is built up
+    int len = 0;             // Length of buffer
+    int i = 0;               // Index of next character position in buffer
+    va_list ap;
+
+    va_start(ap, value);
+
+    while (!value) {
+       nvalues--;
+       if (nvalues == 0) {    // Nothing at all to do!
+           va_end(ap);
+           return;
+       }
+       value = va_arg(ap, char *);
+    }
+    for (;;) {
+        char ch = *value++;
+
+        if (ch == 0 || ch == '\n') {
+            do {
+                value = NULL;
+                nvalues--;
+                if (nvalues == 0) break;
+                value = va_arg(ap, char *);
+            } while (!value);
+            if (!value) break;
+            space_flag = true;
+            newline_flag = true;
+        }
+        else if (ch == '\r')
+            continue;
+        else if (ch == '\n') {
+            newline_flag = true;
+            continue;
+        }
+        else if (ch == ' ') {
+            space_flag = true;
+            continue;
+        }
+        else {
+            if (i > (len-5)) {
+                len += 256;
+                address = (char *)realloc(address, len);
+            }
+            if (newline_flag) {
+                address[i++] = '$';
+                newline_flag = false;
+                space_flag   = false;
+            }
+            else if (space_flag) {
+                address[i++] = ' ';
+                space_flag   = false;
+            }
+            if (ch == '$' || ch == '\\') address[i++] = '\\';
+            address[i++] = ch;
+        }
+    }
+    va_end(ap);
+    if (i == 0) return;   // Nothing to do
+    address[i] = 0;
+    print_ldif_single(attr, address);
+    free(address);
 }
 
 
@@ -330,20 +469,20 @@ void print_ldif_multi(const char *dn, const char *value)
 }
 
 
-void print_ldif_two(const char *dn, const char *value1, const char *value2)
+void print_ldif_two(const char *attr, const char *value1, const char *value2)
 {
     size_t len1, len2;
     if (value1 && *value1)
         len1 = strlen(value1);
     else {
-        print_ldif_single(dn, value2);
+        print_ldif_single(attr, value2);
         return;
     }
 
     if (value2 && *value2)
         len2 = strlen(value2);
     else {
-        print_ldif_single(dn, value1);
+        print_ldif_single(attr, value1);
         return;
     }
 
@@ -351,7 +490,7 @@ void print_ldif_two(const char *dn, const char *value1, const char *value2)
     memcpy(value, value1, len1);
     value[len1] = ' ';
     memcpy(value + len1 + 1, value2, len2 + 1);
-    print_ldif_single(dn, value);
+    print_ldif_single(attr, value);
 }
 
 
@@ -366,6 +505,7 @@ void build_cn(char *cn, size_t len, int nvalues, char *value, ...)
     while (!value) {
        nvalues--;
        if (nvalues == 0) {
+           cn[0] = 0;   // Just a terminating NUL
            va_end(ap);
            return;
        }
@@ -410,25 +550,18 @@ void build_cn(char *cn, size_t len, int nvalues, char *value, ...)
 int main(int argc, char** argv) {
     pst_desc_ll *d_ptr;
     char *fname = NULL;
-    char *temp = NULL;        //temporary char pointer
     int c;
     char *d_log = NULL;
     prog_name = argv[0];
     pst_item *item = NULL;
 
-    while ((c = getopt(argc, argv, "b:c:C:d:Vh"))!= -1) {
+    while ((c = getopt(argc, argv, "b:c:C:d:l:oVh"))!= -1) {
         switch (c) {
         case 'b':
             ldap_base = optarg;
-            temp = strchr(ldap_base, ',');
-            if (temp) {
-                *temp = '\0';
-                ldap_org = strdup(ldap_base+2); // assume first 2 chars are o=
-                *temp = ',';
-            }
             break;
         case 'c':
-            ldap_class = optarg;
+            ldap_class.push_back(string(optarg));
             break;
         case 'C':
             cd = iconv_open("UTF-8", optarg);
@@ -445,6 +578,12 @@ int main(int argc, char** argv) {
             usage();
             exit(0);
             break;
+        case 'l':
+            ldif_extra_line.push_back(string(optarg));
+            break;
+        case 'o':
+            old_schema = true;
+            break;
         case 'V':
             version();
             exit(0);
@@ -456,7 +595,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    if ((argc > optind) && (ldap_base) && (ldap_class) && (ldap_org)) {
+    if ((argc > optind) && (ldap_base)) {
         fname = argv[optind];
     } else {
         usage();
@@ -490,18 +629,29 @@ int main(int argc, char** argv) {
 
     pst_freeItem(item);
 
-    // write the ldap header
-    printf("dn: %s\n", ldap_base);
-    printf("o: %s\n", ldap_org);
-    printf("objectClass: organization\n\n");
-    printf("dn: cn=root, %s\n", ldap_base);
-    printf("cn: root\n");
-    printf("objectClass: %s\n\n", ldap_class);
+    if (old_schema && (strlen(ldap_base) > 2)) {
+        char *ldap_org = strdup(ldap_base+2); // assume first 2 chars are o=
+        char *temp = strchr(ldap_org, ',');
+        if (temp) {
+            *temp = '\0';
+            // write the ldap header
+            printf("dn: %s\n", ldap_base);
+            printf("o: %s\n", ldap_org);
+            printf("objectClass: organization\n\n");
+            printf("dn: cn=root, %s\n", ldap_base);
+            printf("cn: root\n");
+            for (int i=0; i<ldap_class.size(); i++)
+                print_ldif_single("objectClass", ldap_class[i].c_str());
+            printf("\n");
+        }
+    }
 
     process(d_ptr->child);  // do the children of TOPF
     pst_close(&pstfile);
     DEBUG_RET();
     free_strings(all_strings);
+    if (cd) iconv_close(cd);
+
     return 0;
 }
 
@@ -510,11 +660,14 @@ int usage() {
     version();
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
-    printf("\t-h\t- Help. This screen\n");
     printf("\t-V\t- Version. Display program version\n");
+    printf("\t-C charset\t- assumed character set of non-ASCII characters\n");
     printf("\t-b ldapbase\t- set the LDAP base value\n");
-    printf("\t-c class   \t- set the class of the LDAP objects\n");
-    printf("\t-C charset \t- assumed character set of non-ASCII characters\n");
+    printf("\t-c class\t- set the class of the LDAP objects (may contain more than one)\n");
+    printf("\t-d <filename>\t- Debug to file. This is a binary log. Use readpstlog to print it\n");
+    printf("\t-h\t- Help. This screen\n");
+    printf("\t-l line\t- extra line to insert in the LDIF file for each contact\n");
+    printf("\t-o\t- use old schema, default is new schema\n");
     return 0;
 }
 
@@ -547,52 +700,78 @@ char *check_filename(char *fname) {
     return fname;
 }
 
-#if 0
+
 // This function escapes Distinguished Names (as per RFC4514)
-char *dn_escape(const char *str) {
-    static char* buf = NULL;
-    const char *a;
-    char *ret, *b;
-    if (str == NULL)
-        ret = NULL;
-    else {
-        // Calculate maximum space needed (if every character must be escaped)
-        int x = 2 * strlen(str) + 1;  // don't forget room for the NUL
-        buf = (char*) realloc(buf, x);
-        a = str;
-        b = buf;
+void print_ldif_dn(const char *attr, const char *value, const char *base)
+{
+    printf("dn: cn=");
+    // remove leading spaces (RFC says escape them)
+    while (*value == ' ')
+        value++;
 
-        // remove leading spaces (RFC says escape them)
-        while (*a == ' ')
-            a++;
-
-        // escape initial '#'
-        if (*a == '#')
-            *b++ = '\\';
-
-        while (*a != '\0') {
-            switch(*a) {
-                case '\\':
-                case '"' :
-                case '+' :
-                case ';' :
-                case '<' :
-                case '>' :
-                    *(b++)='\\';
-                    *b=*a;
-                break;
-                case '\r':  // skip cr
-                    b--;
-                    break;
-                default:
-                    *b=*a;
-            }
-            b++;
-            a++;
-        }
-        *b = '\0'; // NUL-terminate the string (buf)
-        ret = buf;
+    print_escaped_dn(value);
+    if (base && base[0]) {
+        printf(",");
+        print_escaped_dn(base);
     }
-    return ret;
+    printf("\n");
+    return;
 }
-#endif
+
+
+void print_escaped_dn(const char *value)
+{
+    char ch;
+    bool needs_code_conversion = false;
+    char *utf8_buffer = NULL;
+
+    // First do a quick scan to see if any code conversion is required
+    if (cd) {
+        const char *p = value;
+        while (*p) {
+            if (*p++ & 0x80) {
+                needs_code_conversion = true;
+                break;
+            }
+        }
+    }
+
+    if (needs_code_conversion) {
+        size_t inlen = strlen(value);
+        size_t utf8_len = 2 * inlen + 1;
+        char *p = (char *)value;
+        char *utf8_p = utf8_buffer;
+
+        utf8_buffer = (char *)malloc(utf8_len);
+        utf8_p = utf8_buffer;
+        iconv(cd, NULL, NULL, NULL, NULL);
+        if (iconv(cd, &p, &inlen, &utf8_p, &utf8_len) >= 0) {
+            *utf8_p = 0;
+            value = utf8_buffer;
+        }
+    }
+
+    // escape initial '#' and space
+    if (*value == '#' || *value == ' ')
+        putchar('\\');
+
+    while ((ch = *value++) != 0) {
+        if (((ch & 0x80) != 0) || (ch <= 0x1F))
+            // Print as escaped hex digits
+            printf("\\%2.2X", ch & 0xFF);
+        else switch (ch) {
+            case '\\':
+            case '"' :
+            case '+' :
+            case ';' :
+            case '<' :
+            case '>' :
+                putchar('\\');
+                // Fall through
+            default:
+                putchar(ch);
+        }
+    }
+    if (utf8_buffer) free((void *)utf8_buffer);
+    return;
+}

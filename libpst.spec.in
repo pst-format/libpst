@@ -47,7 +47,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Tue Oct 07 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.20-1
+* Thu Oct 09 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.20-1
 - add configure option --enable-dii=no to remove dependency on libgd.
 - many fixes in pst2ldif by Robert Harris.
 - add -D option to include deleted items, from Justin Greer

@@ -281,6 +281,7 @@ static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_de
 static void record_descriptor(pst_file *pf, pst_desc_ll *node);
 static void record_descriptor(pst_file *pf, pst_desc_ll *node)
 {
+    DEBUG_ENT("record_descriptor");
     // finish node initialization
     node->parent     = NULL;
     node->child      = NULL;
@@ -331,6 +332,7 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
             add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
         }
     }
+    DEBUG_RET();
 }
 
 

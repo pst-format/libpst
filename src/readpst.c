@@ -420,11 +420,11 @@ int usage() {
     version();
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
+    printf("\t-V\t- Version. Display program version\n");
     printf("\t-C\t- Decrypt (compressible encryption) the entire file and output on stdout (not typically useful)\n");
     printf("\t-D\t- Include deleted items in output\n");
     printf("\t-M\t- MH. Write emails in the MH format\n");
     printf("\t-S\t- Separate. Write emails in the separate format\n");
-    printf("\t-V\t- Version. Display program version\n");
     printf("\t-b\t- Don't save RTF-Body attachments\n");
     printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
     printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readpstlog to print it\n");

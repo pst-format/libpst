@@ -33,7 +33,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-10-05</date>
+            <date>2008-10-09</date>
         </refentryinfo>
 
         <refmeta>
@@ -233,7 +233,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-10-05</date>
+            <date>2008-10-09</date>
         </refentryinfo>
 
         <refmeta>
@@ -336,7 +336,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-10-05</date>
+            <date>2008-10-09</date>
         </refentryinfo>
 
         <refmeta>
@@ -520,7 +520,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-10-05</date>
+            <date>2008-10-09</date>
         </refentryinfo>
 
         <refmeta>
@@ -543,6 +543,8 @@
                 <arg><option>-c <replaceable class="parameter">class</replaceable></option></arg>
                 <arg><option>-C <replaceable class="parameter">character-set</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
+                <arg><option>-l <replaceable class="parameter">extra-line</replaceable></option></arg>
+                <arg><option>-o</option></arg>
                 <arg><option>-h</option></arg>
                 <arg choice='plain'>pstfilename</arg>
             </cmdsynopsis>
@@ -569,7 +571,8 @@
                     <listitem><para>
                         Sets the objectClass values for the contact items. This class needs to be
                         defined in the schema used by your LDAP server, and at a minimum it must
-                        contain the ldap attributes given below.
+                        contain the ldap attributes given below. This option may be specified
+                        multiple times to generate entries with multiple object classes.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -587,6 +590,26 @@
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>-l <replaceable class="parameter">extra-line</replaceable></term>
+                    <listitem><para>
+                        Specify an extra line to be added to each ldap entry. This
+                        option may be specified multiple times to add multiple lines
+                        to each ldap entry.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-o</term>
+                    <listitem><para>
+                        Use the old ldap schema, rather than the default new ldap schema.
+                        The old schema generates multiple postalAddress attributes for
+                        a single entry. The new schema generates a single postalAddress
+                        (and homePostalAddress when available) attribute with $ delimiters
+                        as specified in RFC4517. Using the old schema also generates two
+                        extra leading entries, one for "dn:ldap base", and one for
+                        "dn: cn=root, ldap base".
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>-h</term>
                     <listitem><para>
                         Show summary of options. Subsequent options are then ignored.
@@ -600,7 +623,8 @@
             <para><command>pst2ldif</command>
                 reads the contact information from a MS Outlook .pst file
                 and produces a .ldif file that may be used to import those contacts
-                into an LDAP database. The following ldap attributes are generated:
+                into an LDAP database. The following ldap attributes are generated
+                for the old ldap schema:
                 <simplelist>
                     <member>cn </member>
                     <member>givenName </member>
@@ -618,6 +642,27 @@
                     <member>facsimileTelephoneNumber </member>
                     <member>mobile </member>
                     <member>description </member>
+                </simplelist>
+                The following attributes are generated for the new ldap schema:
+                <simplelist>
+                    <member>cn </member>
+                    <member>givenName </member>
+                    <member>sn </member>
+                    <member>title </member>
+                    <member>o </member>
+                    <member>mail </member>
+                    <member>postalAddress </member>
+                    <member>homePostalAddress </member>
+                    <member>l </member>
+                    <member>st </member>
+                    <member>postalCode </member>
+                    <member>c </member>
+                    <member>homePhone </member>
+                    <member>telephoneNumber </member>
+                    <member>facsimileTelephoneNumber </member>
+                    <member>mobile </member>
+                    <member>description </member>
+                    <member>labeledURI </member>
                 </simplelist>
             </para>
         </refsect1>
@@ -651,7 +696,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2008-10-05</date>
+            <date>2008-10-09</date>
         </refentryinfo>
 
         <refmeta>
@@ -785,7 +830,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-10-05</date>
+            <date>2008-10-09</date>
         </refentryinfo>
 
         <refmeta>
