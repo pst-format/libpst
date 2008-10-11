@@ -298,7 +298,7 @@ static void process(pst_desc_ll *d_ptr) {
                         if (item->comment)
                             print_ldif_single("description", item->comment);
 
-                        for (size_type i=0; i<ldap_class.size(); i++)
+                        for (vector<string>::size_type i=0; i<ldap_class.size(); i++)
                             print_ldif_single("objectClass", ldap_class[i].c_str());
                         printf("\n");
                     }
@@ -640,7 +640,7 @@ int main(int argc, char** argv) {
             printf("objectClass: organization\n\n");
             printf("dn: cn=root, %s\n", ldap_base);
             printf("cn: root\n");
-            for (size_type i=0; i<ldap_class.size(); i++)
+            for (vector<string>::size_type i=0; i<ldap_class.size(); i++)
                 print_ldif_single("objectClass", ldap_class[i].c_str());
             printf("\n");
         }
