@@ -925,7 +925,6 @@ int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1,
 int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_structn table, table2;
     pst_descn desc_rec;
-    pst_desc_ll *d_ptr=NULL, *parent=NULL;
     int32_t item_count;
     uint64_t old = start_val;
     int x;
@@ -985,12 +984,14 @@ int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t link
                 }
             }
             DEBUG_INDEX(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_id));
-            d_ptr             = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
-            d_ptr->id         = desc_rec.d_id;
-            d_ptr->parent_id  = desc_rec.parent_id;
-            d_ptr->list_index = pst_getID(pf, desc_rec.list_id);
-            d_ptr->desc       = pst_getID(pf, desc_rec.desc_id);
-            record_descriptor(pf, d_ptr);   // add to the global tree
+            {
+                pst_desc_ll *d_ptr = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
+                d_ptr->id          = desc_rec.d_id;
+                d_ptr->parent_id   = desc_rec.parent_id;
+                d_ptr->list_index  = pst_getID(pf, desc_rec.list_id);
+                d_ptr->desc        = pst_getID(pf, desc_rec.desc_id);
+                record_descriptor(pf, d_ptr);   // add to the global tree
+            }
         }
     } else {
         // this node contains node pointers

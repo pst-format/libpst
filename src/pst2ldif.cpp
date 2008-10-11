@@ -298,7 +298,7 @@ static void process(pst_desc_ll *d_ptr) {
                         if (item->comment)
                             print_ldif_single("description", item->comment);
 
-                        for (int i=0; i<ldap_class.size(); i++)
+                        for (size_type i=0; i<ldap_class.size(); i++)
                             print_ldif_single("objectClass", ldap_class[i].c_str());
                         printf("\n");
                     }
@@ -497,7 +497,7 @@ void print_ldif_two(const char *attr, const char *value1, const char *value2)
 void build_cn(char *cn, size_t len, int nvalues, char *value, ...)
 {
     bool space_flag = false;
-    int i = 0;
+    size_t i = 0;
     va_list ap;
 
     va_start(ap, value);
@@ -640,7 +640,7 @@ int main(int argc, char** argv) {
             printf("objectClass: organization\n\n");
             printf("dn: cn=root, %s\n", ldap_base);
             printf("cn: root\n");
-            for (int i=0; i<ldap_class.size(); i++)
+            for (size_type i=0; i<ldap_class.size(); i++)
                 print_ldif_single("objectClass", ldap_class[i].c_str());
             printf("\n");
         }
