@@ -47,6 +47,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Oct 21 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.21-1
+- fix title bug with old schema in pst2ldif.
+- also escape commas in distinguished names per rfc4514.
+
 * Thu Oct 09 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.20-1
 - add configure option --enable-dii=no to remove dependency on libgd.
 - many fixes in pst2ldif by Robert Harris.

@@ -1,36 +1,41 @@
+LibPST 0.6.21 (2008-10-21)
+===============================
+        * fix title bug with old schema in pst2ldif.
+	* also escape commas in distinguished names per rfc4514.
+
 LibPST 0.6.20 (2008-10-09)
 ===============================
-    	* add configure option --enable-dii=no to remove dependency on libgd.
-	* many fixes in pst2ldif by Robert Harris.
-	* add -D option to include deleted items, from Justin Greer
+        * add configure option --enable-dii=no to remove dependency on libgd.
+        * many fixes in pst2ldif by Robert Harris.
+        * add -D option to include deleted items, from Justin Greer
         * fix from Justin Greer to add missing email headers
         * fix from Justin Greer for my_stristr()
-	* fix for orphan children when building descriptor tree
-	* avoid writing uninitialized data to debug log file
-	* remove unreachable code
-	* create dummy top-of-folder descriptor if needed for corrupt pst files
+        * fix for orphan children when building descriptor tree
+        * avoid writing uninitialized data to debug log file
+        * remove unreachable code
+        * create dummy top-of-folder descriptor if needed for corrupt pst files
 
 LibPST 0.6.19 (2008-09-14)
 ===============================
-	* Fix base64 encoding that could create long lines
-	* Initial work on a .so shared library from Bharath Acharya.
+        * Fix base64 encoding that could create long lines
+        * Initial work on a .so shared library from Bharath Acharya.
 
 LibPST 0.6.18 (2008-08-28)
 ===============================
-    	* Fixes for iconv on Mac from Justin Greer.
+        * Fixes for iconv on Mac from Justin Greer.
 
 LibPST 0.6.17 (2008-08-05)
 ===============================
-    	* More fixes for 32/64 bit portability on big endian ppc.
+        * More fixes for 32/64 bit portability on big endian ppc.
 
 LibPST 0.6.16 (2008-08-05)
 ===============================
-    	* Use inttypes.h for portable printing of 64 bit items.
+        * Use inttypes.h for portable printing of 64 bit items.
 
 LibPST 0.6.15 (2008-07-30)
 ===============================
-    	* Patch from Robert Simpson for file handle leak in error case.
-    	* Fix for missing length on lz decompression, bug found by Chris White.
+        * Patch from Robert Simpson for file handle leak in error case.
+        * Fix for missing length on lz decompression, bug found by Chris White.
 
 LibPST 0.6.14 (2008-06-15)
 ===============================

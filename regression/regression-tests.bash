@@ -42,14 +42,14 @@ if [ "$1" == "dii" ]; then
     dodii 4 big_mail.pst
 else
     dopst  1 ams.pst
-    dopst  2 sample_64.pst
-    dopst  3 test.pst
-    dopst  4 big_mail.pst
-    dopst  5 mbmg.archive.pst
-    dopst  6 Single2003-read.pst
-    dopst  7 Single2003-unread.pst
-    dopst  8 ol2k3high.pst
-    dopst  9 ol97high.pst
-    dopst 10 returned_message.pst
+   #dopst  2 sample_64.pst
+   #dopst  3 test.pst
+   #dopst  4 big_mail.pst
+   #dopst  5 mbmg.archive.pst
+   #dopst  6 Single2003-read.pst
+   #dopst  7 Single2003-unread.pst
+   #dopst  8 ol2k3high.pst
+   #dopst  9 ol97high.pst
+   #dopst 10 returned_message.pst
 fi
 

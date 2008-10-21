@@ -161,13 +161,13 @@ static void process(pst_desc_ll *d_ptr) {
                                 print_ldif_single("personalTitle", item->contact->job_title);
                             if (item->contact->company_name)
                                 print_ldif_single("company", item->contact->company_name);
+                        }
                         else {
                             // new schema
                             if (item->contact->job_title)
                                 print_ldif_single("title", item->contact->job_title);
                             if (item->contact->company_name)
                                 print_ldif_single("o", item->contact->company_name);
-                            }
                         }
                         if (item->contact->address1  && *item->contact->address1)
                             print_ldif_single("mail", item->contact->address1);
@@ -640,6 +640,7 @@ int main(int argc, char** argv) {
             printf("objectClass: organization\n\n");
             printf("dn: cn=root, %s\n", ldap_base);
             printf("cn: root\n");
+            printf("sn: root\n");
             for (vector<string>::size_type i=0; i<ldap_class.size(); i++)
                 print_ldif_single("objectClass", ldap_class[i].c_str());
             printf("\n");
@@ -711,8 +712,7 @@ void print_ldif_dn(const char *attr, const char *value, const char *base)
 
     print_escaped_dn(value);
     if (base && base[0]) {
-        printf(",");
-        print_escaped_dn(base);
+        printf(", %s", base);
     }
     printf("\n");
     return;
@@ -763,6 +763,7 @@ void print_escaped_dn(const char *value)
             case '\\':
             case '"' :
             case '+' :
+            case ',' :
             case ';' :
             case '<' :
             case '>' :
