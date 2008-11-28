@@ -1875,7 +1875,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     memset(item->email->subject, 0, sizeof(pst_item_email_subject));
                     DEBUG_EMAIL((" [size = %i] ", list->items[x]->size));
                     if (list->items[x]->size > 0) {
-                        if (isprint(list->items[x]->data[0])) {
+                        if (isprint(list->items[x]->data[0]) || (list->items[x]->size < 2)) {
                             // then there are no control bytes at the front
                             item->email->subject->off1 = 0;
                             item->email->subject->off2 = 0;

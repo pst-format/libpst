@@ -21,15 +21,15 @@ function dopst()
     mkdir output$n
     $val ../src/readpst -cv -o output$n -d dumper $fn >$fn.pst.err 2>&1
          ../src/readpstlog -f I dumper >$fn.log
-    $val ../src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' -o $fn >$fn.ldif.err 2>&1
-    $val ../src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$fn.ldif2.err 2>&1
+    #$val ../src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' -o $fn >$fn.ldif.err 2>&1
+    #$val ../src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$fn.ldif2.err 2>&1
     rm -f dumper
 }
 
 
 
 val="valgrind --leak-check=full"
-val=''
+#val=''
 
 pushd ..
 make || exit
@@ -40,6 +40,8 @@ if [ "$1" == "dii" ]; then
     dodii 2 sample_64.pst
     dodii 3 test.pst
     dodii 4 big_mail.pst
+elif [ "$1" == "flow" ]; then
+    dopst 11 flow.pst
 else
     dopst  1 ams.pst
    #dopst  2 sample_64.pst
@@ -51,5 +53,6 @@ else
    #dopst  8 ol2k3high.pst
    #dopst  9 ol97high.pst
    #dopst 10 returned_message.pst
+   #dopst 11 flow.pst
 fi
 

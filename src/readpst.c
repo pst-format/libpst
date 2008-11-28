@@ -158,11 +158,11 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     else
                         fprintf(ff.output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
 
-                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT || item->type == PST_TYPE_OTHER)) {
                     if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Email\n"));
-                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT)) {
+                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT) && (ff.type != PST_TYPE_OTHER)) {
                         DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
                     write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body);

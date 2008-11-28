@@ -36,7 +36,7 @@ char *base64_encode_multiple(void *data, size_t size, int *line_count)
 
     if (data == NULL || size == 0) return NULL;
 
-    ou = output = (char *)malloc(size / 3 * 4 + (size / 57) + 5);
+    ou = output = (char *)malloc(size / 3 * 4 + (size / 57) + 6);
     if (!output) return NULL;
 
     while((dte-p) >= 3) {

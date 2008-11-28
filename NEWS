@@ -1,3 +1,4 @@
+0.6.22  2008-11-28 process emails with type PST_TYPE_OTHER, fix malloc error and possible segfault
 0.6.21  2008-10-21 fix title bug with old schema in pst2ldif, also escape commas in distinguished names per rfc4514.
 0.6.20  2008-10-09 add configure option --enable-dii=no, fixes from Robert Harris for pst2ldif.
 0.6.19  2008-09-14 Initial work on a .so shared library from Bharath Acharya.

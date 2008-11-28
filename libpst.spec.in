@@ -47,6 +47,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Nov 28 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.22-1
+- patch from David Cuadrado to process emails with type PST_TYPE_OTHER
+- base64_encode_multiple() may insert newline, needs larger malloc
+- subject lines shorter than 2 bytes could segfault
+
 * Tue Oct 21 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.21-1
 - fix title bug with old schema in pst2ldif.
 - also escape commas in distinguished names per rfc4514.

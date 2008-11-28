@@ -95,9 +95,9 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         printf("\t%s", pst_rfc2426_escape(item->contact->fullname));
                     printf("\n");
 
-                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT || item->type == PST_TYPE_OTHER)) {
                     // Process Email item
-                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT)) {
+                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT) && (ff.type != PST_TYPE_OTHER)) {
                         DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
                     printf("Email");
