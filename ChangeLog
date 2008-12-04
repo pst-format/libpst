@@ -1,3 +1,7 @@
+LibPST 0.6.23 (2008-12-04)
+===============================
+        * bump version to avoid cvs tagging mistake in fedora
+
 LibPST 0.6.22 (2008-11-28)
 ===============================
         * patch from David Cuadrado to process emails with type PST_TYPE_OTHER
