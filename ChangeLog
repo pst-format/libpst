@@ -1,3 +1,7 @@
+LibPST 0.6.24 (2008-12-11)
+===============================
+        * patch from Chris Eagle to build on cygwin
+
 LibPST 0.6.23 (2008-12-04)
 ===============================
         * bump version to avoid cvs tagging mistake in fedora

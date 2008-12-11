@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(libpst,0.6.23,carl@five-ten-sg.com)
+AC_INIT(libpst,0.6.24,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
 
@@ -87,6 +87,31 @@ if test "x${SAVELIBS}" != "x${LIBS}"; then
     AC_SUBST(all_libraries)
     AC_MSG_WARN([This should be building on Mac OSX, adding /usr/lib to the library path])
 fi
+
+AC_MSG_CHECKING([if iconv uses const arguments])
+AC_LANG_PUSH([C++])
+AC_COMPILE_IFELSE([
+        #include <iconv.h>
+        int main(int argc, char **argv)
+        {
+            size_t  inlen = 100;
+            char buffer[[inlen]];
+            char *p = buffer;
+            size_t utf8_len = 2 * inlen + 1;
+            char utf8_buffer[[utf8_len]];
+            char *utf8_p = utf8_buffer;
+            iconv_t cd = 0;
+            iconv(cd, (const char**)&p, &inlen, &utf8_p, &utf8_len);
+        }
+    ],
+    [AC_DEFINE(ICONV_CONST,const,[do we have const headers])
+     AC_MSG_RESULT([yes])
+    ],
+    [AC_DEFINE(ICONV_CONST,,[do we have const headers])
+     AC_MSG_RESULT([no])
+    ])
+AC_LANG_POP([C++])
+
 
 # The following lines adds the --enable-pst-debug option to configure:
 #

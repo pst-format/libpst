@@ -371,7 +371,7 @@ void print_ldif_single(const char *attr, const char *value)
 
         iconv(cd, NULL, NULL, NULL, NULL);
         p = buffer;
-        int ret = iconv(cd, &p, &inlen, &utf8_p, &utf8_len);
+        int ret = iconv(cd, (ICONV_CONST char**)&p, &inlen, &utf8_p, &utf8_len);
 
         if (ret >= 0) {
             *utf8_p = 0;
@@ -657,7 +657,7 @@ int main(int argc, char** argv) {
 }
 
 
-int usage() {
+int32_t usage() {
     version();
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
@@ -673,7 +673,7 @@ int usage() {
 }
 
 
-int version() {
+int32_t version() {
     printf("pst2ldif v%s\n", VERSION);
 #if BYTE_ORDER == BIG_ENDIAN
     printf("Big Endian implementation being used.\n");
@@ -745,7 +745,7 @@ void print_escaped_dn(const char *value)
         utf8_buffer = (char *)malloc(utf8_len);
         utf8_p = utf8_buffer;
         iconv(cd, NULL, NULL, NULL, NULL);
-        if (iconv(cd, &p, &inlen, &utf8_p, &utf8_len) >= 0) {
+        if (iconv(cd, (ICONV_CONST char**)&p, &inlen, &utf8_p, &utf8_len) >= 0) {
             *utf8_p = 0;
             value = utf8_buffer;
         }

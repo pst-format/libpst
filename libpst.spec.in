@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Dec 11 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.24-1
+- patch from Chris Eagle to build on cygwin
+
 * Thu Dec 04 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.23-1
 - bump version to avoid cvs tagging mistake in fedora
 

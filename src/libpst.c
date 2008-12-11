@@ -493,8 +493,7 @@ pst_desc_ll* pst_getNextDptr(pst_desc_ll* d) {
 
 
 typedef struct pst_x_attrib {
-    uint16_t extended;
-    uint16_t zero;
+    uint32_t extended;
     uint16_t type;
     uint16_t map;
 } pst_x_attrib;
@@ -560,8 +559,7 @@ int pst_load_extended_attributes(pst_file *pf) {
     }
 
     memcpy(&xattrib, &(buffer[bptr]), sizeof(xattrib));
-    LE16_CPU(xattrib.extended);
-    LE16_CPU(xattrib.zero);
+    LE32_CPU(xattrib.extended);
     LE16_CPU(xattrib.type);
     LE16_CPU(xattrib.map);
     bptr += sizeof(xattrib);
@@ -572,8 +570,8 @@ int pst_load_extended_attributes(pst_file *pf) {
         ptr->type = xattrib.type;
         ptr->map  = xattrib.map+0x8000;
         ptr->next = NULL;
-        DEBUG_INDEX(("xattrib: ext = %#hx, zero = %#hx, type = %#hx, map = %#hx\n",
-             xattrib.extended, xattrib.zero, xattrib.type, xattrib.map));
+        DEBUG_INDEX(("xattrib: ext = %#x, type = %#hx, map = %#hx\n",
+             xattrib.extended, xattrib.type, xattrib.map));
         err=0;
         if (xattrib.type & 0x0001) { // if the Bit 1 is set
             // pointer to Unicode field in buffer
@@ -623,8 +621,7 @@ int pst_load_extended_attributes(pst_file *pf) {
             ptr = NULL;
         }
         memcpy(&xattrib, &(buffer[bptr]), sizeof(xattrib));
-        LE16_CPU(xattrib.extended);
-        LE16_CPU(xattrib.zero);
+        LE32_CPU(xattrib.extended);
         LE16_CPU(xattrib.type);
         LE16_CPU(xattrib.map);
         bptr += sizeof(xattrib);
