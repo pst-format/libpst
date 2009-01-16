@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jan 16 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.25-1
+- improve handling of content-type charset values in mime parts
+
 * Thu Dec 11 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.24-1
 - patch from Chris Eagle to build on cygwin
 

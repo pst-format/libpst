@@ -1606,6 +1606,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
                 }
                 if (table_rec.ref_type == (uint16_t)0x1f) {
                     // there is more to do for the type 0x1f unicode strings
+                    size_t rc;
                     static vbuf *strbuf = NULL;
                     static vbuf *unibuf = NULL;
                     if (!strbuf) strbuf=vballoc((size_t)1024);
@@ -1620,11 +1621,17 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
                     vbappend(strbuf, "\0\0", (size_t)2);
                     DEBUG_INDEX(("Iconv in:\n"));
                     DEBUG_HEXDUMPC(strbuf->b, strbuf->dlen, 0x10);
-                    (void)vb_utf16to8(unibuf, strbuf->b, strbuf->dlen);
-                    free(na_ptr->items[x]->data);
-                    na_ptr->items[x]->size = unibuf->dlen;
-                    na_ptr->items[x]->data = xmalloc(unibuf->dlen);
-                    memcpy(na_ptr->items[x]->data, unibuf->b, unibuf->dlen);
+                    rc = vb_utf16to8(unibuf, strbuf->b, strbuf->dlen);
+                    if (rc == (size_t)-1) {
+                        free(unibuf->b);
+                        DEBUG_EMAIL(("Failed to convert utf-16 to utf-8\n"));
+                    }
+                    else {
+                        free(na_ptr->items[x]->data);
+                        na_ptr->items[x]->size = unibuf->dlen;
+                        na_ptr->items[x]->data = xmalloc(unibuf->dlen);
+                        memcpy(na_ptr->items[x]->data, unibuf->b, unibuf->dlen);
+                    }
                     DEBUG_INDEX(("Iconv out:\n"));
                     DEBUG_HEXDUMPC(na_ptr->items[x]->data, na_ptr->items[x]->size, 0x10);
                 }
@@ -1732,6 +1739,22 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                         ef->next = item->extra_fields;
                         item->extra_fields = ef;
                         DEBUG_EMAIL(("\"%s\" = \"%s\"\n", ef->field_name, ef->value));
+                        if (strcmp(ef->field_name, "content-type") == 0) {
+                            char *p = strstr(ef->value, "charset=\"");
+                            if (p) {
+                                p += 9; // skip over charset="
+                                char *pp = strchr(p, '"');
+                                if (pp) {
+                                    *pp = '\0';
+                                    char *set = strdup(p);
+                                    *pp = '"';
+                                    MALLOC_EMAIL(item);
+                                    if (item->email->body_charset) free(item->email->body_charset);
+                                    item->email->body_charset = set;
+                                    DEBUG_EMAIL(("body charset %s from content-type extra field\n", set));
+                                }
+                            }
+                        }
                     }
                     else {
                         DEBUG_EMAIL(("NULL extra field\n"));
@@ -2209,8 +2232,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("Plain Text body - "));
                     MALLOC_EMAIL(item);
                     LIST_COPY(item->email->body, (char*));
-                    //DEBUG_EMAIL("%s\n", item->email->body);
-                    DEBUG_EMAIL(("NOT PRINTED\n"));
+                    DEBUG_EMAIL(("%s\n", item->email->body));
                     break;
                 case 0x1006: // PR_RTF_SYNC_BODY_CRC
                     DEBUG_EMAIL(("RTF Sync Body CRC - "));
@@ -2261,8 +2283,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("HTML body - "));
                     MALLOC_EMAIL(item);
                     LIST_COPY(item->email->htmlbody, (char*));
-                    //  DEBUG_EMAIL(("%s\n", item->email->htmlbody));
-                    DEBUG_EMAIL(("NOT PRINTED\n"));
+                    DEBUG_EMAIL(("%s\n", item->email->htmlbody));
                     break;
                 case 0x1035: // Message ID
                     DEBUG_EMAIL(("Message ID - "));
@@ -3699,6 +3720,7 @@ void pst_freeItem(pst_item *item) {
         if (item->email) {
             SAFE_FREE(item->email->arrival_date);
             SAFE_FREE(item->email->body);
+            SAFE_FREE(item->email->body_charset);
             SAFE_FREE(item->email->cc_address);
             SAFE_FREE(item->email->bcc_address);
             SAFE_FREE(item->email->common_name);

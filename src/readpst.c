@@ -6,6 +6,7 @@
  */
 #include "define.h"
 #include "libstrfunc.h"
+#include "vbuf.h"
 #include "libpst.h"
 #include "common.h"
 #include "timeconv.h"
@@ -762,11 +763,11 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
         char *attach_filename;
         fprintf(f_output, "\n--%s\n", boundary);
         if (!current_attach->mimetype) {
-            fprintf(f_output, "Content-type: %s\n", MIME_TYPE_DEFAULT);
+            fprintf(f_output, "Content-Type: %s\n", MIME_TYPE_DEFAULT);
         } else {
-            fprintf(f_output, "Content-type: %s\n", current_attach->mimetype);
+            fprintf(f_output, "Content-Type: %s\n", current_attach->mimetype);
         }
-        fprintf(f_output, "Content-transfer-encoding: base64\n");
+        fprintf(f_output, "Content-Transfer-Encoding: base64\n");
         // If there is a long filename (filename2) use that, otherwise
         // use the 8.3 filename (filename1)
         if (current_attach->filename2) {
@@ -822,7 +823,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         // see if there is a boundary variable there
         // this search MUST be made case insensitive (DONE).
         // Also, we should check to find out if we are looking
-        // at the boundary associated with content-type, and that
+        // at the boundary associated with Content-Type, and that
         // the content type really is multipart
 
         removeCR(item->email->header);
@@ -1024,12 +1025,10 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         // in the headers above.
         if (item->attach) {
             // write the boundary stuff if we have attachments
-            fprintf(f_output, "Content-type: multipart/mixed;\n\tboundary=\"%s\"\n", boundary);
-        } else if (boundary) {
-            // else if we have multipart/alternative then tell it so
-            fprintf(f_output, "Content-type: multipart/alternative;\n\tboundary=\"%s\"\n", boundary);
-        } else if (item->email->htmlbody) {
-            fprintf(f_output, "Content-type: text/html\n");
+            fprintf(f_output, "Content-Type: multipart/mixed;\n\tboundary=\"%s\"\n", boundary);
+        } else {
+            // else we have multipart/alternative then tell it so
+            fprintf(f_output, "Content-Type: multipart/alternative;\n\tboundary=\"%s\"\n", boundary);
         }
     }
     fprintf(f_output, "\n");    // start the body
@@ -1037,11 +1036,56 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     if (item->email->body) {
         if (boundary) {
+            // try to find the charset for this body part
+            const char *def = "utf-8";
+            // it seems that if (item->email->body_charset) is set, then
+            // we actually have utf8 plain body text. If that is not set
+            // we have plain body text in an 8 bit charset specified in
+            // the headers.
+            char *c = my_stristr(item->email->header, "\nContent-Type:");
+            if (c) {
+                c++;
+                char *n = my_stristr(c, "\n");  // termination on the content type
+                if (n) {
+                    char *s = my_stristr(c, "; charset=");
+                    if (s && (s < n)) {
+                        char *e;
+                        s += 10;    // skip over charset=
+                        if (*s == '"') {
+                            s++;
+                            e = my_stristr(s, "\"");
+                        }
+                        else {
+                            e = my_stristr(s, ";");
+                        }
+                        if (!e || (e > n)) e = n;   // use the trailing lf as terminator if nothing better
+                        *e = '\0';      // corrupt the header, but we have already printed it
+                        def = s;
+                        DEBUG_EMAIL(("body charset %s from headers\n", def));
+                    }
+                }
+            }
             fprintf(f_output, "\n--%s\n", boundary);
-            fprintf(f_output, "Content-type: text/plain\n");
+            fprintf(f_output, "Content-Type: text/plain; charset=\"%s\"\n", def);
             if (base64_body)
                 fprintf(f_output, "Content-Transfer-Encoding: base64\n");
             fprintf(f_output, "\n");
+        }
+        else if (item->email->body_charset && (strcasecmp("utf-8",item->email->body_charset))) {
+            // try to convert to the specified charset since it is not utf-8
+            size_t rc;
+            DEBUG_EMAIL(("Convert plain text utf-8 to %s\n", item->email->body_charset));
+            vbuf *newer = vballoc(2);
+            rc = vb_utf8to8bit(newer, item->email->body, strlen(item->email->body) + 1, item->email->body_charset);
+            if (rc == (size_t)-1) {
+                free(newer->b);
+                DEBUG_EMAIL(("Failed to convert plain text utf-8 to %s\n", item->email->body_charset));
+            }
+            else {
+                free(item->email->body);
+                item->email->body = newer->b;
+            }
+            free(newer);
         }
         removeCR(item->email->body);
         if (base64_body) {
@@ -1058,8 +1102,10 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     if (item->email->htmlbody) {
         if (boundary) {
+            const char *def = "utf-8";
+            if (item->email->body_charset) def = item->email->body_charset;
             fprintf(f_output, "\n--%s\n", boundary);
-            fprintf(f_output, "Content-type: text/html\n");
+            fprintf(f_output, "Content-Type: text/html; charset=\"%s\"\n", def);
             if (base64_body) fprintf(f_output, "Content-Transfer-Encoding: base64\n");
             fprintf(f_output, "\n");
         }

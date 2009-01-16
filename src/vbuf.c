@@ -40,11 +40,11 @@ int find_nl(vstr * vs)
     nextn = memchr(vs->b, '\n', vs->dlen);
 
     //case 1: UNIX, we find \n first
-    if (nextn && (nextr == NULL || nextr > nextn)) {
+    if (nextn && (!nextr || (nextr > nextn))) {
         return nextn - vs->b;
     }
     //case 2: DOS, we find \r\n
-    if (NULL != nextr && NULL != nextn && 1 == (char *) nextn - (char *) nextr) {
+    if (nextr && nextn && (nextn-nextr == 1)) {
         return nextr - vs->b;
     }
     //case 3: we find nothing
@@ -55,59 +55,37 @@ int find_nl(vstr * vs)
 
 //  UTF8 <-> UTF16 <-> ISO8859 Character set conversion functions and (ack) their globals
 
-//TODO: the following should not be
-char *wwbuf = NULL;
-size_t nwwbuf = 0;
 static int unicode_up = 0;
-iconv_t i16to8, i8to16, i8859_1to8, i8toi8859_1;
+static iconv_t i16to8;
+static const char *target_charset = NULL;
+static iconv_t    i8totarget;
 
 
 void unicode_init()
 {
-    char *wipe = "";
-    char dump[4];
-
-    if (unicode_up)
-        unicode_close();
-
-    if ((iconv_t) - 1 == (i16to8 = iconv_open("UTF-8", "UTF-16LE"))) {
-        fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-16LE to UTF-8.\n");
+    if (unicode_up) unicode_close();
+    i16to8 = iconv_open("UTF-8", "UTF-16LE");
+    if (i16to8 == (iconv_t)-1) {
+        fprintf(stderr, "Couldn't open iconv descriptor for UTF-16LE to UTF-8.\n");
         exit(1);
     }
-
-    if ((iconv_t) - 1 == (i8to16 = iconv_open("UTF-16LE", "UTF-8"))) {
-        fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-8 to UTF-16LE.\n");
-        exit(2);
-    }
-    //iconv will prefix output with an FF FE (utf-16 start seq), the following dumps that.
-    memset(dump, 'x', 4);
-    ASSERT(0 == utf8to16(wipe, 1, dump, 4), "unicode_init(): attempt to dump FF FE failed.");
-
-    if ((iconv_t) - 1 == (i8859_1to8 = iconv_open("UTF-8", "ISO_8859-1"))) {
-        fprintf(stderr, "doexport(): Couldn't open iconv descriptor for ASCII to UTF-8.\n");
-        exit(1);
-    }
-
-    if ((iconv_t) - 1 == (i8toi8859_1 = iconv_open("ISO_8859-1", "UTF-8"))) {
-        fprintf(stderr, "doexport(): Couldn't open iconv descriptor for UTF-8 to ASCII.\n");
-        exit(1);
-    }
-
     unicode_up = 1;
 }
 
 
 void unicode_close()
 {
-    unicode_up = 0;
-    iconv_close(i8to16);
     iconv_close(i16to8);
-    iconv_close(i8859_1to8);
-    iconv_close(i8toi8859_1);
+    if (target_charset) {
+        iconv_close(i8totarget);
+        free((char *)target_charset);
+        target_charset = NULL;
+    }
+    unicode_up = 0;
 }
 
 
-int utf16_is_terminated(char *str, int length)
+int utf16_is_terminated(const char *str, int length)
 {
     VSTR_STATIC(errbuf, 100);
     int len = -1;
@@ -127,147 +105,76 @@ int utf16_is_terminated(char *str, int length)
 }
 
 
-int vb_utf16to8(vbuf * dest, char *buf, int len)
+size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen)
 {
-    size_t inbytesleft = len;
-    char *inbuf = buf;
-    size_t icresult = (size_t)-1;
-    VBUF_STATIC(dumpster, 100);
-
+    size_t inbytesleft  = iblen;
+    size_t icresult     = (size_t)-1;
     size_t outbytesleft = 0;
-    char *outbuf = NULL;
+    char *outbuf        = NULL;
 
     ASSERT(unicode_up, "vb_utf16to8() called before unicode started.");
 
-    if (2 > dest->blen)
-        vbresize(dest, 2);
+    if (2 > dest->blen) vbresize(dest, 2);
     dest->dlen = 0;
 
     //Bad Things can happen if a non-zero-terminated utf16 string comes through here
-    if (!utf16_is_terminated(buf, len))
-        return -1;
+    if (!utf16_is_terminated(inbuf, iblen))
+        return (size_t)-1;
 
     do {
         outbytesleft = dest->blen - dest->dlen;
         outbuf = dest->b + dest->dlen;
-        icresult = iconv(i16to8, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
+        icresult = iconv(i16to8, (ICONV_CONST char**)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
         dest->dlen = outbuf - dest->b;
         vbgrow(dest, inbytesleft);
-    } while ((size_t)-1 == icresult && E2BIG == errno);
-
-    if (0 != vb_utf8to16T(dumpster, dest->b, dest->dlen))
-        DIE(("Reverse conversion failed."));
-
-    if (icresult == (size_t)-1) {
-        //TODO: error
-        //ERR_UNIX( errno, "vb_utf16to8():iconv failure: %s", strerror( errno ) );
-        unicode_init();
-        return -1;
-        /*
-           fprintf(stderr, "  attempted to convert:\n");
-           hexdump( (char*)cin, 0, inlen, 1 );
-           fprintf(stderr, "  result:\n");
-           hexdump( (char*)bout->b, 0, bout->dlen, 1 );
-           fprintf(stderr, "  MyDirtyOut:\n");
-           for( i=0; i<inlen; i++) {
-           if( inbuf[i] != '\0' ) fprintf(stderr, "%c", inbuf[i] );
-           }
-
-           fprintf( stderr, "\n" );
-           raise( SIGSEGV );
-           exit(1);
-         */
-    }
-
-    if (icresult) {
-        //ERR_UNIX( EILSEQ, "Uhhhh...vb_utf16to8() returning icresult == %d", icresult );
-        return -1;
-    }
-    return icresult;
-}
-
-
-int utf8to16(char *inbuf_o, int iblen, char *outbuf_o, int oblen)       // iblen, oblen: bytes including \0
-{
-    //TODO: this is *only* used to dump the utf16 preamble now...
-    //TODO: This (and 8to16) are the most horrible things I have ever seen...
-    size_t inbytesleft = 0;
-    size_t outbytesleft = oblen;
-    char *inbuf = inbuf_o;
-    char *outbuf = outbuf_o;
-    size_t icresult = (size_t)-1;
-    char *stend;
-
-    stend = memchr(inbuf_o, '\0', iblen);
-    ASSERT(NULL != stend, "utf8to16(): in string not zero terminated.");
-    inbytesleft = (stend - inbuf_o + 1 < iblen) ? stend - inbuf_o + 1 : iblen;
-    icresult = iconv(i8to16, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
-
-    if (icresult == (size_t)-1) {
-        DIE(("iconv failure(%d): %s\n", errno, strerror(errno)));
-    }
-    if (icresult > (size_t)INT_MAX) {
-        return (-1);
-    }
-    return (int) icresult;
-}
-
-
-int vb_utf8to16T(vbuf * bout, char *cin, int inlen)
-{
-    //TODO: This (and 8to16) are the most horrible things I have ever seen...
-    size_t inbytesleft = inlen;
-    char *inbuf = cin;
-    //int rlen = -1, tlen;
-    size_t icresult = (size_t)-1;
-    size_t outbytesleft = 0;
-    char *outbuf = NULL;
-
-    if (2 > bout->blen)
-        vbresize(bout, 2);
-    bout->dlen = 0;
-
-    do {
-        outbytesleft = bout->blen - bout->dlen;
-        outbuf = bout->b + bout->dlen;
-        icresult = iconv(i8to16, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
-        bout->dlen = outbuf - bout->b;
-        vbgrow(bout, 20);
     } while ((size_t)-1 == icresult && E2BIG == errno);
 
     if (icresult == (size_t)-1) {
         WARN(("iconv failure: %s", strerror(errno)));
         unicode_init();
-        return -1;
+        return (size_t)-1;
     }
-    if (icresult > (size_t) INT_MAX) {
-        return (-1);
-    }
-    return icresult;
+    return (icresult) ? (size_t)-1 : 0;
 }
 
 
-/* Quick and dirty UNICODE to std. ascii */
-void cheap_uni2ascii(char *src, char *dest, int l)
+size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* charset)
 {
+    size_t inbytesleft  = iblen;
+    size_t icresult     = (size_t)-1;
+    size_t outbytesleft = 0;
+    char *outbuf        = NULL;
 
-    for (; l > 0; l -= 2) {
-        *dest = *src;
-        dest++;
-        src += 2;
+    if (!target_charset || (target_charset && strcasecmp(target_charset, charset))) {
+        if (target_charset) {
+            iconv_close(i8totarget);
+            free((char *)target_charset);
+        }
+        target_charset = strdup(charset);
+        i8totarget = iconv_open(target_charset, "UTF-8");
+        if (i8totarget == (iconv_t)-1) {
+            fprintf(stderr, "Couldn't open iconv descriptor for UTF-8 to %s.\n", target_charset);
+            return (size_t)-1;
+        }
     }
-    *dest = 0;
-}
 
+    if (2 > dest->blen) vbresize(dest, 2);
+    dest->dlen = 0;
 
-/* Quick and dirty ascii to unicode */
-void cheap_ascii2uni(char *src, char *dest, int l)
-{
-    for (; l > 0; l--) {
-        *dest++ = *src++;
-        *dest++ = 0;
+    do {
+        outbytesleft = dest->blen - dest->dlen;
+        outbuf = dest->b + dest->dlen;
+        icresult = iconv(i8totarget, (ICONV_CONST char**)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
+        dest->dlen = outbuf - dest->b;
+        vbgrow(dest, 20);
+    } while ((size_t)-1 == icresult && E2BIG == errno);
 
+    if (icresult == (size_t)-1) {
+        WARN(("iconv failure: %s", strerror(errno)));
+        unicode_init();
+        return (size_t)-1;
     }
+    return (icresult) ? (size_t)-1 : 0;
 }
 
 
@@ -609,7 +516,7 @@ void vs_printfa(vstr * vs, char *fmt, ...)
 }
 
 
-void vshexdump(vstr * vs, char *b, size_t start, size_t stop, int ascii)
+void vshexdump(vstr * vs, const char *b, size_t start, size_t stop, int ascii)
 {
     char c;
     int diff, i;

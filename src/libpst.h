@@ -211,6 +211,7 @@ typedef struct pst_item_email {
     FILETIME *arrival_date;
     int       autoforward;            // 1 = true, 0 = not set, -1 = false
     char     *body;
+    char     *body_charset;           // null if not specified
     char     *cc_address;
     char     *bcc_address;
     char     *common_name;

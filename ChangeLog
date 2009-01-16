@@ -1,3 +1,7 @@
+LibPST 0.6.25 (2009-01-16)
+===============================
+        * improve handling of content-type charset values in mime parts
+
 LibPST 0.6.24 (2008-12-11)
 ===============================
         * patch from Chris Eagle to build on cygwin

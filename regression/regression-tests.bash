@@ -19,7 +19,7 @@ function dopst()
     fn="$2"
     rm -rf output$n
     mkdir output$n
-    $val ../src/readpst -cv -o output$n -d dumper $fn >$fn.pst.err 2>&1
+    $val ../src/readpst -cv -o output$n -d dumper $fn >$fn.err 2>&1
          ../src/readpstlog -f I dumper >$fn.log
     #$val ../src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'newPerson' -o $fn >$fn.ldif.err 2>&1
     #$val ../src/pst2ldif -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$fn.ldif2.err 2>&1
@@ -40,19 +40,20 @@ if [ "$1" == "dii" ]; then
     dodii 2 sample_64.pst
     dodii 3 test.pst
     dodii 4 big_mail.pst
-elif [ "$1" == "flow" ]; then
-    dopst 11 flow.pst
 else
-    dopst  1 ams.pst
-   #dopst  2 sample_64.pst
-   #dopst  3 test.pst
-   #dopst  4 big_mail.pst
-   #dopst  5 mbmg.archive.pst
-   #dopst  6 Single2003-read.pst
-   #dopst  7 Single2003-unread.pst
-   #dopst  8 ol2k3high.pst
-   #dopst  9 ol97high.pst
-   #dopst 10 returned_message.pst
-   #dopst 11 flow.pst
+   #dopst   1 ams.pst
+   #dopst   2 sample_64.pst
+   #dopst   3 test.pst
+   #dopst   4 big_mail.pst
+   #dopst   5 mbmg.archive.pst
+   #dopst   6 Single2003-read.pst
+   #dopst   7 Single2003-unread.pst
+   #dopst   8 ol2k3high.pst
+   #dopst   9 ol97high.pst
+   #dopst  10 returned_message.pst
+   #dopst  11 flow.pst
+   #dopst  12 test-html.pst
+   dopst  13 test-text.pst
+   #dopst  14 joe.romanowski.pst
 fi
 
