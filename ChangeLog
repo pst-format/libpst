@@ -1,3 +1,13 @@
+LibPST 0.6.26 (2009-01-31)
+===============================
+        * patch from Fridrich Strba for building on mingw and
+    	  general cleanup of autoconf files
+	* add processing for pst files of type 0x0f
+	* start adding support for properly building and installing
+          libpst.so and the header files required to use it.
+	* remove version.h since the version number is now in config.h
+	* more const correctness issues regarding getopt()
+
 LibPST 0.6.25 (2009-01-16)
 ===============================
         * improve handling of content-type charset values in mime parts

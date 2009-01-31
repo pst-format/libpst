@@ -2,12 +2,12 @@
 
 #define BUF_SIZE 4096
 
-int usage();
+void usage();
 size_t get(void * buf, int size, unsigned int count, FILE *fp);
 int split_args(char *args, int **targ);
 int is_in(int a, int *b, int c);
 
-int main(int argc, char** argv) {
+int main(int argc, char* const* argv) {
     int identity = 0;
     int level = 0;
     int x, ptr, stop=0, flag;
@@ -190,7 +190,7 @@ size_t get(void *buf, int size, unsigned int count, FILE *fp) {
     return z;
 }
 
-int usage() {
+void usage() {
     printf("readlog -t[show_type] -x[exclude_type] -f[format] filename\n");
     printf("\tformat:\n\t\tt: text log format\n");
     printf("\t\ti: indented text log format\n");
@@ -198,7 +198,6 @@ int usage() {
        "[ie, 2,4,1,6]\n");
     printf("\texclude_type:\n\t\tcomma separated list of types to exclude "
        "[ie, 1,5,3,7]\n");
-    return 0;
 }
 
 

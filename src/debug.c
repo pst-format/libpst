@@ -1,14 +1,6 @@
 
 #include "define.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <ctype.h>
-#include <string.h>
-#include <limits.h>
-#include <stdint.h>
-#include <inttypes.h>
+//#include <stdint.h>
 
 struct pst_debug_item {
     int type;

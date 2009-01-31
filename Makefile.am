@@ -3,10 +3,12 @@ htmldir = ${datadir}/doc/@PACKAGE@-@VERSION@
 html_DATA = AUTHORS COPYING ChangeLog NEWS README
 CLEANFILES = xml/libpst xml/Makefile
 
-if BUILD_LIBPST_SHARED
-    pkgconfigdir = $(libdir)/pkgconfig
-    pkgconfig_DATA = libpst.pc
-endif
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libpst.pc
 
 EXTRA_DIST = Doxyfile libpst.html.tar.gz libpst.spec $(wildcard xml/M*) $(wildcard xml/h*) $(wildcard xml/lib*)
 
+if !STATIC_TOOLS
+    libpstincludedir      = $(includedir)/libpst
+    libpstinclude_HEADERS = config.h
+endif

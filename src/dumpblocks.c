@@ -6,7 +6,7 @@
 #include "libpst.h"
 
 #define OUT_BUF 20
-int main(int argc, char **argv)
+int main(int argc, char* const* argv)
 {
     pst_file pstfile;
     pst_index_ll *ptr;

@@ -18,6 +18,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifndef __MINGW32__		/* mingw has getopt() */
+
 #include <stdio.h>
 #include <string.h>
 #include "XGetopt.h"
@@ -31,7 +33,7 @@
 //       getopt -- parse command line options
 //
 //  SYNOPSIS
-//       int getopt(int argc, char *argv[], char *optstring)
+//       int getopt(int argc, char* const* argv, const char *optstring)
 //
 //       extern char *optarg;
 //       extern int optind;
@@ -135,9 +137,9 @@
 char	*optarg;		// global argument pointer
 int		optind = 0; 	// global argv index
 
-int getopt(int argc, char *argv[], char *optstring)
+int getopt(int argc, char* const* argv, char *optstring)
 {
-	static char *next = NULL;
+  static char *next = NULL;
   char c, *cp;
 	if (optind == 0)
 		next = NULL;
@@ -197,3 +199,5 @@ int getopt(int argc, char *argv[], char *optstring)
 
 	return c;
 }
+
+#endif	/* !__MINGW32__ */

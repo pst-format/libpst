@@ -6,15 +6,14 @@
  */
 
 #ifdef HAVE_CONFIG_H
-    #include "config.h"
-#else
-    #ifdef _MSC_VER
-        #undef  HAVE_UNISTD_H
-        #define HAVE_DIRECT_H
-        #define HAVE_WINDOWS_H
-    #endif
+    #include <libpst/config.h>
 #endif
-#include "version.h"
+
+#ifdef _WIN32
+    #undef  HAVE_UNISTD_H
+    #define HAVE_DIRECT_H
+    #define HAVE_WINDOWS_H
+#endif
 
 #ifndef DEFINEH_H
 #define DEFINEH_H
@@ -59,40 +58,59 @@
 
 #define PERM_DIRS 0777
 
-#ifdef HAVE_UNISTD_H
-    #include <unistd.h>
-    #define D_MKDIR(x) mkdir(x, PERM_DIRS)
-#else
-    #include "XGetopt.h"
-    #ifdef HAVE_DIRECT_H
-        #include <direct.h>    // win32
-        #define D_MKDIR(x) mkdir(x)
-        #define chdir      _chdir
-    #endif
+#ifdef _WIN32
+    #include <direct.h>    // win32
 
-    #ifdef HAVE_WINDOWS_H
-        #include <windows.h>
-    #endif
+    #define D_MKDIR(x) mkdir(x)
+    #define chdir      _chdir
 
+    #define vsnprintf  _vsnprintf
+    #define snprintf   _snprintf
     #ifdef _MSC_VER
-        #define vsnprintf  _vsnprintf
-        #define snprintf   _snprintf
         #define ftello     _ftelli64
         #define fseeko     _fseeki64
-        #define strcasecmp _stricmp
+    #elif defined (__MINGW32__)
+        #define ftello     ftello64
+        #define fseeko     fseeko64
+    #else
+        #error Only MSC and mingw supported for Windows
+    #endif
+    #define strcasecmp _stricmp
+    #ifndef __MINGW32__
         #define off_t      __int64
         #define size_t     __int64
-        #define int64_t    __int64
-        #define uint64_t   unsigned __int64
-        #define int32_t    __int32
-        #define uint32_t   unsigned int
-        #define int16_t    short int
-        #define uint16_t   unsigned short int
-        #define int8_t     signed char
-        #define uint8_t    unsigned char
+    #endif
+    #define int64_t    __int64
+    #define uint64_t   unsigned __int64
+    #define int32_t    __int32
+    #define uint32_t   unsigned int
+    #define int16_t    short int
+    #define uint16_t   unsigned short int
+    #define int8_t     signed char
+    #define uint8_t    unsigned char
+    #ifndef UINT64_MAX
         #define UINT64_MAX ((uint64_t)0xffffffffffffffff)
-        int __cdecl _fseeki64(FILE *, __int64, int);
-        __int64 __cdecl _ftelli64(FILE *);
+    #endif
+    #define PRIx64 "I64x"
+    int __cdecl _fseeki64(FILE *, __int64, int);
+    __int64 __cdecl _ftelli64(FILE *);
+
+    #ifdef __MINGW32__
+        #include <getopt.h>
+    #else
+        #include "XGetopt.h"
+    #endif
+
+    #include <windows.h>
+#else
+    #ifdef HAVE_INTTYPES_H
+        #include <inttypes.h>
+    #endif
+    #ifdef HAVE_UNISTD_H
+        #include <unistd.h>
+        #define D_MKDIR(x) mkdir(x, PERM_DIRS)
+    #else
+        #include "XGetopt.h"
     #endif
 #endif
 

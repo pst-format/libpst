@@ -84,8 +84,8 @@ static void open_png();
 static void close_png();
 
 
-static int version();
-static int version()
+static void version();
+static void version()
 {
     printf("pst2dii v%s\n", VERSION);
 #if BYTE_ORDER == BIG_ENDIAN
@@ -98,12 +98,11 @@ static int version()
 #ifdef __GNUC__
     printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
 #endif
-    return 0;
 }
 
 
-static int usage();
-static int usage()
+static void usage();
+static void usage()
 {
     version();
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
@@ -117,7 +116,6 @@ static int usage()
     printf("\t-f ttf-font-file  \t- Set the font file\n");
     printf("\t-h                \t- Help. This screen\n");
     printf("\t-o dirname        \t- Output directory to write files to.\n");
-    return 0;
 }
 
 
@@ -645,7 +643,7 @@ static void process(pst_item *outeritem, file_ll *parent, pst_desc_ll *d_ptr)
 }
 
 
-int main(int argc, char **argv)
+int main(int argc, char* const* argv)
 {
     pst_desc_ll *d_ptr;
     char *fname = NULL;

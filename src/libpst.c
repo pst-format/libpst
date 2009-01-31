@@ -4,16 +4,19 @@
  * Written by David Smith
  *            dave.s@earthcorp.com
  */
+
 #include "define.h"
 #include "libstrfunc.h"
 #include "vbuf.h"
 #include "libpst.h"
+#include "common.h"
 #include "timeconv.h"
 
 #define ASSERT(x) { if(!(x)) raise( SIGSEGV ); }
 
 
 #define INDEX_TYPE32            0x0E
+#define INDEX_TYPE32A           0x0F    // unknown, but assumed to be similar for now
 #define INDEX_TYPE64            0x17
 #define INDEX_TYPE_OFFSET       (off_t)0x0A
 
@@ -196,6 +199,7 @@ int pst_open(pst_file *pf, char *name) {
     DEBUG_INFO(("index_type = %i\n", pf->ind_type));
     switch (pf->ind_type) {
         case INDEX_TYPE32 :
+        case INDEX_TYPE32A :
             pf->do_read64 = 0;
             break;
         case INDEX_TYPE64 :
@@ -4472,7 +4476,7 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
 }
 
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 char * fileTimeToAscii(const FILETIME* filetime) {
     time_t t;
     DEBUG_ENT("fileTimeToAscii");
@@ -4508,7 +4512,7 @@ struct tm * fileTimeToStructTM (const FILETIME *filetime) {
 }
 
 
-#endif //_MSC_VER
+#endif //_WIN32
 
 int pst_stricmp(char *a, char *b) {
     // compare strings case-insensitive.

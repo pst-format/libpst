@@ -3,11 +3,6 @@
     <partintro>
         <title>Packages</title>
 
-        <para>This is a fork of the libpst project at SourceForge.  Another fork
-        is located at <ulink
-        url="http://alioth.debian.org/projects/libpst/">http://alioth.debian.org/projects/libpst/</ulink>
-        </para>
-
         <para>The various source and binary packages are available at <ulink
         url="http://www.five-ten-sg.com/@PACKAGE@/packages/">http://www.five-ten-sg.com/@PACKAGE@/packages/</ulink>.
         The most recent documentation is available at <ulink
@@ -33,7 +28,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2008-10-09</date>
+            <date>2009-01-25</date>
         </refentryinfo>
 
         <refmeta>
@@ -233,7 +228,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2008-10-09</date>
+            <date>2009-01-25</date>
         </refentryinfo>
 
         <refmeta>
@@ -336,7 +331,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2008-10-09</date>
+            <date>2009-01-25</date>
         </refentryinfo>
 
         <refmeta>
@@ -520,7 +515,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2008-10-09</date>
+            <date>2009-01-25</date>
         </refentryinfo>
 
         <refmeta>
@@ -696,7 +691,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2008-10-09</date>
+            <date>2009-01-25</date>
         </refentryinfo>
 
         <refmeta>
@@ -830,7 +825,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2008-10-09</date>
+            <date>2009-01-25</date>
         </refentryinfo>
 
         <refmeta>
@@ -910,12 +905,14 @@
 00bc  offsetIndex2    [4 bytes] 0x0c7e00   in this case
 ]]></literallayout>
             <para>
-                We only support index types 0x0e and 0x17,  and encryption types
+                We only support index types 0x0e, 0x0f, and 0x17,  and encryption types
                 0x00, 0x01 and 0x02. Index type 0x0e is the older 32 bit Outlook format.
+                Index type 0x0f seems to be rare, and so far the data seems to be
+                identical to that in type 0x0e files.
                 Index type 0x17 is the newer 64 bit Outlook format. Encryption
                 type 0x00 is no encryption, type 0x01 is "compressible" encryption
                 which is a simple substitution cipher, and type 0x02 is "strong"
-                encryption, which seems to be related to a three rotor Enigma cipher.
+                encryption, which is a simple three rotor Enigma cipher from WWII.
             </para>
             <para>
                 offsetIndex1 is the file offset of the root of the

@@ -1,59 +1,75 @@
-hfiles = $(wildcard *.h)
+if OS_WIN32
+    ICONVLIB = -liconv
+else
+    ICONVLIB =
+endif
+
+if STATIC_TOOLS
+    PSTLIB=@PST_OBJDIR@/libpst.a
+else
+    PSTLIB=libpst.la
+endif
+
+common_header = common.h        \
+                define.h        \
+                libpst.h        \
+                libstrfunc.h    \
+				lzfu.h			\
+                timeconv.h      \
+                vbuf.h
+
+common_source = debug.c         \
+                libpst.c        \
+                libstrfunc.c    \
+				lzfu.c			\
+                timeconv.c      \
+                vbuf.c
+
+if NEED_XGETOPT
+    common_source += XGetopt.c
+endif
+
+noinst_PROGRAMS     = deltasearch dumpblocks getidblock
 bin_PROGRAMS        = lspst readpst readpstlog pst2ldif
 if BUILD_DII
     bin_PROGRAMS   += pst2dii
 endif
-noinst_PROGRAMS     = deltasearch dumpblocks getidblock
+lspst_SOURCES       = lspst.c         $(common_header)
+readpst_SOURCES     = readpst.c       $(common_header)
+readpstlog_SOURCES  = readpstlog.c    $(common_header)
+pst2ldif_SOURCES    = pst2ldif.cpp    $(common_header)
+pst2dii_SOURCES     = pst2dii.cpp     $(common_header)
+deltasearch_SOURCES = deltasearch.cpp $(common_header)
+dumpblocks_SOURCES  = dumpblocks.c    $(common_header)
+getidblock_SOURCES  = getidblock.c    $(common_header)
 
-lspst_SOURCES       = $(hfiles) lspst.c      libpst.c timeconv.c libstrfunc.c debug.c        vbuf.c
-readpst_SOURCES     = $(hfiles) readpst.c    libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
-readpstlog_SOURCES  = $(hfiles) readpstlog.c                                  debug.c
-pst2ldif_SOURCES    = $(hfiles) pst2ldif.cpp libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
-pst2dii_SOURCES     = $(hfiles) pst2dii.cpp  libpst.c timeconv.c libstrfunc.c debug.c lzfu.c vbuf.c
-deltasearch_SOURCES = deltasearch.cpp debug.c
-dumpblocks_SOURCES  = dumpblocks.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c
-getidblock_SOURCES  = getidblock.c    debug.c libpst.c libstrfunc.c timeconv.c vbuf.c
+lspst_CFLAGS        = $(AM_CFLAGS)
+readpst_CFLAGS      = $(AM_CFLAGS)
+readpstlog_CFLAGS   = $(AM_CFLAGS)
+pst2ldif_CFLAGS     = $(AM_CFLAGS)
+pst2dii_CFLAGS      = $(AM_CFLAGS)
+deltasearch_CFLAGS  = $(AM_CFLAGS)
+dumpblocks_CFLAGS   = $(AM_CFLAGS)
+getidblock_CFLAGS   = $(AM_CFLAGS)
 
-if BUILD_LIBPST_SHARED
-    lspst_CFLAGS        = $(AM_CFLAGS)
-    readpst_CFLAGS      = $(AM_CFLAGS)
-    readpstlog_CFLAGS   = $(AM_CFLAGS)
-    pst2ldif_CFLAGS     = $(AM_CFLAGS)
-    pst2dii_CFLAGS      = $(AM_CFLAGS)
-    deltasearch_CFLAGS  = $(AM_CFLAGS)
-    dumpblocks_CFLAGS   = $(AM_CFLAGS)
-    getidblock_CFLAGS   = $(AM_CFLAGS)
-    lib_LTLIBRARIES = libpst.la
-    libpst_la_SOURCES = common.h        \
-                        debug.c 		\
-                        libpst.c        \
-                        libpst.h        \
-                        libstrfunc.c    \
-                        libstrfunc.h    \
-                        lspst.c         \
-                        timeconv.c      \
-                        timeconv.h      \
-                        vbuf.c          \
-                        vbuf.h          \
-                        version.h
-    libpst_la_LDFLAGS = -no-undefined
-    libpstincludedir = $(includedir)/libpst
-    libpstinclude_HEADERS = common.h        \
-                            define.h        \
-                            libpst.h        \
-                            libstrfunc.h	\
-                            timeconv.h      \
-                            vbuf.h          \
-                            version.h
+if STATIC_TOOLS
+    noinst_LTLIBRARIES    = libpst.la
+else
+    lib_LTLIBRARIES       = libpst.la
+    libpstincludedir      = $(includedir)/libpst
+    libpstinclude_HEADERS = \
+        common.h    \
+		define.h	\
+        libpst.h    \
+        libstrfunc.h\
+        timeconv.h  \
+        vbuf.h
+    libpst_la_LDFLAGS     = -no-undefined -version-info 1:0:0
 endif
 
-if NEED_XGETOPT
-    lspst_SOURCES       += XGetopt.c
-    readpst_SOURCES     += XGetopt.c
-    readpstlog_SOURCES  += XGetopt.c
-    pst2ldif_SOURCES    += XGetopt.c
-    pst2dii_SOURCES     += XGetopt.c
-endif
+libpst_la_SOURCES     = $(common_source) $(common_header)
+libpst_la_LIBADD      = $(ICONVLIB)
+
 
 EXTRA_DIST = testdebug.c
 
@@ -61,9 +77,11 @@ EXTRA_DIST = testdebug.c
 INCLUDES= $(all_includes)
 
 # the library search path.
-lspst_LDFLAGS      = $(all_libraries)
-readpst_LDFLAGS    = $(all_libraries)
-readpstlog_LDFLAGS = $(all_libraries)
-pst2ldif_LDFLAGS   = $(all_libraries)
-pst2dii_LDFLAGS    = $(all_libraries) -lgd -lpng -lz -lfreetype -lm
-
+lspst_LDADD       = $(all_libraries) $(PSTLIB) $(ICONVLIB)
+readpst_LDADD     = $(all_libraries) $(PSTLIB) $(ICONVLIB)
+readpstlog_LDADD  = $(all_libraries) $(PSTLIB) $(ICONVLIB)
+pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(ICONVLIB)
+pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(ICONVLIB) -lgd
+dumpblocks_LDADD  = $(all_libraries) $(PSTLIB) $(ICONVLIB)
+getidblock_LDADD  = $(all_libraries) $(PSTLIB) $(ICONVLIB)
+deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(ICONVLIB)

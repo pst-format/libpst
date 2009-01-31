@@ -42,15 +42,15 @@ unsigned char comp_enc [] =
 	0xd4, 0xe1, 0x11, 0xd0, 0x08, 0x8b, 0x2a, 0xf2,
 	0xed, 0x9a, 0x64, 0x3f, 0xc1, 0x6c, 0xf9, 0xec}; /*0xff*/
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* const* argv) {
 	if (argc < 4) {
-		cout << "usage: " << argv[0] << " filename.pst integer-delta search-string" << endl;
+        printf("usage: %s filename.pst integer-delta search-string\n", argv[0]);
 		return 0;
 	}
 	int  fd = open(argv[1], O_RDONLY);
 	int   d = atoi(argv[2]);
 	string search(argv[3]);
-	cout << "using file " << argv[1] << " with delta " << d << " looking for " << search << endl;
+    printf("using file %s with delta %d looking for %s\n", argv[1], d, argv[3]);
 	if (fd) {
 		struct stat st;
 		fstat(fd, &st);
@@ -58,9 +58,7 @@ int main(int argc, char *argv[]) {
 		char buf[size];
 		size_t s = read(fd, buf, size);
 		pst_debug_hexdumper(stdout, buf, s, 16, 0);
-		cout << endl;
-		cout << endl;
-		cout << " dump decrypted data " << endl;
+        printf("\n\n dump decrypted data \n");
 		for (off_t i=0; i<size; i++) {
 			buf[i] = comp_enc[(unsigned char)buf[i]];
 		}

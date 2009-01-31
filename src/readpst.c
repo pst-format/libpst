@@ -33,8 +33,8 @@ struct file_ll {
 void      process(pst_item *outeritem, pst_desc_ll *d_ptr);
 void      write_email_body(FILE *f, char *body);
 char*     removeCR (char *c);
-int       usage();
-int       version();
+void      usage();
+void      version();
 char*     mk_kmail_dir(char*);
 int       close_kmail_dir();
 char*     mk_recurse_dir(char*);
@@ -54,7 +54,7 @@ void      write_appointment(FILE* f_output, pst_item_appointment* appointment,
 void      create_enter_dir(struct file_ll* f, pst_item *item);
 void      close_enter_dir(struct file_ll *f);
 
-char*  prog_name;
+const char*  prog_name;
 char*  output_dir = ".";
 char*  kmail_chdir = NULL;
 
@@ -219,7 +219,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
 
 
 
-int main(int argc, char** argv) {
+int main(int argc, char* const* argv) {
     pst_item *item = NULL;
     pst_desc_ll *d_ptr;
     char * fname = NULL;
@@ -416,7 +416,7 @@ char *removeCR (char *c) {
 }
 
 
-int usage() {
+void usage() {
     DEBUG_ENT("usage");
     version();
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
@@ -436,11 +436,10 @@ int usage() {
     printf("\t-r\t- Recursive. Output in a recursive format\n");
     printf("\t-w\t- Overwrite any output mbox files\n");
     DEBUG_RET();
-    return 0;
 }
 
 
-int version() {
+void version() {
     DEBUG_ENT("version");
     printf("ReadPST / LibPST v%s\n", VERSION);
 #if BYTE_ORDER == BIG_ENDIAN
@@ -454,7 +453,6 @@ int version() {
     printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
 #endif
     DEBUG_RET();
-    return 0;
 }
 
 

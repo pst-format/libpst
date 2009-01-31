@@ -10,7 +10,9 @@ http://www.fsf.org/licenses/gpl.txt
 #include <iostream>
 //#include <fstream>
 #include <unistd.h>
-#include "version.h"
+extern "C" {
+    #include "define.h"
+}
 
 char *ldap_base  = NULL;
 char *ldap_org	 = NULL;
@@ -18,7 +20,7 @@ char *ldap_class = NULL;
 
 using namespace std;
 
-int main(int argc, char** argv) {
+int main(int argc, const char** argv) {
 	char c;
 	char *temp;
 	while ((c = getopt(argc, argv, "b:c:"))!= -1) {

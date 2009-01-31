@@ -11,7 +11,11 @@
  * Do not use this one
  */
 
+#ifndef _WIN32
+
 #include <time.h>
+#include "define.h"
+#include "common.h"
 #include "timeconv.h"
 
 char * fileTimeToAscii (const FILETIME *filetime) {
@@ -121,3 +125,5 @@ time_t fileTimeToUnixTime( const FILETIME *filetime, DWORD *remainder )
     return ((((time_t)a2) << 16) << 16) + (a1 << 16) + a0;
 #endif
 }
+
+#endif	/* !_WIN32 */

@@ -26,8 +26,8 @@ extern "C" {
     #include "iconv.h"
 }
 
-int32_t     usage();
-int32_t     version();
+void       usage(void);
+void       version(void);
 char       *check_filename(char *fname);
 void        print_ldif_single(const char *attr, const char *value);
 void        print_ldif_address(const char *attr, int nvalues, char *value, ...);
@@ -547,7 +547,7 @@ void build_cn(char *cn, size_t len, int nvalues, char *value, ...)
 }
 
 
-int main(int argc, char** argv) {
+int main(int argc, char* const* argv) {
     pst_desc_ll *d_ptr;
     char *fname = NULL;
     int c;
@@ -657,7 +657,7 @@ int main(int argc, char** argv) {
 }
 
 
-int32_t usage() {
+void usage(void) {
     version();
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
@@ -669,11 +669,10 @@ int32_t usage() {
     printf("\t-h\t- Help. This screen\n");
     printf("\t-l line\t- extra line to insert in the LDIF file for each contact\n");
     printf("\t-o\t- use old schema, default is new schema\n");
-    return 0;
 }
 
 
-int32_t version() {
+void version(void) {
     printf("pst2ldif v%s\n", VERSION);
 #if BYTE_ORDER == BIG_ENDIAN
     printf("Big Endian implementation being used.\n");
@@ -685,7 +684,6 @@ int32_t version() {
 #ifdef __GNUC__
     printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
 #endif
-    return 0;
 }
 
 

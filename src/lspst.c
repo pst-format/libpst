@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "libpst.h"
+#include "common.h"
 #include "timeconv.h"
 
 struct file_ll {
@@ -30,8 +31,8 @@ struct file_ll {
 
 void canonicalize_filename(char *fname);
 void debug_print(char *fmt, ...);
-int  usage(char *prog_name);
-int  version();
+void usage(char *prog_name);
+void version();
 
 // global settings
 pst_file pstfile;
@@ -149,7 +150,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
 }
 
 
-int usage(char *prog_name) {
+void usage(char *prog_name) {
 	DEBUG_ENT("usage");
 	version();
 	printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
@@ -158,11 +159,10 @@ int usage(char *prog_name) {
 	printf("\t-h\t- Help. This screen\n");
 	printf("\t-V\t- Version. Display program version\n");
 	DEBUG_RET();
-	return 0;
 }
 
 
-int version() {
+void version() {
 	DEBUG_ENT("version");
 	printf("lspst / LibPST v%s\n", VERSION);
 #if BYTE_ORDER == BIG_ENDIAN
@@ -176,11 +176,10 @@ int version() {
 			 printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
 #endif
 	 DEBUG_RET();
-	 return 0;
 }
 
 
-int main(int argc, char** argv) {
+int main(int argc, char* const* argv) {
     pst_item *item = NULL;
     pst_desc_ll *d_ptr;
     char *temp  = NULL; //temporary char pointer

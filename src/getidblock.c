@@ -4,7 +4,7 @@
 
 static void usage();
 
-int main(int argc, char **argv)
+int main(int argc, char* const* argv)
 {
     // pass the id number to display on the command line
     char *fname, *sid;
