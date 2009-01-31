@@ -74,7 +74,7 @@ libpst_la_LIBADD      = $(ICONVLIB)
 EXTRA_DIST = testdebug.c
 
 # set the include path found by configure
-INCLUDES= $(all_includes)
+INCLUDES= -I$(srcdir)/.. $(all_includes)
 
 # the library search path.
 lspst_LDADD       = $(all_libraries) $(PSTLIB) $(ICONVLIB)
