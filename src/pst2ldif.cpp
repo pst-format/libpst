@@ -17,13 +17,12 @@ using namespace std;
 
 extern "C" {
     #include "define.h"
-    #include "libstrfunc.h"
-    #include "libpst.h"
     #include "common.h"
+    #include "libpst.h"
     #include "timeconv.h"
     #include "lzfu.h"
-    #include "stdarg.h"
-    #include "iconv.h"
+    #include "libstrfunc.h"
+    #include "vbuf.h"
 }
 
 void       usage(void);

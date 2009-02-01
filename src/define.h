@@ -5,6 +5,9 @@
  *            dave.s@earthcorp.com
  */
 
+#ifndef DEFINEH_H
+#define DEFINEH_H
+
 #ifdef HAVE_CONFIG_H
     #include <libpst/config.h>
 #endif
@@ -14,9 +17,6 @@
     #define HAVE_DIRECT_H
     #define HAVE_WINDOWS_H
 #endif
-
-#ifndef DEFINEH_H
-#define DEFINEH_H
 
 #define DEBUG_MODE_GEN
 #define DEBUGPRINT
@@ -45,16 +45,46 @@
 #define DEBUG_FUNCRET_NO 10
 #define DEBUG_HEXDUMP_NO 11
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <time.h>
-#include <string.h>
-#include <ctype.h>
-#include <limits.h>
-#include <wchar.h>
-#include <signal.h>
-#include <errno.h>
+#ifdef HAVE_STDIO_H
+    #include <stdio.h>
+#endif
+
+#ifdef HAVE_STDLIB_H
+    #include <stdlib.h>
+#endif
+
+#ifdef HAVE_STDARG_H
+    #include <stdarg.h>
+#endif
+
+#ifdef HAVE_TIME_H
+    #include <time.h>
+#endif
+
+#ifdef HAVE_STRING_H
+    #include <string.h>
+#endif
+
+#ifdef HAVE_CTYPE_H
+    #include <ctype.h>
+#endif
+
+#ifdef HAVE_LIMITS_H
+    #include <limits.h>
+#endif
+
+#ifdef HAVE_WCHAR_H
+    #include <wchar.h>
+#endif
+
+#ifdef HAVE_SIGNAL_H
+    #include <signal.h>
+#endif
+
+#ifdef HAVE_ERRNO_H
+    #include <errno.h>
+#endif
+
 
 #define PERM_DIRS 0777
 
@@ -103,6 +133,9 @@
 
     #include <windows.h>
 #else
+    #ifdef HAVE_STDINT_H
+        #include <stdint.h>
+    #endif
     #ifdef HAVE_INTTYPES_H
         #include <inttypes.h>
     #endif

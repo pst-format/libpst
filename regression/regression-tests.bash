@@ -21,7 +21,7 @@ function dopst()
     ba=$(basename "$fn" .pst)
     rm -rf output$n
     mkdir output$n
-    #../src/readpst -cv -o output$n $fn >$ba.err 2>&1
+    #    ../src/readpst -cv -o output$n $fn >$ba.err 2>&1
     $val ../src/readpst -cv -o output$n -d dumper $fn >$ba.err 2>&1
          ../src/readpstlog -f I dumper >$ba.log
     #$val ../src/pst2ldif -d dumper -b 'o=ams-cc.com, c=US' -c 'newPerson' -o $fn >$ba.ldif.err 2>&1
@@ -33,7 +33,7 @@ function dopst()
 
 
 val="valgrind --leak-check=full"
-val=''
+#val=''
 
 pushd ..
 make || exit
@@ -60,7 +60,7 @@ else
    #dopst  13 test-text.pst
    #dopst  14 joe.romanowski.pst
    #dopst  15 hourig1.pst
-   #dopst  16 hourig2.pst
+   dopst  16 hourig2.pst
    dopst  17 hourig3.pst
 fi
 

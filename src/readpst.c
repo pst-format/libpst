@@ -5,12 +5,12 @@
  *            dave.s@earthcorp.com
  */
 #include "define.h"
-#include "libstrfunc.h"
-#include "vbuf.h"
-#include "libpst.h"
 #include "common.h"
+#include "libpst.h"
 #include "timeconv.h"
 #include "lzfu.h"
+#include "libstrfunc.h"
+#include "vbuf.h"
 
 #define OUTPUT_TEMPLATE "%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
@@ -1080,6 +1080,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
                 DEBUG_EMAIL(("Failed to convert plain text utf-8 to %s\n", item->email->body_charset));
             }
             else {
+                // unable to convert, maybe it is already in that character set
                 free(item->email->body);
                 item->email->body = newer->b;
             }

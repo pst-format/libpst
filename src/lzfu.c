@@ -10,13 +10,14 @@
   */
 
 #include "define.h"
+#include "common.h"
 #include "libpst.h"
-
-#include <sys/types.h>
-#include <string.h>
-#include <stdio.h>
-
 #include "lzfu.h"
+
+#ifdef HAVE_SYS_TYPES_H
+    #include <sys/types.h>
+#endif
+
 
 #define LZFU_COMPRESSED 		0x75465a4c
 #define LZFU_UNCOMPRESSED		0x414c454d

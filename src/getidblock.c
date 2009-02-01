@@ -1,5 +1,6 @@
 
 #include "define.h"
+#include "common.h"
 #include "libpst.h"
 
 static void usage();

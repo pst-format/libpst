@@ -11,7 +11,7 @@
 # pragma pack (1)
 
 #ifndef FILETIME_DEFINED
-#define FILETIME_DEFINED
+    #define FILETIME_DEFINED
     /*Win32 Filetime struct - copied from WINE*/
     typedef struct {
         DWORD  dwLowDateTime;

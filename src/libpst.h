@@ -10,25 +10,14 @@
 #ifndef LIBPST_H
 #define LIBPST_H
 
-#ifndef  _WIN32
-    #include <stdint.h>
-    #include <inttypes.h>
-    #ifndef FILETIME_DEFINED
-	#define FILETIME_DEFINED
-	//Win32 Filetime struct - copied from WINE
-	typedef struct {
-	  uint32_t dwLowDateTime;
-	  uint32_t dwHighDateTime;
-	} FILETIME;
-    #endif
-#endif
-
 // According to Jan Wolter, sys/param.h is the most portable source of endian
 // information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html
 #ifdef _WIN32
-  #define BYTE_ORDER LITTLE_ENDIAN
+    #define BYTE_ORDER LITTLE_ENDIAN
 #else
-  #include <sys/param.h>
+    #ifdef HAVE_SYS_PARAM_H
+        #include <sys/param.h>
+    #endif
 #endif // defined _WIN32
 
 #if BYTE_ORDER == BIG_ENDIAN

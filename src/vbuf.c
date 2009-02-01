@@ -98,7 +98,7 @@ int utf16_is_terminated(const char *str, int length)
 
     if (-1 == len) {
         vshexdump(errbuf, str, 0, length, 1);
-        WARN(("String is not zero terminated (probably broken data from registry) %s.", errbuf->b));
+        DEBUG_WARN(("String is not zero terminated (probably broken data from registry) %s.\n", errbuf->b));
     }
 
     return (-1 == len) ? 0 : 1;
@@ -130,7 +130,7 @@ size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen)
     } while ((size_t)-1 == icresult && E2BIG == errno);
 
     if (icresult == (size_t)-1) {
-        WARN(("iconv failure: %s", strerror(errno)));
+        DEBUG_WARN(("iconv failure: %s\n", strerror(errno)));
         unicode_init();
         return (size_t)-1;
     }
@@ -170,7 +170,7 @@ size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* chars
     } while ((size_t)-1 == icresult && E2BIG == errno);
 
     if (icresult == (size_t)-1) {
-        WARN(("iconv failure: %s", strerror(errno)));
+        WARN(("iconv failure: %s\n", strerror(errno)));
         unicode_init();
         return (size_t)-1;
     }

@@ -1,291 +1,270 @@
 LibPST 0.6.26 (2009-01-31)
 ===============================
-        * patch from Fridrich Strba for building on mingw and
-    	  general cleanup of autoconf files
-	* add processing for pst files of type 0x0f
-	* start adding support for properly building and installing
-          libpst.so and the header files required to use it.
-	* remove version.h since the version number is now in config.h
-	* more const correctness issues regarding getopt()
+    * patch from Fridrich Strba for building on mingw and
+      general cleanup of autoconf files
+    * add processing for pst files of type 0x0f
+    * start adding support for properly building and installing
+      libpst.so and the header files required to use it.
+    * remove version.h since the version number is now in config.h
+    * more const correctness issues regarding getopt()
+    * disable building pst2dii on cygwin, since the convert program
+      on the path is part of windows, not image magic.
+    * consistent ordering of our include files. all systems includes
+      protected by ifdef HAVE_ from autoconf.
 
 LibPST 0.6.25 (2009-01-16)
 ===============================
-        * improve handling of content-type charset values in mime parts
+    * improve handling of content-type charset values in mime parts
 
 LibPST 0.6.24 (2008-12-11)
 ===============================
-        * patch from Chris Eagle to build on cygwin
+    * patch from Chris Eagle to build on cygwin
 
 LibPST 0.6.23 (2008-12-04)
 ===============================
-        * bump version to avoid cvs tagging mistake in fedora
+    * bump version to avoid cvs tagging mistake in fedora
 
 LibPST 0.6.22 (2008-11-28)
 ===============================
-        * patch from David Cuadrado to process emails with type PST_TYPE_OTHER
-        * base64_encode_multiple() may insert newline, needs larger malloc
-	* subject lines shorter than 2 bytes could segfault
+    * patch from David Cuadrado to process emails with type PST_TYPE_OTHER
+    * base64_encode_multiple() may insert newline, needs larger malloc
+    * subject lines shorter than 2 bytes could segfault
 
 LibPST 0.6.21 (2008-10-21)
 ===============================
-        * fix title bug with old schema in pst2ldif.
-	* also escape commas in distinguished names per rfc4514.
+    * fix title bug with old schema in pst2ldif.
+    * also escape commas in distinguished names per rfc4514.
 
 LibPST 0.6.20 (2008-10-09)
 ===============================
-        * add configure option --enable-dii=no to remove dependency on libgd.
-        * many fixes in pst2ldif by Robert Harris.
-        * add -D option to include deleted items, from Justin Greer
-        * fix from Justin Greer to add missing email headers
-        * fix from Justin Greer for my_stristr()
-        * fix for orphan children when building descriptor tree
-        * avoid writing uninitialized data to debug log file
-        * remove unreachable code
-        * create dummy top-of-folder descriptor if needed for corrupt pst files
+    * add configure option --enable-dii=no to remove dependency on libgd.
+    * many fixes in pst2ldif by Robert Harris.
+    * add -D option to include deleted items, from Justin Greer
+    * fix from Justin Greer to add missing email headers
+    * fix from Justin Greer for my_stristr()
+    * fix for orphan children when building descriptor tree
+    * avoid writing uninitialized data to debug log file
+    * remove unreachable code
+    * create dummy top-of-folder descriptor if needed for corrupt pst files
 
 LibPST 0.6.19 (2008-09-14)
 ===============================
-        * Fix base64 encoding that could create long lines
-        * Initial work on a .so shared library from Bharath Acharya.
+    * Fix base64 encoding that could create long lines
+    * Initial work on a .so shared library from Bharath Acharya.
 
 LibPST 0.6.18 (2008-08-28)
 ===============================
-        * Fixes for iconv on Mac from Justin Greer.
+    * Fixes for iconv on Mac from Justin Greer.
 
 LibPST 0.6.17 (2008-08-05)
 ===============================
-        * More fixes for 32/64 bit portability on big endian ppc.
+    * More fixes for 32/64 bit portability on big endian ppc.
 
 LibPST 0.6.16 (2008-08-05)
 ===============================
-        * Use inttypes.h for portable printing of 64 bit items.
+    * Use inttypes.h for portable printing of 64 bit items.
 
 LibPST 0.6.15 (2008-07-30)
 ===============================
-        * Patch from Robert Simpson for file handle leak in error case.
-        * Fix for missing length on lz decompression, bug found by Chris White.
+    * Patch from Robert Simpson for file handle leak in error case.
+    * Fix for missing length on lz decompression, bug found by Chris White.
 
 LibPST 0.6.14 (2008-06-15)
 ===============================
-        * Fix my mistake in debian packaging.
+    * Fix my mistake in debian packaging.
 
 LibPST 0.6.13 (2008-06-13)
 ===============================
-        * Patch from Robert Simpson for encryption type 2.
-        * Fix the order of testing item types to avoid claiming
-        there are multiple message stores.
+    * Patch from Robert Simpson for encryption type 2.
+    * Fix the order of testing item types to avoid claiming
+    there are multiple message stores.
 
 LibPST 0.6.12 (2008-06-10)
 ===============================
-        * Patch from Joachim Metz for debian packaging, and fix
-        for incorrect length on lz decompression.
+    * Patch from Joachim Metz for debian packaging, and fix
+    for incorrect length on lz decompression.
 
 LibPST 0.6.11 (2008-06-03)
 ===============================
-        * Use ftello/fseeko to properly handle large files.
-        * Document and properly use datasize field in b5 blocks.
-        * Fix some MSVC compile issues and collect MSVC dependencies into one place.
+    * Use ftello/fseeko to properly handle large files.
+    * Document and properly use datasize field in b5 blocks.
+    * Fix some MSVC compile issues and collect MSVC dependencies into one place.
 
 LibPST 0.6.10 (2008-05-29)
 ===============================
-        * Patch from Robert Simpson <rsimpson@idiscoverglobal.com>
-        fix doubly-linked list in the cache_ptr code, and allow
-        arrays of unicode strings (without converting them).
-        * More changes for Fedora packaging (#434727)
-        * Fixes for const correctness.
+    * Patch from Robert Simpson <rsimpson@idiscoverglobal.com>
+    fix doubly-linked list in the cache_ptr code, and allow
+    arrays of unicode strings (without converting them).
+    * More changes for Fedora packaging (#434727)
+    * Fixes for const correctness.
 
 LibPST 0.6.9 (2008-05-16)
 ===============================
-        * Patch from Joachim Metz <joachim.metz@gmail.com> for 64 bit
-        compile.
-        * Signed/unsigned cleanup from 'CFLAGS=-Wextra ./configure'.
-        * Reindent vbuf.c to make it readable.
-        * Fix pst format documentation for 8 byte backpointers.
+    * Patch from Joachim Metz <joachim.metz@gmail.com> for 64 bit
+      compile.
+    * Signed/unsigned cleanup from 'CFLAGS=-Wextra ./configure'.
+    * Reindent vbuf.c to make it readable.
+    * Fix pst format documentation for 8 byte backpointers.
 
 LibPST 0.6.8 (2008-03-05)
 ===============================
-        * Initial version of pst2dii to convert to Summation dii load file format.
-        * Changes for Fedora packaging (#434727)
+    * Initial version of pst2dii to convert to Summation dii load file format.
+    * Changes for Fedora packaging (#434727)
 
 LibPST 0.6.7 (2008-02-16)
 ===============================
-        * Work around bogus 7c.b5 blocks in some messages that have been
-        read. They appear to have attachments, but of some unknown format.
-        Before the message was read, it did not have any attachments.
-        * Use autoscan to cleanup our autoconf system.
-        * Use autoconf to detect when we need to use our XGetopt files
-        and other header files.
-        * More fields, including BCC.
-        * Fix missing LE32_CPU byte swapping for FILETIME types.
+    * Work around bogus 7c.b5 blocks in some messages that have been
+      read. They appear to have attachments, but of some unknown format.
+      Before the message was read, it did not have any attachments.
+    * Use autoscan to cleanup our autoconf system.
+    * Use autoconf to detect when we need to use our XGetopt files
+      and other header files.
+    * More fields, including BCC.
+    * Fix missing LE32_CPU byte swapping for FILETIME types.
 
 LibPST 0.6.6 (2008-01-31)
 ===============================
-
-        * More code cleanup, removing unnecessary null terminations on
-        binary buffers. All pst file reads now go thru one function.
-        Logging all pst reads to detect cases where we read the same data
-        multiple times - discovers node sizes are actually 512 bytes.
-        * Switch from cvs to mercurial source control.
+    * More code cleanup, removing unnecessary null terminations on
+      binary buffers. All pst file reads now go thru one function.
+      Logging all pst reads to detect cases where we read the same data
+      multiple times - discovers node sizes are actually 512 bytes.
+    * Switch from cvs to mercurial source control.
 
 LibPST 0.6.5 (2008-01-22)
 ===============================
-
-        * More code cleanup, removing obsolete code. All the boolean flags
-        of type 0xb have length 4, so these are all 32 bits in the file.
-        Libpst treats them all as 16 bits, but at least we are consistent.
-        * More fields decoded - for example, see
-        <http://msdn2.microsoft.com/en-us/library/aa454925.aspx>
-        We should be able to use that data for much more complete decoding.
-        * Move the rpm group to Applications/Productivity consistent with
-        Evolution.
+    * More code cleanup, removing obsolete code. All the boolean flags
+      of type 0xb have length 4, so these are all 32 bits in the file.
+      Libpst treats them all as 16 bits, but at least we are consistent.
+    * More fields decoded - for example, see
+      <http://msdn2.microsoft.com/en-us/library/aa454925.aspx>
+      We should be able to use that data for much more complete decoding.
+    * Move the rpm group to Applications/Productivity consistent with
+      Evolution.
 
 LibPST 0.6.4 (2008-01-19)
 ===============================
-
-        * More fixes for Outlook 2003 64 bit parsing. We observed cases of
-        compressed RTF bodies (type 0x1009) with zero length.
-        * Document type 0x0101 descriptor blocks and process them.
-        * Fix large file support - we need to include config.h before any
-        standard headers.
-        * Merge following changes from svn snapshot from Alioth:
-            * Add new fields to appointment for recurring events
-              (SourceForge #304198)
-            * Map IPM.Task items to PST_TYPE_TASK.
-            * Applied patch to remove compiler warnings, thanks!
-              (SourceForge #304314)
-            * Fix crash with unknown reference type
-            * Fix more memory issues detected by valgrind
-            * lspst - add usage mesage and option parsing using getopt
-                (SourceForge #304199)
-            * Fix crash caused by invalid free calls
-            * Fix crash when email subject is empty
-            * Fix memory and information leak in hex debug dump
+    * More fixes for Outlook 2003 64 bit parsing. We observed cases of
+      compressed RTF bodies (type 0x1009) with zero length.
+    * Document type 0x0101 descriptor blocks and process them.
+    * Fix large file support - we need to include config.h before any
+      standard headers.
+    * Merge following changes from svn snapshot from Alioth:
+        * Add new fields to appointment for recurring events
+          (SourceForge #304198)
+        * Map IPM.Task items to PST_TYPE_TASK.
+        * Applied patch to remove compiler warnings, thanks!
+          (SourceForge #304314)
+        * Fix crash with unknown reference type
+        * Fix more memory issues detected by valgrind
+        * lspst - add usage mesage and option parsing using getopt
+            (SourceForge #304199)
+        * Fix crash caused by invalid free calls
+        * Fix crash when email subject is empty
+        * Fix memory and information leak in hex debug dump
 
 LibPST 0.6.3 (2008-01-13)
 ===============================
-
-        * More type consistency issues found by splint.
+    * More type consistency issues found by splint.
 
 LibPST 0.6.2 (2008-01-12)
 ===============================
-
-        * More fixes for Outlook 2003 64 bit parsing.
-        * All buffer sizes changed to size_t, all file offsets changed to off_t,
-        all function names start with pst_, many other type consistency issues
-        found by splint. Many changes to #llx in debug printing for 64 bit items.
-        All id values are now uint64_t.
+    * More fixes for Outlook 2003 64 bit parsing.
+    * All buffer sizes changed to size_t, all file offsets changed to off_t,
+      all function names start with pst_, many other type consistency issues
+      found by splint. Many changes to #llx in debug printing for 64 bit items.
+      All id values are now uint64_t.
 
 LibPST 0.6.1 (2008-01-06)
 ===============================
-
-        * Outlook 2003 64 bit parsing. Some documentation from Alexander Grau
-        <alexandergrau@gmx.de> and patches from Sean Loaring <sloaring@tec-man.com>.
-        * fix from Antonio Palama <palama@inwind.it> for email items
-        that happen to have item->contact non null, and were being processed
-        as contacts.
-        * Add large file support so we can read .pst files larger than 2gb.
-        * Change lspst to be similar to readpst, properly using recursion to walk
-        the tree, and testing item types. Add a man page for lspst.
+    * Outlook 2003 64 bit parsing. Some documentation from Alexander Grau
+      <alexandergrau@gmx.de> and patches from Sean Loaring <sloaring@tec-man.com>.
+    * fix from Antonio Palama <palama@inwind.it> for email items
+      that happen to have item->contact non null, and were being processed
+      as contacts.
+    * Add large file support so we can read .pst files larger than 2gb.
+    * Change lspst to be similar to readpst, properly using recursion to walk
+      the tree, and testing item types. Add a man page for lspst.
 
 LibPST 0.5.12 (2007-10-02)
 ===============================
-
-        * security fix from Brad Hards <bradh@frogmouth.net> for buffer
-        overruns in liv-zemple decoding for corrupted or malicious pst files.
+    * security fix from Brad Hards <bradh@frogmouth.net> for buffer
+      overruns in liv-zemple decoding for corrupted or malicious pst files.
 
 LibPST 0.5.11 (2007-08-24)
 ===============================
-
-        * fix from Stevens Miller <smiller@novadatalabs.com>
-        for unitialized variable.
+    * fix from Stevens Miller <smiller@novadatalabs.com>
+      for unitialized variable.
 
 LibPST 0.5.10 (2007-08-20)
 ===============================
-
-        * fix yet more valgrind errors - finally have a clean memory check.
-        * restructure readpst.c for proper recursive tree walk.
-        * buffer overrun test was backwards, introduced at 0.5.6
-        * fix broken email attachments, introduced at 0.5.6
+    * fix yet more valgrind errors - finally have a clean memory check.
+    * restructure readpst.c for proper recursive tree walk.
+    * buffer overrun test was backwards, introduced at 0.5.6
+    * fix broken email attachments, introduced at 0.5.6
 
 LibPST 0.5.9 (2007-08-12)
 ===============================
-
-        * fix more valgrind errors.
+    * fix more valgrind errors.
 
 LibPST 0.5.8 (2007-08-10)
 ===============================
-
-        * fix more valgrind errors. lzfu_decompress needs to return the
-        actual buffer size, since the lz header overestimates the size.
-        This caused base64_encode to encode undefined bytes into the
-        email attachment.
+    * fix more valgrind errors. lzfu_decompress needs to return the
+      actual buffer size, since the lz header overestimates the size.
+      This caused base64_encode to encode undefined bytes into the
+      email attachment.
 
 LibPST 0.5.7 (2007-08-09)
 ===============================
-
-        * fix valgrind errors, using uninitialized data.
-        * improve debug logging and readpstlog for indented listings.
-        * cleanup documentation.
+    * fix valgrind errors, using uninitialized data.
+    * improve debug logging and readpstlog for indented listings.
+    * cleanup documentation.
 
 LibPST 0.5.6 (2007-07-15)
 ===============================
-
-        * Fix to allow very small pst files with only one node in the
-        tree. We were mixing signed/unsigned types in comparisons.
-        * More progress decoding the basic structure 7c blocks. Many
-        four byte values may be ID2 indices with data outside the buffer.
-        * Start using doxygen to generate internal documentation.
+    * Fix to allow very small pst files with only one node in the
+      tree. We were mixing signed/unsigned types in comparisons.
+    * More progress decoding the basic structure 7c blocks. Many
+      four byte values may be ID2 indices with data outside the buffer.
+    * Start using doxygen to generate internal documentation.
 
 LibPST 0.5.5 (2007-07-10)
 ===============================
-
-        * merge the following changes from Joe Nahmias version:
-        * Lots of memory fixes.  Thanks to Nigel Horne for his assistance
-        tracking these down!
-        * Fixed creation of vCards from contacts, thanks to Nigel Horne for
-        his help with this!
-        * fix for MIME multipart/alternative attachments.
-        * added -c options to readpst manpage.
-        * use 8.3 attachment filename if long filename isn't available.
-        * new -b option to skip rtf-body.rtf attachments.
-        * fix format of From header lines in mbox files.
-        * Add more appointment fields, thanks to Chris Halls for tracking
-        them down!
-
+    * merge the following changes from Joe Nahmias version:
+    * Lots of memory fixes.  Thanks to Nigel Horne for his assistance
+      tracking these down!
+    * Fixed creation of vCards from contacts, thanks to Nigel Horne for
+      his help with this!
+    * fix for MIME multipart/alternative attachments.
+    * added -c options to readpst manpage.
+    * use 8.3 attachment filename if long filename isn't available.
+    * new -b option to skip rtf-body.rtf attachments.
+    * fix format of From header lines in mbox files.
+    * Add more appointment fields, thanks to Chris Halls for tracking
+      them down!
 
 LibPST 0.5.4 (2006-02-25)
 ===============================
-
-        * patches from Arne, adding MH mode, remove leading zeros
-        from the generated numbered filenames starting with one
-        rather than zero. Miscellaneous code cleanup.
-
-        * document the "7c" descriptor block format.
+    * patches from Arne, adding MH mode, remove leading zeros
+      from the generated numbered filenames starting with one
+      rather than zero. Miscellaneous code cleanup.
+    * document the "7c" descriptor block format.
 
 LibPST 0.5.3 (2006-02-20)
 ===============================
-
-        * switch to gnu autoconf/automake. This breaks the MS VC++ projects
-        since the source code is now in the src subdirectory.
-
-        * documentation switched to xml, building man pages and html
-        from the master xml copy.
-
-        * include rpm .spec file for building src and binary rpms.
-
+    * switch to gnu autoconf/automake. This breaks the MS VC++ projects
+      since the source code is now in the src subdirectory.
+    * documentation switched to xml, building man pages and html
+      from the master xml copy.
+    * include rpm .spec file for building src and binary rpms.
 
 LibPST 0.5.2 (2006-02-18)
 ===============================
-
-        * Added pst2ldif to convert the contacts to ldif format for import
-        into ldap databases.
-
-        * Major changes to libpst.c to properly use the node depth values
-        from the b-tree nodes. We also use the item count values in the nodes
-        rather than trying to guess how many items are active.
-
-        * Cleanup whitespace - using tabs for every four columns.
-
+    * Added pst2ldif to convert the contacts to ldif format for import
+      into ldap databases.
+    * Major changes to libpst.c to properly use the node depth values
+      from the b-tree nodes. We also use the item count values in the nodes
+      rather than trying to guess how many items are active.
+    * Cleanup whitespace - using tabs for every four columns.
 
 LibPST 0.5.1 (17 November 2004)
 ===============================

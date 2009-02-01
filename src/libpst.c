@@ -6,11 +6,11 @@
  */
 
 #include "define.h"
+#include "common.h"
+#include "libpst.h"
+#include "timeconv.h"
 #include "libstrfunc.h"
 #include "vbuf.h"
-#include "libpst.h"
-#include "common.h"
-#include "timeconv.h"
 
 #define ASSERT(x) { if(!(x)) raise( SIGSEGV ); }
 

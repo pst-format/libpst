@@ -12,9 +12,6 @@
 #ifndef VBUF_H
 #define VBUF_H
 #define SZ_MAX     4096
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
 /***************************************************/
 
 

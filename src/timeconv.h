@@ -1,8 +1,6 @@
 #ifndef __TIMECONV_H
 #define __TIMECONV_H
 
-#include <time.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif

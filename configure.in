@@ -7,11 +7,15 @@ AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION)
 
 AC_CANONICAL_HOST
 
-# Check for Win32
+# Check for win32 which needs iconv library specified on the link line
 AC_MSG_CHECKING([for Win32])
 case "$host" in
     *-mingw*)
         os_win32=yes
+        ;;
+    *cygwin*)
+        os_win32=yes
+        enable_dii=no   # cygwin would find windir/system32/convert, not image magick convert
         ;;
     *)
         os_win32=no
@@ -80,7 +84,7 @@ AC_CHECK_HEADER([unistd.h],
     )
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h stdint.h stdlib.h string.h sys/param.h unistd.h wchar.h])
+AC_CHECK_HEADERS([ctype.h dirent.h errno.h fcntl.h inttypes.h limits.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h sys/param.h sys/stat.h sys/types.h time.h unistd.h wchar.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

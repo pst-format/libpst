@@ -7,17 +7,8 @@
  */
 
 #include "define.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <string.h>
-#include <ctype.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include "libpst.h"
 #include "common.h"
+#include "libpst.h"
 #include "timeconv.h"
 
 struct file_ll {
