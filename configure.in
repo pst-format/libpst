@@ -84,7 +84,7 @@ AC_CHECK_HEADER([unistd.h],
     )
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([ctype.h dirent.h errno.h fcntl.h inttypes.h limits.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h sys/param.h sys/stat.h sys/types.h time.h unistd.h wchar.h])
+AC_CHECK_HEADERS([ctype.h dirent.h errno.h fcntl.h inttypes.h limits.h regex.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h sys/param.h sys/stat.h sys/types.h time.h unistd.h wchar.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

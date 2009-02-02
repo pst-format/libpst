@@ -47,10 +47,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Sat Jan 31 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.26-1
+* Sun Feb 01 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.26-1
 - patch from Fridrich Strba for building on mingw and general
-- cleanup of autoconf files.
+- cleanup of autoconf files
 - add processing for pst files of type 0x0f
+- strip and regenerate all MIME headers to avoid duplicates
+- do a better job of making unique MIME boundaries
+- only use base64 coding when strictly necessary
 
 * Fri Jan 16 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.25-1
 - improve handling of content-type charset values in mime parts

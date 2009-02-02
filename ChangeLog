@@ -1,4 +1,4 @@
-LibPST 0.6.26 (2009-01-31)
+LibPST 0.6.26 (2009-02-01)
 ===============================
     * patch from Fridrich Strba for building on mingw and
       general cleanup of autoconf files
@@ -9,8 +9,11 @@ LibPST 0.6.26 (2009-01-31)
     * more const correctness issues regarding getopt()
     * disable building pst2dii on cygwin, since the convert program
       on the path is part of windows, not image magic.
-    * consistent ordering of our include files. all systems includes
+    * consistent ordering of our include files. all system includes
       protected by ifdef HAVE_ from autoconf.
+    * strip and regenerate all MIME headers to avoid duplicates.
+    * do a better job of making unique MIME boundaries.
+    * only use base64 coding when strictly necessary.
 
 LibPST 0.6.25 (2009-01-16)
 ===============================
