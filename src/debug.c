@@ -1,6 +1,5 @@
-
+#include "common.h"
 #include "define.h"
-//#include <stdint.h>
 
 struct pst_debug_item {
     int type;

@@ -1,4 +1,4 @@
-LibPST 0.6.26 (2009-02-01)
+LibPST 0.6.26 (2009-02-02)
 ===============================
     * patch from Fridrich Strba for building on mingw and
       general cleanup of autoconf files

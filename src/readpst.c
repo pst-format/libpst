@@ -4,13 +4,14 @@
  * Written by David Smith
  *            dave.s@earthcorp.com
  */
-#include "define.h"
 #include "common.h"
 #include "libpst.h"
 #include "timeconv.h"
-#include "lzfu.h"
 #include "libstrfunc.h"
 #include "vbuf.h"
+
+#include "define.h"
+#include "lzfu.h"
 
 #ifdef HAVE_REGEX_H
     #include <regex.h>

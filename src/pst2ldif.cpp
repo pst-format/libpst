@@ -16,13 +16,14 @@ using namespace std;
 #include <string>
 
 extern "C" {
-    #include "define.h"
     #include "common.h"
     #include "libpst.h"
     #include "timeconv.h"
-    #include "lzfu.h"
     #include "libstrfunc.h"
     #include "vbuf.h"
+
+    #include "define.h"
+    #include "lzfu.h"
 }
 
 void       usage(void);

@@ -9,9 +9,10 @@
 	 Inc., 59 Temple Place - Suite 330, Boston, MA	02111-1307, USA
   */
 
-#include "define.h"
 #include "common.h"
 #include "libpst.h"
+
+#include "define.h"
 #include "lzfu.h"
 
 #ifdef HAVE_SYS_TYPES_H

@@ -1,8 +1,10 @@
-#include "define.h"
 #include "common.h"
 #include "libpst.h"
 
+#include "define.h"
+
 #define OUT_BUF 20
+
 int main(int argc, char* const* argv)
 {
     pst_file pstfile;

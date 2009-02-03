@@ -47,7 +47,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Sun Feb 01 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.26-1
+* Mon Feb 02 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.26-1
 - patch from Fridrich Strba for building on mingw and general
 - cleanup of autoconf files
 - add processing for pst files of type 0x0f

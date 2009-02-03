@@ -1,3 +1,6 @@
+
+#include "common.h"
+
 #include "define.h"
 
 #define BUF_SIZE 4096

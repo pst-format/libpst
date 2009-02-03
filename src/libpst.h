@@ -10,15 +10,6 @@
 #ifndef LIBPST_H
 #define LIBPST_H
 
-// According to Jan Wolter, sys/param.h is the most portable source of endian
-// information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html
-#ifdef _WIN32
-    #define BYTE_ORDER LITTLE_ENDIAN
-#else
-    #ifdef HAVE_SYS_PARAM_H
-        #include <sys/param.h>
-    #endif
-#endif // defined _WIN32
 
 #if BYTE_ORDER == BIG_ENDIAN
 #  define LE64_CPU(x) \

@@ -13,16 +13,25 @@ case "$host" in
     *-mingw*)
         os_win32=yes
         ;;
-    *cygwin*)
-        os_win32=yes
-        enable_dii=no   # cygwin would find windir/system32/convert, not image magick convert
-        ;;
     *)
         os_win32=no
         ;;
 esac
 AC_MSG_RESULT($os_win32)
 AM_CONDITIONAL(OS_WIN32, [test "$os_win32" = "yes"])
+
+# Check for Win32 platform
+AC_MSG_CHECKING([for Win32 platform in general])
+case "$host" in
+    *-cygwin*)
+        platform_win32=yes
+        ;;
+    *)
+        platform_win32=$os_win32
+        ;;
+esac
+AC_MSG_RESULT($platform_win32)
+AM_CONDITIONAL(PLATFORM_WIN32, [test "$platform_win32" = "yes"])
 
 
 # Checks for programs.
@@ -241,7 +250,6 @@ AC_OUTPUT(                  \
     info/Makefile           \
     libpst.pc               \
     libpst.spec             \
-    libpst/Makefile         \
     man/Makefile            \
     src/Makefile            \
     src/pst2dii.cpp         \

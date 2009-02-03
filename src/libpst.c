@@ -5,12 +5,13 @@
  *            dave.s@earthcorp.com
  */
 
-#include "define.h"
 #include "common.h"
 #include "libpst.h"
 #include "timeconv.h"
 #include "libstrfunc.h"
 #include "vbuf.h"
+
+#include "define.h"
 
 #define ASSERT(x) { if(!(x)) raise( SIGSEGV ); }
 
@@ -18,6 +19,7 @@
 #define INDEX_TYPE32            0x0E
 #define INDEX_TYPE32A           0x0F    // unknown, but assumed to be similar for now
 #define INDEX_TYPE64            0x17
+#define INDEX_TYPE64A           0x15    // http://sourceforge.net/projects/libpff/
 #define INDEX_TYPE_OFFSET       (off_t)0x0A
 
 #define FILE_SIZE_POINTER32     (off_t)0xA8
@@ -203,6 +205,7 @@ int pst_open(pst_file *pf, char *name) {
             pf->do_read64 = 0;
             break;
         case INDEX_TYPE64 :
+        case INDEX_TYPE64A :
             pf->do_read64 = 1;
             break;
         default:

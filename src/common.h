@@ -2,22 +2,41 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+
+
+#ifndef  _MSC_VER
+    #include <stdint.h>
+    #include <inttypes.h>
+#else
+    typedef signed char        int8_t;
+    typedef unsigned char      uint8_t;
+	typedef unsigned short     uint16_t;
+	typedef short              int16_t;
+    typedef unsigned int       uint32_t;
+	typedef int                int32_t;
+	typedef unsigned long long uint64_t;
+	typedef long long          int64_t;
+#endif
+
+
 #ifndef _WIN32
     typedef uint32_t  DWORD;
     typedef uint16_t   WORD;
     typedef uint8_t    BYTE;
     typedef uint32_t UINT32;
-
-# pragma pack (1)
-
-#ifndef FILETIME_DEFINED
-    #define FILETIME_DEFINED
-    /*Win32 Filetime struct - copied from WINE*/
-    typedef struct {
+    typedef struct {    // copied from wine
         DWORD  dwLowDateTime;
         DWORD  dwHighDateTime;
     } FILETIME;
-#endif // FILETIME_DEFINED
+    // According to Jan Wolter, sys/param.h is the most portable source of endian
+    // information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html
+    #include <sys/param.h>
+#else
+    #define BYTE_ORDER LITTLE_ENDIAN
+#endif
 
-#endif // _WIN32
-#endif // __COMMON_H
+
+#endif

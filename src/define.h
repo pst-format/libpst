@@ -9,7 +9,7 @@
 #define DEFINEH_H
 
 #ifdef HAVE_CONFIG_H
-    #include <libpst/config.h>
+    #include "config.h"
 #endif
 
 #ifdef _WIN32
@@ -44,18 +44,6 @@
 #define DEBUG_FUNCENT_NO  9
 #define DEBUG_FUNCRET_NO 10
 #define DEBUG_HEXDUMP_NO 11
-
-#ifdef HAVE_STDIO_H
-    #include <stdio.h>
-#endif
-
-#ifdef HAVE_STDLIB_H
-    #include <stdlib.h>
-#endif
-
-#ifdef HAVE_STDARG_H
-    #include <stdarg.h>
-#endif
 
 #ifdef HAVE_TIME_H
     #include <time.h>
@@ -93,7 +81,7 @@
 
     #define D_MKDIR(x) mkdir(x)
     #define chdir      _chdir
-
+    #define strcasecmp _stricmp
     #define vsnprintf  _vsnprintf
     #define snprintf   _snprintf
     #ifdef _MSC_VER
@@ -105,19 +93,10 @@
     #else
         #error Only MSC and mingw supported for Windows
     #endif
-    #define strcasecmp _stricmp
     #ifndef __MINGW32__
         #define off_t      __int64
         #define size_t     __int64
     #endif
-    #define int64_t    __int64
-    #define uint64_t   unsigned __int64
-    #define int32_t    __int32
-    #define uint32_t   unsigned int
-    #define int16_t    short int
-    #define uint16_t   unsigned short int
-    #define int8_t     signed char
-    #define uint8_t    unsigned char
     #ifndef UINT64_MAX
         #define UINT64_MAX ((uint64_t)0xffffffffffffffff)
     #endif
@@ -133,12 +112,6 @@
 
     #include <windows.h>
 #else
-    #ifdef HAVE_STDINT_H
-        #include <stdint.h>
-    #endif
-    #ifdef HAVE_INTTYPES_H
-        #include <inttypes.h>
-    #endif
     #ifdef HAVE_UNISTD_H
         #include <unistd.h>
         #define D_MKDIR(x) mkdir(x, PERM_DIRS)

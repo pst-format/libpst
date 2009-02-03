@@ -1,13 +1,15 @@
-if OS_WIN32
-    ICONVLIB = -liconv
+if PLATFORM_WIN32
+    ICONVLIB     = -liconv
+	NO_UNDEFINED = -no-undefined
 else
-    ICONVLIB =
+    ICONVLIB     =
+	NO_UNDEFINED =
 endif
 
 if STATIC_TOOLS
-    PSTLIB=@PST_OBJDIR@/libpst.a
+    PSTLIB = @PST_OBJDIR@/libpst.a
 else
-    PSTLIB=libpst.la
+    PSTLIB = libpst.la
 endif
 
 common_header = common.h        \
@@ -27,6 +29,7 @@ common_source = debug.c         \
 
 if NEED_XGETOPT
     common_source += XGetopt.c
+	common_header += XGetopt.h
 endif
 
 noinst_PROGRAMS     = deltasearch dumpblocks getidblock
@@ -59,12 +62,11 @@ else
     libpstincludedir      = $(includedir)/libpst
     libpstinclude_HEADERS = \
         common.h    \
-		define.h	\
         libpst.h    \
         libstrfunc.h\
         timeconv.h  \
         vbuf.h
-    libpst_la_LDFLAGS     = -no-undefined -version-info 1:0:0
+    libpst_la_LDFLAGS     = $(NO_UNDEFINED) -version-info 1:0:0
 endif
 
 libpst_la_SOURCES     = $(common_source) $(common_header)
@@ -72,6 +74,9 @@ libpst_la_LIBADD      = $(ICONVLIB)
 
 
 EXTRA_DIST = testdebug.c
+if !NEED_XGETOPT
+    EXTRA_DIST += XGetopt.c XGetopt.h
+endif
 
 # set the include path found by configure
 INCLUDES= -I$(srcdir)/.. $(all_includes)
