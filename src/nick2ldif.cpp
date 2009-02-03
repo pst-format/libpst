@@ -6,11 +6,10 @@ http://www.fsf.org/licenses/gpl.txt
 
 */
 
-#include <stdio.h>
 #include <iostream>
-//#include <fstream>
-#include <unistd.h>
+
 extern "C" {
+    #include "common.h"
     #include "define.h"
 }
 

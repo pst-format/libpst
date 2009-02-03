@@ -251,19 +251,19 @@ void pst_debug_write() {
     size_t size, ptr, funcname, filename, text, end;
     char *buf = NULL, rec_type;
     if (!debug_fp) return;  // no file
-    off_t index_pos = ftello(debug_fp);
-    off_t file_pos  = index_pos;
+    uint64_t index_pos = ftello(debug_fp);
+    uint64_t file_pos  = index_pos;
     // add 2. One for the pointer to the next index,
     // one for the count of this index
-    int index_size = ((curr_items+2) * sizeof(off_t));
-    off_t *index;
+    int index_size = ((curr_items+2) * sizeof(uint64_t));
+    uint64_t *index;
     int index_ptr = 0;
     struct pst_debug_file_rec_m mfile_rec;
     struct pst_debug_file_rec_l lfile_rec;
 
     if (curr_items == 0) return;    // no items to write.
 
-    index = (off_t*)xmalloc(index_size);
+    index = (uint64_t*)xmalloc(index_size);
     memset(index, 0, index_size);   // valgrind, avoid writing uninitialized data
     file_pos += index_size;
     // write the index first, we will re-write it later, but
@@ -335,9 +335,9 @@ void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *
     struct pst_debug_file_rec_l lfile_rec;
     struct pst_debug_file_rec_m mfile_rec;
     unsigned char rec_type;
-    int index_size = 3 * sizeof(off_t);
-    off_t index[3];
-    off_t index_pos, file_pos;
+    int index_size = 3 * sizeof(uint64_t);
+    uint64_t index[3];
+    uint64_t index_pos, file_pos;
     char zero = '\0';
     unsigned int end;
     if (!debug_fp) return;  // no file
@@ -397,8 +397,8 @@ void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *
 void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, int col) {
     struct pst_debug_file_rec_l lfile_rec;
     unsigned char rec_type;
-    int index_size = 3 * sizeof(off_t);
-    off_t index_pos, file_pos, index[3];
+    int index_size = 3 * sizeof(uint64_t);
+    uint64_t index_pos, file_pos, index[3];
     char zero='\0';
     if (!debug_fp) return;  // no file
     index[0] = 1; // only one item in this index run

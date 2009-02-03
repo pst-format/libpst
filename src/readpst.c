@@ -13,10 +13,6 @@
 #include "define.h"
 #include "lzfu.h"
 
-#ifdef HAVE_REGEX_H
-    #include <regex.h>
-#endif
-
 #define OUTPUT_TEMPLATE "%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
 #define KMAIL_INDEX ".%s.index"
@@ -242,7 +238,7 @@ int main(int argc, char* const* argv) {
     srand((unsigned)now);
 
     if (regcomp(&meta_charset_pattern, "<meta[^>]*content=\"[^>]*charset=([^>\";]*)[\";]", REG_ICASE | REG_EXTENDED)) {
-        printf("cannot compile regex pattern\n");
+        printf("cannot compile regex pattern to find content charset in html bodies\n");
         exit(3);
     }
 

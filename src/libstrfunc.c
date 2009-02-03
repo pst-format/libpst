@@ -1,10 +1,10 @@
 
 /* Taken from LibStrfunc v7.3 */
 
-#include <stdio.h>
-#include <ctype.h>
-#include <stdlib.h>
+#include "common.h"
 #include "libstrfunc.h"
+
+#include "define.h"
 
 
 static char base64_code_chars[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/==";

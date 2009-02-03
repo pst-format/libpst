@@ -13,8 +13,6 @@
 
 #ifndef _WIN32
 
-#include <time.h>
-
 #include "common.h"
 #include "timeconv.h"
 

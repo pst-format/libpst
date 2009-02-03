@@ -20,9 +20,10 @@
 
 #ifndef __MINGW32__		/* mingw has getopt() */
 
-#include <stdio.h>
-#include <string.h>
-#include "XGetopt.h"
+#include "common.h"
+
+#include "define.h"
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //

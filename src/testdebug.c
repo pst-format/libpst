@@ -1,9 +1,9 @@
+#include "common.h"
+
 #include "define.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 #define BUF_SIZE 100000
+
 int main(int argc, const char** argv) {
   char *x = xmalloc(BUF_SIZE); // 10k
   memset(x, '.', BUF_SIZE-1);

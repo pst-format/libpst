@@ -2,6 +2,12 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
+
+#ifdef HAVE_CONFIG_H
+    #include "config.h"
+#endif
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>

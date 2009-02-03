@@ -68,13 +68,13 @@ int main(int argc, char* const* argv) {
     buf = (char*) xmalloc(BUF_SIZE);
 
     while (!stop) {
-        off_t temp;
-        if (fread(&temp, sizeof(off_t), 1, fp)<=0) break;
+        uint64_t temp;
+        if (fread(&temp, sizeof(uint64_t), 1, fp)<=0) break;
         x = (int)temp;
         ptr = 0;
         if (x > 0) {
-            off_t i[x+1]; // plus 1 because we want to read the offset of the next index
-            if (get(i, sizeof(off_t), x+1, fp)==0) {
+            uint64_t i[x+1]; // plus 1 because we want to read the offset of the next index
+            if (get(i, sizeof(uint64_t), x+1, fp)==0) {
                 // we have reached the end of the debug file
                 printf("oh dear. we must now end\n");
                 break;

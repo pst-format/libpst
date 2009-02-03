@@ -2,10 +2,9 @@ AC_PREREQ(2.59)
 AC_INIT(libpst,0.6.26,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
-
 AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION)
-
 AC_CANONICAL_HOST
+
 
 # Check for win32 which needs iconv library specified on the link line
 AC_MSG_CHECKING([for Win32])
@@ -19,6 +18,7 @@ case "$host" in
 esac
 AC_MSG_RESULT($os_win32)
 AM_CONDITIONAL(OS_WIN32, [test "$os_win32" = "yes"])
+
 
 # Check for Win32 platform
 AC_MSG_CHECKING([for Win32 platform in general])
@@ -56,19 +56,30 @@ AC_ARG_ENABLE(dii,
     enable_dii=yes
     )
 AC_MSG_RESULT([$enable_dii])
-if test "$enable_dii" = "yes"; then
-    AC_PATH_PROG(CONVERT, convert)
-    if test "x$CONVERT" = "x" ; then
-        AC_MSG_WARN([convert not found. pst2dii disabled])
+AC_PATH_PROG(CONVERT, convert)
+if test "x$CONVERT" = "x" ; then
+    if test "$enable_dii" = "yes"; then
         enable_dii=no
+        AC_MSG_WARN([convert program not found. pst2dii disabled])
+    fi
+else
+    if test "x`$CONVERT --version 2>&1 | grep -i imagemagick >/dev/null ; echo $?`" != "x0"; then
+        if test "$enable_dii" = "yes"; then
+            enable_dii=no
+            AC_MSG_WARN([wrong convert program found. pst2dii disabled])
+        fi
     fi
 fi
-if test "$enable_dii" = "yes"; then
-    AC_CHECK_HEADER([gd.h], , [
-                       enable_dii=no
-                       AC_MSG_WARN([gd.h not found. pst2dii disabled])
-                    ])
-fi
+AC_CHECK_HEADER([gd.h],
+                [
+                    AC_DEFINE([HAVE_GD_H], [1], [Define to 1 if you have the <gd.h> header file.])
+                ],
+                [
+                    if test "$enable_dii" = "yes"; then
+                        enable_dii=no
+                        AC_MSG_WARN([gd.h not found. pst2dii disabled])
+                    fi
+                ])
 AM_CONDITIONAL(BUILD_DII, [test "$enable_dii" = "yes"])
 
 
@@ -83,8 +94,11 @@ AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 
+
+# make sure we get large file support
 AC_SYS_LARGEFILE
 AC_CHECK_SIZEOF(off_t)
+
 
 # Checks for header files.
 AC_CHECK_HEADER([unistd.h],
@@ -93,7 +107,8 @@ AC_CHECK_HEADER([unistd.h],
     )
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([ctype.h dirent.h errno.h fcntl.h inttypes.h limits.h regex.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h sys/param.h sys/stat.h sys/types.h time.h unistd.h wchar.h])
+AC_CHECK_HEADERS([ctype.h dirent.h errno.h fcntl.h iconv.h inttypes.h limits.h regex.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h sys/param.h sys/stat.h sys/types.h time.h unistd.h wchar.h])
+
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -101,6 +116,7 @@ AC_C_CONST
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AC_STRUCT_TM
+
 
 # Checks for library functions.
 AC_FUNC_FSEEKO
@@ -114,6 +130,7 @@ fi
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([memchr memmove memset strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol])
+
 
 # iconv on mac is a library
 SAVELIBS="$LIBS"
@@ -233,13 +250,6 @@ AM_CONDITIONAL(STATIC_TOOLS, [test "$enable_static_tools" = "yes"])
 if test "$enable_static_tools" = "yes"; then
 	enable_static="yes"
 fi
-
-
-AC_MSG_CHECKING([system enable shared])
-AC_MSG_RESULT([$enable_shared])
-AC_MSG_CHECKING([system enable static])
-AC_MSG_RESULT([$enable_static])
-
 
 
 AC_OUTPUT(                  \

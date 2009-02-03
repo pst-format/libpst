@@ -7,22 +7,20 @@ http://www.fsf.org/licenses/gpl.txt
 Based on readpst.c by David Smith
 
 */
-#include <gd.h>
-#include <stdio.h>
 #include <iostream>
-#include <unistd.h>
 #include <string>
 #include <vector>
 
 using namespace std;
 
 extern "C" {
-    #include "define.h"
     #include "common.h"
     #include "libpst.h"
     #include "timeconv.h"
-    #include "lzfu.h"
     #include "libstrfunc.h"
+
+    #include "define.h"
+    #include "lzfu.h"
 }
 
 struct file_ll {

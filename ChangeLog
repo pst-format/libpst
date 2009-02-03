@@ -12,8 +12,15 @@ LibPST 0.6.26 (2009-02-02)
     * consistent ordering of our include files. all system includes
       protected by ifdef HAVE_ from autoconf.
     * strip and regenerate all MIME headers to avoid duplicates.
+      problem found by Michael Watson on Mac OSX.
     * do a better job of making unique MIME boundaries.
     * only use base64 coding when strictly necessary.
+    * more cleanup of #include files. common.h is the only file
+      allowed to include system .h files unprotected by autoconf
+      HAVE_ symbols. define.h is the only other file allowed to
+      include system .h files. define.h is never installed; common.h
+      is installed if we are building the shared library.
+
 
 LibPST 0.6.25 (2009-01-16)
 ===============================

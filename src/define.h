@@ -73,6 +73,18 @@
     #include <errno.h>
 #endif
 
+#ifdef HAVE_ICONV_H
+    #include <iconv.h>
+#endif
+
+#ifdef HAVE_REGEX_H
+    #include <regex.h>
+#endif
+
+#ifdef HAVE_GD_H
+    #include <gd.h>
+#endif
+
 
 #define PERM_DIRS 0777
 
@@ -94,7 +106,6 @@
         #error Only MSC and mingw supported for Windows
     #endif
     #ifndef __MINGW32__
-        #define off_t      __int64
         #define size_t     __int64
     #endif
     #ifndef UINT64_MAX

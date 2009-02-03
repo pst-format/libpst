@@ -1,22 +1,10 @@
 
-#include <ctype.h>
-#include <errno.h>
-#include <iconv.h>
-#include <limits.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "define.h"
+#include "common.h"
 #include "vbuf.h"
 
-#ifdef WITH_DMALLOC
-#include <dmalloc.h>
-#endif
+#include "define.h"
 
-#define STUPID_CR "\r\n"
+
 #define ASSERT(x,...) { if( !(x) ) DIE(( __VA_ARGS__)); }
 
 

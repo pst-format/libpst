@@ -20,21 +20,21 @@
 #define INDEX_TYPE32A           0x0F    // unknown, but assumed to be similar for now
 #define INDEX_TYPE64            0x17
 #define INDEX_TYPE64A           0x15    // http://sourceforge.net/projects/libpff/
-#define INDEX_TYPE_OFFSET       (off_t)0x0A
+#define INDEX_TYPE_OFFSET       (uint64_t)0x0A
 
-#define FILE_SIZE_POINTER32     (off_t)0xA8
-#define INDEX_POINTER32         (off_t)0xC4
-#define INDEX_BACK32            (off_t)0xC0
-#define SECOND_POINTER32        (off_t)0xBC
-#define SECOND_BACK32           (off_t)0xB8
-#define ENC_TYPE32              (off_t)0x1CD
+#define FILE_SIZE_POINTER32     (uint64_t)0xA8
+#define INDEX_POINTER32         (uint64_t)0xC4
+#define INDEX_BACK32            (uint64_t)0xC0
+#define SECOND_POINTER32        (uint64_t)0xBC
+#define SECOND_BACK32           (uint64_t)0xB8
+#define ENC_TYPE32              (uint64_t)0x1CD
 
-#define FILE_SIZE_POINTER64     (off_t)0xB8
-#define INDEX_POINTER64         (off_t)0xF0
-#define INDEX_BACK64            (off_t)0xE8
-#define SECOND_POINTER64        (off_t)0xE0
-#define SECOND_BACK64           (off_t)0xD8
-#define ENC_TYPE64              (off_t)0x201
+#define FILE_SIZE_POINTER64     (uint64_t)0xB8
+#define INDEX_POINTER64         (uint64_t)0xF0
+#define INDEX_BACK64            (uint64_t)0xE8
+#define SECOND_POINTER64        (uint64_t)0xE0
+#define SECOND_BACK64           (uint64_t)0xD8
+#define ENC_TYPE64              (uint64_t)0x201
 
 #define FILE_SIZE_POINTER ((pf->do_read64) ? FILE_SIZE_POINTER64 : FILE_SIZE_POINTER32)
 #define INDEX_POINTER     ((pf->do_read64) ? INDEX_POINTER64     : INDEX_POINTER32)
@@ -813,7 +813,7 @@ static size_t pst_decode_type3(pst_file *pf, pst_table3_rec *table3_rec, char *b
 }
 
 
-int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
+int pst_build_id_ptr(pst_file *pf, uint64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_structn table, table2;
     pst_index_ll *i_ptr=NULL;
     pst_index index;
@@ -926,7 +926,7 @@ int pst_build_id_ptr(pst_file *pf, off_t offset, int32_t depth, uint64_t linku1,
 }
 
 
-int pst_build_desc_ptr (pst_file *pf, off_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
+int pst_build_desc_ptr (pst_file *pf, uint64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_structn table, table2;
     pst_descn desc_rec;
     int32_t item_count;
@@ -4118,7 +4118,7 @@ void pst_printID2ptr(pst_index2_ll *ptr) {
                  is non-NULL, it will first be free()d
  * @return       size of block read into memory
  */
-size_t pst_read_block_size(pst_file *pf, off_t offset, size_t size, char **buf) {
+size_t pst_read_block_size(pst_file *pf, uint64_t offset, size_t size, char **buf) {
     size_t rsize;
     DEBUG_ENT("pst_read_block_size");
     DEBUG_READ(("Reading block from %#"PRIx64", %x bytes\n", offset, size));
@@ -4210,7 +4210,7 @@ uint64_t pst_getIntAt(pst_file *pf, char *buf) {
 }
 
 
-uint64_t pst_getIntAtPos(pst_file *pf, off_t pos ) {
+uint64_t pst_getIntAtPos(pst_file *pf, uint64_t pos ) {
     uint64_t buf64;
     uint32_t buf32;
     if (pf->do_read64) {
@@ -4235,7 +4235,7 @@ uint64_t pst_getIntAtPos(pst_file *pf, off_t pos ) {
  * @return     actual read size, 0 if seek error
  */
 
-size_t pst_getAtPos(pst_file *pf, off_t pos, void* buf, size_t size) {
+size_t pst_getAtPos(pst_file *pf, uint64_t pos, void* buf, size_t size) {
     size_t rc;
     DEBUG_ENT("pst_getAtPos");
 //  pst_block_recorder **t = &pf->block_head;
