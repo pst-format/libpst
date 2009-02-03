@@ -460,7 +460,7 @@ typedef struct pst_x_attrib_ll {
 
 typedef struct pst_block_recorder {
     struct pst_block_recorder  *next;
-    uint64_t                    offset;
+    int64_t                     offset;
     size_t                      size;
     int                         readcount;
 } pst_block_recorder;
@@ -549,8 +549,8 @@ int            pst_load_index (pst_file *pf);
 pst_desc_ll*   pst_getNextDptr(pst_desc_ll* d);
 int            pst_load_extended_attributes(pst_file *pf);
 
-int            pst_build_id_ptr(pst_file *pf, uint64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
-int            pst_build_desc_ptr(pst_file *pf, uint64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
+int            pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
+int            pst_build_desc_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 pst_item*      pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 pst_item*      pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
 pst_num_array* pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *i2_head, pst_num_array *na_head);
@@ -567,11 +567,11 @@ pst_index2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* he
 pst_index_ll*  pst_getID(pst_file* pf, uint64_t id);
 pst_index_ll*  pst_getID2(pst_index2_ll * ptr, uint64_t id);
 pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t id);
-size_t         pst_read_block_size(pst_file *pf, uint64_t offset, size_t size, char **buf);
+size_t         pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
 int            pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type);
 uint64_t       pst_getIntAt(pst_file *pf, char *buf);
-uint64_t       pst_getIntAtPos(pst_file *pf, uint64_t pos);
-size_t         pst_getAtPos(pst_file *pf, uint64_t pos, void* buf, size_t size);
+uint64_t       pst_getIntAtPos(pst_file *pf, int64_t pos);
+size_t         pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size);
 size_t         pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, char **b);
 size_t         pst_ff_getIDblock(pst_file *pf, uint64_t id, char** b);
 size_t         pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, char** buf);

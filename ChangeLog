@@ -1,4 +1,4 @@
-LibPST 0.6.26 (2009-02-02)
+LibPST 0.6.26 (2009-02-03)
 ===============================
     * patch from Fridrich Strba for building on mingw and
       general cleanup of autoconf files
@@ -7,8 +7,6 @@ LibPST 0.6.26 (2009-02-02)
       libpst.so and the header files required to use it.
     * remove version.h since the version number is now in config.h
     * more const correctness issues regarding getopt()
-    * disable building pst2dii on cygwin, since the convert program
-      on the path is part of windows, not image magic.
     * consistent ordering of our include files. all system includes
       protected by ifdef HAVE_ from autoconf.
     * strip and regenerate all MIME headers to avoid duplicates.
@@ -20,7 +18,9 @@ LibPST 0.6.26 (2009-02-02)
       HAVE_ symbols. define.h is the only other file allowed to
       include system .h files. define.h is never installed; common.h
       is installed if we are building the shared library.
-
+    * recover dropped pragma pack line, use int64_t rather than off_t
+      to avoid forcing users of the shared library to enable large
+      file support.
 
 LibPST 0.6.25 (2009-01-16)
 ===============================

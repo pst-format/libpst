@@ -29,6 +29,7 @@
 
 
 #ifndef _WIN32
+    #pragma pack(1)
     typedef uint32_t  DWORD;
     typedef uint16_t   WORD;
     typedef uint8_t    BYTE;

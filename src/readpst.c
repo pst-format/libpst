@@ -922,7 +922,6 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     int attach_num;
     time_t em_time;
     char *c_time;
-    pst_item_attach* current_attach;
     int has_from, has_subject, has_to, has_cc, has_bcc, has_date;
     has_from = has_subject = has_to = has_cc = has_bcc = has_date = 0;
     DEBUG_ENT("write_normal_email");
@@ -1000,6 +999,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         header_strip_field(item->email->header, "\nContent-Transfer-Encoding: ");
         header_strip_field(item->email->header, "\nContent-class: ");
         header_strip_field(item->email->header, "\nX-MimeOLE: ");
+        header_strip_field(item->email->header, "\nBcc: ");
     }
 
     DEBUG_EMAIL(("About to print Header\n"));
@@ -1096,56 +1096,61 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     }
 
     if (item->email->rtf_compressed && save_rtf) {
+        pst_item_attach* attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
         DEBUG_EMAIL(("Adding RTF body as attachment\n"));
-        current_attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
-        memset(current_attach, 0, sizeof(pst_item_attach));
-        current_attach->next = item->attach;
-        item->attach = current_attach;
-        current_attach->data = lzfu_decompress(item->email->rtf_compressed, item->email->rtf_compressed_size, &current_attach->size);
-        current_attach->filename2 = xmalloc(strlen(RTF_ATTACH_NAME)+2);
-        strcpy(current_attach->filename2, RTF_ATTACH_NAME);
-        current_attach->mimetype = xmalloc(strlen(RTF_ATTACH_TYPE)+2);
-        strcpy(current_attach->mimetype, RTF_ATTACH_TYPE);
+        memset(attach, 0, sizeof(pst_item_attach));
+        attach->next = item->attach;
+        item->attach = attach;
+        attach->data = lzfu_decompress(item->email->rtf_compressed, item->email->rtf_compressed_size, &attach->size);
+        attach->filename2 = strdup(RTF_ATTACH_NAME);
+        attach->mimetype  = strdup(RTF_ATTACH_TYPE);
     }
 
     if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
         // if either the body or htmlbody is encrypted, add them as attachments
         if (item->email->encrypted_body) {
+            pst_item_attach* attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
             DEBUG_EMAIL(("Adding Encrypted Body as attachment\n"));
-            current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
-            memset(current_attach, 0, sizeof(pst_item_attach));
-            current_attach->next = item->attach;
-            item->attach = current_attach;
-            current_attach->data = item->email->encrypted_body;
-            current_attach->size = item->email->encrypted_body_size;
+            attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+            memset(attach, 0, sizeof(pst_item_attach));
+            attach->next = item->attach;
+            item->attach = attach;
+            attach->data = item->email->encrypted_body;
+            attach->size = item->email->encrypted_body_size;
             item->email->encrypted_body = NULL;
         }
 
         if (item->email->encrypted_htmlbody) {
+            pst_item_attach* attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
             DEBUG_EMAIL(("Adding encrypted HTML body as attachment\n"));
-            current_attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
-            memset(current_attach, 0, sizeof(pst_item_attach));
-            current_attach->next = item->attach;
-            item->attach = current_attach;
-            current_attach->data = item->email->encrypted_htmlbody;
-            current_attach->size = item->email->encrypted_htmlbody_size;
+            attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+            memset(attach, 0, sizeof(pst_item_attach));
+            attach->next = item->attach;
+            item->attach = attach;
+            attach->data = item->email->encrypted_htmlbody;
+            attach->size = item->email->encrypted_htmlbody_size;
             item->email->encrypted_htmlbody = NULL;
         }
         write_email_body(f_output, "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
     }
 
     // other attachments
-    attach_num = 0;
-    for (current_attach = item->attach; current_attach; current_attach = current_attach->next) {
-        DEBUG_EMAIL(("Attempting Attachment encoding\n"));
-        if (!current_attach->data) {
-            DEBUG_EMAIL(("Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->size));
+    {
+        pst_item_attach* attach;
+        attach_num = 0;
+        for (attach = item->attach; attach; attach = attach->next) {
+            DEBUG_EMAIL(("Attempting Attachment encoding\n"));
+            if (!attach->data) {
+                DEBUG_EMAIL(("Data of attachment is NULL!. Size is supposed to be %i\n", attach->size));
+            }
+            if (mode == MODE_SEPARATE && !mode_MH)
+                write_separate_attachment(f_name, attach, ++attach_num, pst);
+            else
+                write_inline_attachment(f_output, attach, boundary, pst);
         }
-        if (mode == MODE_SEPARATE && !mode_MH)
-            write_separate_attachment(f_name, current_attach, ++attach_num, pst);
-        else
-            write_inline_attachment(f_output, current_attach, boundary, pst);
     }
+
+    // end of this mail message
     if (mode != MODE_SEPARATE) { /* do not add a boundary after the last attachment for mode_MH */
         DEBUG_EMAIL(("Writing buffer between emails\n"));
         fprintf(f_output, "\n--%s--\n", boundary);
