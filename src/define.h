@@ -8,7 +8,6 @@
 #ifndef DEFINEH_H
 #define DEFINEH_H
 
-#include "common.h"
 #include "libpst.h"
 #include "timeconv.h"
 #include "libstrfunc.h"
@@ -376,17 +375,6 @@ struct pst_debug_file_rec_l {
 #define PST_LE_GET_UINT8(p) (*(uint8_t const *)(p))
 
 #define PST_LE_GET_INT8(p) (*(int8_t const *)(p))
-
-
-// switch to maximal packing for our own internal structures
-// use the same code as in common.h
-#ifdef _MSC_VER
-    #pragma pack(push, 1)
-#endif
-#if defined(__GNUC__) || defined (__SUNPRO_C) || defined(__SUNPRO_CC)
-    #pragma pack(1)
-#endif
-
 
 
 #endif //DEFINEH_H

@@ -10,6 +10,18 @@
 #ifndef LIBPST_H
 #define LIBPST_H
 
+#include <libpst/common.h>
+
+
+// switch to maximal packing for all structures in the libpst interface
+// this is reverted at the end of this file
+#ifdef _MSC_VER
+    #pragma pack(push, 1)
+#endif
+#if defined(__GNUC__) || defined (__SUNPRO_C) || defined(__SUNPRO_CC)
+    #pragma pack(1)
+#endif
+
 
 #define PST_TYPE_NOTE        1
 #define PST_TYPE_APPOINTMENT 8
@@ -564,5 +576,17 @@ char *         pst_rfc2445_datetime_format(FILETIME *ft);
 void           pst_printDptr(pst_file *pf, pst_desc_ll *ptr);
 void           pst_printIDptr(pst_file* pf);
 void           pst_printID2ptr(pst_index2_ll *ptr);
+
+
+// switch from maximal packing back to default packing
+// undo the packing from the beginning of this file
+#ifdef _MSC_VER
+    #pragma pack(pop)
+#endif
+#if defined(__GNUC__) || defined (__SUNPRO_C) || defined(__SUNPRO_CC)
+    #pragma pack()
+#endif
+
+
 
 #endif // defined LIBPST_H

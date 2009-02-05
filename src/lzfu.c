@@ -76,7 +76,7 @@ char* lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
 				// two bytes available?
 				if (in_ptr+1 < in_size) {
 					// read 2 bytes from input
-					unsigned short int blkhdr, offset, length;
+					uint16_t blkhdr, offset, length;
 					memcpy(&blkhdr, rtfcomp+in_ptr, 2);
 					LE16_CPU(blkhdr);
 					in_ptr += 2;

@@ -7,8 +7,18 @@
 
 #include "define.h"
 
-#define ASSERT(x) { if(!(x)) raise( SIGSEGV ); }
 
+// switch to maximal packing for our own internal structures
+// use the same code as in libpst.h
+#ifdef _MSC_VER
+    #pragma pack(push, 1)
+#endif
+#if defined(__GNUC__) || defined (__SUNPRO_C) || defined(__SUNPRO_CC)
+    #pragma pack(1)
+#endif
+
+
+#define ASSERT(x) { if(!(x)) raise( SIGSEGV ); }
 
 #define INDEX_TYPE32            0x0E
 #define INDEX_TYPE32A           0x0F    // unknown, but assumed to be similar for now
