@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <vector>
 using namespace std;
 extern "C" {
 	#include "define.h"
@@ -55,14 +57,14 @@ int main(int argc, char* const* argv) {
 		struct stat st;
 		fstat(fd, &st);
 		off_t size = st.st_size;
-		char buf[size];
-		size_t s = read(fd, buf, size);
-		pst_debug_hexdumper(stdout, buf, s, 16, 0);
+		vector <char> buf(size);
+		size_t s = read(fd, &buf[0], size);
+		pst_debug_hexdumper(stdout, &buf[0], s, 16, 0);
         printf("\n\n dump decrypted data \n");
 		for (off_t i=0; i<size; i++) {
 			buf[i] = comp_enc[(unsigned char)buf[i]];
 		}
-		pst_debug_hexdumper(stdout, buf, s, 16, 0);
+		pst_debug_hexdumper(stdout, &buf[0], s, 16, 0);
 		close(fd);
 	}
 	return 0;

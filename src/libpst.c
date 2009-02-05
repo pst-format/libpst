@@ -565,11 +565,9 @@ int pst_load_extended_attributes(pst_file *pf) {
         return 0;
     }
 
-    memcpy(&xattrib, &(buffer[bptr]), sizeof(xattrib));
-    LE32_CPU(xattrib.extended);
-    LE16_CPU(xattrib.type);
-    LE16_CPU(xattrib.map);
-    bptr += sizeof(xattrib);
+	xattrib.extended=PST_LE_GET_UINT32(buffer+bptr), bptr += 4;
+	xattrib.type=PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
+	xattrib.map=PST_LE_GET_UINT16(buffer+bptr),	bptr += 2;
 
     while (xattrib.type != 0 && bptr < bsize) {
         ptr = (pst_x_attrib_ll*) xmalloc(sizeof(*ptr));

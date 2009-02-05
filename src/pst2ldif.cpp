@@ -104,10 +104,10 @@ static const char* unique_string(const char *name) {
     string_set::iterator i = all_strings.find(name);
     if (i == all_strings.end()) return register_string(name);
     while (true) {
-        char n[strlen(name)+10];
-        snprintf(n, sizeof(n), "%s %d", name, unique++);
-        string_set::iterator i = all_strings.find(n);
-        if (i == all_strings.end()) return register_string(n);
+        vector<char> n(strlen(name)+10);
+        snprintf(&n[0], n.size(), "%s %d", name, unique++);
+        string_set::iterator i = all_strings.find(&n[0]);
+        if (i == all_strings.end()) return register_string(&n[0]);
     }
 }
 
@@ -327,8 +327,8 @@ void print_ldif_single(const char *attr, const char *value)
     // Strip leading spaces
     while (*value == ' ') value++;
     len = strlen(value) + 1;
-    char buffer[len];
-    char *p = buffer;
+    vector<char> buffer(len);
+    char *p = &buffer[0];
 
     // See if "value" is a "SAFE STRING"
     // First check characters that are safe but not safe as initial characters
@@ -359,29 +359,29 @@ void print_ldif_single(const char *attr, const char *value)
     }
     *p = 0;
     if (is_safe_string) {
-        printf("%s: %s\n", attr, buffer);
+        printf("%s: %s\n", attr, &buffer[0]);
         return;
     }
 
     if (needs_code_conversion && cd != 0) {
-        size_t inlen = p - buffer;
+        size_t inlen = p - &buffer[0];
         size_t utf8_len = 2 * inlen + 1;
-        char utf8_buffer[utf8_len];
-        char *utf8_p = utf8_buffer;
+        vector<char> utf8_buffer(utf8_len);
+        char *utf8_p = &utf8_buffer[0];
 
         iconv(cd, NULL, NULL, NULL, NULL);
-        p = buffer;
+        p = &buffer[0];
         int ret = iconv(cd, (ICONV_CONST char**)&p, &inlen, &utf8_p, &utf8_len);
 
         if (ret >= 0) {
             *utf8_p = 0;
-            p = base64_encode(utf8_buffer, utf8_p - utf8_buffer);
+            p = base64_encode(&utf8_buffer[0], utf8_p - &utf8_buffer[0]);
         }
         else
-            p = base64_encode(buffer, strlen(buffer));
+            p = base64_encode(&buffer[0], buffer.size());
     }
     else
-        p = base64_encode(buffer, strlen(buffer));
+        p = base64_encode(&buffer[0], buffer.size());
     printf("%s:: %s\n", attr, p);
     free(p);
 }
@@ -486,11 +486,11 @@ void print_ldif_two(const char *attr, const char *value1, const char *value2)
         return;
     }
 
-    char value[len1 + len2 + 2];
-    memcpy(value, value1, len1);
+    vector<char> value(len1 + len2 + 2);
+    memcpy(&value[0], value1, len1);
     value[len1] = ' ';
-    memcpy(value + len1 + 1, value2, len2 + 1);
-    print_ldif_single(attr, value);
+    memcpy(&value[0] + len1 + 1, value2, len2 + 1);
+    print_ldif_single(attr, &value[0]);
 }
 
 

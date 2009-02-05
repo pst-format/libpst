@@ -3,6 +3,7 @@ default: all
 HOST=$(shell hostname)
 
 all:
+	libtoolize --force --copy
 	aclocal
 	autoheader
 	automake

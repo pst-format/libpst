@@ -8,6 +8,8 @@
 #ifndef DEFINEH_H
 #define DEFINEH_H
 
+#include "common.h"
+
 #ifdef HAVE_CONFIG_H
     #include "config.h"
 #endif
@@ -297,5 +299,76 @@ struct pst_debug_file_rec_l {
     unsigned int line;
     unsigned int type;
 };
+
+#if BYTE_ORDER == BIG_ENDIAN
+#  define LE64_CPU(x) \
+  x = ((((x) & UINT64_C(0xff00000000000000)) >> 56) | \
+       (((x) & UINT64_C(0x00ff000000000000)) >> 40) | \
+       (((x) & UINT64_C(0x0000ff0000000000)) >> 24) | \
+       (((x) & UINT64_C(0x000000ff00000000)) >> 8 ) | \
+       (((x) & UINT64_C(0x00000000ff000000)) << 8 ) | \
+       (((x) & UINT64_C(0x0000000000ff0000)) << 24) | \
+       (((x) & UINT64_C(0x000000000000ff00)) << 40) | \
+       (((x) & UINT64_C(0x00000000000000ff)) << 56));
+#  define LE32_CPU(x) \
+  x = ((((x) & 0xff000000) >> 24) | \
+       (((x) & 0x00ff0000) >> 8 ) | \
+       (((x) & 0x0000ff00) << 8 ) | \
+       (((x) & 0x000000ff) << 24));
+#  define LE16_CPU(x) \
+  x = ((((x) & 0xff00) >> 8) | \
+       (((x) & 0x00ff) << 8));
+#elif BYTE_ORDER == LITTLE_ENDIAN
+#  define LE64_CPU(x) {}
+#  define LE32_CPU(x) {}
+#  define LE16_CPU(x) {}
+#else
+#  error "Byte order not supported by this library"
+#endif // BYTE_ORDER
+
+
+#define PST_LE_GET_UINT64(p) \
+        (uint64_t)((((uint8_t const *)(p))[0] << 0) |    \
+                  (((uint8_t const *)(p))[1] << 8)  |    \
+                  (((uint8_t const *)(p))[2] << 16) |    \
+                  (((uint8_t const *)(p))[3] << 24) |    \
+                  (((uint8_t const *)(p))[4] << 32) |    \
+                  (((uint8_t const *)(p))[5] << 40) |    \
+                  (((uint8_t const *)(p))[6] << 48) |    \
+                  (((uint8_t const *)(p))[7] << 56))
+
+#define PST_LE_GET_INT64(p) \
+        (int64_t)((((uint8_t const *)(p))[0] << 0) |    \
+                  (((uint8_t const *)(p))[1] << 8)  |    \
+                  (((uint8_t const *)(p))[2] << 16) |    \
+                  (((uint8_t const *)(p))[3] << 24) |    \
+                  (((uint8_t const *)(p))[4] << 32) |    \
+                  (((uint8_t const *)(p))[5] << 40) |    \
+                  (((uint8_t const *)(p))[6] << 48) |    \
+                  (((uint8_t const *)(p))[7] << 56))
+
+#define PST_LE_GET_UINT32(p) \
+        (uint32_t)((((uint8_t const *)(p))[0] << 0)  |    \
+                  (((uint8_t const *)(p))[1] << 8)  |    \
+                  (((uint8_t const *)(p))[2] << 16) |    \
+                  (((uint8_t const *)(p))[3] << 24))
+
+#define PST_LE_GET_INT32(p) \
+        (int32_t)((((uint8_t const *)(p))[0] << 0)  |    \
+                  (((uint8_t const *)(p))[1] << 8)  |    \
+                  (((uint8_t const *)(p))[2] << 16) |    \
+                  (((uint8_t const *)(p))[3] << 24))
+
+#define PST_LE_GET_UINT16(p)				  \
+        (uint16_t)((((uint8_t const *)(p))[0] << 0)  |    \
+                  (((uint8_t const *)(p))[1] << 8))
+
+#define PST_LE_GET_INT16(p)				  \
+        (int16_t)((((uint8_t const *)(p))[0] << 0)  |    \
+                  (((uint8_t const *)(p))[1] << 8))
+
+#define PST_LE_GET_UINT8(p) (*(uint8_t const *)(p))
+
+#define PST_LE_GET_INT8(p) (*(int8_t const *)(p))
 
 #endif //DEFINEH_H
