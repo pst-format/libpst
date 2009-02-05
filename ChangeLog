@@ -1,4 +1,4 @@
-LibPST 0.6.26 (2009-02-03)
+LibPST 0.6.26 (2009-02-05)
 ===============================
     * patch from Fridrich Strba for building on mingw and
       general cleanup of autoconf files
@@ -21,6 +21,10 @@ LibPST 0.6.26 (2009-02-03)
     * recover dropped pragma pack line, use int64_t rather than off_t
       to avoid forcing users of the shared library to enable large
       file support.
+    * add pragma packing support for sun compilers.
+    * fix initial from header in mbox format.
+    * start moving to PST_LE_GET* rather than LE*_CPU macros so we
+      can eventually remove the pragma packing.
 
 LibPST 0.6.25 (2009-01-16)
 ===============================

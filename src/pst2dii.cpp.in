@@ -14,11 +14,6 @@ Based on readpst.c by David Smith
 using namespace std;
 
 extern "C" {
-    #include "common.h"
-    #include "libpst.h"
-    #include "timeconv.h"
-    #include "libstrfunc.h"
-
     #include "define.h"
     #include "lzfu.h"
 }

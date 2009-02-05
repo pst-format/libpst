@@ -1,6 +1,3 @@
-#include "common.h"
-#include "libpst.h"
-
 #include "define.h"
 
 #define OUT_BUF 20

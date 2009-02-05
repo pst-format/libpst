@@ -1,9 +1,6 @@
 
 /* Taken from LibStrfunc v7.3 */
 
-#include "common.h"
-#include "libstrfunc.h"
-
 #include "define.h"
 
 

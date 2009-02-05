@@ -1,14 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <vector>
-using namespace std;
 extern "C" {
 	#include "define.h"
 };
+
+#include <fcntl.h>
+#include <iostream>
+#include <vector>
+using namespace std;
 
 unsigned char comp_enc [] =
   { 0x47, 0xf1, 0xb4, 0xe6, 0x0b, 0x6a, 0x72, 0x48,

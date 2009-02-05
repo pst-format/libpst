@@ -8,6 +8,16 @@
 #include <stdarg.h>
 
 
+// switch to maximal packing for all structures in the libpst interface
+// this is reverted in the vbuf.h include
+#ifdef _MSC_VER
+    #pragma pack(push, 1)
+#endif
+#if defined(__GNUC__) || defined (__SUNPRO_C) || defined(__SUNPRO_CC)
+    #pragma pack(1)
+#endif
+
+
 #ifndef  _MSC_VER
     #include <stdint.h>
     #include <inttypes.h>
@@ -24,7 +34,6 @@
 
 
 #ifndef _WIN32
-    #pragma pack(1)
     typedef uint32_t  DWORD;
     typedef uint16_t   WORD;
     typedef uint8_t    BYTE;

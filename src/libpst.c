@@ -5,12 +5,6 @@
  *            dave.s@earthcorp.com
  */
 
-#include "common.h"
-#include "libpst.h"
-#include "timeconv.h"
-#include "libstrfunc.h"
-#include "vbuf.h"
-
 #include "define.h"
 
 #define ASSERT(x) { if(!(x)) raise( SIGSEGV ); }
@@ -565,9 +559,9 @@ int pst_load_extended_attributes(pst_file *pf) {
         return 0;
     }
 
-	xattrib.extended=PST_LE_GET_UINT32(buffer+bptr), bptr += 4;
-	xattrib.type=PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
-	xattrib.map=PST_LE_GET_UINT16(buffer+bptr),	bptr += 2;
+	xattrib.extended= PST_LE_GET_UINT32(buffer+bptr), bptr += 4;
+	xattrib.type    = PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
+	xattrib.map     = PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
 
     while (xattrib.type != 0 && bptr < bsize) {
         ptr = (pst_x_attrib_ll*) xmalloc(sizeof(*ptr));

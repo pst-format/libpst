@@ -92,7 +92,6 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 
 
 # make sure we get large file support
@@ -129,7 +128,7 @@ if test "$cross_compiling" != "yes"; then
 fi
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([memchr memmove memset strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol])
+AC_CHECK_FUNCS([memchr memmove memset regcomp strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol])
 
 
 # iconv on mac is a library

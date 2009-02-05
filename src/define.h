@@ -9,6 +9,12 @@
 #define DEFINEH_H
 
 #include "common.h"
+#include "libpst.h"
+#include "timeconv.h"
+#include "libstrfunc.h"
+#include "vbuf.h"
+
+
 
 #ifdef HAVE_CONFIG_H
     #include "config.h"
@@ -328,17 +334,17 @@ struct pst_debug_file_rec_l {
 
 
 #define PST_LE_GET_UINT64(p) \
-        (uint64_t)((((uint8_t const *)(p))[0] << 0) |    \
-                  (((uint8_t const *)(p))[1] << 8)  |    \
-                  (((uint8_t const *)(p))[2] << 16) |    \
-                  (((uint8_t const *)(p))[3] << 24) |    \
-                  (((uint8_t const *)(p))[4] << 32) |    \
-                  (((uint8_t const *)(p))[5] << 40) |    \
-                  (((uint8_t const *)(p))[6] << 48) |    \
-                  (((uint8_t const *)(p))[7] << 56))
+        (uint64_t)((((uint8_t const *)(p))[0] << 0)  |    \
+                   (((uint8_t const *)(p))[1] << 8)  |    \
+                   (((uint8_t const *)(p))[2] << 16) |    \
+                   (((uint8_t const *)(p))[3] << 24) |    \
+                   (((uint8_t const *)(p))[4] << 32) |    \
+                   (((uint8_t const *)(p))[5] << 40) |    \
+                   (((uint8_t const *)(p))[6] << 48) |    \
+                   (((uint8_t const *)(p))[7] << 56))
 
 #define PST_LE_GET_INT64(p) \
-        (int64_t)((((uint8_t const *)(p))[0] << 0) |    \
+        (int64_t)((((uint8_t const *)(p))[0] << 0)  |    \
                   (((uint8_t const *)(p))[1] << 8)  |    \
                   (((uint8_t const *)(p))[2] << 16) |    \
                   (((uint8_t const *)(p))[3] << 24) |    \
@@ -349,9 +355,9 @@ struct pst_debug_file_rec_l {
 
 #define PST_LE_GET_UINT32(p) \
         (uint32_t)((((uint8_t const *)(p))[0] << 0)  |    \
-                  (((uint8_t const *)(p))[1] << 8)  |    \
-                  (((uint8_t const *)(p))[2] << 16) |    \
-                  (((uint8_t const *)(p))[3] << 24))
+                   (((uint8_t const *)(p))[1] << 8)  |    \
+                   (((uint8_t const *)(p))[2] << 16) |    \
+                   (((uint8_t const *)(p))[3] << 24))
 
 #define PST_LE_GET_INT32(p) \
         (int32_t)((((uint8_t const *)(p))[0] << 0)  |    \
@@ -361,14 +367,26 @@ struct pst_debug_file_rec_l {
 
 #define PST_LE_GET_UINT16(p)				  \
         (uint16_t)((((uint8_t const *)(p))[0] << 0)  |    \
-                  (((uint8_t const *)(p))[1] << 8))
+                   (((uint8_t const *)(p))[1] << 8))
 
 #define PST_LE_GET_INT16(p)				  \
         (int16_t)((((uint8_t const *)(p))[0] << 0)  |    \
-                  (((uint8_t const *)(p))[1] << 8))
+                   (((uint8_t const *)(p))[1] << 8))
 
 #define PST_LE_GET_UINT8(p) (*(uint8_t const *)(p))
 
 #define PST_LE_GET_INT8(p) (*(int8_t const *)(p))
+
+
+// switch to maximal packing for our own internal structures
+// use the same code as in common.h
+#ifdef _MSC_VER
+    #pragma pack(push, 1)
+#endif
+#if defined(__GNUC__) || defined (__SUNPRO_C) || defined(__SUNPRO_CC)
+    #pragma pack(1)
+#endif
+
+
 
 #endif //DEFINEH_H

@@ -1,4 +1,3 @@
-#include "common.h"
 #include "define.h"
 
 struct pst_debug_item {

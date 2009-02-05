@@ -13,9 +13,6 @@
 
 #ifndef _WIN32
 
-#include "common.h"
-#include "timeconv.h"
-
 #include "define.h"
 
 char * fileTimeToAscii (const FILETIME *filetime) {

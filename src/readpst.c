@@ -4,11 +4,6 @@
  * Written by David Smith
  *            dave.s@earthcorp.com
  */
-#include "common.h"
-#include "libpst.h"
-#include "timeconv.h"
-#include "libstrfunc.h"
-#include "vbuf.h"
 
 #include "define.h"
 #include "lzfu.h"
@@ -918,6 +913,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 {
     char boundary[60];
     char body_charset[60];
+    char sender[60];
+    int  sender_known = 0;
     char *temp = NULL;
     int attach_num;
     time_t em_time;
@@ -928,6 +925,16 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     // setup default body character set
     snprintf(body_charset, sizeof(body_charset), "%s", (item->email->body_charset) ? item->email->body_charset : "utf-8");
+
+    // setup default sender
+    if (item->email->sender_address && strchr(item->email->sender_address, '@')) {
+        temp = item->email->sender_address;
+        sender_known = 1;
+    }
+    else {
+        temp = "MAILER-DAEMON";
+    }
+    snprintf(sender, sizeof(sender), "%s", temp);
 
     // convert the sent date if it exists, or set it to a fixed date
     if (item->email->sent_date) {
@@ -992,6 +999,24 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             }
         }
 
+        // derive a proper sender email address
+        if (!sender_known) {
+            t = header_get_field(item->email->header, "\nFrom: ");
+            if (t) {
+                // assume address is on the first line, rather than on a continuation line
+                t++;
+                char *n = strchr(t, '\n');
+                char *s = strchr(t, '<');
+                char *e = strchr(t, '>');
+                if (s && e && n && (s < e) && (e < n)) {
+                char save = *e;
+                *e = '\0';
+                    snprintf(sender, sizeof(sender), "%s", s+1);
+                *e = save;
+                }
+            }
+        }
+
         // Strip out the mime headers and some others that we don't want to emit
         header_strip_field(item->email->header, "\nMicrosoft Mail Internet Headers");
         header_strip_field(item->email->header, "\nMIME-Version: ");
@@ -1018,7 +1043,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
                 fputs("From ", f_output);
                 soh += 9;
             } else
-                fprintf(f_output, "From \"%s\" %s\n", item->email->outlook_sender_name, c_time);
+                fprintf(f_output, "From %s %s\n", sender, c_time);
         }
 
         // make sure the headers end with a \n
@@ -1030,20 +1055,13 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         //make up our own headers
         if (mode != MODE_SEPARATE) {
             // don't want this first line for this mode
-            if (item->email->outlook_sender_name) {
-                temp = item->email->outlook_sender_name;
-            } else {
-                temp = "(readpst_null)";
-            }
-            fprintf(f_output, "From \"%s\" %s\n", temp, c_time);
+            fprintf(f_output, "From %s %s\n", sender, c_time);
         }
     }
 
     // create required header fields that are not already written
     if (!has_from) {
-        temp = item->email->outlook_sender;
-        if (!temp) temp = "";
-        fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name, temp);
+        fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name, sender);
     }
 
     if (!has_subject) {

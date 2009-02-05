@@ -20,8 +20,6 @@
 
 #ifndef __MINGW32__		/* mingw has getopt() */
 
-#include "common.h"
-
 #include "define.h"
 
 

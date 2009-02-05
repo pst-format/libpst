@@ -87,4 +87,17 @@ size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen);
 size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* charset);
 
 int vb_skipline( struct varbuf *vb ); // in: vb->b == "stuff\nmore_stuff"; out: vb->b == "more_stuff"
+
+
+// switch from maximal packing back to default packing
+// undo the packing from common.h
+#ifdef _MSC_VER
+    #pragma pack(pop)
 #endif
+#if defined(__GNUC__) || defined (__SUNPRO_C) || defined(__SUNPRO_CC)
+    #pragma pack()
+#endif
+
+
+
+#endif // VBUF_H

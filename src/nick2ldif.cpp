@@ -9,7 +9,6 @@ http://www.fsf.org/licenses/gpl.txt
 #include <iostream>
 
 extern "C" {
-    #include "common.h"
     #include "define.h"
 }
 

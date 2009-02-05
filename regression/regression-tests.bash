@@ -46,7 +46,7 @@ if [ "$1" == "dii" ]; then
     dodii 3 test.pst
     dodii 4 big_mail.pst
 else
-   #dopst   1 ams.pst
+   dopst   1 ams.pst
    dopst   2 sample_64.pst
    dopst   3 test.pst
    #dopst   4 big_mail.pst

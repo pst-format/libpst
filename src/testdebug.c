@@ -1,5 +1,3 @@
-#include "common.h"
-
 #include "define.h"
 
 #define BUF_SIZE 100000
