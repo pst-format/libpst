@@ -93,7 +93,7 @@ INCLUDES= -I$(srcdir)/.. $(all_includes)
 
 # the library search path.
 lspst_LDADD       = $(all_libraries) $(PSTLIB) $(ICONVLIB)
-readpst_LDADD     = $(all_libraries) $(PSTLIB) $(ICONVLIB)
+readpst_LDADD     = $(all_libraries) $(PSTLIB) $(ICONVLIB) $(REGEXLIB)
 readpstlog_LDADD  = $(all_libraries) $(PSTLIB) $(ICONVLIB)
 pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(ICONVLIB)
 pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(ICONVLIB) -lgd

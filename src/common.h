@@ -36,6 +36,7 @@
     // information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html
     #include <sys/param.h>
 #else
+    #include <windows.h>
     #define BYTE_ORDER LITTLE_ENDIAN
 #endif
 

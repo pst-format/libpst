@@ -14,16 +14,10 @@
 #include "vbuf.h"
 
 
-
 #ifdef HAVE_CONFIG_H
     #include "config.h"
 #endif
 
-#ifdef _WIN32
-    #undef  HAVE_UNISTD_H
-    #define HAVE_DIRECT_H
-    #define HAVE_WINDOWS_H
-#endif
 
 #define DEBUG_MODE_GEN
 #define DEBUGPRINT
@@ -96,7 +90,7 @@
 #define PERM_DIRS 0777
 
 #ifdef _WIN32
-    #include <direct.h>    // win32
+    #include <direct.h>
 
     #define D_MKDIR(x) mkdir(x)
     #define chdir      _chdir
@@ -127,15 +121,13 @@
     #else
         #include "XGetopt.h"
     #endif
-
-    #include <windows.h>
 #else
     #ifdef HAVE_UNISTD_H
         #include <unistd.h>
-        #define D_MKDIR(x) mkdir(x, PERM_DIRS)
     #else
         #include "XGetopt.h"
     #endif
+    #define D_MKDIR(x) mkdir(x, PERM_DIRS)
 #endif
 
 #ifdef HAVE_SYS_STAT_H
