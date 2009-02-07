@@ -1,5 +1,9 @@
 LibPST 0.6.26 (2009-02-07)
 ===============================
+    * fix for const correctness on Fedora 11
+
+LibPST 0.6.26 (2009-02-07)
+===============================
     * patch from Fridrich Strba for building on mingw and
       general cleanup of autoconf files
     * add processing for pst files of type 0x0f

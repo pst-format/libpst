@@ -286,8 +286,8 @@ static void print_pdf_single(const char *line, int color)
 }
 
 
-static void print_pdf_only(const char *line, int color);
-static void print_pdf_only(const char *line, int color)
+static void print_pdf_only(char *line, int color);
+static void print_pdf_only(char *line, int color)
 {
     char *p;
     while ((p = strchr(line, '\n'))) {
@@ -301,8 +301,8 @@ static void print_pdf_only(const char *line, int color)
 }
 
 
-static void print_pdf(const char *line);
-static void print_pdf(const char *line)
+static void print_pdf(char *line);
+static void print_pdf(char *line)
 {
     pst_fwrite(line, 1, strlen(line), dii_file);
     print_pdf_only(line, black);
