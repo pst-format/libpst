@@ -10,7 +10,7 @@
 #ifndef LIBPST_H
 #define LIBPST_H
 
-#include <libpst/common.h>
+#include "common.h"
 
 
 // switch to maximal packing for all structures in the libpst interface

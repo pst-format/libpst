@@ -27,6 +27,7 @@ common_source = debug.c         \
                 timeconv.c      \
                 vbuf.c
 
+
 if NEED_XGETOPT
     common_source += XGetopt.c
 	common_header += XGetopt.h
@@ -37,14 +38,14 @@ bin_PROGRAMS        = lspst readpst readpstlog pst2ldif
 if BUILD_DII
     bin_PROGRAMS   += pst2dii
 endif
-lspst_SOURCES       = lspst.c         $(common_header)
-readpst_SOURCES     = readpst.c       $(common_header)
-readpstlog_SOURCES  = readpstlog.c    $(common_header)
-pst2ldif_SOURCES    = pst2ldif.cpp    $(common_header)
-pst2dii_SOURCES     = pst2dii.cpp     $(common_header)
-deltasearch_SOURCES = deltasearch.cpp $(common_header)
-dumpblocks_SOURCES  = dumpblocks.c    $(common_header)
-getidblock_SOURCES  = getidblock.c    $(common_header)
+lspst_SOURCES       = lspst.c          $(common_header)
+readpst_SOURCES     = readpst.c        $(common_header)
+readpstlog_SOURCES  = readpstlog.c     $(common_header)
+pst2ldif_SOURCES    = pst2ldif.cpp     $(common_header)
+pst2dii_SOURCES     = pst2dii.cpp      $(common_header)
+deltasearch_SOURCES = deltasearch.cpp  $(common_header)
+dumpblocks_SOURCES  = dumpblocks.c     $(common_header)
+getidblock_SOURCES  = getidblock.c     $(common_header)
 
 lspst_CFLAGS        = $(AM_CFLAGS)
 readpst_CFLAGS      = $(AM_CFLAGS)
@@ -54,6 +55,15 @@ pst2dii_CFLAGS      = $(AM_CFLAGS)
 deltasearch_CFLAGS  = $(AM_CFLAGS)
 dumpblocks_CFLAGS   = $(AM_CFLAGS)
 getidblock_CFLAGS   = $(AM_CFLAGS)
+
+lspst_DEPENDENCIES        = libpst.la
+readpst_DEPENDENCIES      = libpst.la
+readpstlog_DEPENDENCIES   = libpst.la
+pst2ldif_DEPENDENCIES     = libpst.la
+pst2dii_DEPENDENCIES      = libpst.la
+deltasearch_DEPENDENCIES  = libpst.la
+dumpblocks_DEPENDENCIES   = libpst.la
+getidblock_DEPENDENCIES   = libpst.la
 
 if STATIC_TOOLS
     noinst_LTLIBRARIES    = libpst.la
@@ -90,3 +100,5 @@ pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(ICONVLIB) -lgd
 dumpblocks_LDADD  = $(all_libraries) $(PSTLIB) $(ICONVLIB)
 getidblock_LDADD  = $(all_libraries) $(PSTLIB) $(ICONVLIB)
 deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(ICONVLIB)
+
+

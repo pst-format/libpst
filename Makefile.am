@@ -1,4 +1,4 @@
-SUBDIRS = src man html info debian src/libpst
+SUBDIRS = src man html info debian
 htmldir = ${datadir}/doc/@PACKAGE@-@VERSION@
 html_DATA = AUTHORS COPYING ChangeLog NEWS README
 CLEANFILES = xml/libpst xml/Makefile

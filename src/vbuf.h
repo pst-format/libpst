@@ -11,6 +11,9 @@
 
 #ifndef VBUF_H
 #define VBUF_H
+
+#include "common.h"
+
 #define SZ_MAX     4096
 /***************************************************/
 
