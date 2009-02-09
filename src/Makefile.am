@@ -1,9 +1,9 @@
 if PLATFORM_WIN32
     ICONVLIB     = -liconv
-	NO_UNDEFINED = -no-undefined
+    NO_UNDEFINED = -no-undefined
 else
     ICONVLIB     =
-	NO_UNDEFINED =
+    NO_UNDEFINED =
 endif
 
 if STATIC_TOOLS
@@ -16,21 +16,21 @@ common_header = common.h        \
                 define.h        \
                 libpst.h        \
                 libstrfunc.h    \
-				lzfu.h			\
+                lzfu.h          \
                 timeconv.h      \
                 vbuf.h
 
 common_source = debug.c         \
                 libpst.c        \
                 libstrfunc.c    \
-				lzfu.c			\
+                lzfu.c          \
                 timeconv.c      \
                 vbuf.c
 
 
 if NEED_XGETOPT
     common_source += XGetopt.c
-	common_header += XGetopt.h
+    common_header += XGetopt.h
 endif
 
 noinst_PROGRAMS     = deltasearch dumpblocks getidblock
