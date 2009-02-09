@@ -2,5 +2,5 @@
 Need testing on big-endian machines. We may be missing some LEnn_CPU()
 calls.
 
-The debug log code, and readpstlog, needs large file support to handle
-debug files larger than 2GB.
+pst2diii needs header and mime type updates from readpst.
+

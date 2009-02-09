@@ -1,3 +1,8 @@
+LibPST 0.6.28 (2009-xx-xx)
+===============================
+    * add X-libpst-forensic-* headers to capture items of interest
+      that are not used by normal mail clients.
+
 LibPST 0.6.27 (2009-02-07)
 ===============================
     * fix for const correctness on Fedora 11

@@ -919,8 +919,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     int attach_num;
     time_t em_time;
     char *c_time;
-    int has_from, has_subject, has_to, has_cc, has_bcc, has_date;
-    has_from = has_subject = has_to = has_cc = has_bcc = has_date = 0;
+    int has_from, has_subject, has_to, has_cc, has_date;
+    has_from = has_subject = has_to = has_cc = has_date = 0;
     DEBUG_ENT("write_normal_email");
 
     // setup default body character set
@@ -970,7 +970,6 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         header_has_field(item->email->header, "\nSubject: ", &has_subject);
         header_has_field(item->email->header, "\nDate: ",    &has_date);
         header_has_field(item->email->header, "\nCC: ",      &has_cc);
-        header_has_field(item->email->header, "\nBCC: ",     &has_bcc);
 
         // look for charset in Content-Type header
         t = header_get_field(item->email->header, "\nContent-Type: ");
@@ -1024,7 +1023,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         header_strip_field(item->email->header, "\nContent-Transfer-Encoding: ");
         header_strip_field(item->email->header, "\nContent-class: ");
         header_strip_field(item->email->header, "\nX-MimeOLE: ");
-        header_strip_field(item->email->header, "\nBcc: ");
+        header_strip_field(item->email->header, "\nBcc:");
+        header_strip_field(item->email->header, "\nX-From_: ");
     }
 
     DEBUG_EMAIL(("About to print Header\n"));
@@ -1033,30 +1033,17 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         DEBUG_EMAIL(("item->email->subject->subj = %s\n", item->email->subject->subj));
     }
 
+    if (mode != MODE_SEPARATE) {
+        // most modes need this separator line
+        fprintf(f_output, "From \"%s\" %s\n", sender, c_time);
+    }
+
     if (item->email->header) {
         int len;
-        char *soh = item->email->header;
-
-        if (mode != MODE_SEPARATE) {
-            // don't put rubbish in if we are doing separate
-            if (strncmp(soh, "X-From_: ", 9) == 0 ) {
-                fputs("From ", f_output);
-                soh += 9;
-            } else
-                fprintf(f_output, "From %s %s\n", sender, c_time);
-        }
-
+        fprintf(f_output, "%s", item->email->header);
         // make sure the headers end with a \n
-        fprintf(f_output, "%s", soh);
-        len = strlen(soh);
-        if (!len || (soh[len-1] != '\n')) fprintf(f_output, "\n");
-
-    } else {
-        //make up our own headers
-        if (mode != MODE_SEPARATE) {
-            // don't want this first line for this mode
-            fprintf(f_output, "From %s %s\n", sender, c_time);
-        }
+        len = strlen(item->email->header);
+        if (!len || (item->email->header[len-1] != '\n')) fprintf(f_output, "\n");
     }
 
     // create required header fields that are not already written
@@ -1080,14 +1067,20 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         fprintf(f_output, "Cc: %s\n", item->email->cc_address);
     }
 
-    if (!has_bcc && item->email->bcc_address) {
-        fprintf(f_output, "Bcc: %s\n", item->email->bcc_address);
-    }
-
     if (!has_date && item->email->sent_date) {
         char c_time[C_TIME_SIZE];
         strftime(c_time, C_TIME_SIZE, "%a, %d %b %Y %H:%M:%S %z", gmtime(&em_time));
         fprintf(f_output, "Date: %s\n", c_time);
+    }
+
+    // add forensic headers to capture some .pst stuff that is not really
+    // needed or used by mail clients
+    if (item->email->sender_address && !strchr(item->email->sender_address, '@')) {
+        fprintf(f_output, "X-libpst-forensic-sender: %s\n", item->email->sender_address);
+    }
+
+    if (item->email->bcc_address) {
+        fprintf(f_output, "X-libpst-forensic-bcc: %s\n", item->email->bcc_address);
     }
 
     // add our own mime headers

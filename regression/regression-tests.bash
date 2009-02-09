@@ -23,7 +23,7 @@ function dopst()
     mkdir output$n
     #    ../src/readpst -cv -o output$n $fn >$ba.err 2>&1
     $val ../src/readpst -cv -o output$n -d dumper $fn >$ba.err 2>&1
-    #readpst -cv -o output$n -d dumper $fn >$ba.err 2>&1
+    #           readpst -cv -o output$n -d dumper $fn >$ba.err 2>&1
          ../src/readpstlog -f I dumper >$ba.log
     #$val ../src/pst2ldif -d dumper -b 'o=ams-cc.com, c=US' -c 'newPerson' -o $fn >$ba.ldif.err 2>&1
     #$val ../src/pst2ldif -d dumper -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$ba.ldif2.err 2>&1
