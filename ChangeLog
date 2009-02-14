@@ -2,6 +2,8 @@ LibPST 0.6.28 (2009-xx-xx)
 ===============================
     * add X-libpst-forensic-* headers to capture items of interest
       that are not used by normal mail clients.
+    * improve decoding of multipart/report and message/rfc822 mime
+      types.
 
 LibPST 0.6.27 (2009-02-07)
 ===============================

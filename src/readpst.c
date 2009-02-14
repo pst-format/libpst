@@ -40,15 +40,19 @@ int       close_separate_dir();
 int       mk_separate_file(struct file_ll *f);
 char*     my_stristr(char *haystack, char *needle);
 void      check_filename(char *fname);
-void      write_separate_attachment(char f_name[], pst_item_attach* current_attach, int attach_num, pst_file* pst);
-void      write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, char *boundary, pst_file* pst);
+void      write_separate_attachment(char f_name[], pst_item_attach* attach, int attach_num, pst_file* pst);
+void      write_embedded_message(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pf, char** extra_mime_headers);
+void      write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst);
 void      header_has_field(char *header, char *field, int *flag);
+void      header_get_subfield(char *field, const char *subfield, char *body_subfield, size_t size_subfield);
 char*     header_get_field(char *header, char *field);
+char*     header_end_field(char *field);
 void      header_strip_field(char *header, char *field);
 int       test_base64(char *body);
 void      find_html_charset(char *html, char *charset, size_t charsetlen);
+void      find_rfc822_headers(char** extra_mime_headers);
 void      write_body_part(FILE* f_output, char *body, char *mime, char *charset, char *boundary);
-void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf);
+void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers);
 void      write_vcard(FILE* f_output, pst_item_contact* contact, char comment[]);
 void      write_appointment(FILE* f_output, pst_item_appointment* appointment,
                             pst_item_email* email, FILETIME* create_date, FILETIME* modify_date);
@@ -88,6 +92,7 @@ char*  kmail_chdir = NULL;
 
 // default mime-type for attachments that have a null mime-type
 #define MIME_TYPE_DEFAULT "application/octet-stream"
+#define RFC822            "message/rfc822"
 
 // output mode for contacts
 #define CMODE_VCARD 0
@@ -161,13 +166,14 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         fprintf(ff.output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
 
                 } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT || item->type == PST_TYPE_OTHER)) {
+                    char *extra_mime_headers = NULL;
                     if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Email\n"));
                     if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT) && (ff.type != PST_TYPE_OTHER)) {
                         DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
-                    write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body);
+                    write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
 
                 } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
                     // deal with journal items
@@ -687,7 +693,7 @@ void check_filename(char *fname) {
 }
 
 
-void write_separate_attachment(char f_name[], pst_item_attach* current_attach, int attach_num, pst_file* pst)
+void write_separate_attachment(char f_name[], pst_item_attach* attach, int attach_num, pst_file* pst)
 {
     FILE *fp = NULL;
     int x = 0;
@@ -695,8 +701,8 @@ void write_separate_attachment(char f_name[], pst_item_attach* current_attach, i
 
     // If there is a long filename (filename2) use that, otherwise
     // use the 8.3 filename (filename1)
-    char *attach_filename = (current_attach->filename2) ? current_attach->filename2
-                                                        : current_attach->filename1;
+    char *attach_filename = (attach->filename2) ? attach->filename2
+                                                        : attach->filename1;
     DEBUG_ENT("write_separate_attachment");
 
     check_filename(f_name);
@@ -722,10 +728,10 @@ void write_separate_attachment(char f_name[], pst_item_attach* current_attach, i
     if (!(fp = fopen(temp, "w"))) {
         WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
-        if (current_attach->data)
-            pst_fwrite(current_attach->data, 1, current_attach->size, fp);
+        if (attach->data)
+            pst_fwrite(attach->data, 1, attach->size, fp);
         else {
-            (void)pst_attach_to_file(pst, current_attach, fp);
+            (void)pst_attach_to_file(pst, attach, fp);
         }
         fclose(fp);
     }
@@ -734,15 +740,36 @@ void write_separate_attachment(char f_name[], pst_item_attach* current_attach, i
 }
 
 
-void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, char *boundary, pst_file* pst)
+void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pf, char** extra_mime_headers)
+{
+    pst_index_ll *ptr;
+    DEBUG_ENT("write_embedded_message");
+    fprintf(f_output, "\n--%s\n", boundary);
+    fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype);
+    ptr = pst_getID(pf, attach->id_val);
+    pst_num_array *list = pst_parse_block(pf, ptr->id, NULL, NULL);
+    if (list) {
+        pst_item *item = (pst_item*) xmalloc(sizeof(pst_item));
+        memset(item, 0, sizeof(pst_item));
+        if (!pst_process(list, item, NULL)) {
+            write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, 0, extra_mime_headers);
+        }
+        pst_freeItem(item);
+        pst_free_list(list);
+    }
+    DEBUG_RET();
+}
+
+
+void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst)
 {
     char *attach_filename;
     char *enc = NULL; // base64 encoded attachment
     DEBUG_ENT("write_inline_attachment");
-    DEBUG_EMAIL(("Attachment Size is %i\n", current_attach->size));
-    DEBUG_EMAIL(("Attachment Pointer is %p\n", current_attach->data));
-    if (current_attach->data) {
-        enc = base64_encode (current_attach->data, current_attach->size);
+    DEBUG_EMAIL(("Attachment Size is %i\n", attach->size));
+    DEBUG_EMAIL(("Attachment Pointer is %p\n", attach->data));
+    if (attach->data) {
+        enc = base64_encode (attach->data, attach->size);
         if (!enc) {
             DEBUG_EMAIL(("ERROR base64_encode returned NULL. Must have failed\n"));
             DEBUG_RET();
@@ -751,31 +778,28 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
     }
 
     fprintf(f_output, "\n--%s\n", boundary);
-    if (!current_attach->mimetype) {
+    if (!attach->mimetype) {
         fprintf(f_output, "Content-Type: %s\n", MIME_TYPE_DEFAULT);
     } else {
-        fprintf(f_output, "Content-Type: %s\n", current_attach->mimetype);
+        fprintf(f_output, "Content-Type: %s\n", attach->mimetype);
     }
     fprintf(f_output, "Content-Transfer-Encoding: base64\n");
+
     // If there is a long filename (filename2) use that, otherwise
     // use the 8.3 filename (filename1)
-    if (current_attach->filename2) {
-        attach_filename = current_attach->filename2;
-    } else {
-        attach_filename = current_attach->filename1;
-    }
+    attach_filename = (attach->filename2) ? attach->filename2 : attach->filename1;
     if (!attach_filename) {
         fprintf(f_output, "Content-Disposition: inline\n\n");
     } else {
         fprintf(f_output, "Content-Disposition: attachment; filename=\"%s\"\n\n", attach_filename);
     }
 
-    if (current_attach->data) {
+    if (attach->data) {
         pst_fwrite(enc, 1, strlen(enc), f_output);
         DEBUG_EMAIL(("Attachment Size after encoding is %i\n", strlen(enc)));
         free(enc);  // caught by valgrind
     } else {
-        (void)pst_attach_to_file_base64(pst, current_attach, f_output);
+        (void)pst_attach_to_file_base64(pst, attach, f_output);
     }
     fprintf(f_output, "\n\n");
     DEBUG_RET();
@@ -784,12 +808,45 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* current_attach, ch
 
 void header_has_field(char *header, char *field, int *flag)
 {
+    DEBUG_ENT("header_has_field");
     if (my_stristr(header, field) || (strncasecmp(header, field+1, strlen(field)-1) == 0)) {
         DEBUG_EMAIL(("header block has %s header\n", field+1));
         *flag = 1;
     }
+    DEBUG_RET();
 }
 
+
+void header_get_subfield(char *field, const char *subfield, char *body_subfield, size_t size_subfield)
+{
+    if (!field) return;
+    DEBUG_ENT("header_get_subfield");
+    char search[60];
+    snprintf(search, sizeof(search), " %s=", subfield);
+    field++;
+    char *n = header_end_field(field);
+    char *s = my_stristr(field, search);
+    if (n && s && (s < n)) {
+        char *e, *f, save;
+        s += strlen(search);    // skip over subfield=
+        if (*s == '"') {
+            s++;
+            e = strchr(s, '"');
+        }
+        else {
+            e = strchr(s, ';');
+            f = strchr(s, '\n');
+            if (e && f && (f < e)) e = f;
+        }
+        if (!e || (e > n)) e = n;   // use the trailing lf as terminator if nothing better
+        save = *e;
+        *e = '\0';
+            snprintf(body_subfield, size_subfield, "%s", s);  // copy the subfield to our buffer
+        *e = save;
+        DEBUG_EMAIL(("body %s %s from headers\n", subfield, body_subfield));
+    }
+    DEBUG_RET();
+}
 
 char* header_get_field(char *header, char *field)
 {
@@ -799,15 +856,24 @@ char* header_get_field(char *header, char *field)
 }
 
 
+// return pointer to \n at the end of this header field,
+// or NULL if this field goes to the end of the string.
+char *header_end_field(char *field)
+{
+    char *e = strchr(field+1, '\n');
+    while (e && ((e[1] == ' ') || (e[1] == '\t'))) {
+        e = strchr(e+1, '\n');
+    }
+    return e;
+}
+
+
 void header_strip_field(char *header, char *field)
 {
     char *e;
     char *t = header_get_field(header, field);
     if (t) {
-        e = strchr(t+1, '\n');
-        while (e && ((e[1] == ' ') || (e[1] == '\t'))) {
-            e = strchr(e+1, '\n');
-        }
+        char *e = header_end_field(t);
         if (e) {
             if (t == header) e++;   // if *t is not \n, we don't want to keep the \n at *e either.
             while (*e != '\0') {
@@ -829,6 +895,7 @@ int  test_base64(char *body)
 {
     int b64 = 0;
     uint8_t *b = (uint8_t *)body;
+    DEBUG_ENT("test_base64");
     while (*b != 0) {
         if ((*b < 32) && (*b != 9) && (*b != 10)) {
             DEBUG_EMAIL(("found base64 byte %d\n", (int)*b));
@@ -838,6 +905,7 @@ int  test_base64(char *body)
         }
         b++;
     }
+    DEBUG_RET();
     return b64;
 }
 
@@ -847,6 +915,7 @@ void find_html_charset(char *html, char *charset, size_t charsetlen)
     const int  index = 1;
     const int nmatch = index+1;
     regmatch_t match[nmatch];
+    DEBUG_ENT("find_html_charset");
     int rc = regexec(&meta_charset_pattern, html, nmatch, match, 0);
     if (rc == 0) {
         int s = match[index].rm_so;
@@ -866,12 +935,48 @@ void find_html_charset(char *html, char *charset, size_t charsetlen)
     else {
         DEBUG_EMAIL(("regexec returns %d\n", rc));
     }
+    DEBUG_RET();
+}
+
+
+void find_rfc822_headers(char** extra_mime_headers)
+{
+    DEBUG_ENT("find_rfc822_headers");
+    char *headers = *extra_mime_headers;
+    if (headers) {
+        char *temp, *t;
+        while (temp = strstr(headers, "\n\n")) {
+            temp[1] = '\0';
+            t = header_get_field(headers, "\nContent-Type: ");
+            if (t) {
+                t++;
+                DEBUG_EMAIL(("found content type header\n"));
+                char *n = strchr(t, '\n');
+                char *s = strstr(t, ": ");
+                char *e = strchr(t, ';');
+                if (!e || (e > n)) e = n;
+                if (s && (s < e)) {
+                    s += 2;
+                    if (!strncasecmp(s, RFC822, e-s)) {
+                        headers = temp+2;   // found rfc822 header
+                        DEBUG_EMAIL(("found 822 headers\n%s\n", headers));
+                        break;
+                    }
+                }
+            }
+            DEBUG_EMAIL(("skipping to next block after\n%s\n", headers));
+            headers = temp+2;   // skip to next chunk of headers
+        }
+        *extra_mime_headers = headers;
+    }
+    DEBUG_RET();
 }
 
 
 void write_body_part(FILE* f_output, char *body, char *mime, char *charset, char *boundary)
 {
     char *needfree = NULL;
+    DEBUG_ENT("write_body_part");
     if (strcasecmp("utf-8", charset)) {
         // try to convert to the specified charset since it is not utf-8
         size_t rc;
@@ -906,25 +1011,29 @@ void write_body_part(FILE* f_output, char *body, char *mime, char *charset, char
         write_email_body(f_output, body);
     }
     if (needfree) free(needfree);
+    DEBUG_RET();
 }
 
 
-void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf)
+void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers)
 {
     char boundary[60];
     char body_charset[60];
+    char body_report[60];
     char sender[60];
     int  sender_known = 0;
     char *temp = NULL;
     int attach_num;
     time_t em_time;
     char *c_time;
-    int has_from, has_subject, has_to, has_cc, has_date;
-    has_from = has_subject = has_to = has_cc = has_date = 0;
+    char *headers = (item->email->header) ? item->email->header : *extra_mime_headers;
+    int has_from, has_subject, has_to, has_cc, has_date, has_msgid;
+    has_from = has_subject = has_to = has_cc = has_date = has_msgid = 0;
     DEBUG_ENT("write_normal_email");
 
-    // setup default body character set
+    // setup default body character set and report type
     snprintf(body_charset, sizeof(body_charset), "%s", (item->email->body_charset) ? item->email->body_charset : "utf-8");
+    body_report[0] = '\0';
 
     // setup default sender
     if (item->email->sender_address && strchr(item->email->sender_address, '@')) {
@@ -951,56 +1060,36 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     snprintf(boundary, sizeof(boundary), "--boundary-LibPST-iamunique-%i_-_-", rand());
 
     // we will always look at the headers to discover some stuff
-    if (item->email->header ) {
+    if (headers ) {
         char *t;
-        removeCR(item->email->header);
+        removeCR(headers);
 
-        // some of the headers we get from the file are not properly defined.
-        // they can contain some email stuff too. We will cut off the header
-        // when we see a \n\n
-        temp = strstr(item->email->header, "\n\n");
+        temp = strstr(headers, "\n\n");
         if (temp) {
-            temp[1] = '\0'; // stop after first \n
-            DEBUG_EMAIL(("Found body text in header %s\n", temp+2));
+            // cut off our real rfc822 headers here
+            temp[1] = '\0';
+            // pointer to all the embedded MIME headers.
+            // we use these to find the actual rfc822 headers for embedded message/rfc822 mime parts
+            *extra_mime_headers = temp+2;
+            DEBUG_EMAIL(("Found extra mime headers\n%s\n", temp+2));
         }
 
         // Check if the headers have all the necessary fields
-        header_has_field(item->email->header, "\nFrom: ",    &has_from);
-        header_has_field(item->email->header, "\nTo: ",      &has_to);
-        header_has_field(item->email->header, "\nSubject: ", &has_subject);
-        header_has_field(item->email->header, "\nDate: ",    &has_date);
-        header_has_field(item->email->header, "\nCC: ",      &has_cc);
+        header_has_field(headers, "\nFrom: ",        &has_from);
+        header_has_field(headers, "\nTo: ",          &has_to);
+        header_has_field(headers, "\nSubject: ",     &has_subject);
+        header_has_field(headers, "\nDate: ",        &has_date);
+        header_has_field(headers, "\nCC: ",          &has_cc);
+        header_has_field(headers, "\nMessage-Id: ",  &has_msgid);
 
-        // look for charset in Content-Type header
-        t = header_get_field(item->email->header, "\nContent-Type: ");
-        if (t) {
-            // assume charset= will be on the first line, rather than on a continuation line
-            t++;
-            char *n = strchr(t, '\n');
-            char *s = my_stristr(t, "; charset=");
-            if (n && s && (s < n)) {
-                char *e;
-                char save;
-                s += 10;    // skip over charset=
-                if (*s == '"') {
-                    s++;
-                    e = strchr(s, '"');
-                }
-                else {
-                    e = strchr(s, ';');
-                }
-                if (!e || (e > n)) e = n;   // use the trailing lf as terminator if nothing better
-                save = *e;
-                *e = '\0';
-                    snprintf(body_charset, sizeof(body_charset), "%s", s);  // copy the charset to our buffer
-                *e = save;
-                DEBUG_EMAIL(("body charset %s from headers\n", body_charset));
-            }
-        }
+        // look for charset and report-type in Content-Type header
+        t = header_get_field(headers, "\nContent-Type: ");
+        header_get_subfield(t, "charset", body_charset, sizeof(body_charset));
+        header_get_subfield(t, "report-type", body_report, sizeof(body_report));
 
         // derive a proper sender email address
         if (!sender_known) {
-            t = header_get_field(item->email->header, "\nFrom: ");
+            t = header_get_field(headers, "\nFrom: ");
             if (t) {
                 // assume address is on the first line, rather than on a continuation line
                 t++;
@@ -1017,14 +1106,14 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         }
 
         // Strip out the mime headers and some others that we don't want to emit
-        header_strip_field(item->email->header, "\nMicrosoft Mail Internet Headers");
-        header_strip_field(item->email->header, "\nMIME-Version: ");
-        header_strip_field(item->email->header, "\nContent-Type: ");
-        header_strip_field(item->email->header, "\nContent-Transfer-Encoding: ");
-        header_strip_field(item->email->header, "\nContent-class: ");
-        header_strip_field(item->email->header, "\nX-MimeOLE: ");
-        header_strip_field(item->email->header, "\nBcc:");
-        header_strip_field(item->email->header, "\nX-From_: ");
+        header_strip_field(headers, "\nMicrosoft Mail Internet Headers");
+        header_strip_field(headers, "\nMIME-Version: ");
+        header_strip_field(headers, "\nContent-Type: ");
+        header_strip_field(headers, "\nContent-Transfer-Encoding: ");
+        header_strip_field(headers, "\nContent-class: ");
+        header_strip_field(headers, "\nX-MimeOLE: ");
+        header_strip_field(headers, "\nBcc:");
+        header_strip_field(headers, "\nX-From_: ");
     }
 
     DEBUG_EMAIL(("About to print Header\n"));
@@ -1035,18 +1124,20 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     if (mode != MODE_SEPARATE) {
         // most modes need this separator line
-        fprintf(f_output, "From \"%s\" %s\n", sender, c_time);
+        fprintf(f_output, "From %s %s\n", sender, c_time);
     }
 
-    if (item->email->header) {
+    // print the supplied email headers
+    if (headers) {
         int len;
-        fprintf(f_output, "%s", item->email->header);
+        fprintf(f_output, "%s", headers);
         // make sure the headers end with a \n
-        len = strlen(item->email->header);
-        if (!len || (item->email->header[len-1] != '\n')) fprintf(f_output, "\n");
+        len = strlen(headers);
+        if (!len || (headers[len-1] != '\n')) fprintf(f_output, "\n");
     }
 
     // create required header fields that are not already written
+
     if (!has_from) {
         fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name, sender);
     }
@@ -1073,9 +1164,14 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         fprintf(f_output, "Date: %s\n", c_time);
     }
 
+    if (!has_msgid && item->email->messageid) {
+        fprintf(f_output, "Message-Id: %s\n", item->email->messageid);
+    }
+
     // add forensic headers to capture some .pst stuff that is not really
     // needed or used by mail clients
-    if (item->email->sender_address && !strchr(item->email->sender_address, '@')) {
+    if (item->email->sender_address && !strchr(item->email->sender_address, '@')
+                                    && strcmp(item->email->sender_address, ".")) {
         fprintf(f_output, "X-libpst-forensic-sender: %s\n", item->email->sender_address);
     }
 
@@ -1085,9 +1181,13 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     // add our own mime headers
     fprintf(f_output, "MIME-Version: 1.0\n");
-    if (item->attach || (item->email->rtf_compressed && save_rtf)
-                     || item->email->encrypted_body
-                     || item->email->encrypted_htmlbody) {
+    if (body_report[0] != '\0') {
+        // multipart/report for DSN/MDN reports
+        fprintf(f_output, "Content-Type: multipart/report; report-type=%s;\n\tboundary=\"%s\"\n", body_report, boundary);
+    }
+    else if (item->attach || (item->email->rtf_compressed && save_rtf)
+                          || item->email->encrypted_body
+                          || item->email->encrypted_htmlbody) {
         // use multipart/mixed if we have attachments
         fprintf(f_output, "Content-Type: multipart/mixed;\n\tboundary=\"%s\"\n", boundary);
     } else {
@@ -1151,10 +1251,12 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         attach_num = 0;
         for (attach = item->attach; attach; attach = attach->next) {
             DEBUG_EMAIL(("Attempting Attachment encoding\n"));
-            if (!attach->data) {
-                DEBUG_EMAIL(("Data of attachment is NULL!. Size is supposed to be %i\n", attach->size));
+            if (!attach->data && attach->mimetype && !strcmp(attach->mimetype, RFC822)) {
+                DEBUG_EMAIL(("seem to have special embedded message attachment\n"));
+                find_rfc822_headers(extra_mime_headers);
+                write_embedded_message(f_output, attach, boundary, pst, extra_mime_headers);
             }
-            if (mode == MODE_SEPARATE && !mode_MH)
+            else if (mode == MODE_SEPARATE && !mode_MH)
                 write_separate_attachment(f_name, attach, ++attach_num, pst);
             else
                 write_inline_attachment(f_output, attach, boundary, pst);

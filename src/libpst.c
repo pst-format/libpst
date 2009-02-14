@@ -392,7 +392,7 @@ size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b){
             DEBUG_WARN(("Couldn't find ID pointer. Cannot handle attachment\n"));
             size = 0;
         }
-        attach->size = size; // may as well update it to what is correct for this instance
+        attach->size = size;
     } else {
         size = attach->size;
     }
@@ -409,19 +409,13 @@ size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     if (attach->id_val != (uint64_t)-1) {
         ptr = pst_getID(pf, attach->id_val);
         if (ptr) {
-            // pst_num_array *list = pst_parse_block(pf, ptr->id, NULL, NULL);
-            // DEBUG_WARN(("writing file data attachment\n"));
-            // for (int32_t x=0; x<list->count_item; x++) {
-            //     DEBUG_HEXDUMPC(list->items[x]->data, list->items[x]->size, 0x10);
-            //     (void)pst_fwrite(list->items[x]->data, (size_t)1, list->items[x]->size, fp);
-            // }
             size = pst_ff_getID2data(pf, ptr, &h);
         } else {
             DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
         }
         attach->size = size;
     } else {
-        // save the attachment to file
+        // save the attachment to the file
         size = attach->size;
         (void)pst_fwrite(attach->data, (size_t)1, size, fp);
     }
@@ -434,21 +428,10 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
     pst_index_ll *ptr;
     pst_holder h = {NULL, fp, 1};
     size_t size = 0;
-    char *c;
     DEBUG_ENT("pst_attach_to_file_base64");
     if (attach->id_val != (uint64_t)-1) {
         ptr = pst_getID(pf, attach->id_val);
         if (ptr) {
-            // pst_num_array *list = pst_parse_block(pf, ptr->id, NULL, NULL);
-            // DEBUG_WARN(("writing base64 data attachment\n"));
-            // for (int32_t x=0; x<list->count_item; x++) {
-            //     DEBUG_HEXDUMPC(list->items[x]->data, list->items[x]->size, 0x10);
-            //     c = base64_encode(list->items[x]->data, list->items[x]->size);
-            //     if (c) {
-            //         (void)pst_fwrite(c, (size_t)1, strlen(c), fp);
-            //         free(c);    // caught by valgrind
-            //     }
-            // }
             size = pst_ff_getID2data(pf, ptr, &h);
         } else {
             DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to Base64\n"));
@@ -456,7 +439,7 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
         attach->size = size;
     } else {
         // encode the attachment to the file
-        c = base64_encode(attach->data, attach->size);
+        char *c = base64_encode(attach->data, attach->size);
         if (c) {
             (void)pst_fwrite(c, (size_t)1, strlen(c), fp);
             free(c);    // caught by valgrind
@@ -2305,7 +2288,7 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     LIST_COPY(item->email->in_reply_to, (char*));
                     DEBUG_EMAIL(("%s\n", item->email->in_reply_to));
                     break;
-                case 0x1046: // Return Path
+                case 0x1046: // Return Path - this seems to be the message-id of the rfc822 mail that is being returned
                     DEBUG_EMAIL(("Return Path - "));
                     MALLOC_EMAIL(item);
                     LIST_COPY(item->email->return_path_address, (char*));
