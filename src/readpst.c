@@ -51,7 +51,7 @@ void      header_strip_field(char *header, char *field);
 int       test_base64(char *body);
 void      find_html_charset(char *html, char *charset, size_t charsetlen);
 void      find_rfc822_headers(char** extra_mime_headers);
-void      write_body_part(FILE* f_output, char *body, char *mime, char *charset, char *boundary);
+void      write_body_part(FILE* f_output, char *body, int32_t body_was_unicode, char *mime, char *charset, char *boundary, pst_file* pst);
 void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers);
 void      write_vcard(FILE* f_output, pst_item_contact* contact, char comment[]);
 void      write_appointment(FILE* f_output, pst_item_appointment* appointment,
@@ -136,13 +136,12 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
             ff.skip_count++;
         }
         else {
-            DEBUG_MAIN(("main: Desc Email ID %#x [d_ptr->id = %#x]\n", d_ptr->desc->id, d_ptr->id));
+            DEBUG_MAIN(("main: Desc Email ID %#"PRIx64" [d_ptr->id = %#"PRIx64"]\n", d_ptr->desc->id, d_ptr->id));
 
             item = pst_parse_item(&pstfile, d_ptr);
             DEBUG_MAIN(("main: About to process item\n"));
             if (item && item->email && item->email->subject && item->email->subject->subj) {
-                DEBUG_EMAIL(("item->email->subject = %p\n", item->email->subject));
-                DEBUG_EMAIL(("item->email->subject->subj = %p\n", item->email->subject->subj));
+                DEBUG_EMAIL(("item->email->subject->subj = %s\n", item->email->subject->subj));
             }
             if (item) {
                 if (item->folder && d_ptr->child && (deleted_mode == DMODE_INCLUDE || strcasecmp(item->file_as, "Deleted Items"))) {
@@ -766,12 +765,20 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
     char *attach_filename;
     char *enc = NULL; // base64 encoded attachment
     DEBUG_ENT("write_inline_attachment");
-    DEBUG_EMAIL(("Attachment Size is %i\n", attach->size));
-    DEBUG_EMAIL(("Attachment Pointer is %p\n", attach->data));
+    DEBUG_EMAIL(("Attachment Size is %i, pointer %p, id %d\n", attach->size, attach->data, attach->id_val));
     if (attach->data) {
         enc = base64_encode (attach->data, attach->size);
         if (!enc) {
             DEBUG_EMAIL(("ERROR base64_encode returned NULL. Must have failed\n"));
+            DEBUG_RET();
+            return;
+        }
+    }
+    else {
+        // make sure we can fetch data from the id
+        pst_index_ll *ptr = pst_getID(pst, attach->id_val);
+        if (!ptr) {
+            DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
             DEBUG_RET();
             return;
         }
@@ -964,7 +971,7 @@ void find_rfc822_headers(char** extra_mime_headers)
                     }
                 }
             }
-            DEBUG_EMAIL(("skipping to next block after\n%s\n", headers));
+            //DEBUG_EMAIL(("skipping to next block after\n%s\n", headers));
             headers = temp+2;   // skip to next chunk of headers
         }
         *extra_mime_headers = headers;
@@ -973,20 +980,23 @@ void find_rfc822_headers(char** extra_mime_headers)
 }
 
 
-void write_body_part(FILE* f_output, char *body, char *mime, char *charset, char *boundary)
+void write_body_part(FILE* f_output, char *body, int32_t body_was_unicode, char *mime, char *charset, char *boundary, pst_file* pst)
 {
     char *needfree = NULL;
     DEBUG_ENT("write_body_part");
-    if (strcasecmp("utf-8", charset)) {
-        // try to convert to the specified charset since it is not utf-8
+    if (body_was_unicode && (strcasecmp("utf-8", charset))) {
+        // try to convert to the specified charset since the target
+        // is not utf-8, and the data came from a unicode (utf16) field
+        // and is now in utf-8.
         size_t rc;
         DEBUG_EMAIL(("Convert %s utf-8 to %s\n", mime, charset));
         vbuf *newer = vballoc(2);
         rc = vb_utf8to8bit(newer, body, strlen(body) + 1, charset);
         if (rc == (size_t)-1) {
-            // unable to convert, maybe it is already in that character set
+            // unable to convert, change the charset to utf8
             free(newer->b);
             DEBUG_EMAIL(("Failed to convert %s utf-8 to %s\n", mime, charset));
+            charset = "utf-8";
         }
         else {
             needfree = body = newer->b;
@@ -1015,6 +1025,38 @@ void write_body_part(FILE* f_output, char *body, char *mime, char *charset, char
 }
 
 
+const char* codepage(int cp) {
+    static char buffer[20];
+    switch (cp) {
+        case   932 : return "iso-2022-jp";
+        case   936 : return "gb2313";
+        case   950 : return "big5";
+        case 20127 : return "us-ascii";
+        case 20269 : return "iso-6937";
+        case 20865 : return "iso-8859-15";
+        case 20866 : return "koi8-r";
+        case 21866 : return "koi8-u";
+        case 28591 : return "iso-8859-1";
+        case 28592 : return "iso-8859-2";
+        case 28595 : return "iso-8859-5";
+        case 28596 : return "iso-8859-6";
+        case 28597 : return "iso-8859-7";
+        case 28598 : return "iso-8859-8";
+        case 28599 : return "iso-8859-9";
+        case 50220 : return "iso-2022-jp";
+        case 50221 : return "csiso2022jp";
+        case 51932 : return "euc-jp";
+        case 51949 : return "euc-kr";
+        case 65000 : return "utf-7";
+        case 65001 : return "utf-8";
+        default :
+            snprintf(buffer, sizeof(buffer), "cp%d", cp);
+            return buffer;
+    }
+    return NULL;
+}
+
+
 void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers)
 {
     char boundary[60];
@@ -1032,7 +1074,11 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     DEBUG_ENT("write_normal_email");
 
     // setup default body character set and report type
-    snprintf(body_charset, sizeof(body_charset), "%s", (item->email->body_charset) ? item->email->body_charset : "utf-8");
+    snprintf(body_charset, sizeof(body_charset), "%s",
+        (item->email->body_charset)     ? item->email->body_charset :
+        (item->email->message_codepage) ? codepage(item->email->message_codepage) :
+        (item->email->internet_cpid)    ? codepage(item->email->internet_cpid) :
+        "utf-8");
     body_report[0] = '\0';
 
     // setup default sender
@@ -1123,8 +1169,11 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     }
 
     if (mode != MODE_SEPARATE) {
-        // most modes need this separator line
-        fprintf(f_output, "From %s %s\n", sender, c_time);
+        // most modes need this separator line.
+        // procmail produces this separator without the quotes around the
+        // sender email address, but apparently some Mac email client needs
+        // those quotes, and they don't seem to cause problems for anyone else.
+        fprintf(f_output, "From \"%s\" %s\n", sender, c_time);
     }
 
     // print the supplied email headers
@@ -1198,12 +1247,17 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     // now dump the body parts
     if (item->email->body) {
-        write_body_part(f_output, item->email->body, "text/plain", body_charset, boundary);
+        write_body_part(f_output, item->email->body, item->email->body_was_unicode, "text/plain", body_charset, boundary, pst);
+    }
+
+    if ((item->email->report_text) && (body_report[0] != '\0')) {
+        write_body_part(f_output, item->email->report_text, item->email->report_was_unicode, "text/plain", body_charset, boundary, pst);
+        fprintf(f_output, "\n");
     }
 
     if (item->email->htmlbody) {
         find_html_charset(item->email->htmlbody, body_charset, sizeof(body_charset));
-        write_body_part(f_output, item->email->htmlbody, "text/html", body_charset, boundary);
+        write_body_part(f_output, item->email->htmlbody, item->email->htmlbody_was_unicode, "text/html", body_charset, boundary, pst);
     }
 
     if (item->email->rtf_compressed && save_rtf) {

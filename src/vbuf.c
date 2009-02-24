@@ -43,6 +43,7 @@ int find_nl(vstr * vs)
 static int unicode_up = 0;
 static iconv_t i16to8;
 static const char *target_charset = NULL;
+static int         target_open = 0;
 static iconv_t    i8totarget;
 
 
@@ -61,10 +62,11 @@ void unicode_init()
 void unicode_close()
 {
     iconv_close(i16to8);
-    if (target_charset) {
+    if (target_open) {
         iconv_close(i8totarget);
         free((char *)target_charset);
         target_charset = NULL;
+        target_open    = 0;
     }
     unicode_up = 0;
 }
@@ -130,18 +132,22 @@ size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* chars
     size_t outbytesleft = 0;
     char *outbuf        = NULL;
 
-    if (!target_charset || (target_charset && strcasecmp(target_charset, charset))) {
-        if (target_charset) {
+    if (!target_charset || strcasecmp(target_charset, charset)) {
+        if (target_open) {
             iconv_close(i8totarget);
             free((char *)target_charset);
         }
         target_charset = strdup(charset);
+        target_open    = 1;
         i8totarget = iconv_open(target_charset, "UTF-8");
         if (i8totarget == (iconv_t)-1) {
+            target_open = 0;
             fprintf(stderr, "Couldn't open iconv descriptor for UTF-8 to %s.\n", target_charset);
             return (size_t)-1;
         }
     }
+
+    if (!target_open) return (size_t)-1;    // previous failure to open the target
 
     if (2 > dest->blen) vbresize(dest, 2);
     dest->dlen = 0;

@@ -140,28 +140,29 @@ typedef struct pst_index_tree {
     uint64_t offset;
     uint64_t size;
     int64_t  u1;
-    struct pst_index_tree * next;
+    struct pst_index_tree *next;
 } pst_index_ll;
 
 
 typedef struct pst_index2_tree {
     uint64_t id2;
     pst_index_ll *id;
-    struct pst_index2_tree * next;
+    struct pst_index2_tree *child;
+    struct pst_index2_tree *next;
 } pst_index2_ll;
 
 
 typedef struct pst_desc_tree {
     uint64_t id;
     uint64_t parent_id;
-    pst_index_ll * list_index;
-    pst_index_ll * desc;
+    pst_index_ll *list_index;
+    pst_index_ll *desc;
     int32_t no_child;
-    struct pst_desc_tree * prev;
-    struct pst_desc_tree * next;
-    struct pst_desc_tree * parent;
-    struct pst_desc_tree * child;
-    struct pst_desc_tree * child_tail;
+    struct pst_desc_tree *prev;
+    struct pst_desc_tree *next;
+    struct pst_desc_tree *parent;
+    struct pst_desc_tree *child;
+    struct pst_desc_tree *child_tail;
 } pst_desc_ll;
 
 
@@ -173,67 +174,79 @@ typedef struct pst_item_email_subject {
 
 
 typedef struct pst_item_email {
-    FILETIME *arrival_date;
-    int       autoforward;            // 1 = true, 0 = not set, -1 = false
-    char     *body;
-    char     *body_charset;           // null if not specified
-    char     *cc_address;
-    char     *bcc_address;
-    char     *common_name;
-    int32_t   conv_index;
-    int       conversion_prohib;      // 1 = true, 0 = false
-    int       delete_after_submit;    // 1 = true, 0 = false
-    int       delivery_report;        // 1 = true, 0 = false
-    char     *encrypted_body;
-    size_t    encrypted_body_size;
-    char     *encrypted_htmlbody;
-    size_t    encrypted_htmlbody_size;
-    int32_t   flag;
-    char     *header;
-    char     *htmlbody;
-    int32_t   importance;
-    char     *in_reply_to;
-    int       message_cc_me;          // 1 = true, 0 = false
-    int       message_recip_me;       // 1 = true, 0 = false
-    int       message_to_me;          // 1 = true, 0 = false
-    char     *messageid;
-    int32_t   orig_sensitivity;
-    char     *original_bcc;
-    char     *original_cc;
-    char     *original_to;
-    char     *outlook_recipient;
-    char     *outlook_recipient_name;
-    char     *outlook_recipient2;
-    char     *outlook_sender;
-    char     *outlook_sender_name;
-    char     *outlook_sender2;
-    int32_t   priority;
-    char     *proc_subject;
-    int       read_receipt;           // 1 = true, 0 = false
-    char     *recip_access;
-    char     *recip_address;
-    char     *recip2_access;
-    char     *recip2_address;
-    int       reply_requested;        // 1 = true, 0 = false
-    char     *reply_to;
-    char     *return_path_address;
-    int32_t   rtf_body_char_count;
-    int32_t   rtf_body_crc;
-    char     *rtf_body_tag;
-    char     *rtf_compressed;
-    uint32_t  rtf_compressed_size;
-    int       rtf_in_sync;            // 1 = true, 0 = doesn't exist, -1 = false
-    int32_t   rtf_ws_prefix_count;
-    int32_t   rtf_ws_trailing_count;
-    char     *sender_access;
-    char     *sender_address;
-    char     *sender2_access;
-    char     *sender2_address;
-    int32_t   sensitivity;
-    FILETIME *sent_date;
-    pst_entryid *sentmail_folder;
-    char        *sentto_address;
+    FILETIME   *arrival_date;
+    int         autoforward;            // 1 = true, 0 = not set, -1 = false
+    char       *body;
+    int32_t     body_was_unicode;       // 1 = true, 0 = false
+    char       *body_charset;           // null if not specified
+    char       *cc_address;
+    char       *bcc_address;
+    char       *common_name;
+    int32_t     conv_index;
+    int         conversion_prohib;      // 1 = true, 0 = false
+    int         delete_after_submit;    // 1 = true, 0 = false
+    int         delivery_report;        // 1 = true, 0 = false
+    char       *encrypted_body;
+    size_t      encrypted_body_size;
+    char       *encrypted_htmlbody;
+    size_t      encrypted_htmlbody_size;
+    int32_t     flag;
+    char       *header;
+    char       *htmlbody;
+    int32_t     htmlbody_was_unicode;   // 1 = true, 0 = false
+    int32_t     importance;
+    char       *in_reply_to;
+    int         message_cc_me;          // 1 = true, 0 = false
+    int         message_recip_me;       // 1 = true, 0 = false
+    int         message_to_me;          // 1 = true, 0 = false
+    char       *messageid;
+    int32_t     orig_sensitivity;
+    char       *original_bcc;
+    char       *original_cc;
+    char       *original_to;
+    char       *outlook_recipient;
+    char       *outlook_recipient_name;
+    char       *outlook_recipient2;
+    char       *outlook_sender;
+    char       *outlook_sender_name;
+    char       *outlook_sender2;
+    int32_t     priority;
+    char       *proc_subject;
+    int         read_receipt;           // 1 = true, 0 = false
+    char       *recip_access;
+    char       *recip_address;
+    char       *recip2_access;
+    char       *recip2_address;
+    int         reply_requested;        // 1 = true, 0 = false
+    char       *reply_to;
+    char       *return_path_address;
+    int32_t     rtf_body_char_count;
+    int32_t     rtf_body_crc;
+    char       *rtf_body_tag;
+    char       *rtf_compressed;
+    uint32_t    rtf_compressed_size;
+    int         rtf_in_sync;            // 1 = true, 0 = doesn't exist, -1 = false
+    int32_t     rtf_ws_prefix_count;
+    int32_t     rtf_ws_trailing_count;
+    char       *sender_access;
+    char       *sender_address;
+    char       *sender2_access;
+    char       *sender2_address;
+    int32_t     sensitivity;
+    int32_t     internet_cpid;
+    int32_t     message_codepage;
+    FILETIME   *sent_date;
+    pst_entryid            *sentmail_folder;
+    char                   *sentto_address;
     pst_item_email_subject *subject;
+    // delivery report fields
+    char       *report_text;
+    int32_t     report_was_unicode;
+    FILETIME   *report_time;
+    int32_t     ndr_reason_code;
+    int32_t     ndr_diag_code;
+    char       *supplementary_info;
+    int32_t     ndr_status_code;
 } pst_item_email;
 
 
@@ -457,18 +470,16 @@ typedef struct pst_file {
     pst_x_attrib_ll *x_head;
     pst_block_recorder *block_head;
 
-    //set this to 0 to read 32-bit pst files (pre Outlook 2003)
-    //set this to 1 to read 64-bit pst files (Outlook 2003 and later)
-    int do_read64;
-
+    int do_read64;              // 0 is 32-bit pst file, pre Outlook 2003;
+                                // 1 is 64-bit pst file, Outlook 2003 and later
     uint64_t index1;
     uint64_t index1_back;
     uint64_t index2;
     uint64_t index2_back;
-    FILE * fp;                // file pointer to opened PST file
-    uint64_t size;            // pst file size
-    unsigned char encryption; // pst encryption setting
-    unsigned char ind_type;   // pst index type
+    FILE * fp;                  // file pointer to opened PST file
+    uint64_t size;              // pst file size
+    unsigned char encryption;   // pst encryption setting
+    unsigned char ind_type;     // pst index type
 } pst_file;
 
 
@@ -548,7 +559,7 @@ void           pst_free_desc (pst_desc_ll *head);
 void           pst_free_xattrib(pst_x_attrib_ll *x);
 int            pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p);
 int            pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p);
-pst_index2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* head_ptr);
+pst_index2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list);
 pst_index_ll*  pst_getID(pst_file* pf, uint64_t id);
 pst_index_ll*  pst_getID2(pst_index2_ll * ptr, uint64_t id);
 pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t id);

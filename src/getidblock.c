@@ -1,19 +1,92 @@
 
 #include "define.h"
 
-static void usage();
+int decrypt = 0, process = 0, binary = 0;
+pst_file pstfile;
+
+
+void usage();
+void usage()
+{
+    printf("usage: getidblock [options] filename id\n");
+    printf("\tfilename - name of the file to access\n");
+    printf("\tid - ID of the block to fetch (0 to fetch all) - can begin with 0x for hex\n");
+    printf("\toptions\n");
+    printf("\t\t-d\tDecrypt the block before printing\n");
+    printf("\t\t-p\tProcess the block before finishing.\n");
+    printf("\t\t\tView the debug log for information\n");
+}
+
+
+void dumper(uint64_t id);
+void dumper(uint64_t id)
+{
+    char *buf = NULL;
+    size_t readSize;
+    pst_desc_ll *ptr;
+
+    DEBUG_MAIN(("\n\n\nLooking at block index1 id %#"PRIx64"\n", id));
+
+    if ((readSize = pst_ff_getIDblock(&pstfile, id, &buf)) <= 0 || buf == 0) {
+        DIE(("Error loading block\n"));
+    }
+
+    if (decrypt)
+        if (pst_decrypt(id, buf, readSize, (int) pstfile.encryption) != 0) {
+            DIE(("Error decrypting block\n"));
+        }
+
+    DEBUG_MAIN(("Printing block id %#"PRIx64", size %#x\n", id, readSize));
+    if (binary) {
+        if (fwrite(buf, 1, readSize, stdout) != 0) {
+            DIE(("Error occured during writing of buf to stdout\n"));
+        }
+    } else {
+        printf("Block id %#"PRIx64", size %#x\n", id, readSize);
+        pst_debug_hexdumper(stdout, buf, readSize, 0x10, 0);
+    }
+    if (buf) free(buf);
+
+    if (process) {
+        DEBUG_MAIN(("Parsing block id %#"PRIx64"\n", id));
+        ptr = pstfile.d_head;
+        while (ptr) {
+            if (ptr->list_index && ptr->list_index->id == id)
+                break;
+            if (ptr->desc && ptr->desc->id == id)
+                break;
+            ptr = pst_getNextDptr(ptr);
+        }
+        if (!ptr) {
+            ptr = (pst_desc_ll *) xmalloc(sizeof(pst_desc_ll));
+            ptr->desc = pst_getID(&pstfile, id);
+            ptr->list_index = NULL;
+        }
+        pst_item *item = pst_parse_item(&pstfile, ptr);
+        if (item) pst_freeItem(item);
+    }
+}
+
+
+void dump_desc(pst_desc_ll *ptr);
+void dump_desc(pst_desc_ll *ptr)
+{
+    while (ptr) {
+        DEBUG_MAIN(("\n\n\nLooking at block desc id %#"PRIx64"\n", ptr->id));
+        if (ptr->desc       && ptr->desc->id)       dumper(ptr->desc->id);
+        if (ptr->list_index && ptr->list_index->id) dumper(ptr->list_index->id);
+        if (ptr->child) dump_desc(ptr->child);
+        ptr = ptr->next;
+    }
+}
+
 
 int main(int argc, char* const* argv)
 {
     // pass the id number to display on the command line
     char *fname, *sid;
-    pst_file pstfile;
     uint64_t id;
-    int decrypt = 0, process = 0, binary = 0, c;
-    char *buf = NULL;
-    size_t readSize;
-    pst_item *item;
-    pst_desc_ll *ptr;
+    int c;
 
     DEBUG_INIT("getidblock.log");
     DEBUG_REGISTER_CLOSE();
@@ -58,56 +131,17 @@ int main(int argc, char* const* argv)
     if (pst_load_index(&pstfile) != 0) {
         DIE(("Error loading file index\n"));
     }
-    //  if ((ptr = pst_getID(&pstfile, id)) == NULL) {
-    //    DIE(("id not found [%#x]\n", id));
-    //  }
 
-    DEBUG_MAIN(("Loading block\n"));
-
-    if ((readSize = pst_ff_getIDblock(&pstfile, id, &buf)) <= 0 || buf == NULL) {
-        //      if ((readSize = pst_read_block_size(&pstfile, ptr->offset, ptr->size, &buf, 1, 1)) < ptr->size) {
-        DIE(("Error loading block\n"));
+    if (id) {
+        dumper(id);
     }
-    if (binary == 0)
-        printf("Block %#"PRIx64", size %#x[%i]\n", id, (unsigned int) readSize, (int) readSize);
-
-    if (decrypt != 0)
-        if (pst_decrypt(id, buf, readSize, (int) pstfile.encryption) != 0) {
-            DIE(("Error decrypting block\n"));
+    else {
+        pst_index_ll *ptr = pstfile.i_head;
+        while (ptr) {
+            dumper(ptr->id);
+            ptr = ptr->next;
         }
-
-    DEBUG_MAIN(("Printing block... [id %#x, size %#x]\n", id, readSize));
-    if (binary == 0) {
-        pst_debug_hexdumper(stdout, buf, readSize, 0x10, 0);
-    } else {
-        if (fwrite(buf, 1, readSize, stdout) != 0) {
-            DIE(("Error occured during writing of buf to stdout\n"));
-        }
-    }
-    free(buf);
-
-    if (process != 0) {
-        DEBUG_MAIN(("Parsing block...\n"));
-        ptr = pstfile.d_head;
-        while (ptr != NULL) {
-            if (ptr->list_index != NULL && ptr->list_index->id == id)
-                break;
-            if (ptr->desc != NULL && ptr->desc->id == id)
-                break;
-            ptr = pst_getNextDptr(ptr);
-        }
-        if (ptr == NULL) {
-            ptr = (pst_desc_ll *) xmalloc(sizeof(pst_desc_ll));
-            ptr->desc = pst_getID(&pstfile, id);
-            ptr->list_index = NULL;
-        }
-        if (ptr != NULL) {
-            if ((item = pst_parse_item(&pstfile, ptr)) != NULL)
-                pst_freeItem(item);
-        } else {
-            DEBUG_MAIN(("item not found with this ID\n"));
-            printf("Cannot find the owning Record of this ID. Cannot parse\n");
-        }
+        dump_desc(pstfile.d_head);
     }
 
     if (pst_close(&pstfile) != 0) {
@@ -118,13 +152,3 @@ int main(int argc, char* const* argv)
     return 0;
 }
 
-void usage()
-{
-    printf("usage: getidblock [options] filename id\n");
-    printf("\tfilename - name of the file to access\n");
-    printf("\tid - ID of the block to fetch - can begin with 0x for hex\n");
-    printf("\toptions\n");
-    printf("\t\t-d\tDecrypt the block before printing\n");
-    printf("\t\t-p\tProcess the block before finishing.\n");
-    printf("\t\t\tView the debug log for information\n");
-}

@@ -4,6 +4,9 @@ LibPST 0.6.28 (2009-xx-xx)
       that are not used by normal mail clients.
     * improve decoding of multipart/report and message/rfc822 mime
       types.
+    * improve character set handling - don't try to convert utf-8
+      to single byte for fields that were not originally unicode.
+      if the conversion fails, leave the data in utf-8.
 
 LibPST 0.6.27 (2009-02-07)
 ===============================

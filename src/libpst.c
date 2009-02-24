@@ -125,7 +125,9 @@ static unsigned char comp_enc [] = {
     0xd4, 0xe1, 0x11, 0xd0, 0x08, 0x8b, 0x2a, 0xf2, 0xed, 0x9a, 0x64, 0x3f, 0xc1, 0x6c, 0xf9, 0xec
 };
 
-// for "strong" encryption, we have the two additional tables
+// for "strong" encryption, we have the two additional tables,
+// which (with the previous table) are used as the keys in an
+// Enigma 3 rotor cipher
 static unsigned char comp_high1 [] = {
     0x41, 0x36, 0x13, 0x62, 0xa8, 0x21, 0x6e, 0xbb, 0xf4, 0x16, 0xcc, 0x04, 0x7f, 0x64, 0xe8, 0x5d,
     0x1e, 0xf2, 0xcb, 0x2a, 0x74, 0xc5, 0x5e, 0x35, 0xd2, 0x95, 0x47, 0x9e, 0x96, 0x2d, 0x9a, 0x88,
@@ -519,7 +521,7 @@ int pst_load_extended_attributes(pst_file *pf) {
     }
 
     if (p->list_index) {
-        id2_head = pst_build_id2(pf, p->list_index, NULL);
+        id2_head = pst_build_id2(pf, p->list_index);
         pst_printID2ptr(id2_head);
     } else {
         DEBUG_WARN(("Have not been able to fetch any id2 values for item 0x61. Brace yourself!\n"));
@@ -1047,10 +1049,8 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
     }
 
     if (d_ptr->list_index) {
-        id2_head = pst_build_id2(pf, d_ptr->list_index, NULL);
+        id2_head = pst_build_id2(pf, d_ptr->list_index);
         (void)pst_printID2ptr(id2_head);
-    } else {
-        DEBUG_WARN(("Have not been able to fetch any id2 values for this item. Brace yourself!\n"));
     }
 
     list = pst_parse_block(pf, d_ptr->desc->id, id2_head, NULL);
@@ -1073,16 +1073,48 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
         return NULL;
     }
     if (list) pst_free_list(list);
-    list = NULL; //pst_process will free the items in the list
+    list = NULL;
+
+    if ((id_ptr = pst_getID2(id2_head, (uint64_t)0x692))) {
+        // DSN/MDN reports?
+        DEBUG_EMAIL(("DSN/MDN processing \n"));
+        if ((list = pst_parse_block(pf, id_ptr->id, id2_head, NULL)) == NULL) {
+            DEBUG_WARN(("ERROR error processing main DSN/MDN record\n"));
+            if (item)     pst_freeItem(item);
+            if (list)     pst_free_list(list);
+            if (id2_head) pst_free_id2(id2_head);
+            DEBUG_RET();
+            return item;
+        }
+        else {
+            for (x=0; x < list->count_array; x++) {
+                attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+                memset(attach, 0, sizeof(pst_item_attach));
+                attach->next = item->attach;
+                item->attach = attach;
+            }
+
+            if (pst_process(list, item, item->attach)) {
+                DEBUG_WARN(("ERROR pst_process() failed with attachments\n"));
+                if (item)     pst_freeItem(item);
+                if (list)     pst_free_list(list);
+                if (id2_head) pst_free_id2(id2_head);
+                DEBUG_RET();
+                return NULL;
+            }
+            if (list) pst_free_list(list);
+            list = NULL;
+        }
+    }
 
     if ((id_ptr = pst_getID2(id2_head, (uint64_t)0x671))) {
         // should not have any existing attachments anyway
-        while (item->attach) {
-            DEBUG_EMAIL(("throw away existing attachment\n"));
-            attach = item->attach->next;
-            free(item->attach);
-            item->attach = attach;
-        }
+        //while (item->attach) {
+        //    DEBUG_EMAIL(("throw away existing attachment\n"));
+        //    attach = item->attach->next;
+        //    free(item->attach);
+        //    item->attach = attach;
+        //}
 
         DEBUG_EMAIL(("ATTACHMENT processing attachment\n"));
         if ((list = pst_parse_block(pf, id_ptr->id, id2_head, NULL)) == NULL) {
@@ -1126,6 +1158,9 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
                         attach = attach->next;
                         continue;
                     }
+                    if (list->count_array > 1) {
+                        DEBUG_WARN(("ERROR probably fatal, list count array will overrun attach structure.\n"));
+                    }
                     if (pst_process(list, item, attach)) {
                         DEBUG_WARN(("ERROR pst_process() failed with an attachment\n"));
                         if (list) pst_free_list(list);
@@ -1146,6 +1181,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
                     }
                 } else {
                     DEBUG_WARN(("ERROR cannot locate id2 value %#"PRIx64"\n", attach->id2_val));
+                    attach->id2_val = 0;    // suppress this missing attachment
                 }
                 attach = attach->next;
             }
@@ -1684,27 +1720,22 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
 
 #define NULL_CHECK(x) { if (!x) { DEBUG_EMAIL(("NULL_CHECK: Null Found\n")); break;} }
 
-#define MOVE_NEXT(targ) { \
-    if (next){\
-        if (!targ) {\
-            DEBUG_EMAIL(("MOVE_NEXT: Target is NULL. Will stop processing this option\n"));\
-            break;\
-        }\
-        targ = targ->next;\
-        if (!targ) {\
-            DEBUG_EMAIL(("MOVE_NEXT: Target is NULL after next. Will stop processing this option\n"));\
-            break;\
-        }\
-        next=0;\
-    }\
-}
 
-
-int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
-    int32_t x, t;
-    int next = 0;
-    pst_item_extra_field *ef;
-
+/**
+ * process the list of items produced from parse_block()
+ *
+ * @param list  pointer to the linked list of things from parse_block()
+ * @param item  pointer to the item to be updated from the list.
+ *              this item may be an email, contact or other sort of item.
+ *              the type of this item is generally set by the things
+ *              from the list.
+ * @param attach pointer to the linked list of attachment records. If
+ *               this is non-null, the length of the this attachment list
+ *               must be at least as large as the length of the list.
+ *
+ * @return 0 for ok, -1 for error.
+ */
+int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
     DEBUG_ENT("pst_process");
     if (!item) {
         DEBUG_EMAIL(("item cannot be NULL.\n"));
@@ -1713,8 +1744,10 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
     }
 
     while (list) {
-        x = 0;
+        int32_t x = 0;
         while (x < list->count_item) {
+            int32_t t;
+            pst_item_extra_field *ef;
             // check here to see if the id is one that is mapped.
             DEBUG_EMAIL(("#%d - id: %#x type: %#x length: %#x\n", x, list->items[x]->id, list->items[x]->type, list->items[x]->size));
 
@@ -1771,13 +1804,14 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // 0 - Low
                     // 1 - Normal
                     // 2 - High
-
                     DEBUG_EMAIL(("Importance Level - "));
                     MALLOC_EMAIL(item);
                     memcpy(&(item->email->importance), list->items[x]->data, sizeof(item->email->importance));
                     LE32_CPU(item->email->importance);
                     t = item->email->importance;
-                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"Low":((int)t==1?"Normal":"High")), t));
+                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"Low":
+                                              ((int)t==1?"Normal":
+                                                         "High")), t));
                     break;
                 case 0x001A: // PR_MESSAGE_CLASS Ascii type of messages - NOT FOLDERS
                     // must be case insensitive
@@ -1862,22 +1896,32 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     memcpy(&(item->email->orig_sensitivity), list->items[x]->data, sizeof(item->email->orig_sensitivity));
                     LE32_CPU(item->email->orig_sensitivity);
                     t = item->email->orig_sensitivity;
-                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"None":((int)t==1?"Personal":
-                                        ((int)t==2?"Private":"Company Confidential"))), t));
+                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"None":
+                                              ((int)t==1?"Personal":
+                                              ((int)t==2?"Private":
+                                                         "Company Confidential"))), t));
+                    break;
+                case 0x0032: // PR_REPORT_TIME
+                    DEBUG_EMAIL(("Report time - "));
+                    MALLOC_EMAIL(item);
+                    LIST_COPY_TIME(item->email->report_time);
+                    DEBUG_EMAIL(("%s", fileTimeToAscii(item->email->report_time)));
                     break;
                 case 0x0036: // PR_SENSITIVITY
                     // sender's opinion of the sensitivity of an email
                     // 0 - None
                     // 1 - Personal
                     // 2 - Private
-                    // 3 - Company Confidiential
+                    // 3 - Company Confidential
                     DEBUG_EMAIL(("Sensitivity - "));
                     MALLOC_EMAIL(item);
                     memcpy(&(item->email->sensitivity), list->items[x]->data, sizeof(item->email->sensitivity));
                     LE32_CPU(item->email->sensitivity);
                     t = item->email->sensitivity;
-                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"None":((int)t==1?"Personal":
-                                        ((int)t==2?"Private":"Company Confidential"))), t));
+                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"None":
+                                              ((int)t==1?"Personal":
+                                              ((int)t==2?"Private":
+                                                         "Company Confidential"))), t));
                     break;
                 case 0x0037: // PR_SUBJECT raw subject
                     DEBUG_EMAIL(("Raw Subject - "));
@@ -2086,6 +2130,28 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     LIST_COPY(item->email->header, (char*));
                     DEBUG_EMAIL(("%s\n", item->email->header));
                     break;
+                case 0x0C04: // PR_NDR_REASON_CODE
+                    MALLOC_EMAIL(item);
+                    memcpy(&(item->email->ndr_reason_code), list->items[x]->data, sizeof(item->email->ndr_reason_code));
+                    LE32_CPU(item->email->ndr_reason_code);
+                    t = item->email->ndr_reason_code;
+                    DEBUG_EMAIL(("NDR reason code - [%i]\n", (int)t));
+                    break;
+                case 0x0C05: // PR_NDR_DIAG_CODE
+                    MALLOC_EMAIL(item);
+                    memcpy(&(item->email->ndr_diag_code), list->items[x]->data, sizeof(item->email->ndr_diag_code));
+                    LE32_CPU(item->email->ndr_diag_code);
+                    t = item->email->ndr_diag_code;
+                    DEBUG_EMAIL(("NDR diag code - [%i]\n", (int)t));
+                    break;
+                case 0x0C06: // PR_NON_RECEIPT_NOTIFICATION_REQUESTED
+                    DEBUG_EMAIL(("Non-Receipt Notification Requested - (ignored) - "));
+                    if (*(int16_t*)list->items[x]->data) {
+                        DEBUG_EMAIL(("True\n"));
+                    } else {
+                        DEBUG_EMAIL(("False\n"));
+                    }
+                    break;
                 case 0x0C17: // PR_REPLY_REQUESTED
                     DEBUG_EMAIL(("Reply Requested - "));
                     MALLOC_EMAIL(item);
@@ -2102,6 +2168,12 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     break;
                 case 0x0C1A: // PR_SENDER_NAME Name of Sender Structure 2
                     DEBUG_EMAIL(("Name of Sender Structure 2 -- NOT HANDLED\n"));
+                    break;
+                case 0x0C1B: // PR_SUPPLEMENTARY_INFO
+                    DEBUG_EMAIL(("Supplementary info - "));
+                    MALLOC_EMAIL(item);
+                    LIST_COPY(item->email->supplementary_info, (char*));
+                    DEBUG_EMAIL(("%s\n", item->email->supplementary_info));
                     break;
                 case 0x0C1D: // PR_SENDER_SEARCH_KEY Name of Sender Address 2
                     DEBUG_EMAIL(("Name of Sender Address 2 (Sender search key) - "));
@@ -2120,6 +2192,13 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     MALLOC_EMAIL(item);
                     LIST_COPY(item->email->sender2_address, (char*));
                     DEBUG_EMAIL(("%s\n", item->email->sender2_address));
+                    break;
+                case 0x0C20: // PR_NDR_STATUS_CODE
+                    MALLOC_EMAIL(item);
+                    memcpy(&(item->email->ndr_status_code), list->items[x]->data, sizeof(item->email->ndr_status_code));
+                    LE32_CPU(item->email->ndr_status_code);
+                    t = item->email->ndr_status_code;
+                    DEBUG_EMAIL(("NDR status code - [%i]\n", (int)t));
                     break;
                 case 0x0E01: // PR_DELETE_AFTER_SUBMIT
                     // I am not too sure how this works
@@ -2206,7 +2285,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x0E20: // PR_ATTACH_SIZE binary Attachment data in record
                     DEBUG_EMAIL(("Attachment Size - "));
                     NULL_CHECK(attach);
-                    MOVE_NEXT(attach);
                     t = (*(int32_t*)list->items[x]->data);
                     LE32_CPU(t);
                     attach->size = (size_t)t;
@@ -2219,11 +2297,20 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL_HEXPRINT(item->record_key, item->record_key_size);
                     DEBUG_EMAIL(("\n"));
                     break;
-                case 0x1000: // PR_BODY Plain Text body
-                    DEBUG_EMAIL(("Plain Text body - "));
+                case 0x1000: // PR_BODY
                     MALLOC_EMAIL(item);
                     LIST_COPY(item->email->body, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->body));
+                    item->email->body_was_unicode = (list->items[x]->type == 0x1f) ? 1 : 0;
+                    DEBUG_EMAIL(("Plain Text body %s - \n%s\n", (item->email->body_was_unicode) ? "unicode" : "sbcs",
+                                                               item->email->body));
+                    break;
+                case 0x1001: // PR_REPORT_TEXT
+                    DEBUG_EMAIL(("Report Text - "));
+                    MALLOC_EMAIL(item);
+                    LIST_COPY(item->email->report_text, (char*));
+                    item->email->report_was_unicode = (list->items[x]->type == 0x1f) ? 1 : 0;
+                    DEBUG_EMAIL(("Report Text %s - \n%s\n", (item->email->report_was_unicode) ? "unicode" : "sbcs",
+                                                               item->email->report_text));
                     break;
                 case 0x1006: // PR_RTF_SYNC_BODY_CRC
                     DEBUG_EMAIL(("RTF Sync Body CRC - "));
@@ -2271,10 +2358,11 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%i\n", item->email->rtf_ws_trailing_count));
                     break;
                 case 0x1013: // HTML body
-                    DEBUG_EMAIL(("HTML body - "));
                     MALLOC_EMAIL(item);
                     LIST_COPY(item->email->htmlbody, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->htmlbody));
+                    item->email->htmlbody_was_unicode = (list->items[x]->type == 0x1f) ? 1 : 0;
+                    DEBUG_EMAIL(("HTML body %s - \n%s\n", (item->email->htmlbody_was_unicode) ? "unicode" : "sbcs",
+                                                          item->email->htmlbody));
                     break;
                 case 0x1035: // Message ID
                     DEBUG_EMAIL(("Message ID - "));
@@ -2452,7 +2540,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x3701: // PR_ATTACH_DATA_OBJ binary data of attachment
                     DEBUG_EMAIL(("Binary Data [Size %i] - ", list->items[x]->size));
                     NULL_CHECK(attach);
-                    MOVE_NEXT(attach);
                     if (!list->items[x]->data) { //special case
                         attach->id2_val = list->items[x]->type;
                         DEBUG_EMAIL(("Seen a Reference. The data hasn't been loaded yet. [%#"PRIx64"][%#x]\n",
@@ -2466,7 +2553,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x3704: // PR_ATTACH_FILENAME Attachment filename (8.3)
                     DEBUG_EMAIL(("Attachment Filename - "));
                     NULL_CHECK(attach);
-                    MOVE_NEXT(attach);
                     LIST_COPY(attach->filename1, (char*));
                     DEBUG_EMAIL(("%s\n", attach->filename1));
                     break;
@@ -2480,7 +2566,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // 6 - OLE
                     DEBUG_EMAIL(("Attachment method - "));
                     NULL_CHECK(attach);
-                    MOVE_NEXT(attach);
                     memcpy(&(attach->method), list->items[x]->data, sizeof(attach->method));
                     LE32_CPU(attach->method);
                     t = attach->method;
@@ -2494,7 +2579,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x3707: // PR_ATTACH_LONG_FILENAME Attachment filename (long?)
                     DEBUG_EMAIL(("Attachment Filename long - "));
                     NULL_CHECK(attach);
-                    MOVE_NEXT(attach);
                     LIST_COPY(attach->filename2, (char*));
                     DEBUG_EMAIL(("%s\n", attach->filename2));
                     break;
@@ -2502,7 +2586,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // position in characters that the attachment appears in the plain text body
                     DEBUG_EMAIL(("Attachment Position - "));
                     NULL_CHECK(attach);
-                    MOVE_NEXT(attach);
                     memcpy(&(attach->position), list->items[x]->data, sizeof(attach->position));
                     LE32_CPU(attach->position);
                     DEBUG_EMAIL(("%i [%#x]\n", attach->position));
@@ -2510,7 +2593,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                 case 0x370E: // PR_ATTACH_MIME_TAG Mime type of encoding
                     DEBUG_EMAIL(("Attachment mime encoding - "));
                     NULL_CHECK(attach);
-                    MOVE_NEXT(attach);
                     LIST_COPY(attach->mimetype, (char*));
                     DEBUG_EMAIL(("%s\n", attach->mimetype));
                     break;
@@ -2518,7 +2600,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     // sequence number for mime parts. Includes body
                     DEBUG_EMAIL(("Attachment Mime Sequence - "));
                     NULL_CHECK(attach);
-                    MOVE_NEXT(attach);
                     memcpy(&(attach->sequence), list->items[x]->data, sizeof(attach->sequence));
                     LE32_CPU(attach->sequence);
                     DEBUG_EMAIL(("%i\n", attach->sequence));
@@ -3013,6 +3094,20 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     LIST_COPY(item->contact->other_po_box, (char*));
                     DEBUG_EMAIL(("%s\n", item->contact->other_po_box));
                     break;
+                case 0x3FDE: // PR_INTERNET_CPID
+                    MALLOC_EMAIL(item);
+                    memcpy(&(item->email->internet_cpid), list->items[x]->data, sizeof(item->email->internet_cpid));
+                    LE32_CPU(item->email->internet_cpid);
+                    t = item->email->internet_cpid;
+                    DEBUG_EMAIL(("Internet code page %i\n", (int)t));
+                    break;
+                case 0x3FFD: // PR_MESSAGE_CODEPAGE
+                    MALLOC_EMAIL(item);
+                    memcpy(&(item->email->message_codepage), list->items[x]->data, sizeof(item->email->message_codepage));
+                    LE32_CPU(item->email->message_codepage);
+                    t = item->email->message_codepage;
+                    DEBUG_EMAIL(("Message code page %i\n", (int)t));
+                    break;
                 case 0x65E3: // Entry ID?
                     DEBUG_EMAIL(("Entry ID - "));
                     item->record_key = (char*) xmalloc(16+1);
@@ -3025,7 +3120,6 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("Attachment ID2 value - "));
                     if (attach) {
                         uint32_t tempid;
-                        MOVE_NEXT(attach);
                         memcpy(&(tempid), list->items[x]->data, sizeof(tempid));
                         LE32_CPU(tempid);
                         attach->id2_val = tempid;
@@ -3523,9 +3617,8 @@ int pst_process(pst_num_array *list , pst_item *item, pst_item_attach *attach) {
             }
             x++;
         }
-        x = 0;
         list = list->next;
-        next = 1;
+        if (attach) attach = attach->next;
     }
     DEBUG_RET();
     return 0;
@@ -3558,8 +3651,9 @@ void pst_free_id2(pst_index2_ll * head) {
     pst_index2_ll *t;
     DEBUG_ENT("pst_free_id2");
     while (head) {
+        if (head->child) pst_free_id2(head->child);
         t = head->next;
-        free (head);
+        free(head);
         head = t;
     }
     DEBUG_RET();
@@ -3615,7 +3709,7 @@ void pst_free_xattrib(pst_x_attrib_ll *x) {
 }
 
 
-pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* head_ptr) {
+pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
     pst_block_header block_head;
     pst_index2_ll *head = NULL, *tail = NULL;
     uint16_t x = 0;
@@ -3626,10 +3720,6 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* h
     pst_index2_ll *i2_ptr = NULL;
     DEBUG_ENT("pst_build_id2");
 
-    if (head_ptr) {
-        head = head_ptr;
-        while (head_ptr) head_ptr = (tail = head_ptr)->next;
-    }
     if (pst_read_block_size(pf, list->offset, list->size, &buf) < list->size) {
         //an error occured in block read
         WARN(("block read error occured. offset = %#"PRIx64", size = %#"PRIx64"\n", list->offset, list->size));
@@ -3656,41 +3746,28 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list, pst_index2_ll* h
     b_ptr = buf + ((pf->do_read64) ? 0x08 : 0x04);
     while (x < block_head.count) {
         b_ptr += pst_decode_assoc(pf, &id2_rec, b_ptr);
-        DEBUG_INDEX(("\tid2 = %#x, id = %#"PRIx64", table2 = %#"PRIx64"\n", id2_rec.id2, id2_rec.id, id2_rec.table2));
+        DEBUG_INDEX(("id2 = %#x, id = %#"PRIx64", table2 = %#"PRIx64"\n", id2_rec.id2, id2_rec.id, id2_rec.table2));
         if ((i_ptr = pst_getID(pf, id2_rec.id)) == NULL) {
-            DEBUG_WARN(("\t\t%#"PRIx64" - Not Found\n", id2_rec.id));
+            DEBUG_WARN(("%#"PRIx64" - Not Found\n", id2_rec.id));
         } else {
-            DEBUG_INDEX(("\t\t%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
+            DEBUG_INDEX(("%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
                          i_ptr->id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
-            // add it to the linked list
+            // add it to the tree
             i2_ptr = (pst_index2_ll*) xmalloc(sizeof(pst_index2_ll));
-            i2_ptr->id2  = id2_rec.id2;
-            i2_ptr->id   = i_ptr;
-            i2_ptr->next = NULL;
+            i2_ptr->id2   = id2_rec.id2;
+            i2_ptr->id    = i_ptr;
+            i2_ptr->child = NULL;
+            i2_ptr->next  = NULL;
             if (!head) head = i2_ptr;
             if (tail)  tail->next = i2_ptr;
             tail = i2_ptr;
-            if (id2_rec.table2 != 0) {
+            if (id2_rec.table2) {
                 if ((i_ptr = pst_getID(pf, id2_rec.table2)) == NULL) {
-                    DEBUG_WARN(("\tTable2 [%#x] not found\n", id2_rec.table2));
+                    DEBUG_WARN(("Table2 [%#x] not found\n", id2_rec.table2));
                 }
                 else {
-                    DEBUG_INDEX(("\tGoing deeper for table2 [%#x]\n", id2_rec.table2));
-                    if ((i2_ptr = pst_build_id2(pf, i_ptr, head))) {
-                    //  DEBUG_INDEX(("pst_build_id2(): \t\tAdding new list onto end of current\n"));
-                    //  if (!head)
-                    //    head = i2_ptr;
-                    //  if (tail)
-                    //    tail->next = i2_ptr;
-                    //  while (i2_ptr->next)
-                    //    i2_ptr = i2_ptr->next;
-                    //    tail = i2_ptr;
-                    }
-                    // need to re-establish tail
-                    DEBUG_INDEX(("Returned from depth\n"));
-                    if (tail) {
-                        while (tail->next) tail = tail->next;
-                    }
+                    DEBUG_INDEX(("Going deeper for table2 [%#x]\n", id2_rec.table2));
+                    i2_ptr->child = pst_build_id2(pf, i_ptr);
                 }
             }
         }
@@ -3749,6 +3826,9 @@ void pst_freeItem(pst_item *item) {
             if (item->email->subject)
                 SAFE_FREE(item->email->subject->subj);
             SAFE_FREE(item->email->subject);
+            SAFE_FREE(item->email->report_text);
+            SAFE_FREE(item->email->report_time);
+            SAFE_FREE(item->email->supplementary_info);
             free(item->email);
         }
         if (item->folder) {
@@ -4012,10 +4092,19 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t id) {
 }
 
 
-pst_index_ll * pst_getID2(pst_index2_ll *ptr, uint64_t id) {
+pst_index_ll *pst_getID2(pst_index2_ll *head, uint64_t id) {
     DEBUG_ENT("pst_getID2");
-    DEBUG_INDEX(("Head = %p id = %#"PRIx64"\n", ptr, id));
-    while (ptr && (ptr->id2 != id)) {
+    DEBUG_INDEX(("looking for id = %#"PRIx64"\n", id));
+    pst_index2_ll *ptr = head;
+    while (ptr) {
+        if (ptr->id2 == id) break;
+        if (ptr->child) {
+            pst_index_ll *rc = pst_getID2(ptr->child, id);
+            if (rc) {
+                DEBUG_RET();
+                return rc;
+            }
+        }
         ptr = ptr->next;
     }
     if (ptr) {
@@ -4024,7 +4113,7 @@ pst_index_ll * pst_getID2(pst_index2_ll *ptr, uint64_t id) {
         DEBUG_RET();
         return ptr->id;
     }
-    DEBUG_INDEX(("ERROR Not Found\n"));
+    //DEBUG_INDEX(("ERROR Not Found\n"));
     DEBUG_RET();
     return NULL;
 }
@@ -4087,6 +4176,7 @@ void pst_printID2ptr(pst_index2_ll *ptr) {
     DEBUG_ENT("pst_printID2ptr");
     while (ptr) {
         DEBUG_INDEX(("%#"PRIx64" id=%#"PRIx64"\n", ptr->id2, (ptr->id ? ptr->id->id : (uint64_t)0)));
+        if (ptr->child) pst_printID2ptr(ptr->child);
         ptr = ptr->next;
     }
     DEBUG_RET();
