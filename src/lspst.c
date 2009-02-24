@@ -61,7 +61,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
         else {
             DEBUG_MAIN(("main: Desc Email ID %x [d_ptr->id = %x]\n", d_ptr->desc->id, d_ptr->id));
 
-            item = pst_parse_item(&pstfile, d_ptr);
+            item = pst_parse_item(&pstfile, d_ptr, NULL);
             DEBUG_MAIN(("main: About to process item @ %p.\n", item));
             if (item) {
                 if (item->message_store) {
@@ -216,7 +216,7 @@ int main(int argc, char* const* argv) {
     pst_load_extended_attributes(&pstfile);
 
     d_ptr = pstfile.d_head; // first record is main record
-    item  = pst_parse_item(&pstfile, d_ptr);
+    item  = pst_parse_item(&pstfile, d_ptr, NULL);
     if (!item || !item->message_store) {
         DEBUG_RET();
         DIE(("main: Could not get root record\n"));

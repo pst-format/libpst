@@ -62,7 +62,7 @@ void dumper(uint64_t id)
             ptr->desc = pst_getID(&pstfile, id);
             ptr->list_index = NULL;
         }
-        pst_item *item = pst_parse_item(&pstfile, ptr);
+        pst_item *item = pst_parse_item(&pstfile, ptr, NULL);
         if (item) pst_freeItem(item);
     }
 }

@@ -153,11 +153,11 @@ typedef struct pst_index2_tree {
 
 
 typedef struct pst_desc_tree {
-    uint64_t id;
-    uint64_t parent_id;
-    pst_index_ll *list_index;
-    pst_index_ll *desc;
-    int32_t no_child;
+    uint64_t              id;
+    uint64_t              parent_id;
+    pst_index_ll         *list_index;
+    pst_index_ll         *desc;
+    int32_t               no_child;
     struct pst_desc_tree *prev;
     struct pst_desc_tree *next;
     struct pst_desc_tree *parent;
@@ -382,7 +382,8 @@ typedef struct pst_item_attach {
     char *data;
     size_t   size;
     uint64_t id2_val;
-    uint64_t id_val; // calculated from id2_val during creation of record
+    uint64_t id_val;            // calculated from id2_val during creation of record
+    pst_index2_ll *id2_head;    // deep copy from child
     int32_t  method;
     int32_t  position;
     int32_t  sequence;
@@ -548,7 +549,7 @@ int            pst_load_extended_attributes(pst_file *pf);
 int            pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 int            pst_build_desc_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 pst_item*      pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
-pst_item*      pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr);
+pst_item*      pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr, pst_index2_ll *m_head);
 pst_num_array* pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *i2_head, pst_num_array *na_head);
 int            pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach);
 void           pst_free_list(pst_num_array *list);
@@ -561,7 +562,7 @@ int            pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, p
 int            pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p);
 pst_index2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list);
 pst_index_ll*  pst_getID(pst_file* pf, uint64_t id);
-pst_index_ll*  pst_getID2(pst_index2_ll * ptr, uint64_t id);
+pst_index2_ll* pst_getID2(pst_index2_ll * ptr, uint64_t id);
 pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t id);
 size_t         pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
 int            pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type);

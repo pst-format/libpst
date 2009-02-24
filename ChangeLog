@@ -1,4 +1,4 @@
-LibPST 0.6.28 (2009-xx-xx)
+LibPST 0.6.28 (2009-02-24)
 ===============================
     * add X-libpst-forensic-* headers to capture items of interest
       that are not used by normal mail clients.
@@ -7,6 +7,7 @@ LibPST 0.6.28 (2009-xx-xx)
     * improve character set handling - don't try to convert utf-8
       to single byte for fields that were not originally unicode.
       if the conversion fails, leave the data in utf-8.
+    * fix embedded rfc822 messages with attachments.
 
 LibPST 0.6.27 (2009-02-07)
 ===============================

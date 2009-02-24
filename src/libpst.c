@@ -349,6 +349,26 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
 }
 
 
+/**
+ * make a deep copy of part of the id2 mapping tree, for use
+ * by an attachment containing an embedded rfc822 message.
+ *
+ * @param   head  pointer to the subtree to be copied
+ * @return        pointer to the new copy of the subtree
+ */
+static pst_index2_ll* deep_copy(pst_index2_ll *head);
+static pst_index2_ll* deep_copy(pst_index2_ll *head)
+{
+    if (!head) return NULL;
+    pst_index2_ll* me = (pst_index2_ll*) xmalloc(sizeof(pst_index2_ll));
+    me->id2 = head->id2;
+    me->id  = head->id;
+    me->child = deep_copy(head->child);
+    me->next  = deep_copy(head->next);
+    return me;
+}
+
+
 pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
     pst_desc_ll *topnode;
     uint32_t topid;
@@ -530,7 +550,7 @@ int pst_load_extended_attributes(pst_file *pf) {
     na = pst_parse_block(pf, p->desc->id, id2_head, NULL);
     if (!na) {
         DEBUG_WARN(("Cannot process desc block for item 0x61. Not loading extended Attributes\n"));
-        if (id2_head) pst_free_id2(id2_head);
+        pst_free_id2(id2_head);
         DEBUG_RET();
         return 0;
     }
@@ -548,7 +568,7 @@ int pst_load_extended_attributes(pst_file *pf) {
     }
 
     if (!buffer) {
-        if (na) pst_free_list(na);
+        pst_free_list(na);
         DEBUG_WARN(("No extended attributes buffer found. Not processing\n"));
         DEBUG_RET();
         return 0;
@@ -620,8 +640,8 @@ int pst_load_extended_attributes(pst_file *pf) {
         LE16_CPU(xattrib.map);
         bptr += sizeof(xattrib);
     }
-    if (id2_head) pst_free_id2(id2_head);
-    if (na)       pst_free_list(na);
+    pst_free_id2(id2_head);
+    pst_free_list(na);
     pf->x_head = p_head;
     DEBUG_RET();
     return 1;
@@ -1028,10 +1048,10 @@ int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t li
 }
 
 
-pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
+pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_index2_ll *m_head) {
     pst_num_array * list;
-    pst_index2_ll *id2_head = NULL;
-    pst_index_ll *id_ptr = NULL;
+    pst_index2_ll *id2_head = m_head;
+    pst_index2_ll *id2_ptr  = NULL;
     pst_item *item = NULL;
     pst_item_attach *attach = NULL;
     int32_t x;
@@ -1049,14 +1069,18 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
     }
 
     if (d_ptr->list_index) {
+        if (m_head) {
+            DEBUG_WARN(("supplied master head, but have a list that is building a new id2_head"));
+            m_head = NULL;
+        }
         id2_head = pst_build_id2(pf, d_ptr->list_index);
-        (void)pst_printID2ptr(id2_head);
     }
+    pst_printID2ptr(id2_head);
 
     list = pst_parse_block(pf, d_ptr->desc->id, id2_head, NULL);
     if (!list) {
         DEBUG_WARN(("pst_parse_block() returned an error for d_ptr->desc->id [%#"PRIx64"]\n", d_ptr->desc->id));
-        if (id2_head) pst_free_id2(id2_head);
+        if (!m_head) pst_free_id2(id2_head);
         DEBUG_RET();
         return NULL;
     }
@@ -1066,48 +1090,42 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
 
     if (pst_process(list, item, NULL)) {
         DEBUG_WARN(("pst_process() returned non-zero value. That is an error\n"));
-        if (item)     pst_freeItem(item);
-        if (list)     pst_free_list(list);
-        if (id2_head) pst_free_id2(id2_head);
+        pst_freeItem(item);
+        pst_free_list(list);
+        if (!m_head) pst_free_id2(id2_head);
         DEBUG_RET();
         return NULL;
     }
-    if (list) pst_free_list(list);
-    list = NULL;
+    pst_free_list(list);
 
-    if ((id_ptr = pst_getID2(id2_head, (uint64_t)0x692))) {
+    if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x692))) {
         // DSN/MDN reports?
         DEBUG_EMAIL(("DSN/MDN processing \n"));
-        if ((list = pst_parse_block(pf, id_ptr->id, id2_head, NULL)) == NULL) {
+        list = pst_parse_block(pf, id2_ptr->id->id, id2_head, NULL);
+        if (!list) {
             DEBUG_WARN(("ERROR error processing main DSN/MDN record\n"));
-            if (item)     pst_freeItem(item);
-            if (list)     pst_free_list(list);
-            if (id2_head) pst_free_id2(id2_head);
+            if (!m_head) pst_free_id2(id2_head);
             DEBUG_RET();
             return item;
         }
-        else {
-            for (x=0; x < list->count_array; x++) {
-                attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
-                memset(attach, 0, sizeof(pst_item_attach));
-                attach->next = item->attach;
-                item->attach = attach;
-            }
-
-            if (pst_process(list, item, item->attach)) {
-                DEBUG_WARN(("ERROR pst_process() failed with attachments\n"));
-                if (item)     pst_freeItem(item);
-                if (list)     pst_free_list(list);
-                if (id2_head) pst_free_id2(id2_head);
-                DEBUG_RET();
-                return NULL;
-            }
-            if (list) pst_free_list(list);
-            list = NULL;
+        for (x=0; x < list->count_array; x++) {
+            attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+            memset(attach, 0, sizeof(pst_item_attach));
+            attach->next = item->attach;
+            item->attach = attach;
         }
+        if (pst_process(list, item, item->attach)) {
+            DEBUG_WARN(("ERROR pst_process() failed with DSN/MDN attachments\n"));
+            pst_freeItem(item);
+            pst_free_list(list);
+            if (!m_head) pst_free_id2(id2_head);
+            DEBUG_RET();
+            return NULL;
+        }
+        pst_free_list(list);
     }
 
-    if ((id_ptr = pst_getID2(id2_head, (uint64_t)0x671))) {
+    if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x671))) {
         // should not have any existing attachments anyway
         //while (item->attach) {
         //    DEBUG_EMAIL(("throw away existing attachment\n"));
@@ -1117,78 +1135,75 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr) {
         //}
 
         DEBUG_EMAIL(("ATTACHMENT processing attachment\n"));
-        if ((list = pst_parse_block(pf, id_ptr->id, id2_head, NULL)) == NULL) {
+        list = pst_parse_block(pf, id2_ptr->id->id, id2_head, NULL);
+        if (!list) {
             DEBUG_WARN(("ERROR error processing main attachment record\n"));
-            if (id2_head) pst_free_id2(id2_head);
+            if (!m_head) pst_free_id2(id2_head);
             DEBUG_RET();
             return item;
         }
-        else {
-            for (x=0; x < list->count_array; x++) {
-                attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
-                memset(attach, 0, sizeof(pst_item_attach));
-                attach->next = item->attach;
-                item->attach = attach;
-            }
+        for (x=0; x < list->count_array; x++) {
+            attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+            memset(attach, 0, sizeof(pst_item_attach));
+            attach->next = item->attach;
+            item->attach = attach;
+        }
+        if (pst_process(list, item, item->attach)) {
+            DEBUG_WARN(("ERROR pst_process() failed with attachments\n"));
+            pst_freeItem(item);
+            pst_free_list(list);
+            if (!m_head) pst_free_id2(id2_head);
+            DEBUG_RET();
+            return NULL;
+        }
+        pst_free_list(list);
 
-            if (pst_process(list, item, item->attach)) {
-                DEBUG_WARN(("ERROR pst_process() failed with attachments\n"));
-                if (item)     pst_freeItem(item);
-                if (list)     pst_free_list(list);
-                if (id2_head) pst_free_id2(id2_head);
-                DEBUG_RET();
-                return NULL;
-            }
-            if (list) pst_free_list(list);
-            list = NULL;
-
-            // now we will have initial information of each attachment stored in item->attach...
-            // we must now read the secondary record for each based on the id2 val associated with
-            // each attachment
-            attach = item->attach;
-            while (attach) {
-                DEBUG_WARN(("initial attachment id2 %#"PRIx64"\n", attach->id2_val));
-                if ((id_ptr = pst_getID2(id2_head, attach->id2_val))) {
-                    DEBUG_WARN(("initial attachment id2 found id %#"PRIx64"\n", id_ptr->id));
-                    // id_ptr is a record describing the attachment
-                    // we pass NULL instead of id2_head cause we don't want it to
-                    // load all the extra stuff here.
-                    if ((list = pst_parse_block(pf, id_ptr->id, NULL, NULL)) == NULL) {
-                        DEBUG_WARN(("ERROR error processing an attachment record\n"));
-                        attach = attach->next;
-                        continue;
-                    }
-                    if (list->count_array > 1) {
-                        DEBUG_WARN(("ERROR probably fatal, list count array will overrun attach structure.\n"));
-                    }
-                    if (pst_process(list, item, attach)) {
-                        DEBUG_WARN(("ERROR pst_process() failed with an attachment\n"));
-                        if (list) pst_free_list(list);
-                        list = NULL;
-                        attach = attach->next;
-                        continue;
-                    }
-                    if (list) pst_free_list(list);
-                    list = NULL;
-                    id_ptr = pst_getID2(id2_head, attach->id2_val);
-                    if (id_ptr) {
-                        DEBUG_WARN(("second pass attachment updating id2 found id %#"PRIx64"\n", id_ptr->id));
-                        // id2_val has been updated to the ID2 value of the datablock containing the
-                        // attachment data
-                        attach->id_val = id_ptr->id;
-                    } else {
-                        DEBUG_WARN(("have not located the correct value for the attachment [%#"PRIx64"]\n", attach->id2_val));
-                    }
-                } else {
-                    DEBUG_WARN(("ERROR cannot locate id2 value %#"PRIx64"\n", attach->id2_val));
-                    attach->id2_val = 0;    // suppress this missing attachment
+        // now we will have initial information of each attachment stored in item->attach...
+        // we must now read the secondary record for each based on the id2 val associated with
+        // each attachment
+        attach = item->attach;
+        while (attach) {
+            DEBUG_WARN(("initial attachment id2 %#"PRIx64"\n", attach->id2_val));
+            if ((id2_ptr = pst_getID2(id2_head, attach->id2_val))) {
+                DEBUG_WARN(("initial attachment id2 found id %#"PRIx64"\n", id2_ptr->id->id));
+                // id_ptr is a record describing the attachment
+                // we pass NULL instead of id2_head cause we don't want it to
+                // load all the extra stuff here.
+                list = pst_parse_block(pf, id2_ptr->id->id, NULL, NULL);
+                if (!list) {
+                    DEBUG_WARN(("ERROR error processing an attachment record\n"));
+                    attach = attach->next;
+                    continue;
                 }
-                attach = attach->next;
+                if (list->count_array > 1) {
+                    DEBUG_WARN(("ERROR probably fatal, list count array will overrun attach structure.\n"));
+                }
+                if (pst_process(list, item, attach)) {
+                    DEBUG_WARN(("ERROR pst_process() failed with an attachment\n"));
+                    pst_free_list(list);
+                    attach = attach->next;
+                    continue;
+                }
+                pst_free_list(list);
+                id2_ptr = pst_getID2(id2_head, attach->id2_val);
+                if (id2_ptr) {
+                    DEBUG_WARN(("second pass attachment updating id2 found id %#"PRIx64"\n", id2_ptr->id->id));
+                    // id2_val has been updated to the ID2 value of the datablock containing the
+                    // attachment data
+                    attach->id_val   = id2_ptr->id->id;
+                    attach->id2_head = deep_copy(id2_ptr->child);
+                } else {
+                    DEBUG_WARN(("have not located the correct value for the attachment [%#"PRIx64"]\n", attach->id2_val));
+                }
+            } else {
+                DEBUG_WARN(("ERROR cannot locate id2 value %#"PRIx64"\n", attach->id2_val));
+                attach->id2_val = 0;    // suppress this missing attachment
             }
+            attach = attach->next;
         }
     }
 
-    if (id2_head) pst_free_id2(id2_head);
+    if (!m_head) pst_free_id2(id2_head);
     DEBUG_RET();
     return item;
 }
@@ -1508,7 +1523,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
             } else {
                 WARN(("Missing code for block_type %i\n", block_type));
                 freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
-                if (na_head) pst_free_list(na_head);
+                pst_free_list(na_head);
                 DEBUG_RET();
                 return NULL;
             }
@@ -1666,7 +1681,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
             } else {
                 WARN(("ERROR Unknown ref_type %#hx\n", table_rec.ref_type));
                 freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
-                if (na_head) pst_free_list(na_head);
+                pst_free_list(na_head);
                 DEBUG_RET();
                 return NULL;
             }
@@ -3639,9 +3654,9 @@ void pst_free_list(pst_num_array *list) {
             }
             free(list->items);
         }
-        l = list;
-        list = list->next;
-        free (l);
+        l = list->next;
+        free (list);
+        list = l;
     }
     DEBUG_RET();
 }
@@ -3779,8 +3794,22 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
 }
 
 
+void pst_free_attach(pst_item_attach *attach) {
+    while (attach) {
+        pst_item_attach *t;
+        SAFE_FREE(attach->filename1);
+        SAFE_FREE(attach->filename2);
+        SAFE_FREE(attach->mimetype);
+        SAFE_FREE(attach->data);
+        pst_free_id2(attach->id2_head);
+        t = attach->next;
+        free(attach);
+        attach = t;
+    }
+}
+
+
 void pst_freeItem(pst_item *item) {
-    pst_item_attach *t;
     pst_item_extra_field *et;
 
     DEBUG_ENT("pst_freeItem");
@@ -3944,15 +3973,9 @@ void pst_freeItem(pst_item *item) {
             SAFE_FREE(item->contact->work_address_postofficebox);
             free(item->contact);
         }
-        while (item->attach) {
-            SAFE_FREE(item->attach->filename1);
-            SAFE_FREE(item->attach->filename2);
-            SAFE_FREE(item->attach->mimetype);
-            SAFE_FREE(item->attach->data);
-            t = item->attach->next;
-            free(item->attach);
-            item->attach = t;
-        }
+
+        pst_free_attach(item->attach);
+
         while (item->extra_fields) {
             SAFE_FREE(item->extra_fields->field_name);
             SAFE_FREE(item->extra_fields->value);
@@ -4092,14 +4115,14 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t id) {
 }
 
 
-pst_index_ll *pst_getID2(pst_index2_ll *head, uint64_t id) {
+pst_index2_ll *pst_getID2(pst_index2_ll *head, uint64_t id2) {
     DEBUG_ENT("pst_getID2");
-    DEBUG_INDEX(("looking for id = %#"PRIx64"\n", id));
+    DEBUG_INDEX(("looking for id2 = %#"PRIx64"\n", id2));
     pst_index2_ll *ptr = head;
     while (ptr) {
-        if (ptr->id2 == id) break;
+        if (ptr->id2 == id2) break;
         if (ptr->child) {
-            pst_index_ll *rc = pst_getID2(ptr->child, id);
+            pst_index2_ll *rc = pst_getID2(ptr->child, id2);
             if (rc) {
                 DEBUG_RET();
                 return rc;
@@ -4107,13 +4130,12 @@ pst_index_ll *pst_getID2(pst_index2_ll *head, uint64_t id) {
         }
         ptr = ptr->next;
     }
-    if (ptr) {
-        if (ptr->id) {DEBUG_INDEX(("Found value %#"PRIx64"\n", ptr->id->id));   }
-        else         {DEBUG_INDEX(("Found value, though it is NULL!\n"));}
+    if (ptr && ptr->id) {
+        DEBUG_INDEX(("Found value %#"PRIx64"\n", ptr->id->id));
         DEBUG_RET();
-        return ptr->id;
+        return ptr;
     }
-    //DEBUG_INDEX(("ERROR Not Found\n"));
+    DEBUG_INDEX(("ERROR Not Found\n"));
     DEBUG_RET();
     return NULL;
 }
@@ -4396,7 +4418,7 @@ size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, char** buf) {
 #define PST_PTR_BLOCK_SIZE 0x120
 size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, char** buf) {
     size_t ret;
-    pst_index_ll* ptr;
+    pst_index2_ll* ptr;
     pst_holder h = {buf, NULL, 0};
     DEBUG_ENT("pst_ff_getID2block");
     ptr = pst_getID2(id2_head, id2);
@@ -4406,7 +4428,7 @@ size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, c
         DEBUG_RET();
         return 0;
     }
-    ret = pst_ff_getID2data(pf, ptr, &h);
+    ret = pst_ff_getID2data(pf, ptr->id, &h);
     DEBUG_RET();
     return ret;
 }

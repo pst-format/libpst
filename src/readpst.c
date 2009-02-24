@@ -138,7 +138,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
         else {
             DEBUG_MAIN(("main: Desc Email ID %#"PRIx64" [d_ptr->id = %#"PRIx64"]\n", d_ptr->desc->id, d_ptr->id));
 
-            item = pst_parse_item(&pstfile, d_ptr);
+            item = pst_parse_item(&pstfile, d_ptr, NULL);
             DEBUG_MAIN(("main: About to process item\n"));
             if (item && item->email && item->email->subject && item->email->subject->subj) {
                 DEBUG_EMAIL(("item->email->subject->subj = %s\n", item->email->subject->subj));
@@ -360,7 +360,7 @@ int main(int argc, char* const* argv) {
     if (output_mode != OUTPUT_QUIET) printf("About to start processing first record...\n");
 
     d_ptr = pstfile.d_head; // first record is main record
-    item  = pst_parse_item(&pstfile, d_ptr);
+    item  = pst_parse_item(&pstfile, d_ptr, NULL);
     if (!item || !item->message_store) {
         DEBUG_RET();
         DIE(("main: Could not get root record\n"));
@@ -746,16 +746,23 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
     fprintf(f_output, "\n--%s\n", boundary);
     fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype);
     ptr = pst_getID(pf, attach->id_val);
-    pst_num_array *list = pst_parse_block(pf, ptr->id, NULL, NULL);
-    if (list) {
-        pst_item *item = (pst_item*) xmalloc(sizeof(pst_item));
-        memset(item, 0, sizeof(pst_item));
-        if (!pst_process(list, item, NULL)) {
-            write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, 0, extra_mime_headers);
-        }
-        pst_freeItem(item);
-        pst_free_list(list);
-    }
+
+    pst_desc_ll d_ptr;
+    d_ptr.id         = ptr->id;
+    d_ptr.parent_id  = 0;
+    d_ptr.list_index = NULL;
+    d_ptr.desc       = ptr;
+    d_ptr.no_child   - 0;
+    d_ptr.prev       = NULL;
+    d_ptr.next       = NULL;
+    d_ptr.parent     = NULL;
+    d_ptr.child      = NULL;
+    d_ptr.child_tail = NULL;
+
+    pst_item *item = pst_parse_item(pf, &d_ptr, attach->id2_head);
+    write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, 0, extra_mime_headers);
+    pst_freeItem(item);
+
     DEBUG_RET();
 }
 
@@ -1025,6 +1032,7 @@ void write_body_part(FILE* f_output, char *body, int32_t body_was_unicode, char 
 }
 
 
+const char* codepage(int cp);
 const char* codepage(int cp) {
     static char buffer[20];
     switch (cp) {
@@ -1050,7 +1058,7 @@ const char* codepage(int cp) {
         case 65000 : return "utf-7";
         case 65001 : return "utf-8";
         default :
-            snprintf(buffer, sizeof(buffer), "cp%d", cp);
+            snprintf(buffer, sizeof(buffer), "windows-%d", cp);
             return buffer;
     }
     return NULL;

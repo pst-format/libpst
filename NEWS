@@ -1,4 +1,4 @@
-0.6.28  2009-02-12 improve decoding of multipart/report and message/rfc822 mime types.
+0.6.28  2009-02-24 improve decoding of multipart/report and message/rfc822 mime types.
 0.6.27  2009-02-07 fix for const correctness on Fedora 11
 0.6.26  2009-02-07 patch from Fridrich Strba for building on mingw, and autoconf cleanup, better mime headers
 0.6.25  2009-01-16 improve handling of content-type charset values in mime parts

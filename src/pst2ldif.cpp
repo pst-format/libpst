@@ -111,7 +111,7 @@ static void process(pst_desc_ll *d_ptr) {
     pst_item *item = NULL;
     while (d_ptr) {
         if (d_ptr->desc) {
-            item = pst_parse_item(&pstfile, d_ptr);
+            item = pst_parse_item(&pstfile, d_ptr, NULL);
             DEBUG_INFO(("item pointer is %p\n", item));
             if (item) {
                 if (item->folder && d_ptr->child && strcasecmp(item->file_as, "Deleted Items")) {
@@ -609,7 +609,7 @@ int main(int argc, char* const* argv) {
     pst_load_extended_attributes(&pstfile);
 
     d_ptr = pstfile.d_head; // first record is main record
-    item  = (pst_item*)pst_parse_item(&pstfile, d_ptr);
+    item  = (pst_item*)pst_parse_item(&pstfile, d_ptr, NULL);
     if (!item || !item->message_store) {
         DEBUG_RET();
         DIE(("main: Could not get root record\n"));
