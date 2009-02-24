@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Feb 24 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.29-1
+- fix for 64bit on Fedora 11
+
 * Tue Feb 24 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.28-1
 - improve decoding of multipart/report and message/rfc822 mime types.
 - improve character set handling.

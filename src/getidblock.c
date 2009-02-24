@@ -36,13 +36,13 @@ void dumper(uint64_t id)
             DIE(("Error decrypting block\n"));
         }
 
-    DEBUG_MAIN(("Printing block id %#"PRIx64", size %#x\n", id, readSize));
+    DEBUG_MAIN(("Printing block id %#"PRIx64", size %#"PRIx64"\n", id, (uint64_t)readSize));
     if (binary) {
         if (fwrite(buf, 1, readSize, stdout) != 0) {
             DIE(("Error occured during writing of buf to stdout\n"));
         }
     } else {
-        printf("Block id %#"PRIx64", size %#x\n", id, readSize);
+        printf("Block id %#"PRIx64", size %#"PRIx64"\n", id, (uint64_t)readSize);
         pst_debug_hexdumper(stdout, buf, readSize, 0x10, 0);
     }
     if (buf) free(buf);

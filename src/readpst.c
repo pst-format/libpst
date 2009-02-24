@@ -752,7 +752,7 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
     d_ptr.parent_id  = 0;
     d_ptr.list_index = NULL;
     d_ptr.desc       = ptr;
-    d_ptr.no_child   - 0;
+    d_ptr.no_child   = 0;
     d_ptr.prev       = NULL;
     d_ptr.next       = NULL;
     d_ptr.parent     = NULL;
@@ -884,7 +884,6 @@ char *header_end_field(char *field)
 
 void header_strip_field(char *header, char *field)
 {
-    char *e;
     char *t = header_get_field(header, field);
     if (t) {
         char *e = header_end_field(t);
@@ -959,7 +958,7 @@ void find_rfc822_headers(char** extra_mime_headers)
     char *headers = *extra_mime_headers;
     if (headers) {
         char *temp, *t;
-        while (temp = strstr(headers, "\n\n")) {
+        while ((temp = strstr(headers, "\n\n"))) {
             temp[1] = '\0';
             t = header_get_field(headers, "\nContent-Type: ");
             if (t) {

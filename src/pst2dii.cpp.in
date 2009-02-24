@@ -384,7 +384,7 @@ static void close_pdf()
 {
     close_png();
     conversion += string(" ") + pdf_name;
-    system(conversion.c_str());
+    (void)system(conversion.c_str());
     for (vector<string>::iterator i=png_names.begin(); i!=png_names.end(); i++) {
         remove((*i).c_str());
     }
@@ -562,7 +562,9 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
         removeCR(item->email->htmlbody);
         print_pdf(item->email->htmlbody);
     } else if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
-        print_pdf("The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
+        char ln[LINE_SIZE];
+        snprintf(ln, sizeof(ln), "%s", "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
+        print_pdf(ln);
     }
     fprintf(dii_file, "@EMAIL-END\n");
 

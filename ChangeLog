@@ -1,3 +1,7 @@
+LibPST 0.6.29 (2009-02-24)
+===============================
+    * fix for 64bit on Fedora 11
+
 LibPST 0.6.28 (2009-02-24)
 ===============================
     * add X-libpst-forensic-* headers to capture items of interest
