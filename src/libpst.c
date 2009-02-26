@@ -1359,7 +1359,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         block_type = 1;
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, block_hdr.offset, &block_offset1)) {
-            DEBUG_WARN(("internal error (bc.b5 offset %#x) in reading block id %#x\n", block_hdr.offset, block_id));
+            DEBUG_WARN(("internal error (bc.b5 offset %#x) in reading block id %#"PRIx64"\n", block_hdr.offset, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1378,7 +1378,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         }
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset2)) {
-            DEBUG_WARN(("internal error (bc.b5.desc offset) in reading block id %#x\n", table_rec.value, block_id));
+            DEBUG_WARN(("internal error (bc.b5.desc offset #x) in reading block id %#"PRIx64"\n", table_rec.value, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1392,7 +1392,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         block_type = 2;
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, block_hdr.offset, &block_offset3)) {
-            DEBUG_WARN(("internal error (7c.7c offset %#x) in reading block id %#x\n", block_hdr.offset, block_id));
+            DEBUG_WARN(("internal error (7c.7c offset %#x) in reading block id %#"PRIx64"\n", block_hdr.offset, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1422,7 +1422,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         num_list = (int32_t)(unsigned)seven_c_blk.item_count;
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, seven_c_blk.b_five_offset, &block_offset4)) {
-            DEBUG_WARN(("internal error (7c.b5 offset %#x) in reading block id %#x\n", seven_c_blk.b_five_offset, block_id));
+            DEBUG_WARN(("internal error (7c.b5 offset %#x) in reading block id %#"PRIx64"\n", seven_c_blk.b_five_offset, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1451,7 +1451,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
         num_recs = (block_offset5.to - block_offset5.from) / (4 + table_rec.ref_type);
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, seven_c_blk.ind2_offset, &block_offset6)) {
-            DEBUG_WARN(("internal error (7c.ind2 offset %#x) in reading block id %#x\n", seven_c_blk.ind2_offset, block_id));
+            DEBUG_WARN(("internal error (7c.ind2 offset %#x) in reading block id %#"PRIx64"\n", seven_c_blk.ind2_offset, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -3778,10 +3778,10 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
             tail = i2_ptr;
             if (id2_rec.table2) {
                 if ((i_ptr = pst_getID(pf, id2_rec.table2)) == NULL) {
-                    DEBUG_WARN(("Table2 [%#x] not found\n", id2_rec.table2));
+                    DEBUG_WARN(("Table2 [%#"PRIi64"] not found\n", id2_rec.table2));
                 }
                 else {
-                    DEBUG_INDEX(("Going deeper for table2 [%#x]\n", id2_rec.table2));
+                    DEBUG_INDEX(("Going deeper for table2 [%#"PRIi64"]\n", id2_rec.table2));
                     i2_ptr->child = pst_build_id2(pf, i_ptr);
                 }
             }
@@ -4379,7 +4379,7 @@ size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, char **buf) {
     size_t r;
     int noenc = (int)(id & 2);   // disable encryption
     DEBUG_ENT("pst_ff_getIDblock_dec");
-    DEBUG_INDEX(("for id %#x\n", id));
+    DEBUG_INDEX(("for id %#"PRIi64"\n", id));
     r = pst_ff_getIDblock(pf, id, buf);
     if ((pf->encryption) && !(noenc)) {
         (void)pst_decrypt(id, *buf, r, pf->encryption);
@@ -4424,7 +4424,7 @@ size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, c
     ptr = pst_getID2(id2_head, id2);
 
     if (!ptr) {
-        DEBUG_INDEX(("Cannot find id2 value %#x\n", id2));
+        DEBUG_INDEX(("Cannot find id2 value %#"PRIi64"\n", id2));
         DEBUG_RET();
         return 0;
     }
