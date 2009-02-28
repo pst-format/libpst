@@ -33,7 +33,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2009-02-01</date>
+            <date>2009-02-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -233,7 +233,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2009-02-01</date>
+            <date>2009-02-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -336,7 +336,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2009-02-01</date>
+            <date>2009-02-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -520,7 +520,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2009-02-01</date>
+            <date>2009-02-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -696,7 +696,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2009-02-01</date>
+            <date>2009-02-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -830,7 +830,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2009-02-01</date>
+            <date>2009-02-28</date>
         </refentryinfo>
 
         <refmeta>
@@ -853,8 +853,10 @@
         <refsect1 id='pst.file.overview.5'>
             <title>Overview</title>
             <para>
-                Each item in a .pst file is identified by two id values ID1 and ID2.
-                There are two separate b-trees indexed by these ID1 and ID2 values.
+                Low level or primitive items in a .pst file are identified by an I_ID
+                value. Higher level or composite items in a .pst file are identified by
+                a D_ID value.
+                There are two separate b-trees indexed by these I_ID and D_ID values.
                 Starting with Outlook 2003, the file format changed from one with 32
                 bit pointers, to one with 64 bit pointers. We describe both formats
                 here.
@@ -917,20 +919,25 @@
                 newer 64 bit Outlook format.  Index type 0x15 seems to be rare, and
                 according to the libpff project should have the same format as type
                 0x17 files. It was found in a 64-bit pst file created by Visual
-                Recovery.  Encryption type 0x00 is no encryption, type 0x01 is
+                Recovery. It may be that index types less than 0x10 are 32 bit, and
+                index types greater than or equal to 0x10 are 64 bit, and the low order
+                four bits of the index type is some subtype or minor version number.
+            </para>
+            <para>
+                Encryption type 0x00 is no encryption, type 0x01 is
                 "compressible" encryption which is a simple substitution cipher, and
                 type 0x02 is "strong" encryption, which is a simple three rotor Enigma
                 cipher from WWII.
             </para>
             <para>
                 offsetIndex1 is the file offset of the root of the
-                index1 b-tree, which contains (ID1, offset, size, unknown) tuples
+                index1 b-tree, which contains (I_ID, offset, size, unknown) tuples
                 for each item in the file. backPointer1 is the value that should
                 appear in the parent pointer of that root node.
             </para>
             <para>
                 offsetIndex2 is the file offset of the root of the
-                index2 b-tree, which contains (ID2, DESC-ID1, LIST-ID1, PARENT-ID2)
+                index2 b-tree, which contains (D_ID, DESC-I_ID, TREE-I_ID, PARENT-D_ID)
                 tuples for each item in the file. backPointer2 is the value that should
                 appear in the parent pointer of that root node.
             </para>
@@ -1051,10 +1058,10 @@
                 match the backPointer from the triple that pointed to this node.
             </para>
             <para>
-                Each item in this node is a triple of (ID1, backPointer, offset)
+                Each item in this node is a triple of (I_ID, backPointer, offset)
                 where the offset points to the next deeper node in the tree, the
                 backPointer value must match the backPointer in that deeper node,
-                and ID1 is the lowest ID1 value in the subtree.
+                and I_ID is the lowest I_ID value in the subtree.
             </para>
         </refsect1>
 
@@ -1122,10 +1129,10 @@
                 match the backPointer from the triple that pointed to this node.
             </para>
             <para>
-                Each item in this node is a triple of (ID1, backPointer, offset)
+                Each item in this node is a triple of (I_ID, backPointer, offset)
                 where the offset points to the next deeper node in the tree, the
                 backPointer value must match the backPointer in that deeper node,
-                and ID1 is the lowest ID1 value in the subtree.
+                and I_ID is the lowest I_ID value in the subtree.
             </para>
         </refsect1>
 
@@ -1193,11 +1200,11 @@
                 that pointed to this node.
             </para>
             <para>
-                Each item in this node is a tuple of (ID1, offset, size, unknown)
-                The two low order bits of the ID1 value seem to be flags. I have
+                Each item in this node is a tuple of (I_ID, offset, size, unknown)
+                The two low order bits of the I_ID value seem to be flags. I have
                 never seen a case with bit zero set. Bit one indicates that the
                 item is <emphasis>not</emphasis> encrypted. Note that references
-                to these ID1 values elsewhere may have the low order bit set (and
+                to these I_ID values elsewhere may have the low order bit set (and
                 I don't know what that means), but when we do the search in this
                 tree we need to clear that bit so that we can find the correct item.
             </para>
@@ -1267,11 +1274,11 @@
                 that pointed to this node.
             </para>
             <para>
-                Each item in this node is a tuple of (ID1, offset, size, unknown)
-                The two low order bits of the ID1 value seem to be flags. I have
+                Each item in this node is a tuple of (I_ID, offset, size, unknown)
+                The two low order bits of the I_ID value seem to be flags. I have
                 never seen a case with bit zero set. Bit one indicates that the
                 item is <emphasis>not</emphasis> encrypted. Note that references
-                to these ID1 values elsewhere may have the low order bit set (and
+                to these I_ID values elsewhere may have the low order bit set (and
                 I don't know what that means), but when we do the search in this
                 tree we need to clear that bit so that we can find the correct item.
             </para>
@@ -1341,10 +1348,10 @@
                 match the backPointer from the triple that pointed to this node.
             </para>
             <para>
-                Each item in this node is a triple of (ID2, backPointer, offset)
+                Each item in this node is a triple of (D_ID, backPointer, offset)
                 where the offset points to the next deeper node in the tree, the
                 backPointer value must match the backPointer in that deeper node,
-                and ID2 is the lowest ID2 value in the subtree.
+                and D_ID is the lowest D_ID value in the subtree.
             </para>
         </refsect1>
 
@@ -1412,10 +1419,10 @@
                 match the backPointer from the triple that pointed to this node.
             </para>
             <para>
-                Each item in this node is a triple of (ID2, backPointer, offset)
+                Each item in this node is a triple of (D_ID, backPointer, offset)
                 where the offset points to the next deeper node in the tree, the
                 backPointer value must match the backPointer in that deeper node,
-                and ID2 is the lowest ID2 value in the subtree.
+                and D_ID is the lowest D_ID value in the subtree.
             </para>
         </refsect1>
 
@@ -1472,7 +1479,10 @@
                 that pointed to this node.
             </para>
             <para>
-                Each item in this node is a tuple of (ID2, DESC-ID1, LIST-ID1, PARENT-ID2)
+                Each item in this node is a tuple of (D_ID, DESC-I_ID, TREE-I_ID, PARENT-D_ID).
+                The DESC-I_ID points to the main data for this item via the index1 tree.
+                The TREE-I_ID is zero or points to Associated Tree Item 0x0002 via the index1 tree.
+                The PARENT-D_ID points to the parent of this item in this index2 tree.
             </para>
         </refsect1>
 
@@ -1529,17 +1539,29 @@
                 that pointed to this node.
             </para>
             <para>
-                Each item in this node is a tuple of (ID2, DESC-ID1, LIST-ID1, PARENT-ID2)
+                Each item in this node is a tuple of (D_ID, DESC-I_ID, TREE-I_ID, PARENT-D_ID)
+                The DESC-I_ID points to the main data for this item via the index1 tree.
+                The TREE-I_ID is zero or points to Associated Tree Item 0x0002 via the index1 tree.
+                The PARENT-D_ID points to the parent of this item in this index2 tree.
             </para>
         </refsect1>
 
         <refsect1 id='pst.file.list.32.5'>
-            <title>32 bit Associated List Item 0x0002</title>
+            <title>32 bit Associated Tree Item 0x0002</title>
             <para>
-                Contains associations between id1 and id2 for the items controlled by the record.
-                In the above 32 bit leaf node, we have a tuple of (0x61, 0x02a82c, 0x02a836, 0)
-                0x02a836 is the ID1 of the associated list, and we can lookup that ID1 value
-                in the index1 b-tree to find the (offset,size) of the data in the .pst file.
+                A D_ID value may point to an entry in the index2 tree with a non-zero
+                TREE-I_ID which points to this descriptor block via the index1
+                tree. It maps local ID2 values (referenced in the main data for the
+                original D_ID item) to I_ID values. This descriptor block contains
+                triples of (ID2, I_ID, CHILD-I_ID) where the local ID2 data can be
+                found via I_ID, and CHILD-I_ID is either zero or it points to another
+                Associated Tree Item via the index1 tree.
+            </para>
+            <para>
+                In the above 32 bit leaf node, we have a tuple of (0x61, 0x02a82c,
+                0x02a836, 0) 0x02a836 is the I_ID of the associated tree, and we can
+                lookup that I_ID value in the index1 b-tree to find the (offset,size)
+                of the data in the .pst file.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  02 00  01 00  9f 81 00 00  30 a8 02 00  00 00 00 00
@@ -1548,15 +1570,16 @@
 0002  count           [2 bytes] 0x0001     in this case
   repeating
 0004  id2             [4 bytes] 0x00819f   in this case
-0008  id              [4 bytes] 0x02a830   in this case
-000c  table2          [4 bytes] 0          in this case
+0008  i_id            [4 bytes] 0x02a830   in this case
+000c  child-i_id      [4 bytes] 0          in this case
 ]]></literallayout>
         </refsect1>
 
         <refsect1 id='pst.file.list.64.5'>
-            <title>64 bit Associated List Item 0x0002</title>
+            <title>64 bit Associated Tree Item 0x0002</title>
             <para>
-                Contains associations between id1 and id2 for the items controlled by the record.
+                This descriptor block contains a tree that maps local ID2 values
+                to I_ID entries, similar to the 32 bit version described above.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  02 00 02 00  00 00 00 00  92 06 00 00  00 00 00 00
@@ -1571,8 +1594,8 @@
 0008  id2             [4 bytes] 0x000692   in this case
 000c  unknown1        [2 bytes] 0          may be a count or size
 000e  unknown2        [2 bytes] 0          may be a count or size
-0010  id              [8 bytes] 0x0000a8   in this case
-0018  table2          [8 bytes] 0          in this case
+0010  i_id            [8 bytes] 0x0000a8   in this case
+0018  child-i_id      [8 bytes] 0          in this case
 ]]></literallayout>
         </refsect1>
 
@@ -1581,8 +1604,8 @@
             <para>
                 Contains information about the item, which may be email, contact, or
                 other outlook types.  In the above leaf node, we have a tuple of (0x21,
-                0x00e638, 0, 0) 0x00e638 is the ID1 of the associated descriptor, and we
-                can lookup that ID1 value in the index1 b-tree to find the (offset,size)
+                0x00e638, 0, 0) 0x00e638 is the I_ID of the associated descriptor, and we
+                can lookup that I_ID value in the index1 b-tree to find the (offset,size)
                 of the data in the .pst file.
             </para>
             <literallayout class="monospaced"><![CDATA[
@@ -2079,14 +2102,14 @@
         <refsect1 id='pst.file.desc3.32.5'>
             <title>32 bit Associated Descriptor Item 0x0101</title>
             <para>
-                This descriptor block contains a list of ID1 values. It is used when
-                an ID1 (that would normally point to a type 0x7cec or 0xbcec
+                This descriptor block contains a list of I_ID values. It is used when
+                an I_ID (that would normally point to a type 0x7cec or 0xbcec
                 descriptor block) contains more data than can fit in any single
                 descriptor of those types.  In this case, it points to a type 0x0101
-                block, which contains a list of ID1 values that themselves point to
+                block, which contains a list of I_ID values that themselves point to
                 the actual descriptor blocks.  The total length value in the 0x0101
                 header is the sum of the lengths of the blocks pointed to by the list
-                of ID1 values. The result is an array of subblocks, that may contain
+                of I_ID values. The result is an array of subblocks, that may contain
                 index references where the high order 16 bits specify which descriptor
                 subblock to use. Only the first descriptor subblock contains the
                 signature (0xbcec or 0x7cec).
@@ -2098,15 +2121,16 @@
 0002  count           [2 bytes] 0x0002     in this case
 0004  total length    [4 bytes] 0x002826   in this case
   repeating
-0008  id1             [4 bytes] 0x0c7718   in this case
-000c  id1             [4 bytes] 0x0004b8   in this case
+0008  i_id            [4 bytes] 0x0c7718   in this case
+000c  i_id            [4 bytes] 0x0004b8   in this case
 ]]></literallayout>
         </refsect1>
 
         <refsect1 id='pst.file.desc3.64.5'>
             <title>64 bit Associated Descriptor Item 0x0101</title>
             <para>
-                This descriptor block contains a list of ID1 values.
+                This descriptor block contains a list of I_ID values, similar to the
+                32 bit version described above.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  01 01 02 00  ea 29 00 00  10 83 00 00  00 00 00 00
@@ -2116,8 +2140,8 @@
 0002  count           [2 bytes] 0x0002     in this case
 0004  total length    [4 bytes] 0x0029ea   in this case
   repeating
-0008  id1             [8 bytes] 0x008310   in this case
-0010  id1             [8 bytes] 0x00831c   in this case
+0008  i_id            [8 bytes] 0x008310   in this case
+0010  i_id            [8 bytes] 0x00831c   in this case
 ]]></literallayout>
         </refsect1>
 

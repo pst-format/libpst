@@ -1,7 +1,7 @@
 
 #include "define.h"
 
-int decrypt = 0, process = 0, binary = 0;
+int process = 0, binary = 0;
 pst_file pstfile;
 
 
@@ -12,7 +12,6 @@ void usage()
     printf("\tfilename - name of the file to access\n");
     printf("\tid - ID of the block to fetch (0 to fetch all) - can begin with 0x for hex\n");
     printf("\toptions\n");
-    printf("\t\t-d\tDecrypt the block before printing\n");
     printf("\t\t-p\tProcess the block before finishing.\n");
     printf("\t\t\tView the debug log for information\n");
 }
@@ -27,14 +26,9 @@ void dumper(uint64_t id)
 
     DEBUG_MAIN(("\n\n\nLooking at block index1 id %#"PRIx64"\n", id));
 
-    if ((readSize = pst_ff_getIDblock(&pstfile, id, &buf)) <= 0 || buf == 0) {
+    if ((readSize = pst_ff_getIDblock_dec(&pstfile, id, &buf)) <= 0 || buf == 0) {
         DIE(("Error loading block\n"));
     }
-
-    if (decrypt)
-        if (pst_decrypt(id, buf, readSize, (int) pstfile.encryption) != 0) {
-            DIE(("Error decrypting block\n"));
-        }
 
     DEBUG_MAIN(("Printing block id %#"PRIx64", size %#"PRIx64"\n", id, (uint64_t)readSize));
     if (binary) {
@@ -97,10 +91,6 @@ int main(int argc, char* const* argv)
             case 'b':
                 // enable binary output
                 binary = 1;
-                break;
-            case 'd':
-                //enable decrypt
-                decrypt = 1;
                 break;
             case 'p':
                 // enable procesing of block

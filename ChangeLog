@@ -1,3 +1,8 @@
+LibPST 0.6.30 (2009-xx-xx)
+===============================
+    * improve documentation of .pst format.
+    * remove decrypt option from getidblock - we always decrypt.
+
 LibPST 0.6.29 (2009-02-24)
 ===============================
     * fix for 64bit on Fedora 11

@@ -749,7 +749,7 @@ static size_t pst_decode_index(pst_file *pf, pst_index *index, char *buf) {
         LE64_CPU(index->offset);
         LE16_CPU(index->size);
         LE16_CPU(index->u0);
-        LE16_CPU(index->u1);
+        LE32_CPU(index->u1);
         r = sizeof(pst_index);
     } else {
         pst_index32 index32;
@@ -763,6 +763,7 @@ static size_t pst_decode_index(pst_file *pf, pst_index *index, char *buf) {
         index->id     = index32.id;
         index->offset = index32.offset;
         index->size   = index32.size;
+        index->u0     = 0;
         index->u1     = index32.u1;
         r = sizeof(pst_index32);
     }
