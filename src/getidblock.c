@@ -45,7 +45,7 @@ void dumper(uint64_t id)
         DEBUG_MAIN(("Parsing block id %#"PRIx64"\n", id));
         ptr = pstfile.d_head;
         while (ptr) {
-            if (ptr->list_index && ptr->list_index->id == id)
+            if (ptr->assoc_tree && ptr->assoc_tree->id == id)
                 break;
             if (ptr->desc && ptr->desc->id == id)
                 break;
@@ -53,8 +53,8 @@ void dumper(uint64_t id)
         }
         if (!ptr) {
             ptr = (pst_desc_ll *) xmalloc(sizeof(pst_desc_ll));
+            memset(ptr, 0, sizeof(pst_desc_ll));
             ptr->desc = pst_getID(&pstfile, id);
-            ptr->list_index = NULL;
         }
         pst_item *item = pst_parse_item(&pstfile, ptr, NULL);
         if (item) pst_freeItem(item);
@@ -66,9 +66,9 @@ void dump_desc(pst_desc_ll *ptr);
 void dump_desc(pst_desc_ll *ptr)
 {
     while (ptr) {
-        DEBUG_MAIN(("\n\n\nLooking at block desc id %#"PRIx64"\n", ptr->id));
+        DEBUG_MAIN(("\n\n\nLooking at block desc id %#"PRIx64"\n", ptr->d_id));
         if (ptr->desc       && ptr->desc->id)       dumper(ptr->desc->id);
-        if (ptr->list_index && ptr->list_index->id) dumper(ptr->list_index->id);
+        if (ptr->assoc_tree && ptr->assoc_tree->id) dumper(ptr->assoc_tree->id);
         if (ptr->child) dump_desc(ptr->child);
         ptr = ptr->next;
     }

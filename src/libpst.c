@@ -73,16 +73,16 @@ typedef struct pst_block_header {
 typedef struct pst_id2_assoc32 {
     uint32_t id2;
     uint32_t id;
-    uint32_t table2;
+    uint32_t child_id;
 } pst_id2_assoc32;
 
 
 typedef struct pst_id2_assoc {
-    uint32_t id2;       // only 32 bit here?
+    uint32_t id2;       // only 32 bit here
     uint16_t unknown1;
     uint16_t unknown2;
     uint64_t id;
-    uint64_t table2;
+    uint64_t child_id;
 } pst_id2_assoc;
 
 
@@ -103,9 +103,10 @@ typedef struct pst_block_hdr {
 } pst_block_hdr;
 
 
-// for "compressible" encryption, just a simple substitution cipher
-// this is an array of the un-encrypted values. the un-encrypted value is in the position
-// of the encrypted value. ie the encrypted value 0x13 represents 0x02
+/** for "compressible" encryption, just a simple substitution cipher,
+ *  plaintext = comp_enc[ciphertext];
+ *  for "strong" encryption, this is the first rotor of an Enigma 3 rotor cipher.
+ */
 static unsigned char comp_enc [] = {
     0x47, 0xf1, 0xb4, 0xe6, 0x0b, 0x6a, 0x72, 0x48, 0x85, 0x4e, 0x9e, 0xeb, 0xe2, 0xf8, 0x94, 0x53,
     0xe0, 0xbb, 0xa0, 0x02, 0xe8, 0x5a, 0x09, 0xab, 0xdb, 0xe3, 0xba, 0xc6, 0x7c, 0xc3, 0x10, 0xdd,
@@ -125,9 +126,8 @@ static unsigned char comp_enc [] = {
     0xd4, 0xe1, 0x11, 0xd0, 0x08, 0x8b, 0x2a, 0xf2, 0xed, 0x9a, 0x64, 0x3f, 0xc1, 0x6c, 0xf9, 0xec
 };
 
-// for "strong" encryption, we have the two additional tables,
-// which (with the previous table) are used as the keys in an
-// Enigma 3 rotor cipher
+/** for "strong" encryption, this is the second rotor of an Enigma 3 rotor cipher.
+ */
 static unsigned char comp_high1 [] = {
     0x41, 0x36, 0x13, 0x62, 0xa8, 0x21, 0x6e, 0xbb, 0xf4, 0x16, 0xcc, 0x04, 0x7f, 0x64, 0xe8, 0x5d,
     0x1e, 0xf2, 0xcb, 0x2a, 0x74, 0xc5, 0x5e, 0x35, 0xd2, 0x95, 0x47, 0x9e, 0x96, 0x2d, 0x9a, 0x88,
@@ -147,6 +147,8 @@ static unsigned char comp_high1 [] = {
     0xa2, 0x01, 0xf7, 0x2e, 0xbc, 0x24, 0x68, 0x75, 0x0d, 0xfe, 0xba, 0x2f, 0xb5, 0xd0, 0xda, 0x3d
 };
 
+/** for "strong" encryption, this is the third rotor of an Enigma 3 rotor cipher.
+ */
 static unsigned char comp_high2 [] = {
     0x14, 0x53, 0x0f, 0x56, 0xb3, 0xc8, 0x7a, 0x9c, 0xeb, 0x65, 0x48, 0x17, 0x16, 0x15, 0x9f, 0x02,
     0xcc, 0x54, 0x7c, 0x83, 0x00, 0x0d, 0x0c, 0x0b, 0xa2, 0x62, 0xa8, 0x76, 0xdb, 0xd9, 0xed, 0xc7,
@@ -165,6 +167,7 @@ static unsigned char comp_high2 [] = {
     0xf1, 0x5a, 0xef, 0xcf, 0x90, 0xb6, 0x8b, 0xb5, 0xbd, 0xc0, 0xbf, 0x08, 0x97, 0x1e, 0x6c, 0xe2,
     0x61, 0xe0, 0xc6, 0xc1, 0x59, 0xab, 0xbb, 0x58, 0xde, 0x5f, 0xdf, 0x60, 0x79, 0x7e, 0xb2, 0x8a
 };
+
 
 int pst_open(pst_file *pf, char *name) {
     int32_t sig;
@@ -304,9 +307,9 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
     // find any orphan children of this node, and collect them
     pst_desc_ll *n = pf->d_head;
     while (n) {
-        if (n->parent_id == node->id) {
+        if (n->parent_d_id == node->d_id) {
             // found a child of this node
-            DEBUG_INDEX(("Found orphan child %#"PRIx64" of parent %#"PRIx64"\n", n->id, node->id));
+            DEBUG_INDEX(("Found orphan child %#"PRIx64" of parent %#"PRIx64"\n", n->d_id, node->d_id));
             pst_desc_ll *nn = n->next;
             pst_desc_ll *pp = n->prev;
             node->no_child++;
@@ -322,18 +325,18 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
     }
 
     // now hook this node into the global tree
-    if (node->parent_id == 0) {
+    if (node->parent_d_id == 0) {
         // add top level node to the descriptor tree
         //DEBUG_INDEX(("Null parent\n"));
         add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
     }
-    else if (node->parent_id == node->id) {
+    else if (node->parent_d_id == node->d_id) {
         // add top level node to the descriptor tree
         DEBUG_INDEX(("%#"PRIx64" is its own parent. What is this world coming to?\n"));
         add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
     } else {
         //DEBUG_INDEX(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_id, node->id));
-        pst_desc_ll *parent = pst_getDptr(pf, node->parent_id);
+        pst_desc_ll *parent = pst_getDptr(pf, node->parent_d_id);
         if (parent) {
             //DEBUG_INDEX(("Found parent %#"PRIx64"\n", node->parent_id));
             parent->no_child++;
@@ -341,7 +344,7 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
             add_descriptor_to_list(node, &parent->child, &parent->child_tail);
         }
         else {
-            DEBUG_INDEX(("No parent %#"PRIx64", have an orphan child %#"PRIx64"\n", node->parent_id, node->id));
+            DEBUG_INDEX(("No parent %#"PRIx64", have an orphan child %#"PRIx64"\n", node->parent_d_id, node->d_id));
             add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
         }
     }
@@ -356,11 +359,11 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
  * @param   head  pointer to the subtree to be copied
  * @return        pointer to the new copy of the subtree
  */
-static pst_index2_ll* deep_copy(pst_index2_ll *head);
-static pst_index2_ll* deep_copy(pst_index2_ll *head)
+static pst_id2_ll* deep_copy(pst_id2_ll *head);
+static pst_id2_ll* deep_copy(pst_id2_ll *head)
 {
     if (!head) return NULL;
-    pst_index2_ll* me = (pst_index2_ll*) xmalloc(sizeof(pst_index2_ll));
+    pst_id2_ll* me = (pst_id2_ll*) xmalloc(sizeof(pst_id2_ll));
     me->id2 = head->id2;
     me->id  = head->id;
     me->child = deep_copy(head->child);
@@ -389,11 +392,11 @@ pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
     topnode = pst_getDptr(pf, (uint64_t)topid);
     if (!topnode) {
         // add dummy top record to pickup orphan children
-        topnode             = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
-        topnode->id         = topid;
-        topnode->parent_id  = 0;
-        topnode->list_index = NULL;
-        topnode->desc       = NULL;
+        topnode              = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
+        topnode->d_id        = topid;
+        topnode->parent_d_id = 0;
+        topnode->assoc_tree  = NULL;
+        topnode->desc        = NULL;
         record_descriptor(pf, topnode);   // add to the global tree
     }
     DEBUG_RET();
@@ -519,7 +522,7 @@ int pst_load_extended_attributes(pst_file *pf) {
     // for PST files this will load up ID2 0x61 and check it's "list" attribute.
     pst_desc_ll *p;
     pst_num_array *na;
-    pst_index2_ll *id2_head = NULL;
+    pst_id2_ll *id2_head = NULL;
     char *buffer=NULL, *headerbuffer=NULL;
     size_t bsize=0, hsize=0, bptr=0;
     pst_x_attrib xattrib;
@@ -540,8 +543,8 @@ int pst_load_extended_attributes(pst_file *pf) {
         return 0;
     }
 
-    if (p->list_index) {
-        id2_head = pst_build_id2(pf, p->list_index);
+    if (p->assoc_tree) {
+        id2_head = pst_build_id2(pf, p->assoc_tree);
         pst_printID2ptr(id2_head);
     } else {
         DEBUG_WARN(("Have not been able to fetch any id2 values for item 0x61. Brace yourself!\n"));
@@ -696,13 +699,13 @@ static size_t pst_decode_desc(pst_file *pf, pst_descn *desc, char *buf) {
         memcpy(&d32, buf, sizeof(pst_desc32));
         LE32_CPU(d32.d_id);
         LE32_CPU(d32.desc_id);
-        LE32_CPU(d32.list_id);
-        LE32_CPU(d32.parent_id);
-        desc->d_id      = d32.d_id;
-        desc->desc_id   = d32.desc_id;
-        desc->list_id   = d32.list_id;
-        desc->parent_id = d32.parent_id;
-        desc->u1        = 0;
+        LE32_CPU(d32.tree_id);
+        LE32_CPU(d32.parent_d_id);
+        desc->d_id        = d32.d_id;
+        desc->desc_id     = d32.desc_id;
+        desc->tree_id     = d32.tree_id;
+        desc->parent_d_id = d32.parent_d_id;
+        desc->u1          = 0;
         r = sizeof(pst_desc32);
     }
     return r;
@@ -780,7 +783,7 @@ static size_t pst_decode_assoc(pst_file *pf, pst_id2_assoc *assoc, char *buf) {
         memcpy(assoc, buf, sizeof(pst_id2_assoc));
         LE32_CPU(assoc->id2);
         LE64_CPU(assoc->id);
-        LE64_CPU(assoc->table2);
+        LE64_CPU(assoc->child_id);
         r = sizeof(pst_id2_assoc);
     } else {
         pst_id2_assoc32 assoc32;
@@ -790,9 +793,9 @@ static size_t pst_decode_assoc(pst_file *pf, pst_id2_assoc *assoc, char *buf) {
         LE32_CPU(assoc32.id2);
         LE32_CPU(assoc32.id);
         LE32_CPU(assoc32.table2);
-        assoc->id2    = assoc32.id2;
-        assoc->id     = assoc32.id;
-        assoc->table2 = assoc32.table2;
+        assoc->id2      = assoc32.id2;
+        assoc->id       = assoc32.id;
+        assoc->child_id = assoc32.child_id;
         r = sizeof(pst_id2_assoc32);
     }
     return r;
@@ -821,6 +824,11 @@ static size_t pst_decode_type3(pst_file *pf, pst_table3_rec *table3_rec, char *b
 }
 
 
+/** Process the index1 b-tree from the pst file and create the
+ *  pf->i_head linked list from it. This tree holds the location
+ *  (offset and size) of lower level objects (0xbcec descriptor
+ *  blocks, etc) in the pst file.
+ */
 int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_structn table, table2;
     pst_index_ll *i_ptr=NULL;
@@ -934,6 +942,10 @@ int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku
 }
 
 
+/** Process the index2 b-tree from the pst file and create the
+ *  pf->d_head tree from it. This tree holds descriptions of the
+ *  higher level objects (email, contact, etc) in the pst file.
+ */
 int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_structn table, table2;
     pst_descn desc_rec;
@@ -977,8 +989,8 @@ int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t li
         }
         for (x=0; x<item_count; x++) {
             bptr += pst_decode_desc(pf, &desc_rec, bptr);
-            DEBUG_INDEX(("[%i] Item(%#x) = [d_id = %#"PRIx64", desc_id = %#"PRIx64", list_id = %#"PRIx64", parent_id = %#x]\n",
-                        depth, x, desc_rec.d_id, desc_rec.desc_id, desc_rec.list_id, desc_rec.parent_id));
+            DEBUG_INDEX(("[%i] Item(%#x) = [d_id = %#"PRIx64", desc_id = %#"PRIx64", tree_id = %#"PRIx64", parent_d_id = %#x]\n",
+                        depth, x, desc_rec.d_id, desc_rec.desc_id, desc_rec.tree_id, desc_rec.parent_d_id));
             if ((desc_rec.d_id >= end_val) || (desc_rec.d_id < old)) {
                 DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
                 DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, 16);
@@ -995,12 +1007,12 @@ int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t li
                     return -1;
                 }
             }
-            DEBUG_INDEX(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_id));
+            DEBUG_INDEX(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_d_id));
             {
                 pst_desc_ll *d_ptr = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
-                d_ptr->id          = desc_rec.d_id;
-                d_ptr->parent_id   = desc_rec.parent_id;
-                d_ptr->list_index  = pst_getID(pf, desc_rec.list_id);
+                d_ptr->d_id        = desc_rec.d_id;
+                d_ptr->parent_d_id = desc_rec.parent_d_id;
+                d_ptr->assoc_tree  = pst_getID(pf, desc_rec.tree_id);
                 d_ptr->desc        = pst_getID(pf, desc_rec.desc_id);
                 record_descriptor(pf, d_ptr);   // add to the global tree
             }
@@ -1049,10 +1061,12 @@ int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t li
 }
 
 
-pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_index2_ll *m_head) {
+/** Process a high level object from the pst file.
+ */
+pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
     pst_num_array * list;
-    pst_index2_ll *id2_head = m_head;
-    pst_index2_ll *id2_ptr  = NULL;
+    pst_id2_ll *id2_head = m_head;
+    pst_id2_ll *id2_ptr  = NULL;
     pst_item *item = NULL;
     pst_item_attach *attach = NULL;
     int32_t x;
@@ -1069,12 +1083,12 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_index2_ll *m_head
         return NULL;
     }
 
-    if (d_ptr->list_index) {
+    if (d_ptr->assoc_tree) {
         if (m_head) {
             DEBUG_WARN(("supplied master head, but have a list that is building a new id2_head"));
             m_head = NULL;
         }
-        id2_head = pst_build_id2(pf, d_ptr->list_index);
+        id2_head = pst_build_id2(pf, d_ptr->assoc_tree);
     }
     pst_printID2ptr(id2_head);
 
@@ -1239,7 +1253,12 @@ static void freeall(pst_subblocks *subs, pst_block_offset_pointer *p1,
 }
 
 
-pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *i2_head, pst_num_array *na_head) {
+/** Process a low level descriptor block (0x0101, 0xbcec, 0x7cec) into a
+ *  list of objects, each of which contains a list of MAPI elements.
+ *
+ *  @return list of objects
+ */
+pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_head, pst_num_array *na_head) {
     char  *buf       = NULL;
     size_t read_size = 0;
     pst_subblocks  subblocks;
@@ -1738,16 +1757,16 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *
 
 
 /**
- * process the list of items produced from parse_block()
+ * process the list of objects produced from parse_block()
  *
- * @param list  pointer to the linked list of things from parse_block()
- * @param item  pointer to the item to be updated from the list.
+ * @param list  pointer to the list of objects from parse_block()
+ * @param item  pointer to the high level item to be updated from the list.
  *              this item may be an email, contact or other sort of item.
- *              the type of this item is generally set by the things
+ *              the type of this item is generally set by the MAPI elements
  *              from the list.
- * @param attach pointer to the linked list of attachment records. If
+ * @param attach pointer to the list of attachment records. If
  *               this is non-null, the length of the this attachment list
- *               must be at least as large as the length of the list.
+ *               must be at least as large as the length of the objects list.
  *
  * @return 0 for ok, -1 for error.
  */
@@ -1788,9 +1807,8 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                                     *pp = '\0';
                                     char *set = strdup(p);
                                     *pp = '"';
-                                    MALLOC_EMAIL(item);
-                                    if (item->email->body_charset) free(item->email->body_charset);
-                                    item->email->body_charset = set;
+                                    if (item->body_charset) free(item->body_charset);
+                                    item->body_charset = set;
                                     DEBUG_EMAIL(("body charset %s from content-type extra field\n", set));
                                 }
                             }
@@ -3111,17 +3129,15 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%s\n", item->contact->other_po_box));
                     break;
                 case 0x3FDE: // PR_INTERNET_CPID
-                    MALLOC_EMAIL(item);
-                    memcpy(&(item->email->internet_cpid), list->items[x]->data, sizeof(item->email->internet_cpid));
-                    LE32_CPU(item->email->internet_cpid);
-                    t = item->email->internet_cpid;
+                    memcpy(&(item->internet_cpid), list->items[x]->data, sizeof(item->internet_cpid));
+                    LE32_CPU(item->internet_cpid);
+                    t = item->internet_cpid;
                     DEBUG_EMAIL(("Internet code page %i\n", (int)t));
                     break;
                 case 0x3FFD: // PR_MESSAGE_CODEPAGE
-                    MALLOC_EMAIL(item);
-                    memcpy(&(item->email->message_codepage), list->items[x]->data, sizeof(item->email->message_codepage));
-                    LE32_CPU(item->email->message_codepage);
-                    t = item->email->message_codepage;
+                    memcpy(&(item->message_codepage), list->items[x]->data, sizeof(item->message_codepage));
+                    LE32_CPU(item->message_codepage);
+                    t = item->message_codepage;
                     DEBUG_EMAIL(("Message code page %i\n", (int)t));
                     break;
                 case 0x65E3: // Entry ID?
@@ -3663,8 +3679,8 @@ void pst_free_list(pst_num_array *list) {
 }
 
 
-void pst_free_id2(pst_index2_ll * head) {
-    pst_index2_ll *t;
+void pst_free_id2(pst_id2_ll * head) {
+    pst_id2_ll *t;
     DEBUG_ENT("pst_free_id2");
     while (head) {
         if (head->child) pst_free_id2(head->child);
@@ -3725,15 +3741,15 @@ void pst_free_xattrib(pst_x_attrib_ll *x) {
 }
 
 
-pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
+pst_id2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
     pst_block_header block_head;
-    pst_index2_ll *head = NULL, *tail = NULL;
+    pst_id2_ll *head = NULL, *tail = NULL;
     uint16_t x = 0;
     char *b_ptr = NULL;
     char *buf = NULL;
     pst_id2_assoc id2_rec;
     pst_index_ll *i_ptr = NULL;
-    pst_index2_ll *i2_ptr = NULL;
+    pst_id2_ll *i2_ptr = NULL;
     DEBUG_ENT("pst_build_id2");
 
     if (pst_read_block_size(pf, list->offset, list->size, &buf) < list->size) {
@@ -3762,14 +3778,14 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
     b_ptr = buf + ((pf->do_read64) ? 0x08 : 0x04);
     while (x < block_head.count) {
         b_ptr += pst_decode_assoc(pf, &id2_rec, b_ptr);
-        DEBUG_INDEX(("id2 = %#x, id = %#"PRIx64", table2 = %#"PRIx64"\n", id2_rec.id2, id2_rec.id, id2_rec.table2));
+        DEBUG_INDEX(("id2 = %#x, id = %#"PRIx64", child id = %#"PRIx64"\n", id2_rec.id2, id2_rec.id, id2_rec.child_id));
         if ((i_ptr = pst_getID(pf, id2_rec.id)) == NULL) {
             DEBUG_WARN(("%#"PRIx64" - Not Found\n", id2_rec.id));
         } else {
             DEBUG_INDEX(("%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
                          i_ptr->id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
             // add it to the tree
-            i2_ptr = (pst_index2_ll*) xmalloc(sizeof(pst_index2_ll));
+            i2_ptr = (pst_id2_ll*) xmalloc(sizeof(pst_id2_ll));
             i2_ptr->id2   = id2_rec.id2;
             i2_ptr->id    = i_ptr;
             i2_ptr->child = NULL;
@@ -3777,12 +3793,11 @@ pst_index2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
             if (!head) head = i2_ptr;
             if (tail)  tail->next = i2_ptr;
             tail = i2_ptr;
-            if (id2_rec.table2) {
-                if ((i_ptr = pst_getID(pf, id2_rec.table2)) == NULL) {
-                    DEBUG_WARN(("Table2 [%#"PRIi64"] not found\n", id2_rec.table2));
+            if (id2_rec.child_id) {
+                if ((i_ptr = pst_getID(pf, id2_rec.child_id)) == NULL) {
+                    DEBUG_WARN(("child id [%#"PRIi64"] not found\n", id2_rec.child_id));
                 }
                 else {
-                    DEBUG_INDEX(("Going deeper for table2 [%#"PRIi64"]\n", id2_rec.table2));
                     i2_ptr->child = pst_build_id2(pf, i_ptr);
                 }
             }
@@ -3818,7 +3833,6 @@ void pst_freeItem(pst_item *item) {
         if (item->email) {
             SAFE_FREE(item->email->arrival_date);
             SAFE_FREE(item->email->body);
-            SAFE_FREE(item->email->body_charset);
             SAFE_FREE(item->email->cc_address);
             SAFE_FREE(item->email->bcc_address);
             SAFE_FREE(item->email->common_name);
@@ -4003,6 +4017,7 @@ void pst_freeItem(pst_item *item) {
             free(item->appointment);
         }
         SAFE_FREE(item->ascii_type);
+        SAFE_FREE(item->body_charset);
         SAFE_FREE(item->comment);
         SAFE_FREE(item->create_date);
         SAFE_FREE(item->file_as);
@@ -4021,7 +4036,7 @@ void pst_freeItem(pst_item *item) {
   * Otherwise, the high order 16 bits of offset is the index into the subblocks, and
   * the (low order 16 bits of offset)>>4 is an index into the table of offsets in the subblock.
 */
-int pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p) {
+int pst_getBlockOffsetPointer(pst_file *pf, pst_id2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p) {
     size_t size;
     pst_block_offset block_offset;
     DEBUG_ENT("pst_getBlockOffsetPointer");
@@ -4116,14 +4131,14 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t id) {
 }
 
 
-pst_index2_ll *pst_getID2(pst_index2_ll *head, uint64_t id2) {
+pst_id2_ll *pst_getID2(pst_id2_ll *head, uint64_t id2) {
     DEBUG_ENT("pst_getID2");
     DEBUG_INDEX(("looking for id2 = %#"PRIx64"\n", id2));
-    pst_index2_ll *ptr = head;
+    pst_id2_ll *ptr = head;
     while (ptr) {
         if (ptr->id2 == id2) break;
         if (ptr->child) {
-            pst_index2_ll *rc = pst_getID2(ptr->child, id2);
+            pst_id2_ll *rc = pst_getID2(ptr->child, id2);
             if (rc) {
                 DEBUG_RET();
                 return rc;
@@ -4146,15 +4161,15 @@ pst_index2_ll *pst_getID2(pst_index2_ll *head, uint64_t id2) {
  * find the id in the descriptor tree rooted at pf->d_head
  *
  * @param pf    global pst file pointer
- * @param id    the id we are looking for
+ * @param d_id  the id we are looking for
  *
  * @return pointer to the pst_desc_ll node in the descriptor tree
 */
-pst_desc_ll* pst_getDptr(pst_file *pf, uint64_t id) {
+pst_desc_ll* pst_getDptr(pst_file *pf, uint64_t d_id) {
     pst_desc_ll *ptr = pf->d_head;
     DEBUG_ENT("pst_getDptr");
-    while (ptr && (ptr->id != id)) {
-        //DEBUG_INDEX(("Looking for %#"PRIx64" at node %#"PRIx64" with parent %#"PRIx64"\n", id, ptr->id, ptr->parent_id));
+    while (ptr && (ptr->d_id != d_id)) {
+        //DEBUG_INDEX(("Looking for %#"PRIx64" at node %#"PRIx64" with parent %#"PRIx64"\n", id, ptr->d_id, ptr->parent_d_id));
         if (ptr->child) {
             ptr = ptr->child;
             continue;
@@ -4172,9 +4187,9 @@ pst_desc_ll* pst_getDptr(pst_file *pf, uint64_t id) {
 void pst_printDptr(pst_file *pf, pst_desc_ll *ptr) {
     DEBUG_ENT("pst_printDptr");
     while (ptr) {
-        DEBUG_INDEX(("%#"PRIx64" [%i] desc=%#"PRIx64", list=%#"PRIx64"\n", ptr->id, ptr->no_child,
-                    (ptr->desc ? ptr->desc->id : (uint64_t)0),
-                    (ptr->list_index ? ptr->list_index->id : (uint64_t)0)));
+        DEBUG_INDEX(("%#"PRIx64" [%i] desc=%#"PRIx64", assoc tree=%#"PRIx64"\n", ptr->d_id, ptr->no_child,
+                    (ptr->desc       ? ptr->desc->id       : (uint64_t)0),
+                    (ptr->assoc_tree ? ptr->assoc_tree->id : (uint64_t)0)));
         if (ptr->child) {
             pst_printDptr(pf, ptr->child);
         }
@@ -4195,7 +4210,7 @@ void pst_printIDptr(pst_file* pf) {
 }
 
 
-void pst_printID2ptr(pst_index2_ll *ptr) {
+void pst_printID2ptr(pst_id2_ll *ptr) {
     DEBUG_ENT("pst_printID2ptr");
     while (ptr) {
         DEBUG_INDEX(("%#"PRIx64" id=%#"PRIx64"\n", ptr->id2, (ptr->id ? ptr->id->id : (uint64_t)0)));
@@ -4417,9 +4432,9 @@ size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, char** buf) {
 
 
 #define PST_PTR_BLOCK_SIZE 0x120
-size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, char** buf) {
+size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_ll *id2_head, char** buf) {
     size_t ret;
-    pst_index2_ll* ptr;
+    pst_id2_ll* ptr;
     pst_holder h = {buf, NULL, 0};
     DEBUG_ENT("pst_ff_getID2block");
     ptr = pst_getID2(id2_head, id2);

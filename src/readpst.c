@@ -132,11 +132,11 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
     while (d_ptr) {
         DEBUG_MAIN(("main: New item record\n"));
         if (!d_ptr->desc) {
-            DEBUG_WARN(("main: ERROR ?? item's desc record is NULL\n"));
+            DEBUG_WARN(("main: ERROR item's desc record is NULL\n"));
             ff.skip_count++;
         }
         else {
-            DEBUG_MAIN(("main: Desc Email ID %#"PRIx64" [d_ptr->id = %#"PRIx64"]\n", d_ptr->desc->id, d_ptr->id));
+            DEBUG_MAIN(("main: Desc Email ID %#"PRIx64" [d_ptr->d_id = %#"PRIx64"]\n", d_ptr->desc->id, d_ptr->d_id));
 
             item = pst_parse_item(&pstfile, d_ptr, NULL);
             DEBUG_MAIN(("main: About to process item\n"));
@@ -748,16 +748,16 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
     ptr = pst_getID(pf, attach->id_val);
 
     pst_desc_ll d_ptr;
-    d_ptr.id         = ptr->id;
-    d_ptr.parent_id  = 0;
-    d_ptr.list_index = NULL;
-    d_ptr.desc       = ptr;
-    d_ptr.no_child   = 0;
-    d_ptr.prev       = NULL;
-    d_ptr.next       = NULL;
-    d_ptr.parent     = NULL;
-    d_ptr.child      = NULL;
-    d_ptr.child_tail = NULL;
+    d_ptr.d_id        = 0;
+    d_ptr.parent_d_id = 0;
+    d_ptr.assoc_tree  = NULL;
+    d_ptr.desc        = ptr;
+    d_ptr.no_child    = 0;
+    d_ptr.prev        = NULL;
+    d_ptr.next        = NULL;
+    d_ptr.parent      = NULL;
+    d_ptr.child       = NULL;
+    d_ptr.child_tail  = NULL;
 
     pst_item *item = pst_parse_item(pf, &d_ptr, attach->id2_head);
     write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, 0, extra_mime_headers);
@@ -1082,9 +1082,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     // setup default body character set and report type
     snprintf(body_charset, sizeof(body_charset), "%s",
-        (item->email->body_charset)     ? item->email->body_charset :
-        (item->email->message_codepage) ? codepage(item->email->message_codepage) :
-        (item->email->internet_cpid)    ? codepage(item->email->internet_cpid) :
+        (item->body_charset)     ? item->body_charset :
+        (item->message_codepage) ? codepage(item->message_codepage) :
+        (item->internet_cpid)    ? codepage(item->internet_cpid) :
         "utf-8");
     body_report[0] = '\0';
 

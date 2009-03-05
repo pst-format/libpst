@@ -95,17 +95,17 @@ typedef struct pst_entryid_struct {
 typedef struct pst_desc_struct32 {
     uint32_t d_id;
     uint32_t desc_id;
-    uint32_t list_id;
-    uint32_t parent_id;
+    uint32_t tree_id;
+    uint32_t parent_d_id;
 } pst_desc32;
 
 
 typedef struct pst_desc_structn {
     uint64_t d_id;
     uint64_t desc_id;
-    uint64_t list_id;
-    uint32_t parent_id;  // not 64 bit ??
-    uint32_t u1;         // padding
+    uint64_t tree_id;
+    uint32_t parent_d_id;   // not 64 bit ??
+    uint32_t u1;            // padding
 } pst_descn;
 
 
@@ -144,19 +144,19 @@ typedef struct pst_index_tree {
 } pst_index_ll;
 
 
-typedef struct pst_index2_tree {
+typedef struct pst_id2_tree {
     uint64_t id2;
     pst_index_ll *id;
-    struct pst_index2_tree *child;
-    struct pst_index2_tree *next;
-} pst_index2_ll;
+    struct pst_id2_tree *child;
+    struct pst_id2_tree *next;
+} pst_id2_ll;
 
 
 typedef struct pst_desc_tree {
-    uint64_t              id;
-    uint64_t              parent_id;
-    pst_index_ll         *list_index;
+    uint64_t              d_id;
+    uint64_t              parent_d_id;
     pst_index_ll         *desc;
+    pst_index_ll         *assoc_tree;
     int32_t               no_child;
     struct pst_desc_tree *prev;
     struct pst_desc_tree *next;
@@ -178,7 +178,6 @@ typedef struct pst_item_email {
     int         autoforward;            // 1 = true, 0 = not set, -1 = false
     char       *body;
     int32_t     body_was_unicode;       // 1 = true, 0 = false
-    char       *body_charset;           // null if not specified
     char       *cc_address;
     char       *bcc_address;
     char       *common_name;
@@ -233,8 +232,6 @@ typedef struct pst_item_email {
     char       *sender2_access;
     char       *sender2_address;
     int32_t     sensitivity;
-    int32_t     internet_cpid;
-    int32_t     message_codepage;
     FILETIME   *sent_date;
     pst_entryid            *sentmail_folder;
     char                   *sentto_address;
@@ -383,7 +380,7 @@ typedef struct pst_item_attach {
     size_t   size;
     uint64_t id2_val;
     uint64_t id_val;            // calculated from id2_val during creation of record
-    pst_index2_ll *id2_head;    // deep copy from child
+    pst_id2_ll *id2_head;    // deep copy from child
     int32_t  method;
     int32_t  position;
     int32_t  sequence;
@@ -425,26 +422,29 @@ typedef struct pst_item_appointment {
 
 
 typedef struct pst_item {
-    struct pst_item_email         *email;           // data reffering to email
-    struct pst_item_folder        *folder;          // data reffering to folder
-    struct pst_item_contact       *contact;         // data reffering to contact
+    struct pst_item_email         *email;           // data referring to email
+    struct pst_item_folder        *folder;          // data referring to folder
+    struct pst_item_contact       *contact;         // data referring to contact
     struct pst_item_attach        *attach;          // linked list of attachments
     struct pst_item_message_store *message_store;   // data referring to the message store
     struct pst_item_extra_field   *extra_fields;    // linked list of extra headers and such
-    struct pst_item_journal       *journal;         // data reffering to a journal entry
-    struct pst_item_appointment   *appointment;     // data reffering to a calendar entry
-    int       type;
-    char     *ascii_type;
-    char     *file_as;
-    char     *comment;
-    int32_t   message_size;
-    char     *outlook_version;
-    char     *record_key; // probably 16 bytes long.
-    size_t    record_key_size;
-    int       response_requested;     // 1 = true, 0 = false
-    FILETIME *create_date;
-    FILETIME *modify_date;
-    int       private_member;         // 1 = true, 0 = false
+    struct pst_item_journal       *journal;         // data referring to a journal entry
+    struct pst_item_appointment   *appointment;     // data referring to a calendar entry
+    int         type;
+    char       *ascii_type;
+    char       *file_as;
+    char       *comment;
+    char       *body_charset;           // null if not specified
+    int32_t     internet_cpid;
+    int32_t     message_codepage;
+    int32_t     message_size;
+    char       *outlook_version;
+    char       *record_key; // probably 16 bytes long.
+    size_t      record_key_size;
+    int         response_requested;     // 1 = true, 0 = false
+    FILETIME   *create_date;
+    FILETIME   *modify_date;
+    int         private_member;         // 1 = true, 0 = false
 } pst_item;
 
 
@@ -549,20 +549,20 @@ int            pst_load_extended_attributes(pst_file *pf);
 int            pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 int            pst_build_desc_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 pst_item*      pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
-pst_item*      pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr, pst_index2_ll *m_head);
-pst_num_array* pst_parse_block(pst_file *pf, uint64_t block_id, pst_index2_ll *i2_head, pst_num_array *na_head);
+pst_item*      pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head);
+pst_num_array* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_head, pst_num_array *na_head);
 int            pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach);
 void           pst_free_list(pst_num_array *list);
 void           pst_freeItem(pst_item *item);
-void           pst_free_id2(pst_index2_ll * head);
+void           pst_free_id2(pst_id2_ll * head);
 void           pst_free_id (pst_index_ll *head);
 void           pst_free_desc (pst_desc_ll *head);
 void           pst_free_xattrib(pst_x_attrib_ll *x);
-int            pst_getBlockOffsetPointer(pst_file *pf, pst_index2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p);
+int            pst_getBlockOffsetPointer(pst_file *pf, pst_id2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p);
 int            pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p);
-pst_index2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list);
+pst_id2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list);
 pst_index_ll*  pst_getID(pst_file* pf, uint64_t id);
-pst_index2_ll* pst_getID2(pst_index2_ll * ptr, uint64_t id);
+pst_id2_ll* pst_getID2(pst_id2_ll * ptr, uint64_t id);
 pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t id);
 size_t         pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
 int            pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type);
@@ -571,7 +571,7 @@ uint64_t       pst_getIntAtPos(pst_file *pf, int64_t pos);
 size_t         pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size);
 size_t         pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, char **b);
 size_t         pst_ff_getIDblock(pst_file *pf, uint64_t id, char** b);
-size_t         pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_index2_ll *id2_head, char** buf);
+size_t         pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_ll *id2_head, char** buf);
 size_t         pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h);
 size_t         pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size);
 
@@ -587,7 +587,7 @@ char *         pst_rfc2445_datetime_format(FILETIME *ft);
 
 void           pst_printDptr(pst_file *pf, pst_desc_ll *ptr);
 void           pst_printIDptr(pst_file* pf);
-void           pst_printID2ptr(pst_index2_ll *ptr);
+void           pst_printID2ptr(pst_id2_ll *ptr);
 
 
 // switch from maximal packing back to default packing

@@ -53,13 +53,12 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
     create_enter_dir(&ff, outeritem);
 
     while (d_ptr) {
-        DEBUG_MAIN(("main: New item record, d_ptr = %p.\n", d_ptr));
         if (!d_ptr->desc) {
-            DEBUG_WARN(("main: ERROR ?? item's desc record is NULL\n"));
+            DEBUG_WARN(("main: ERROR item's desc record is NULL\n"));
             ff.skip_count++;
         }
         else {
-            DEBUG_MAIN(("main: Desc Email ID %x [d_ptr->id = %x]\n", d_ptr->desc->id, d_ptr->id));
+            DEBUG_MAIN(("main: Desc Email ID %"PRIx64" [d_ptr->d_id = %"PRIx64"]\n", d_ptr->desc->id, d_ptr->d_id));
 
             item = pst_parse_item(&pstfile, d_ptr, NULL);
             DEBUG_MAIN(("main: About to process item @ %p.\n", item));

@@ -1479,10 +1479,12 @@
                 that pointed to this node.
             </para>
             <para>
-                Each item in this node is a tuple of (D_ID, DESC-I_ID, TREE-I_ID, PARENT-D_ID).
-                The DESC-I_ID points to the main data for this item via the index1 tree.
-                The TREE-I_ID is zero or points to Associated Tree Item 0x0002 via the index1 tree.
-                The PARENT-D_ID points to the parent of this item in this index2 tree.
+                Each item in this node is a tuple of (D_ID, DESC-I_ID, TREE-I_ID,
+                PARENT-D_ID) The DESC-I_ID points to the main data for this item
+                (Associated Descriptor Items 0x7cec, 0xbcec, or 0x0101) via the index1
+                tree.  The TREE-I_ID is zero or points to an Associated Tree Item
+                0x0002 via the index1 tree.  The PARENT-D_ID points to the parent of
+                this item in this index2 tree.
             </para>
         </refsect1>
 
@@ -1539,10 +1541,12 @@
                 that pointed to this node.
             </para>
             <para>
-                Each item in this node is a tuple of (D_ID, DESC-I_ID, TREE-I_ID, PARENT-D_ID)
-                The DESC-I_ID points to the main data for this item via the index1 tree.
-                The TREE-I_ID is zero or points to Associated Tree Item 0x0002 via the index1 tree.
-                The PARENT-D_ID points to the parent of this item in this index2 tree.
+                Each item in this node is a tuple of (D_ID, DESC-I_ID, TREE-I_ID,
+                PARENT-D_ID) The DESC-I_ID points to the main data for this item
+                (Associated Descriptor Items 0x7cec, 0xbcec, or 0x0101) via the index1
+                tree.  The TREE-I_ID is zero or points to an Associated Tree Item
+                0x0002 via the index1 tree.  The PARENT-D_ID points to the parent of
+                this item in this index2 tree.
             </para>
         </refsect1>
 
@@ -1607,6 +1611,7 @@
                 0x00e638, 0, 0) 0x00e638 is the I_ID of the associated descriptor, and we
                 can lookup that I_ID value in the index1 b-tree to find the (offset,size)
                 of the data in the .pst file.
+                This descriptor is eventually decoded to a list of MAPI elements.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  3c 01 ec bc  20 00 00 00  00 00 00 00  b5 02 06 00
@@ -1678,13 +1683,15 @@
 0004  descoffset      [4 bytes] 0x0040     index reference
 ]]></literallayout>
             <para>
-                Note the descoffset of 0x0040, which again is an index reference. In this
-                case, it is an internal pointer reference, which needs to be right shifted by 4 bits
-                to become 0x0004, which is then a byte offset to be added to the above
-                indexOffset plus two (to skip the count), so it points to the (0x14, 0x7c)
-                pair. The datasize (6) plus the b5 code (02) gives the size of the entries,
-                in this case 8 bytes. We now have the offset 0x14 of the descriptor array,
-                composed of 8 byte entries. Each descriptor entry has the following format:
+                Note the descoffset of 0x0040, which again is an index reference. In
+                this case, it is an internal pointer reference, which needs to be
+                right shifted by 4 bits to become 0x0004, which is then a byte offset
+                to be added to the above indexOffset plus two (to skip the count), so
+                it points to the (0x14, 0x7c) pair. The datasize (6) plus the b5 code
+                (02) gives the size of the entries, in this case 8 bytes. We now have
+                the offset 0x14 of the descriptor array, composed of 8 byte entries
+                that describe MAPI elements. Each descriptor entry has the following
+                format:
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  itemType        [2 bytes]
@@ -1727,244 +1734,253 @@
                 are implemented in the code yet.
             </para>
             <literallayout class="monospaced"><![CDATA[
-0002  Alternate recipient allowed
-0003  Extended Attributes Table
-0017  Importance Level
-001a  IPM Context, message class
-0023  Global delivery report requested
-0026  Priority
-0029  Read Receipt
-002b  Reassignment Prohibited
-002e  Original Sensitivity
-0036  Sensitivity
-0037  Email Subject
-0039  Client submit time / date sent
-003b  Outlook Address of Sender
-003f  Outlook structure describing the recipient
-0040  Name of the Outlook recipient structure
-0041  Outlook structure describing the sender
-0042  Name of the Outlook sender structure
-0043  Another structure describing the recipient
-0044  Name of the second recipient structure
-004f  Reply-To Outlook Structure
-0050  Name of the Reply-To structure
-0051  Outlook Name of recipient
-0052  Second Outlook name of recipient
-0057  My address in TO field
-0058  My address in CC field
-0059  Message addressed to me
-0063  Response requested
-0064  Sender's Address access method (SMTP, EX)
-0065  Sender's Address
-0070  Conversation topic, processed subject (with Fwd:, Re, ... removed)
-0071  Conversation index
-0072  Original display BCC
-0073  Original display CC
-0074  Original display TO
-0075  Recipient Address Access Method (SMTP, EX)
-0076  Recipient's Address
-0077  Second Recipient Access Method (SMTP, EX)
-0078  Second Recipient Address
-007d  Email Header. This is the header that was attached to the email
-0c17  Reply Requested
-0c19  Second sender structure
-0c1a  Name of second sender structure
-0c1d  Second outlook name of sender
-0c1e  Second sender access method (SMTP, EX)
-0c1f  Second Sender Address
-0e01  Delete after submit
-0e02  BCC Addresses
-0e03  CC Addresses
-0e04  SentTo Address
-0e06  Date.
-0e07  Flag bits
-          0x01 - Read
-          0x02 - Unmodified
-          0x04 - Submit
-          0x08 - Unsent
-          0x10 - Has Attachments
-          0x20 - From Me
-          0x40 - Associated
-          0x80 - Resend
-          0x100 - RN Pending
-          0x200 - NRN Pending
-0e08  Message Size
-0e0a  Sentmail EntryID
-0e1f  Compressed RTF in Sync
-0e20  Attachment Size
-0ff9  binary record header
-1000  Plain Text Email Body. Does not exist if the email doesn't have a plain text version
-1006  RTF Sync Body CRC
-1007  RTF Sync Body character count
-1008  RTF Sync body tag
-1009  RTF Compressed body
-1010  RTF whitespace prefix count
-1011  RTF whitespace tailing count
-1013  HTML Email Body. Does not exist if the email doesn't have an HTML version
-1035  Message ID
-1042  In-Reply-To or Parent's Message ID
-1046  Return Path
-3001  Folder Name? I have seen this value used for the contacts record aswell
-3002  Address Type
-3003  Contact Address
-3004  Comment
-3007  Date item creation
-3008  Date item modification
-300b  binary record header
-35df  Valid Folder Mask
-35e0  binary record contains a reference to "Top of Personal Folder" item
-35e2  binary record contains a reference to default outbox item
-35e3  binary record contains a reference to "Deleted Items" item
-35e4  binary record contains a reference to sent items folder item
-35e5  binary record contains a reference to user views folder item
-35e6  binary record contains a reference to common views folder item
-35e7  binary record contains a reference to "Search Root" item
-3602  the number of emails stored in a folder
-3603  the number of unread emails in a folder
-360a  Has Subfolders
-3613  the folder content description
-3617  Associate Content count
-3701  Binary Data attachment
-3704  Attachment Filename
-3705  Attachement method
-3707  Attachment Filename long
-370b  Attachment Position
-370e  Attachment mime encoding
-3710  Attachment mime Sequence
-3a00  Contact's Account name
-3a01  Contact Alternate Recipient
-3a02  Callback telephone number
-3a03  Message Conversion Prohibited
-3a05  Contacts Suffix
-3a06  Contacts First Name
-3a07  Contacts Government ID Number
-3a08  Business Telephone Number
-3a09  Home Telephone Number
-3a0a  Contacts Initials
-3a0b  Keyword
-3a0c  Contact's Language
-3a0d  Contact's Location
-3a0e  Mail Permission
-3a0f  MHS Common Name
-3a10  Organizational ID #
-3a11  Contacts Surname
-3a12  original entry id
-3a13  original display name
-3a14  original search key
-3a15  Default Postal Address
-3a16  Company Name
-3a17  Job Title
-3a18  Department Name
-3a19  Office Location
-3a1a  Primary Telephone
-3a1b  Business Phone Number 2
-3a1c  Mobile Phone Number
-3a1d  Radio Phone Number
-3a1e  Car Phone Number
-3a1f  Other Phone Number
-3a20  Transmittable Display Name
-3a21  Pager Phone Number
-3a22  user certificate
-3a23  Primary Fax Number
-3a24  Business Fax Number
-3a25  Home Fax Number
-3a26  Business Address Country
-3a27  Business Address City
-3a28  Business Address State
-3a29  Business Address Street
-3a2a  Business Postal Code
-3a2b  Business PO Box
-3a2c  Telex Number
-3a2d  ISDN Number
-3a2e  Assistant Phone Number
-3a2f  Home Phone 2
-3a30  Assistant's Name
-3a40  Can receive Rich Text
-3a41  Wedding Anniversary
-3a42  Birthday
-3a43  Hobbies
-3a44  Middle Name
-3a45  Display Name Prefix (Title)
-3a46  Profession
-3a47  Preferred By Name
-3a48  Spouse's Name
-3a49  Computer Network Name
-3a4a  Customer ID
-3a4b  TTY/TDD Phone
-3a4c  Ftp Site
-3a4d  Gender
-3a4e  Manager's Name
-3a4f  Nickname
-3a50  Personal Home Page
-3a51  Business Home Page
-3a57  Company Main Phone
-3a58  childrens names
-3a59  Home Address City
-3a5a  Home Address Country
-3a5b  Home Address Postal Code
-3a5c  Home Address State or Province
-3a5d  Home Address Street
-3a5e  Home Address Post Office Box
-3a5f  Other Address City
-3a60  Other Address Country
-3a61  Other Address Postal Code
-3a62  Other Address State
-3a63  Other Address Street
-3a64  Other Address Post Office box
-65e3  Entry ID
-67f2  Attachment ID2 value
-67ff  Password checksum
-6f02  Secure HTML Body
-6f04  Secure Text Body
-7c07  Top of folders RecID
-8005  Contact Fullname
-801a  Home Address
-801b  Business Address
-801c  Other Address
-8045  Work Address Street
-8046  Work Address City
-8047  Work Address State
-8048  Work Address Postal Code
-8049  Work Address Country
-804a  Work Address Post Office Box
-8082  Email Address 1 Transport
-8083  Email Address 1 Address
-8084  Email Address 1 Description
-8085  Email Address 1 Record
-8092  Email Address 2 Transport
-8093  Email Address 2 Address
-8094  Email Address 2 Description
-8095  Email Address 2 Record
-80a2  Email Address 3 Transport
-80a3  Email Address 3 Address
-80a4  Email Address 3 Description
-80a5  Email Address 3 Record
-80d8  Internet Free/Busy
-8205  Appointment shows as
-8208  Appointment Location
-820d  Appointment start
-820e  Appointment end
-8214  Label for appointment
-8215  All day appointment flag
-8231  Recurrence type
-8232  Recurrence description
-8234  TimeZone of times
-8235  Recurrence Start Time
-8236  Recurrence End Time
-8501  Reminder minutes before appointment start
-8503  Reminder alarm
-8516  Common Time Start
-8517  Common Time End
-851f  Play reminder sound filename
-8530  Followup String
-8534  Mileage
-8535  Billing Information
-8554  Outlook Version
-8560  Appointment Reminder Time
-8700  Journal Entry Type
-8706  Start Timestamp
-8708  End Timestamp
-8712  Journal Entry Type - duplicate?
+0x0002  Alternate recipient allowed
+0x0003  Extended Attributes Table
+0x0017  Importance Level
+0x001a  IPM Context, message class
+0x0023  Global delivery report requested
+0x0026  Priority
+0x0029  Read Receipt
+0x002b  Reassignment Prohibited
+0x002e  Original Sensitivity
+0x0032  Report time
+0x0036  Sensitivity
+0x0037  Email Subject
+0x0039  Client submit time / date sent
+0x003b  Outlook Address of Sender
+0x003f  Outlook structure describing the recipient
+0x0040  Name of the Outlook recipient structure
+0x0041  Outlook structure describing the sender
+0x0042  Name of the Outlook sender structure
+0x0043  Another structure describing the recipient
+0x0044  Name of the second recipient structure
+0x004f  Reply-To Outlook Structure
+0x0050  Name of the Reply-To structure
+0x0051  Outlook Name of recipient
+0x0052  Second Outlook name of recipient
+0x0057  My address in TO field
+0x0058  My address in CC field
+0x0059  Message addressed to me
+0x0063  Response requested
+0x0064  Sender's Address access method (SMTP, EX)
+0x0065  Sender's Address
+0x0070  Conversation topic, processed subject (with Fwd:, Re, ... removed)
+0x0071  Conversation index
+0x0072  Original display BCC
+0x0073  Original display CC
+0x0074  Original display TO
+0x0075  Recipient Address Access Method (SMTP, EX)
+0x0076  Recipient's Address
+0x0077  Second Recipient Access Method (SMTP, EX)
+0x0078  Second Recipient Address
+0x007d  Email Header. This is the header that was attached to the email
+0x0c04  NDR Reason code
+0x0c05  NDR Diag code
+0x0c06  Non-receipt notification requested
+0x0c17  Reply Requested
+0x0c19  Second sender structure
+0x0c1a  Name of second sender structure
+0x0c1b  Supplementary info
+0x0c1d  Second outlook name of sender
+0x0c1e  Second sender access method (SMTP, EX)
+0x0c1f  Second Sender Address
+0x0c20  NDR status code
+0x0e01  Delete after submit
+0x0e02  BCC Addresses
+0x0e03  CC Addresses
+0x0e04  SentTo Address
+0x0e06  Date.
+0x0e07  Flag bits
+            0x01 - Read
+            0x02 - Unmodified
+            0x04 - Submit
+            0x08 - Unsent
+            0x10 - Has Attachments
+            0x20 - From Me
+            0x40 - Associated
+            0x80 - Resend
+            0x100 - RN Pending
+            0x200 - NRN Pending
+0x0e08  Message Size
+0x0e0a  Sentmail EntryID
+0x0e1f  Compressed RTF in Sync
+0x0e20  Attachment Size
+0x0ff9  binary record header
+0x1000  Plain Text Email Body. Does not exist if the email doesn't have a plain text version
+0x1001  Report Text
+0x1006  RTF Sync Body CRC
+0x1007  RTF Sync Body character count
+0x1008  RTF Sync body tag
+0x1009  RTF Compressed body
+0x1010  RTF whitespace prefix count
+0x1011  RTF whitespace tailing count
+0x1013  HTML Email Body. Does not exist if the email doesn't have an HTML version
+0x1035  Message ID
+0x1042  In-Reply-To or Parent's Message ID
+0x1046  Return Path
+0x3001  Folder Name? I have seen this value used for the contacts record aswell
+0x3002  Address Type
+0x3003  Contact Address
+0x3004  Comment
+0x3007  Date item creation
+0x3008  Date item modification
+0x300b  binary record header
+0x35df  Valid Folder Mask
+0x35e0  binary record contains a reference to "Top of Personal Folder" item
+0x35e2  binary record contains a reference to default outbox item
+0x35e3  binary record contains a reference to "Deleted Items" item
+0x35e4  binary record contains a reference to sent items folder item
+0x35e5  binary record contains a reference to user views folder item
+0x35e6  binary record contains a reference to common views folder item
+0x35e7  binary record contains a reference to "Search Root" item
+0x3602  the number of emails stored in a folder
+0x3603  the number of unread emails in a folder
+0x360a  Has Subfolders
+0x3613  the folder content description
+0x3617  Associate Content count
+0x3701  Binary Data attachment
+0x3704  Attachment Filename
+0x3705  Attachement method
+0x3707  Attachment Filename long
+0x370b  Attachment Position
+0x370e  Attachment mime encoding
+0x3710  Attachment mime Sequence
+0x3a00  Contact's Account name
+0x3a01  Contact Alternate Recipient
+0x3a02  Callback telephone number
+0x3a03  Message Conversion Prohibited
+0x3a05  Contacts Suffix
+0x3a06  Contacts First Name
+0x3a07  Contacts Government ID Number
+0x3a08  Business Telephone Number
+0x3a09  Home Telephone Number
+0x3a0a  Contacts Initials
+0x3a0b  Keyword
+0x3a0c  Contact's Language
+0x3a0d  Contact's Location
+0x3a0e  Mail Permission
+0x3a0f  MHS Common Name
+0x3a10  Organizational ID #
+0x3a11  Contacts Surname
+0x3a12  original entry id
+0x3a13  original display name
+0x3a14  original search key
+0x3a15  Default Postal Address
+0x3a16  Company Name
+0x3a17  Job Title
+0x3a18  Department Name
+0x3a19  Office Location
+0x3a1a  Primary Telephone
+0x3a1b  Business Phone Number 2
+0x3a1c  Mobile Phone Number
+0x3a1d  Radio Phone Number
+0x3a1e  Car Phone Number
+0x3a1f  Other Phone Number
+0x3a20  Transmittable Display Name
+0x3a21  Pager Phone Number
+0x3a22  user certificate
+0x3a23  Primary Fax Number
+0x3a24  Business Fax Number
+0x3a25  Home Fax Number
+0x3a26  Business Address Country
+0x3a27  Business Address City
+0x3a28  Business Address State
+0x3a29  Business Address Street
+0x3a2a  Business Postal Code
+0x3a2b  Business PO Box
+0x3a2c  Telex Number
+0x3a2d  ISDN Number
+0x3a2e  Assistant Phone Number
+0x3a2f  Home Phone 2
+0x3a30  Assistant's Name
+0x3a40  Can receive Rich Text
+0x3a41  Wedding Anniversary
+0x3a42  Birthday
+0x3a43  Hobbies
+0x3a44  Middle Name
+0x3a45  Display Name Prefix (Title)
+0x3a46  Profession
+0x3a47  Preferred By Name
+0x3a48  Spouse's Name
+0x3a49  Computer Network Name
+0x3a4a  Customer ID
+0x3a4b  TTY/TDD Phone
+0x3a4c  Ftp Site
+0x3a4d  Gender
+0x3a4e  Manager's Name
+0x3a4f  Nickname
+0x3a50  Personal Home Page
+0x3a51  Business Home Page
+0x3a57  Company Main Phone
+0x3a58  childrens names
+0x3a59  Home Address City
+0x3a5a  Home Address Country
+0x3a5b  Home Address Postal Code
+0x3a5c  Home Address State or Province
+0x3a5d  Home Address Street
+0x3a5e  Home Address Post Office Box
+0x3a5f  Other Address City
+0x3a60  Other Address Country
+0x3a61  Other Address Postal Code
+0x3a62  Other Address State
+0x3a63  Other Address Street
+0x3a64  Other Address Post Office box
+0x3fde  Internet code page
+0x3ffd  Message code page
+0x65e3  Entry ID
+0x67f2  Attachment ID2 value
+0x67ff  Password checksum
+0x6f02  Secure HTML Body
+0x6f04  Secure Text Body
+0x7c07  Top of folders RecID
+0x8005  Contact Fullname
+0x801a  Home Address
+0x801b  Business Address
+0x801c  Other Address
+0x8045  Work Address Street
+0x8046  Work Address City
+0x8047  Work Address State
+0x8048  Work Address Postal Code
+0x8049  Work Address Country
+0x804a  Work Address Post Office Box
+0x8082  Email Address 1 Transport
+0x8083  Email Address 1 Address
+0x8084  Email Address 1 Description
+0x8085  Email Address 1 Record
+0x8092  Email Address 2 Transport
+0x8093  Email Address 2 Address
+0x8094  Email Address 2 Description
+0x8095  Email Address 2 Record
+0x80a2  Email Address 3 Transport
+0x80a3  Email Address 3 Address
+0x80a4  Email Address 3 Description
+0x80a5  Email Address 3 Record
+0x80d8  Internet Free/Busy
+0x8205  Appointment shows as
+0x8208  Appointment Location
+0x820d  Appointment start
+0x820e  Appointment end
+0x8214  Label for appointment
+0x8215  All day appointment flag
+0x8231  Recurrence type
+0x8232  Recurrence description
+0x8234  TimeZone of times
+0x8235  Recurrence Start Time
+0x8236  Recurrence End Time
+0x8501  Reminder minutes before appointment start
+0x8503  Reminder alarm
+0x8516  Common Time Start
+0x8517  Common Time End
+0x851f  Play reminder sound filename
+0x8530  Followup String
+0x8534  Mileage
+0x8535  Billing Information
+0x8554  Outlook Version
+0x8560  Appointment Reminder Time
+0x8700  Journal Entry Type
+0x8706  Start Timestamp
+0x8708  End Timestamp
+0x8712  Journal Entry Type - duplicate?
 ]]></literallayout>
         </refsect1>
 
@@ -1972,6 +1988,7 @@
             <title>Associated Descriptor Item 0x7cec</title>
             <para>
                 This style of descriptor block is similar to the 0xbcec format.
+                This descriptor is also eventually decoded to a list of MAPI elements.
             </para>
             <literallayout class="monospaced"><![CDATA[
 0000  7a 01 ec 7c  40 00 00 00  00 00 00 00  b5 04 02 00
