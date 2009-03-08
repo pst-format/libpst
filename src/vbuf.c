@@ -43,16 +43,18 @@ int find_nl(vstr * vs)
 static int unicode_up = 0;
 static iconv_t i16to8;
 static const char *target_charset = NULL;
-static int         target_open = 0;
-static iconv_t    i8totarget;
+static int         target_open_from = 0;
+static int         target_open_to   = 0;
+static iconv_t     i8totarget = (iconv_t)-1;
+static iconv_t     target2i8  = (iconv_t)-1;
 
 
 void unicode_init()
 {
     if (unicode_up) unicode_close();
-    i16to8 = iconv_open("UTF-8", "UTF-16LE");
+    i16to8 = iconv_open("utf-8", "utf-16le");
     if (i16to8 == (iconv_t)-1) {
-        fprintf(stderr, "Couldn't open iconv descriptor for UTF-16LE to UTF-8.\n");
+        WARN(("Couldn't open iconv descriptor for utf-16le to utf-8.\n"));
         exit(1);
     }
     unicode_up = 1;
@@ -62,12 +64,12 @@ void unicode_init()
 void unicode_close()
 {
     iconv_close(i16to8);
-    if (target_open) {
-        iconv_close(i8totarget);
-        free((char *)target_charset);
-        target_charset = NULL;
-        target_open    = 0;
-    }
+    if (target_open_from) iconv_close(i8totarget);
+    if (target_open_to)   iconv_close(target2i8);
+    if (target_charset)   free((char *)target_charset);
+    target_charset   = NULL;
+    target_open_from = 0;
+    target_open_to   = 0;
     unicode_up = 0;
 }
 
@@ -125,39 +127,47 @@ size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen)
 }
 
 
-size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* charset)
+static void open_targets(const char* charset);
+static void open_targets(const char* charset)
+{
+    if (!target_charset || strcasecmp(target_charset, charset)) {
+        if (target_open_from) iconv_close(i8totarget);
+        if (target_open_to)   iconv_close(target2i8);
+        if (target_charset)   free((char *)target_charset);
+        target_charset   = strdup(charset);
+        target_open_from = 1;
+        target_open_to   = 1;
+        i8totarget = iconv_open(target_charset, "utf-8");
+        if (i8totarget == (iconv_t)-1) {
+            target_open_from = 0;
+            WARN(("Couldn't open iconv descriptor for utf-8 to %s.\n", target_charset));
+        }
+        target2i8 = iconv_open("utf-8", target_charset);
+        if (target2i8 == (iconv_t)-1) {
+            target_open_to = 0;
+            WARN(("Couldn't open iconv descriptor for %s to utf-8.\n", target_charset));
+        }
+    }
+}
+
+
+static size_t sbcs_conversion(vbuf *dest, const char *inbuf, int iblen, iconv_t conversion);
+static size_t sbcs_conversion(vbuf *dest, const char *inbuf, int iblen, iconv_t conversion)
 {
     size_t inbytesleft  = iblen;
     size_t icresult     = (size_t)-1;
     size_t outbytesleft = 0;
     char *outbuf        = NULL;
 
-    if (!target_charset || strcasecmp(target_charset, charset)) {
-        if (target_open) {
-            iconv_close(i8totarget);
-            free((char *)target_charset);
-        }
-        target_charset = strdup(charset);
-        target_open    = 1;
-        i8totarget = iconv_open(target_charset, "UTF-8");
-        if (i8totarget == (iconv_t)-1) {
-            target_open = 0;
-            fprintf(stderr, "Couldn't open iconv descriptor for UTF-8 to %s.\n", target_charset);
-            return (size_t)-1;
-        }
-    }
-
-    if (!target_open) return (size_t)-1;    // previous failure to open the target
-
-    if (2 > dest->blen) vbresize(dest, 2);
+    vbresize(dest, 2*iblen);
     dest->dlen = 0;
 
     do {
         outbytesleft = dest->blen - dest->dlen;
         outbuf = dest->b + dest->dlen;
-        icresult = iconv(i8totarget, (ICONV_CONST char**)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
+        icresult = iconv(conversion, (ICONV_CONST char**)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
         dest->dlen = outbuf - dest->b;
-        vbgrow(dest, 20);
+        if (inbytesleft) vbgrow(dest, 2*inbytesleft);
     } while ((size_t)-1 == icresult && E2BIG == errno);
 
     if (icresult == (size_t)-1) {
@@ -166,6 +176,22 @@ size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* chars
         return (size_t)-1;
     }
     return (icresult) ? (size_t)-1 : 0;
+}
+
+
+size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* charset)
+{
+    open_targets(charset);
+    if (!target_open_from) return (size_t)-1;   // failure to open the target
+    return sbcs_conversion(dest, inbuf, iblen, i8totarget);
+}
+
+
+size_t vb_8bit2utf8(vbuf *dest, const char *inbuf, int iblen, const char* charset)
+{
+    open_targets(charset);
+    if (!target_open_to) return (size_t)-1;     // failure to open the target
+    return sbcs_conversion(dest, inbuf, iblen, target2i8);
 }
 
 
@@ -224,20 +250,6 @@ size_t vbavail(vbuf * vb)
 {
     return vb->blen  - vb->dlen - (size_t)(vb->b - vb->buf);
 }
-
-
-//void vbdump( vbuf *vb ) // TODO: to stdout?  Yuck
-//{
-//      printf("vb dump-------------\n");
-//        printf("dlen: %d\n", vb->dlen );
-//      printf("blen: %d\n", vb->blen );
-//      printf("b - buf: %d\n", vb->b - vb->buf );
-//      printf("buf:\n");
-//      hexdump( vb->buf, 0, vb->blen, 1 );
-//      printf("b:\n");
-//      hexdump( vb->b, 0, vb->dlen, 1 );
-//      printf("^^^^^^^^^^^^^^^^^^^^\n");
-//}
 
 
 void vbgrow(struct varbuf *vb, size_t len)      // out: vbavail(vb) >= len, data are preserved

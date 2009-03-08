@@ -166,23 +166,19 @@ typedef struct pst_desc_tree {
 } pst_desc_ll;
 
 
-typedef struct pst_item_email_subject {
-    int     off1;
-    int     off2;
-    char   *subj;
-} pst_item_email_subject;
+typedef struct pst_string {
+    int     is_utf8;    // 1 = true, 0 = false
+    char   *str;        // either utf8 or some sbcs
+} pst_string;
 
 
 typedef struct pst_item_email {
     FILETIME   *arrival_date;
     int         autoforward;            // 1 = true, 0 = not set, -1 = false
-    char       *body;
-    int32_t     body_was_unicode;       // 1 = true, 0 = false
-    char       *cc_address;
-    char       *bcc_address;
-    char       *common_name;
+    pst_string  cc_address;
+    pst_string  bcc_address;
     int32_t     conv_index;
-    int         conversion_prohib;      // 1 = true, 0 = false
+    int         conversion_prohibited;  // 1 = true, 0 = false
     int         delete_after_submit;    // 1 = true, 0 = false
     int         delivery_report;        // 1 = true, 0 = false
     char       *encrypted_body;
@@ -190,59 +186,56 @@ typedef struct pst_item_email {
     char       *encrypted_htmlbody;
     size_t      encrypted_htmlbody_size;
     int32_t     flag;
-    char       *header;
-    char       *htmlbody;
-    int32_t     htmlbody_was_unicode;   // 1 = true, 0 = false
+    pst_string  header;
+    pst_string  htmlbody;
     int32_t     importance;
-    char       *in_reply_to;
+    pst_string  in_reply_to;
     int         message_cc_me;          // 1 = true, 0 = false
     int         message_recip_me;       // 1 = true, 0 = false
     int         message_to_me;          // 1 = true, 0 = false
-    char       *messageid;
+    pst_string  messageid;
     int32_t     orig_sensitivity;
-    char       *original_bcc;
-    char       *original_cc;
-    char       *original_to;
-    char       *outlook_recipient;
-    char       *outlook_recipient_name;
-    char       *outlook_recipient2;
-    char       *outlook_sender;
-    char       *outlook_sender_name;
-    char       *outlook_sender2;
+    pst_string  original_bcc;
+    pst_string  original_cc;
+    pst_string  original_to;
+    pst_string  outlook_recipient;
+    pst_string  outlook_recipient_name;
+    pst_string  outlook_recipient2;
+    pst_string  outlook_sender;
+    pst_string  outlook_sender_name;
+    pst_string  outlook_sender2;
     int32_t     priority;
-    char       *proc_subject;
+    pst_string  processed_subject;
     int         read_receipt;           // 1 = true, 0 = false
-    char       *recip_access;
-    char       *recip_address;
-    char       *recip2_access;
-    char       *recip2_address;
+    pst_string  recip_access;
+    pst_string  recip_address;
+    pst_string  recip2_access;
+    pst_string  recip2_address;
     int         reply_requested;        // 1 = true, 0 = false
-    char       *reply_to;
-    char       *return_path_address;
+    pst_string  reply_to;
+    pst_string  return_path_address;
     int32_t     rtf_body_char_count;
     int32_t     rtf_body_crc;
-    char       *rtf_body_tag;
+    pst_string  rtf_body_tag;
     char       *rtf_compressed;
     uint32_t    rtf_compressed_size;
     int         rtf_in_sync;            // 1 = true, 0 = doesn't exist, -1 = false
     int32_t     rtf_ws_prefix_count;
     int32_t     rtf_ws_trailing_count;
-    char       *sender_access;
-    char       *sender_address;
-    char       *sender2_access;
-    char       *sender2_address;
+    pst_string  sender_access;
+    pst_string  sender_address;
+    pst_string  sender2_access;
+    pst_string  sender2_address;
     int32_t     sensitivity;
-    FILETIME   *sent_date;
-    pst_entryid            *sentmail_folder;
-    char                   *sentto_address;
-    pst_item_email_subject *subject;
+    FILETIME    *sent_date;
+    pst_entryid *sentmail_folder;
+    pst_string  sentto_address;
     // delivery report fields
-    char       *report_text;
-    int32_t     report_was_unicode;
+    pst_string  report_text;
     FILETIME   *report_time;
     int32_t     ndr_reason_code;
     int32_t     ndr_diag_code;
-    char       *supplementary_info;
+    pst_string  supplementary_info;
     int32_t     ndr_status_code;
 } pst_item_email;
 
@@ -270,154 +263,155 @@ typedef struct pst_item_message_store {
 
 
 typedef struct pst_item_contact {
-    char *access_method;
-    char *account_name;
-    char *address1;
-    char *address1a;
-    char *address1_desc;
-    char *address1_transport;
-    char *address2;
-    char *address2a;
-    char *address2_desc;
-    char *address2_transport;
-    char *address3;
-    char *address3a;
-    char *address3_desc;
-    char *address3_transport;
-    char *assistant_name;
-    char *assistant_phone;
-    char *billing_information;
-    FILETIME *birthday;
-    char *business_address;             // 0x801b
-    char *business_city;
-    char *business_country;
-    char *business_fax;
-    char *business_homepage;
-    char *business_phone;
-    char *business_phone2;
-    char *business_po_box;
-    char *business_postal_code;
-    char *business_state;
-    char *business_street;
-    char *callback_phone;
-    char *car_phone;
-    char *company_main_phone;
-    char *company_name;
-    char *computer_name;
-    char *customer_id;
-    char *def_postal_address;
-    char *department;
-    char *display_name_prefix;
-    char *first_name;
-    char *followup;
-    char *free_busy_address;
-    char *ftp_site;
-    char *fullname;
-    int16_t  gender;
-    char *gov_id;
-    char *hobbies;
-    char *home_address;                 // 0x801a
-    char *home_city;
-    char *home_country;
-    char *home_fax;
-    char *home_phone;
-    char *home_phone2;
-    char *home_po_box;
-    char *home_postal_code;
-    char *home_state;
-    char *home_street;
-    char *initials;
-    char *isdn_phone;
-    char *job_title;
-    char *keyword;
-    char *language;
-    char *location;
-    int   mail_permission;              // 1 = true, 0 = false
-    char *manager_name;
-    char *middle_name;
-    char *mileage;
-    char *mobile_phone;
-    char *nickname;
-    char *office_loc;
-    char *org_id;
-    char *other_address;                // 0x801c
-    char *other_city;
-    char *other_country;
-    char *other_phone;
-    char *other_po_box;
-    char *other_postal_code;
-    char *other_state;
-    char *other_street;
-    char *pager_phone;
-    char *personal_homepage;
-    char *pref_name;
-    char *primary_fax;
-    char *primary_phone;
-    char *profession;
-    char *radio_phone;
-    int   rich_text;                    // 1 = true, 0 = false
-    char *spouse_name;
-    char *suffix;
-    char *surname;
-    char *telex;
-    char *transmittable_display_name;
-    char *ttytdd_phone;
-    FILETIME *wedding_anniversary;
-    char *work_address_street;          // 0x8045
-    char *work_address_city;            // 0x8046
-    char *work_address_state;           // 0x8047
-    char *work_address_postalcode;      // 0x8048
-    char *work_address_country;         // 0x8049
-    char *work_address_postofficebox;   // 0x804a
+    pst_string  access_method;
+    pst_string  account_name;
+    pst_string  address1;
+    pst_string  address1a;
+    pst_string  address1_desc;
+    pst_string  address1_transport;
+    pst_string  address2;
+    pst_string  address2a;
+    pst_string  address2_desc;
+    pst_string  address2_transport;
+    pst_string  address3;
+    pst_string  address3a;
+    pst_string  address3_desc;
+    pst_string  address3_transport;
+    pst_string  assistant_name;
+    pst_string  assistant_phone;
+    pst_string  billing_information;
+    FILETIME   *birthday;
+    pst_string  business_address;               // 0x801b
+    pst_string  business_city;
+    pst_string  business_country;
+    pst_string  business_fax;
+    pst_string  business_homepage;
+    pst_string  business_phone;
+    pst_string  business_phone2;
+    pst_string  business_po_box;
+    pst_string  business_postal_code;
+    pst_string  business_state;
+    pst_string  business_street;
+    pst_string  callback_phone;
+    pst_string  car_phone;
+    pst_string  company_main_phone;
+    pst_string  company_name;
+    pst_string  computer_name;
+    pst_string  customer_id;
+    pst_string  def_postal_address;
+    pst_string  department;
+    pst_string  display_name_prefix;
+    pst_string  first_name;
+    pst_string  followup;
+    pst_string  free_busy_address;
+    pst_string  ftp_site;
+    pst_string  fullname;
+    int16_t     gender;
+    pst_string  gov_id;
+    pst_string  hobbies;
+    pst_string  home_address;                   // 0x801a
+    pst_string  home_city;
+    pst_string  home_country;
+    pst_string  home_fax;
+    pst_string  home_phone;
+    pst_string  home_phone2;
+    pst_string  home_po_box;
+    pst_string  home_postal_code;
+    pst_string  home_state;
+    pst_string  home_street;
+    pst_string  initials;
+    pst_string  isdn_phone;
+    pst_string  job_title;
+    pst_string  keyword;
+    pst_string  language;
+    pst_string  location;
+    int         mail_permission;                // 1 = true, 0 = false
+    pst_string  manager_name;
+    pst_string  middle_name;
+    pst_string  mileage;
+    pst_string  mobile_phone;
+    pst_string  nickname;
+    pst_string  office_loc;
+    pst_string  common_name;
+    pst_string  org_id;
+    pst_string  other_address;                  // 0x801c
+    pst_string  other_city;
+    pst_string  other_country;
+    pst_string  other_phone;
+    pst_string  other_po_box;
+    pst_string  other_postal_code;
+    pst_string  other_state;
+    pst_string  other_street;
+    pst_string  pager_phone;
+    pst_string  personal_homepage;
+    pst_string  pref_name;
+    pst_string  primary_fax;
+    pst_string  primary_phone;
+    pst_string  profession;
+    pst_string  radio_phone;
+    int         rich_text;                      // 1 = true, 0 = false
+    pst_string  spouse_name;
+    pst_string  suffix;
+    pst_string  surname;
+    pst_string  telex;
+    pst_string  transmittable_display_name;
+    pst_string  ttytdd_phone;
+    FILETIME   *wedding_anniversary;
+    pst_string  work_address_street;            // 0x8045
+    pst_string  work_address_city;              // 0x8046
+    pst_string  work_address_state;             // 0x8047
+    pst_string  work_address_postalcode;        // 0x8048
+    pst_string  work_address_country;           // 0x8049
+    pst_string  work_address_postofficebox;     // 0x804a
 } pst_item_contact;
 
 
 typedef struct pst_item_attach {
-    char *filename1;
-    char *filename2;
-    char *mimetype;
-    char *data;
-    size_t   size;
-    uint64_t id2_val;
-    uint64_t id_val;            // calculated from id2_val during creation of record
-    pst_id2_ll *id2_head;    // deep copy from child
-    int32_t  method;
-    int32_t  position;
-    int32_t  sequence;
+    pst_string  filename1;
+    pst_string  filename2;
+    pst_string  mimetype;
+    char       *data;
+    size_t      size;
+    uint64_t    id2_val;
+    uint64_t    id_val;     // calculated from id2_val during creation of record
+    pst_id2_ll *id2_head;   // deep copy from child
+    int32_t     method;
+    int32_t     position;
+    int32_t     sequence;
     struct pst_item_attach *next;
 } pst_item_attach;
 
 
 typedef struct pst_item_extra_field {
-    char *field_name;
-    char *value;
+    char   *field_name;
+    char   *value;
     struct pst_item_extra_field *next;
 } pst_item_extra_field;
 
 
 typedef struct pst_item_journal {
-    FILETIME *end;
-    FILETIME *start;
-    char *type;
+    FILETIME   *end;
+    FILETIME   *start;
+    pst_string  type;
 } pst_item_journal;
 
 
 typedef struct pst_item_appointment {
-    FILETIME *end;
-    char     *location;
-    int       alarm;                // 1 = true, 0 = false
-    FILETIME *reminder;
-    int32_t   alarm_minutes;
-    char     *alarm_filename;
-    FILETIME *start;
-    char     *timezonestring;
-    int32_t   showas;
-    int32_t   label;
-    int       all_day;              // 1 = true, 0 = false
-    char     *recurrence;
-    int32_t   recurrence_type;
-    FILETIME *recurrence_start;
-    FILETIME *recurrence_end;
+    FILETIME   *end;
+    pst_string  location;
+    int         alarm;              // 1 = true, 0 = false
+    FILETIME   *reminder;
+    int32_t     alarm_minutes;
+    pst_string  alarm_filename;
+    FILETIME   *start;
+    pst_string  timezonestring;
+    int32_t     showas;
+    int32_t     label;
+    int         all_day;            // 1 = true, 0 = false
+    pst_string  recurrence;
+    int32_t     recurrence_type;
+    FILETIME   *recurrence_start;
+    FILETIME   *recurrence_end;
 } pst_item_appointment;
 
 
@@ -432,14 +426,16 @@ typedef struct pst_item {
     struct pst_item_appointment   *appointment;     // data referring to a calendar entry
     int         type;
     char       *ascii_type;
-    char       *file_as;
-    char       *comment;
-    char       *body_charset;           // null if not specified
+    pst_string  file_as;
+    pst_string  comment;
+    pst_string  body_charset;           // null if not specified
+    pst_string  body;                   // email, journal
+    pst_string  subject;                // email, journal
     int32_t     internet_cpid;
     int32_t     message_codepage;
     int32_t     message_size;
-    char       *outlook_version;
-    char       *record_key; // probably 16 bytes long.
+    pst_string  outlook_version;
+    char       *record_key;             // probably 16 bytes long.
     size_t      record_key_size;
     int         response_requested;     // 1 = true, 0 = false
     FILETIME   *create_date;
@@ -588,6 +584,11 @@ char *         pst_rfc2445_datetime_format(FILETIME *ft);
 void           pst_printDptr(pst_file *pf, pst_desc_ll *ptr);
 void           pst_printIDptr(pst_file* pf);
 void           pst_printID2ptr(pst_id2_ll *ptr);
+
+const char*    pst_codepage(int cp);
+const char*    pst_default_charset(pst_item *item);
+void           pst_convert_utf8_null(pst_item *item, pst_string *str);
+void           pst_convert_utf8(pst_item *item, pst_string *str);
 
 
 // switch from maximal packing back to default packing

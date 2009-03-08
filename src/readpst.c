@@ -51,11 +51,11 @@ void      header_strip_field(char *header, char *field);
 int       test_base64(char *body);
 void      find_html_charset(char *html, char *charset, size_t charsetlen);
 void      find_rfc822_headers(char** extra_mime_headers);
-void      write_body_part(FILE* f_output, char *body, int32_t body_was_unicode, char *mime, char *charset, char *boundary, pst_file* pst);
+void      write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset, char *boundary, pst_file* pst);
 void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers);
-void      write_vcard(FILE* f_output, pst_item_contact* contact, char comment[]);
-void      write_appointment(FILE* f_output, pst_item_appointment* appointment,
-                            pst_item_email* email, FILETIME* create_date, FILETIME* modify_date);
+void      write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char comment[]);
+void      write_appointment(FILE* f_output, pst_item *item, pst_item_appointment* appointment,
+                            FILETIME* create_date, FILETIME* modify_date);
 void      create_enter_dir(struct file_ll* f, pst_item *item);
 void      close_enter_dir(struct file_ll *f);
 
@@ -140,13 +140,13 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
 
             item = pst_parse_item(&pstfile, d_ptr, NULL);
             DEBUG_MAIN(("main: About to process item\n"));
-            if (item && item->email && item->email->subject && item->email->subject->subj) {
-                DEBUG_EMAIL(("item->email->subject->subj = %s\n", item->email->subject->subj));
+            if (item && item->subject.str) {
+                DEBUG_EMAIL(("item->subject = %s\n", item->subject.str));
             }
             if (item) {
-                if (item->folder && d_ptr->child && (deleted_mode == DMODE_INCLUDE || strcasecmp(item->file_as, "Deleted Items"))) {
+                if (item->folder && d_ptr->child && item->file_as.str && (deleted_mode == DMODE_INCLUDE || strcasecmp(item->file_as.str, "Deleted Items"))) {
                     //if this is a non-empty folder other than deleted items, we want to recurse into it
-                    if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as);
+                    if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as.str);
                     process(item, d_ptr->child);
 
                 } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
@@ -159,10 +159,15 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     if (ff.type != PST_TYPE_CONTACT) {
                         DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. Processing anyway\n"));
                     }
-                    if (contact_mode == CMODE_VCARD)
-                        write_vcard(ff.output, item->contact, item->comment);
-                    else
-                        fprintf(ff.output, "%s <%s>\n", item->contact->fullname, item->contact->address1);
+                    if (contact_mode == CMODE_VCARD) {
+                        pst_convert_utf8_null(item, &item->comment);
+                        write_vcard(ff.output, item, item->contact, item->comment.str);
+                    }
+                    else {
+                        pst_convert_utf8(item, &item->contact->fullname);
+                        pst_convert_utf8(item, &item->contact->address1);
+                        fprintf(ff.output, "%s <%s>\n", item->contact->fullname.str, item->contact->address1.str);
+                    }
 
                 } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT || item->type == PST_TYPE_OTHER)) {
                     char *extra_mime_headers = NULL;
@@ -183,10 +188,14 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have a journal entry, but the folder isn't a journal folder. Processing anyway\n"));
                     }
                     fprintf(ff.output, "BEGIN:VJOURNAL\n");
-                    if (item->email && item->email->subject && item->email->subject->subj)
-                        fprintf(ff.output, "SUMMARY:%s\n", pst_rfc2426_escape(item->email->subject->subj));
-                    if (item->email && item->email->body)
-                        fprintf(ff.output, "DESCRIPTION:%s\n", pst_rfc2426_escape(item->email->body));
+                    if (item->subject.str) {
+                        pst_convert_utf8(item, &item->subject);
+                        fprintf(ff.output, "SUMMARY:%s\n", pst_rfc2426_escape(item->subject.str));
+                    }
+                    if (item->body.str) {
+                        pst_convert_utf8(item, &item->body);
+                        fprintf(ff.output, "DESCRIPTION:%s\n", pst_rfc2426_escape(item->body.str));
+                    }
                     if (item->journal->start)
                         fprintf(ff.output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(item->journal->start));
                     fprintf(ff.output, "END:VJOURNAL\n\n");
@@ -199,7 +208,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     if (ff.type != PST_TYPE_APPOINTMENT) {
                         DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
                     }
-                    write_appointment(ff.output, item->appointment, item->email, item->create_date, item->modify_date);
+                    write_appointment(ff.output, item, item->appointment, item->create_date, item->modify_date);
 
                 } else if (item->message_store) {
                     // there should only be one message_store, and we have already done it
@@ -209,7 +218,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     // these all seem to be things that MS agrees are not included in the item count
                     //ff.skip_count++;
                     DEBUG_MAIN(("main: Unknown item type %i (%s) name (%s)\n",
-                                item->type, item->ascii_type, item->file_as));
+                                item->type, item->ascii_type, item->file_as.str));
                 }
                 pst_freeItem(item);
             } else {
@@ -324,17 +333,17 @@ int main(int argc, char* const* argv) {
         char   buf[1024];
         size_t l = 0;
         if (NULL == (fp = fopen(fname, "rb"))) {
-            fprintf(stderr, "Couldn't open file %s\n", fname );
+            WARN(("Couldn't open file %s\n", fname));
             DEBUG_RET();
             return 1;
         }
 
         while (0 != (l = fread(buf, 1, 1024, fp))) {
             if (0 != pst_decrypt(0, buf, l, PST_COMP_ENCRYPT))
-                fprintf(stderr, "pst_decrypt() failed (I'll try to continue)\n");
+                WARN(("pst_decrypt() failed (I'll try to continue)\n"));
 
             if (l != pst_fwrite(buf, 1, l, stdout)) {
-                fprintf(stderr, "Couldn't output to stdout?\n");
+                WARN(("Couldn't output to stdout?\n"));
                 DEBUG_RET();
                 return 1;
             }
@@ -367,7 +376,7 @@ int main(int argc, char* const* argv) {
     }
 
     // default the file_as to the same as the main filename if it doesn't exist
-    if (!item->file_as) {
+    if (!item->file_as.str) {
         if (!(temp = strrchr(fname, '/')))
             if (!(temp = strrchr(fname, '\\')))
                 temp = fname;
@@ -375,11 +384,12 @@ int main(int argc, char* const* argv) {
                 temp++; // get past the "\\"
         else
             temp++; // get past the "/"
-        item->file_as = (char*)xmalloc(strlen(temp)+1);
-        strcpy(item->file_as, temp);
-        DEBUG_MAIN(("file_as was blank, so am using %s\n", item->file_as));
+        item->file_as.str = (char*)xmalloc(strlen(temp)+1);
+        strcpy(item->file_as.str, temp);
+        item->file_as.is_utf8 = 1;
+        DEBUG_MAIN(("file_as was blank, so am using %s\n", item->file_as.str));
     }
-    DEBUG_MAIN(("main: Root Folder Name: %s\n", item->file_as));
+    DEBUG_MAIN(("main: Root Folder Name: %s\n", item->file_as.str));
 
     d_ptr = pst_getTopOfFolders(&pstfile, item);
     if (!d_ptr) {
@@ -398,7 +408,6 @@ int main(int argc, char* const* argv) {
 
 void write_email_body(FILE *f, char *body) {
     char *n = body;
-    //  DEBUG_MAIN(("write_email_body(): \"%s\"\n", body));
     DEBUG_ENT("write_email_body");
     while (n) {
         if (strncmp(body, "From ", 5) == 0)
@@ -700,8 +709,8 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
 
     // If there is a long filename (filename2) use that, otherwise
     // use the 8.3 filename (filename1)
-    char *attach_filename = (attach->filename2) ? attach->filename2
-                                                        : attach->filename1;
+    char *attach_filename = (attach->filename2.str) ? attach->filename2.str
+                                                    : attach->filename1.str;
     DEBUG_ENT("write_separate_attachment");
 
     check_filename(f_name);
@@ -744,7 +753,7 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
     pst_index_ll *ptr;
     DEBUG_ENT("write_embedded_message");
     fprintf(f_output, "\n--%s\n", boundary);
-    fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype);
+    fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype.str);
     ptr = pst_getID(pf, attach->id_val);
 
     pst_desc_ll d_ptr;
@@ -792,16 +801,16 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
     }
 
     fprintf(f_output, "\n--%s\n", boundary);
-    if (!attach->mimetype) {
+    if (!attach->mimetype.str) {
         fprintf(f_output, "Content-Type: %s\n", MIME_TYPE_DEFAULT);
     } else {
-        fprintf(f_output, "Content-Type: %s\n", attach->mimetype);
+        fprintf(f_output, "Content-Type: %s\n", attach->mimetype.str);
     }
     fprintf(f_output, "Content-Transfer-Encoding: base64\n");
 
     // If there is a long filename (filename2) use that, otherwise
     // use the 8.3 filename (filename1)
-    attach_filename = (attach->filename2) ? attach->filename2 : attach->filename1;
+    attach_filename = (attach->filename2.str) ? attach->filename2.str : attach->filename1.str;
     if (!attach_filename) {
         fprintf(f_output, "Content-Disposition: inline\n\n");
     } else {
@@ -986,18 +995,17 @@ void find_rfc822_headers(char** extra_mime_headers)
 }
 
 
-void write_body_part(FILE* f_output, char *body, int32_t body_was_unicode, char *mime, char *charset, char *boundary, pst_file* pst)
+void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset, char *boundary, pst_file* pst)
 {
-    char *needfree = NULL;
     DEBUG_ENT("write_body_part");
-    if (body_was_unicode && (strcasecmp("utf-8", charset))) {
+    if (body->is_utf8 && (strcasecmp("utf-8", charset))) {
         // try to convert to the specified charset since the target
         // is not utf-8, and the data came from a unicode (utf16) field
         // and is now in utf-8.
         size_t rc;
         DEBUG_EMAIL(("Convert %s utf-8 to %s\n", mime, charset));
         vbuf *newer = vballoc(2);
-        rc = vb_utf8to8bit(newer, body, strlen(body) + 1, charset);
+        rc = vb_utf8to8bit(newer, body->str, strlen(body->str) + 1, charset);
         if (rc == (size_t)-1) {
             // unable to convert, change the charset to utf8
             free(newer->b);
@@ -1005,18 +1013,19 @@ void write_body_part(FILE* f_output, char *body, int32_t body_was_unicode, char 
             charset = "utf-8";
         }
         else {
-            needfree = body = newer->b;
+            free(body->str);
+            body->str = newer->b;
         }
         free(newer);
     }
-    removeCR(body);
-    int base64 = test_base64(body);
+    removeCR(body->str);
+    int base64 = test_base64(body->str);
     fprintf(f_output, "\n--%s\n", boundary);
     fprintf(f_output, "Content-Type: %s; charset=\"%s\"\n", mime, charset);
     if (base64) fprintf(f_output, "Content-Transfer-Encoding: base64\n");
     fprintf(f_output, "\n");
     if (base64) {
-        char *enc = base64_encode(body, strlen(body));
+        char *enc = base64_encode(body->str, strlen(body->str));
         if (enc) {
             write_email_body(f_output, enc);
             fprintf(f_output, "\n");
@@ -1024,43 +1033,9 @@ void write_body_part(FILE* f_output, char *body, int32_t body_was_unicode, char 
         }
     }
     else {
-        write_email_body(f_output, body);
+        write_email_body(f_output, body->str);
     }
-    if (needfree) free(needfree);
     DEBUG_RET();
-}
-
-
-const char* codepage(int cp);
-const char* codepage(int cp) {
-    static char buffer[20];
-    switch (cp) {
-        case   932 : return "iso-2022-jp";
-        case   936 : return "gb2313";
-        case   950 : return "big5";
-        case 20127 : return "us-ascii";
-        case 20269 : return "iso-6937";
-        case 20865 : return "iso-8859-15";
-        case 20866 : return "koi8-r";
-        case 21866 : return "koi8-u";
-        case 28591 : return "iso-8859-1";
-        case 28592 : return "iso-8859-2";
-        case 28595 : return "iso-8859-5";
-        case 28596 : return "iso-8859-6";
-        case 28597 : return "iso-8859-7";
-        case 28598 : return "iso-8859-8";
-        case 28599 : return "iso-8859-9";
-        case 50220 : return "iso-2022-jp";
-        case 50221 : return "csiso2022jp";
-        case 51932 : return "euc-jp";
-        case 51949 : return "euc-kr";
-        case 65000 : return "utf-7";
-        case 65001 : return "utf-8";
-        default :
-            snprintf(buffer, sizeof(buffer), "windows-%d", cp);
-            return buffer;
-    }
-    return NULL;
 }
 
 
@@ -1075,28 +1050,30 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     int attach_num;
     time_t em_time;
     char *c_time;
-    char *headers = (item->email->header) ? item->email->header : *extra_mime_headers;
+    char *headers = NULL;
     int has_from, has_subject, has_to, has_cc, has_date, has_msgid;
     has_from = has_subject = has_to = has_cc = has_date = has_msgid = 0;
     DEBUG_ENT("write_normal_email");
 
+    pst_convert_utf8_null(item, &item->email->header);
+    headers = (item->email->header.str) ? item->email->header.str : *extra_mime_headers;
+
     // setup default body character set and report type
-    snprintf(body_charset, sizeof(body_charset), "%s",
-        (item->body_charset)     ? item->body_charset :
-        (item->message_codepage) ? codepage(item->message_codepage) :
-        (item->internet_cpid)    ? codepage(item->internet_cpid) :
-        "utf-8");
+    strncpy(body_charset, pst_default_charset(item), sizeof(body_charset));
+    body_charset[sizeof(body_charset)-1] = '\0';
     body_report[0] = '\0';
 
     // setup default sender
-    if (item->email->sender_address && strchr(item->email->sender_address, '@')) {
-        temp = item->email->sender_address;
+    pst_convert_utf8(item, &item->email->sender_address);
+    if (item->email->sender_address.str && strchr(item->email->sender_address.str, '@')) {
+        temp = item->email->sender_address.str;
         sender_known = 1;
     }
     else {
         temp = "MAILER-DAEMON";
     }
-    snprintf(sender, sizeof(sender), "%s", temp);
+    strncpy(sender, temp, sizeof(sender));
+    sender[sizeof(sender)-1] = '\0';
 
     // convert the sent date if it exists, or set it to a fixed date
     if (item->email->sent_date) {
@@ -1171,8 +1148,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     DEBUG_EMAIL(("About to print Header\n"));
 
-    if (item && item->email && item->email->subject && item->email->subject->subj) {
-        DEBUG_EMAIL(("item->email->subject->subj = %s\n", item->email->subject->subj));
+    if (item && item->subject.str) {
+        pst_convert_utf8(item, &item->subject);
+        DEBUG_EMAIL(("item->subject = %s\n", item->subject.str));
     }
 
     if (mode != MODE_SEPARATE) {
@@ -1195,23 +1173,25 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     // create required header fields that are not already written
 
     if (!has_from) {
-        fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name, sender);
+        fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name.str, sender);
     }
 
     if (!has_subject) {
-        if (item->email->subject && item->email->subject->subj) {
-            fprintf(f_output, "Subject: %s\n", item->email->subject->subj);
+        if (item->subject.str) {
+            fprintf(f_output, "Subject: %s\n", item->subject.str);
         } else {
             fprintf(f_output, "Subject: \n");
         }
     }
 
-    if (!has_to && item->email->sentto_address) {
-        fprintf(f_output, "To: %s\n", item->email->sentto_address);
+    if (!has_to && item->email->sentto_address.str) {
+        pst_convert_utf8(item, &item->email->sentto_address);
+        fprintf(f_output, "To: %s\n", item->email->sentto_address.str);
     }
 
-    if (!has_cc && item->email->cc_address) {
-        fprintf(f_output, "Cc: %s\n", item->email->cc_address);
+    if (!has_cc && item->email->cc_address.str) {
+        pst_convert_utf8(item, &item->email->cc_address);
+        fprintf(f_output, "Cc: %s\n", item->email->cc_address.str);
     }
 
     if (!has_date && item->email->sent_date) {
@@ -1220,19 +1200,22 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         fprintf(f_output, "Date: %s\n", c_time);
     }
 
-    if (!has_msgid && item->email->messageid) {
-        fprintf(f_output, "Message-Id: %s\n", item->email->messageid);
+    if (!has_msgid && item->email->messageid.str) {
+        pst_convert_utf8(item, &item->email->messageid);
+        fprintf(f_output, "Message-Id: %s\n", item->email->messageid.str);
     }
 
     // add forensic headers to capture some .pst stuff that is not really
     // needed or used by mail clients
-    if (item->email->sender_address && !strchr(item->email->sender_address, '@')
-                                    && strcmp(item->email->sender_address, ".")) {
-        fprintf(f_output, "X-libpst-forensic-sender: %s\n", item->email->sender_address);
+    pst_convert_utf8_null(item, &item->email->sender_address);
+    if (item->email->sender_address.str && !strchr(item->email->sender_address.str, '@')
+                                        && strcmp(item->email->sender_address.str, ".")) {
+        fprintf(f_output, "X-libpst-forensic-sender: %s\n", item->email->sender_address.str);
     }
 
-    if (item->email->bcc_address) {
-        fprintf(f_output, "X-libpst-forensic-bcc: %s\n", item->email->bcc_address);
+    if (item->email->bcc_address.str) {
+        pst_convert_utf8(item, &item->email->bcc_address);
+        fprintf(f_output, "X-libpst-forensic-bcc: %s\n", item->email->bcc_address.str);
     }
 
     // add our own mime headers
@@ -1253,18 +1236,18 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     fprintf(f_output, "\n");    // end of headers, start of body
 
     // now dump the body parts
-    if (item->email->body) {
-        write_body_part(f_output, item->email->body, item->email->body_was_unicode, "text/plain", body_charset, boundary, pst);
+    if (item->body.str) {
+        write_body_part(f_output, &item->body, "text/plain", body_charset, boundary, pst);
     }
 
-    if ((item->email->report_text) && (body_report[0] != '\0')) {
-        write_body_part(f_output, item->email->report_text, item->email->report_was_unicode, "text/plain", body_charset, boundary, pst);
+    if ((item->email->report_text.str) && (body_report[0] != '\0')) {
+        write_body_part(f_output, &item->email->report_text, "text/plain", body_charset, boundary, pst);
         fprintf(f_output, "\n");
     }
 
-    if (item->email->htmlbody) {
-        find_html_charset(item->email->htmlbody, body_charset, sizeof(body_charset));
-        write_body_part(f_output, item->email->htmlbody, item->email->htmlbody_was_unicode, "text/html", body_charset, boundary, pst);
+    if (item->email->htmlbody.str) {
+        find_html_charset(item->email->htmlbody.str, body_charset, sizeof(body_charset));
+        write_body_part(f_output, &item->email->htmlbody, "text/html", body_charset, boundary, pst);
     }
 
     if (item->email->rtf_compressed && save_rtf) {
@@ -1274,8 +1257,10 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         attach->next = item->attach;
         item->attach = attach;
         attach->data = lzfu_decompress(item->email->rtf_compressed, item->email->rtf_compressed_size, &attach->size);
-        attach->filename2 = strdup(RTF_ATTACH_NAME);
-        attach->mimetype  = strdup(RTF_ATTACH_TYPE);
+        attach->filename2.str     = strdup(RTF_ATTACH_NAME);
+        attach->filename2.is_utf8 = 1;
+        attach->mimetype.str      = strdup(RTF_ATTACH_TYPE);
+        attach->mimetype.is_utf8  = 1;
     }
 
     if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
@@ -1311,8 +1296,11 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         pst_item_attach* attach;
         attach_num = 0;
         for (attach = item->attach; attach; attach = attach->next) {
+            pst_convert_utf8_null(item, &attach->filename1);
+            pst_convert_utf8_null(item, &attach->filename2);
+            pst_convert_utf8_null(item, &attach->mimetype);
             DEBUG_EMAIL(("Attempting Attachment encoding\n"));
-            if (!attach->data && attach->mimetype && !strcmp(attach->mimetype, RFC822)) {
+            if (!attach->data && attach->mimetype.str && !strcmp(attach->mimetype.str, RFC822)) {
                 DEBUG_EMAIL(("seem to have special embedded message attachment\n"));
                 find_rfc822_headers(extra_mime_headers);
                 write_embedded_message(f_output, attach, boundary, pst, extra_mime_headers);
@@ -1334,95 +1322,149 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 }
 
 
-void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[])
+void write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char comment[])
 {
     // We can only call rfc escape once per printf, since the second call
     // may free the buffer returned by the first call.
     // I had tried to place those into a single printf - Carl.
 
     DEBUG_ENT("write_vcard");
+
+    // make everything utf8
+    pst_convert_utf8_null(item, &contact->fullname);
+    pst_convert_utf8_null(item, &contact->surname);
+    pst_convert_utf8_null(item, &contact->first_name);
+    pst_convert_utf8_null(item, &contact->middle_name);
+    pst_convert_utf8_null(item, &contact->display_name_prefix);
+    pst_convert_utf8_null(item, &contact->suffix);
+    pst_convert_utf8_null(item, &contact->nickname);
+    pst_convert_utf8_null(item, &contact->address1);
+    pst_convert_utf8_null(item, &contact->address2);
+    pst_convert_utf8_null(item, &contact->address3);
+    pst_convert_utf8_null(item, &contact->home_po_box);
+    pst_convert_utf8_null(item, &contact->home_street);
+    pst_convert_utf8_null(item, &contact->home_city);
+    pst_convert_utf8_null(item, &contact->home_state);
+    pst_convert_utf8_null(item, &contact->home_postal_code);
+    pst_convert_utf8_null(item, &contact->home_country);
+    pst_convert_utf8_null(item, &contact->home_address);
+    pst_convert_utf8_null(item, &contact->business_po_box);
+    pst_convert_utf8_null(item, &contact->business_street);
+    pst_convert_utf8_null(item, &contact->business_city);
+    pst_convert_utf8_null(item, &contact->business_state);
+    pst_convert_utf8_null(item, &contact->business_postal_code);
+    pst_convert_utf8_null(item, &contact->business_country);
+    pst_convert_utf8_null(item, &contact->business_address);
+    pst_convert_utf8_null(item, &contact->other_po_box);
+    pst_convert_utf8_null(item, &contact->other_street);
+    pst_convert_utf8_null(item, &contact->other_city);
+    pst_convert_utf8_null(item, &contact->other_state);
+    pst_convert_utf8_null(item, &contact->other_postal_code);
+    pst_convert_utf8_null(item, &contact->other_country);
+    pst_convert_utf8_null(item, &contact->other_address);
+    pst_convert_utf8_null(item, &contact->business_fax);
+    pst_convert_utf8_null(item, &contact->business_phone);
+    pst_convert_utf8_null(item, &contact->business_phone2);
+    pst_convert_utf8_null(item, &contact->car_phone);
+    pst_convert_utf8_null(item, &contact->home_fax);
+    pst_convert_utf8_null(item, &contact->home_phone);
+    pst_convert_utf8_null(item, &contact->home_phone2);
+    pst_convert_utf8_null(item, &contact->isdn_phone);
+    pst_convert_utf8_null(item, &contact->mobile_phone);
+    pst_convert_utf8_null(item, &contact->other_phone);
+    pst_convert_utf8_null(item, &contact->pager_phone);
+    pst_convert_utf8_null(item, &contact->primary_fax);
+    pst_convert_utf8_null(item, &contact->primary_phone);
+    pst_convert_utf8_null(item, &contact->radio_phone);
+    pst_convert_utf8_null(item, &contact->telex);
+    pst_convert_utf8_null(item, &contact->job_title);
+    pst_convert_utf8_null(item, &contact->profession);
+    pst_convert_utf8_null(item, &contact->assistant_name);
+    pst_convert_utf8_null(item, &contact->assistant_phone);
+    pst_convert_utf8_null(item, &contact->company_name);
+
     // the specification I am following is (hopefully) RFC2426 vCard Mime Directory Profile
     fprintf(f_output, "BEGIN:VCARD\n");
-    fprintf(f_output, "FN:%s\n", pst_rfc2426_escape(contact->fullname));
+    fprintf(f_output, "FN:%s\n", pst_rfc2426_escape(contact->fullname.str));
 
     //fprintf(f_output, "N:%s;%s;%s;%s;%s\n",
-    fprintf(f_output, "N:%s;", (!contact->surname)             ? "" : pst_rfc2426_escape(contact->surname));
-    fprintf(f_output, "%s;",   (!contact->first_name)          ? "" : pst_rfc2426_escape(contact->first_name));
-    fprintf(f_output, "%s;",   (!contact->middle_name)         ? "" : pst_rfc2426_escape(contact->middle_name));
-    fprintf(f_output, "%s;",   (!contact->display_name_prefix) ? "" : pst_rfc2426_escape(contact->display_name_prefix));
-    fprintf(f_output, "%s\n",  (!contact->suffix)              ? "" : pst_rfc2426_escape(contact->suffix));
+    fprintf(f_output, "N:%s;", (!contact->surname.str)             ? "" : pst_rfc2426_escape(contact->surname.str));
+    fprintf(f_output, "%s;",   (!contact->first_name.str)          ? "" : pst_rfc2426_escape(contact->first_name.str));
+    fprintf(f_output, "%s;",   (!contact->middle_name.str)         ? "" : pst_rfc2426_escape(contact->middle_name.str));
+    fprintf(f_output, "%s;",   (!contact->display_name_prefix.str) ? "" : pst_rfc2426_escape(contact->display_name_prefix.str));
+    fprintf(f_output, "%s\n",  (!contact->suffix.str)              ? "" : pst_rfc2426_escape(contact->suffix.str));
 
-    if (contact->nickname)
-        fprintf(f_output, "NICKNAME:%s\n", pst_rfc2426_escape(contact->nickname));
-    if (contact->address1)
-        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address1));
-    if (contact->address2)
-        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address2));
-    if (contact->address3)
-        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address3));
+    if (contact->nickname.str)
+        fprintf(f_output, "NICKNAME:%s\n", pst_rfc2426_escape(contact->nickname.str));
+    if (contact->address1.str)
+        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address1.str));
+    if (contact->address2.str)
+        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address2.str));
+    if (contact->address3.str)
+        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address3.str));
     if (contact->birthday)
         fprintf(f_output, "BDAY:%s\n", pst_rfc2425_datetime_format(contact->birthday));
 
-    if (contact->home_address) {
+    if (contact->home_address.str) {
         //fprintf(f_output, "ADR;TYPE=home:%s;%s;%s;%s;%s;%s;%s\n",
-        fprintf(f_output, "ADR;TYPE=home:%s;",  (!contact->home_po_box)      ? "" : pst_rfc2426_escape(contact->home_po_box));
+        fprintf(f_output, "ADR;TYPE=home:%s;",  (!contact->home_po_box.str)      ? "" : pst_rfc2426_escape(contact->home_po_box.str));
         fprintf(f_output, "%s;",                ""); // extended Address
-        fprintf(f_output, "%s;",                (!contact->home_street)      ? "" : pst_rfc2426_escape(contact->home_street));
-        fprintf(f_output, "%s;",                (!contact->home_city)        ? "" : pst_rfc2426_escape(contact->home_city));
-        fprintf(f_output, "%s;",                (!contact->home_state)       ? "" : pst_rfc2426_escape(contact->home_state));
-        fprintf(f_output, "%s;",                (!contact->home_postal_code) ? "" : pst_rfc2426_escape(contact->home_postal_code));
-        fprintf(f_output, "%s\n",               (!contact->home_country)     ? "" : pst_rfc2426_escape(contact->home_country));
-        fprintf(f_output, "LABEL;TYPE=home:%s\n", pst_rfc2426_escape(contact->home_address));
+        fprintf(f_output, "%s;",                (!contact->home_street.str)      ? "" : pst_rfc2426_escape(contact->home_street.str));
+        fprintf(f_output, "%s;",                (!contact->home_city.str)        ? "" : pst_rfc2426_escape(contact->home_city.str));
+        fprintf(f_output, "%s;",                (!contact->home_state.str)       ? "" : pst_rfc2426_escape(contact->home_state.str));
+        fprintf(f_output, "%s;",                (!contact->home_postal_code.str) ? "" : pst_rfc2426_escape(contact->home_postal_code.str));
+        fprintf(f_output, "%s\n",               (!contact->home_country.str)     ? "" : pst_rfc2426_escape(contact->home_country.str));
+        fprintf(f_output, "LABEL;TYPE=home:%s\n", pst_rfc2426_escape(contact->home_address.str));
     }
 
-    if (contact->business_address) {
+    if (contact->business_address.str) {
         //fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n",
-        fprintf(f_output, "ADR;TYPE=work:%s;",  (!contact->business_po_box)      ? "" : pst_rfc2426_escape(contact->business_po_box));
+        fprintf(f_output, "ADR;TYPE=work:%s;",  (!contact->business_po_box.str)      ? "" : pst_rfc2426_escape(contact->business_po_box.str));
         fprintf(f_output, "%s;",                ""); // extended Address
-        fprintf(f_output, "%s;",                (!contact->business_street)      ? "" : pst_rfc2426_escape(contact->business_street));
-        fprintf(f_output, "%s;",                (!contact->business_city)        ? "" : pst_rfc2426_escape(contact->business_city));
-        fprintf(f_output, "%s;",                (!contact->business_state)       ? "" : pst_rfc2426_escape(contact->business_state));
-        fprintf(f_output, "%s;",                (!contact->business_postal_code) ? "" : pst_rfc2426_escape(contact->business_postal_code));
-        fprintf(f_output, "%s\n",               (!contact->business_country)     ? "" : pst_rfc2426_escape(contact->business_country));
-        fprintf(f_output, "LABEL;TYPE=work:%s\n", pst_rfc2426_escape(contact->business_address));
+        fprintf(f_output, "%s;",                (!contact->business_street.str)      ? "" : pst_rfc2426_escape(contact->business_street.str));
+        fprintf(f_output, "%s;",                (!contact->business_city.str)        ? "" : pst_rfc2426_escape(contact->business_city.str));
+        fprintf(f_output, "%s;",                (!contact->business_state.str)       ? "" : pst_rfc2426_escape(contact->business_state.str));
+        fprintf(f_output, "%s;",                (!contact->business_postal_code.str) ? "" : pst_rfc2426_escape(contact->business_postal_code.str));
+        fprintf(f_output, "%s\n",               (!contact->business_country.str)     ? "" : pst_rfc2426_escape(contact->business_country.str));
+        fprintf(f_output, "LABEL;TYPE=work:%s\n", pst_rfc2426_escape(contact->business_address.str));
     }
 
-    if (contact->other_address) {
+    if (contact->other_address.str) {
         //fprintf(f_output, "ADR;TYPE=postal:%s;%s;%s;%s;%s;%s;%s\n",
-        fprintf(f_output, "ADR;TYPE=postal:%s;",(!contact->other_po_box)       ? "" : pst_rfc2426_escape(contact->other_po_box));
+        fprintf(f_output, "ADR;TYPE=postal:%s;",(!contact->other_po_box.str)       ? "" : pst_rfc2426_escape(contact->other_po_box.str));
         fprintf(f_output, "%s;",                ""); // extended Address
-        fprintf(f_output, "%s;",                (!contact->other_street)       ? "" : pst_rfc2426_escape(contact->other_street));
-        fprintf(f_output, "%s;",                (!contact->other_city)         ? "" : pst_rfc2426_escape(contact->other_city));
-        fprintf(f_output, "%s;",                (!contact->other_state)        ? "" : pst_rfc2426_escape(contact->other_state));
-        fprintf(f_output, "%s;",                (!contact->other_postal_code)  ? "" : pst_rfc2426_escape(contact->other_postal_code));
-        fprintf(f_output, "%s\n",               (!contact->other_country)      ? "" : pst_rfc2426_escape(contact->other_country));
-        fprintf(f_output, "LABEL;TYPE=postal:%s\n", pst_rfc2426_escape(contact->other_address));
+        fprintf(f_output, "%s;",                (!contact->other_street.str)       ? "" : pst_rfc2426_escape(contact->other_street.str));
+        fprintf(f_output, "%s;",                (!contact->other_city.str)         ? "" : pst_rfc2426_escape(contact->other_city.str));
+        fprintf(f_output, "%s;",                (!contact->other_state.str)        ? "" : pst_rfc2426_escape(contact->other_state.str));
+        fprintf(f_output, "%s;",                (!contact->other_postal_code.str)  ? "" : pst_rfc2426_escape(contact->other_postal_code.str));
+        fprintf(f_output, "%s\n",               (!contact->other_country.str)      ? "" : pst_rfc2426_escape(contact->other_country.str));
+        fprintf(f_output, "LABEL;TYPE=postal:%s\n", pst_rfc2426_escape(contact->other_address.str));
     }
 
-    if (contact->business_fax)      fprintf(f_output, "TEL;TYPE=work,fax:%s\n",         pst_rfc2426_escape(contact->business_fax));
-    if (contact->business_phone)    fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       pst_rfc2426_escape(contact->business_phone));
-    if (contact->business_phone2)   fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       pst_rfc2426_escape(contact->business_phone2));
-    if (contact->car_phone)         fprintf(f_output, "TEL;TYPE=car,voice:%s\n",        pst_rfc2426_escape(contact->car_phone));
-    if (contact->home_fax)          fprintf(f_output, "TEL;TYPE=home,fax:%s\n",         pst_rfc2426_escape(contact->home_fax));
-    if (contact->home_phone)        fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       pst_rfc2426_escape(contact->home_phone));
-    if (contact->home_phone2)       fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       pst_rfc2426_escape(contact->home_phone2));
-    if (contact->isdn_phone)        fprintf(f_output, "TEL;TYPE=isdn:%s\n",             pst_rfc2426_escape(contact->isdn_phone));
-    if (contact->mobile_phone)      fprintf(f_output, "TEL;TYPE=cell,voice:%s\n",       pst_rfc2426_escape(contact->mobile_phone));
-    if (contact->other_phone)       fprintf(f_output, "TEL;TYPE=msg:%s\n",              pst_rfc2426_escape(contact->other_phone));
-    if (contact->pager_phone)       fprintf(f_output, "TEL;TYPE=pager:%s\n",            pst_rfc2426_escape(contact->pager_phone));
-    if (contact->primary_fax)       fprintf(f_output, "TEL;TYPE=fax,pref:%s\n",         pst_rfc2426_escape(contact->primary_fax));
-    if (contact->primary_phone)     fprintf(f_output, "TEL;TYPE=phone,pref:%s\n",       pst_rfc2426_escape(contact->primary_phone));
-    if (contact->radio_phone)       fprintf(f_output, "TEL;TYPE=pcs:%s\n",              pst_rfc2426_escape(contact->radio_phone));
-    if (contact->telex)             fprintf(f_output, "TEL;TYPE=bbs:%s\n",              pst_rfc2426_escape(contact->telex));
-    if (contact->job_title)         fprintf(f_output, "TITLE:%s\n",                     pst_rfc2426_escape(contact->job_title));
-    if (contact->profession)        fprintf(f_output, "ROLE:%s\n",                      pst_rfc2426_escape(contact->profession));
-    if (contact->assistant_name || contact->assistant_phone) {
+    if (contact->business_fax.str)      fprintf(f_output, "TEL;TYPE=work,fax:%s\n",         pst_rfc2426_escape(contact->business_fax.str));
+    if (contact->business_phone.str)    fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       pst_rfc2426_escape(contact->business_phone.str));
+    if (contact->business_phone2.str)   fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       pst_rfc2426_escape(contact->business_phone2.str));
+    if (contact->car_phone.str)         fprintf(f_output, "TEL;TYPE=car,voice:%s\n",        pst_rfc2426_escape(contact->car_phone.str));
+    if (contact->home_fax.str)          fprintf(f_output, "TEL;TYPE=home,fax:%s\n",         pst_rfc2426_escape(contact->home_fax.str));
+    if (contact->home_phone.str)        fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       pst_rfc2426_escape(contact->home_phone.str));
+    if (contact->home_phone2.str)       fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       pst_rfc2426_escape(contact->home_phone2.str));
+    if (contact->isdn_phone.str)        fprintf(f_output, "TEL;TYPE=isdn:%s\n",             pst_rfc2426_escape(contact->isdn_phone.str));
+    if (contact->mobile_phone.str)      fprintf(f_output, "TEL;TYPE=cell,voice:%s\n",       pst_rfc2426_escape(contact->mobile_phone.str));
+    if (contact->other_phone.str)       fprintf(f_output, "TEL;TYPE=msg:%s\n",              pst_rfc2426_escape(contact->other_phone.str));
+    if (contact->pager_phone.str)       fprintf(f_output, "TEL;TYPE=pager:%s\n",            pst_rfc2426_escape(contact->pager_phone.str));
+    if (contact->primary_fax.str)       fprintf(f_output, "TEL;TYPE=fax,pref:%s\n",         pst_rfc2426_escape(contact->primary_fax.str));
+    if (contact->primary_phone.str)     fprintf(f_output, "TEL;TYPE=phone,pref:%s\n",       pst_rfc2426_escape(contact->primary_phone.str));
+    if (contact->radio_phone.str)       fprintf(f_output, "TEL;TYPE=pcs:%s\n",              pst_rfc2426_escape(contact->radio_phone.str));
+    if (contact->telex.str)             fprintf(f_output, "TEL;TYPE=bbs:%s\n",              pst_rfc2426_escape(contact->telex.str));
+    if (contact->job_title.str)         fprintf(f_output, "TITLE:%s\n",                     pst_rfc2426_escape(contact->job_title.str));
+    if (contact->profession.str)        fprintf(f_output, "ROLE:%s\n",                      pst_rfc2426_escape(contact->profession.str));
+    if (contact->assistant_name.str || contact->assistant_phone.str) {
         fprintf(f_output, "AGENT:BEGIN:VCARD\n");
-        if (contact->assistant_name)    fprintf(f_output, "FN:%s\n",                    pst_rfc2426_escape(contact->assistant_name));
-        if (contact->assistant_phone)   fprintf(f_output, "TEL:%s\n",                   pst_rfc2426_escape(contact->assistant_phone));
+        if (contact->assistant_name.str)    fprintf(f_output, "FN:%s\n",                    pst_rfc2426_escape(contact->assistant_name.str));
+        if (contact->assistant_phone.str)   fprintf(f_output, "TEL:%s\n",                   pst_rfc2426_escape(contact->assistant_phone.str));
     }
-    if (contact->company_name)      fprintf(f_output, "ORG:%s\n",                       pst_rfc2426_escape(contact->company_name));
-    if (comment)                    fprintf(f_output, "NOTE:%s\n",                      pst_rfc2426_escape(comment));
+    if (contact->company_name.str)      fprintf(f_output, "ORG:%s\n",                       pst_rfc2426_escape(contact->company_name.str));
+    if (comment)                        fprintf(f_output, "NOTE:%s\n",                      pst_rfc2426_escape(comment));
 
     fprintf(f_output, "VERSION: 3.0\n");
     fprintf(f_output, "END:VCARD\n\n");
@@ -1430,31 +1472,29 @@ void write_vcard(FILE* f_output, pst_item_contact* contact, char comment[])
 }
 
 
-void write_appointment(FILE* f_output, pst_item_appointment* appointment,
-               pst_item_email* email, FILETIME* create_date, FILETIME* modify_date)
+void write_appointment(FILE* f_output, pst_item *item,  pst_item_appointment* appointment,
+                       FILETIME* create_date, FILETIME* modify_date)
 {
+    // make everything utf8
+    pst_convert_utf8_null(item, &item->subject);
+    pst_convert_utf8_null(item, &item->body);
+    pst_convert_utf8_null(item, &appointment->location);
+
     fprintf(f_output, "BEGIN:VEVENT\n");
     if (create_date)
-        fprintf(f_output, "CREATED:%s\n",
-            pst_rfc2445_datetime_format(create_date));
+        fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(create_date));
     if (modify_date)
-        fprintf(f_output, "LAST-MOD:%s\n",
-            pst_rfc2445_datetime_format(modify_date));
-    if (email && email->subject)
-        fprintf(f_output, "SUMMARY:%s\n",
-            pst_rfc2426_escape(email->subject->subj));
-    if (email && email->body)
-        fprintf(f_output, "DESCRIPTION:%s\n",
-            pst_rfc2426_escape(email->body));
+        fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(modify_date));
+    if (item->subject.str)
+        fprintf(f_output, "SUMMARY:%s\n",                 pst_rfc2426_escape(item->subject.str));
+    if (item->body.str)
+        fprintf(f_output, "DESCRIPTION:%s\n",             pst_rfc2426_escape(item->body.str));
     if (appointment && appointment->start)
-        fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n",
-            pst_rfc2445_datetime_format(appointment->start));
+        fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(appointment->start));
     if (appointment && appointment->end)
-        fprintf(f_output, "DTEND;VALUE=DATE-TIME:%s\n",
-            pst_rfc2445_datetime_format(appointment->end));
-    if (appointment && appointment->location)
-        fprintf(f_output, "LOCATION:%s\n",
-            pst_rfc2426_escape(appointment->location));
+        fprintf(f_output, "DTEND;VALUE=DATE-TIME:%s\n",   pst_rfc2445_datetime_format(appointment->end));
+    if (appointment && appointment->location.str)
+        fprintf(f_output, "LOCATION:%s\n",                pst_rfc2426_escape(appointment->location.str));
     if (appointment) {
         switch (appointment->showas) {
             case PST_FREEBUSY_TENTATIVE:
@@ -1510,6 +1550,7 @@ void write_appointment(FILE* f_output, pst_item_appointment* appointment,
 
 void create_enter_dir(struct file_ll* f, pst_item *item)
 {
+    pst_convert_utf8(item, &item->file_as);
     f->email_count  = 0;
     f->skip_count   = 0;
     f->type         = item->type;
@@ -1517,22 +1558,22 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
 
     DEBUG_ENT("create_enter_dir");
     if (mode == MODE_KMAIL)
-        f->name = mk_kmail_dir(item->file_as); //create directory and form filename
+        f->name = mk_kmail_dir(item->file_as.str); //create directory and form filename
     else if (mode == MODE_RECURSE)
-        f->name = mk_recurse_dir(item->file_as);
+        f->name = mk_recurse_dir(item->file_as.str);
     else if (mode == MODE_SEPARATE) {
         // do similar stuff to recurse here.
-        mk_separate_dir(item->file_as);
+        mk_separate_dir(item->file_as.str);
         f->name = (char*) xmalloc(10);
         memset(f->name, 0, 10);
         //      sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count);
     } else {
-        f->name = (char*) xmalloc(strlen(item->file_as)+strlen(OUTPUT_TEMPLATE)+1);
-        sprintf(f->name, OUTPUT_TEMPLATE, item->file_as);
+        f->name = (char*) xmalloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+1);
+        sprintf(f->name, OUTPUT_TEMPLATE, item->file_as.str);
     }
 
-    f->dname = (char*) xmalloc(strlen(item->file_as)+1);
-    strcpy(f->dname, item->file_as);
+    f->dname = (char*) xmalloc(strlen(item->file_as.str)+1);
+    strcpy(f->dname, item->file_as.str);
 
     if (overwrite != 1) {
         int x = 0;
@@ -1559,7 +1600,7 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
         }
     }
 
-    DEBUG_MAIN(("f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as));
+    DEBUG_MAIN(("f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as.str));
     if (mode != MODE_SEPARATE) {
         check_filename(f->name);
         if (!(f->output = fopen(f->name, "w"))) {

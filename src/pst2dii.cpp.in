@@ -175,8 +175,8 @@ static string write_separate_attachment(string fname, pst_item_attach* current_a
 
     // If there is a long filename (filename2) use that, otherwise
     // use the 8.3 filename (filename1)
-    char *attach_filename = (current_attach->filename2) ? current_attach->filename2
-                                                        : current_attach->filename1;
+    char *attach_filename = (current_attach->filename2.str) ? current_attach->filename2.str
+                                                            : current_attach->filename1.str;
     DEBUG_ENT("write_separate_attachment");
     check_filename(fname);
     const char* f_name = fname.c_str();
@@ -445,17 +445,17 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
 {
     DEBUG_ENT("write_normal_email");
     char *soh = NULL;  // real start of headers.
-    if (item->email->header) {
+    if (item->email->header.str) {
         // some of the headers we get from the file are not properly defined.
         // they can contain some email stuff too. We will cut off the header
         // when we see a \n\n or \r\n\r\n
-        removeCR(item->email->header);
-        char *temp = strstr(item->email->header, "\n\n");
+        removeCR(item->email->header.str);
+        char *temp = strstr(item->email->header.str, "\n\n");
         if (temp) {
             DEBUG_EMAIL(("Found body text in header\n"));
             temp[1] = '\0'; // stop after first \n
         }
-        soh = skip_header_prologue(item->email->header);
+        soh = skip_header_prologue(item->email->header.str);
     }
 
     char folder_line[LINE_SIZE];
@@ -471,13 +471,13 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     string myto   = extract_header(soh, "To");
     string mycc   = extract_header(soh, "Cc");
     string mybcc  = extract_header(soh, "Bcc");
-    if (myfrom.empty()) write_simple("FROM", item->email->outlook_sender_name, item->email->sender_address);
+    if (myfrom.empty()) write_simple("FROM", item->email->outlook_sender_name.str, item->email->sender_address.str);
     else                write_simple("FROM", myfrom);
-    if (myto.empty())   write_simple("TO",   item->email->sentto_address,      item->email->recip_address);
+    if (myto.empty())   write_simple("TO",   item->email->sentto_address.str,      item->email->recip_address.str);
     else                write_simple("TO", myto);
-    if (mycc.empty())   write_simple("CC",   item->email->cc_address);
+    if (mycc.empty())   write_simple("CC",   item->email->cc_address.str);
     else                write_simple("CC", mycc);
-    if (mybcc.empty())  write_simple("BCC",  item->email->bcc_address);
+    if (mybcc.empty())  write_simple("BCC",  item->email->bcc_address.str);
     else                write_simple("BCC", mybcc);
     if (item->email->sent_date) {
         time_t t = fileTimeToUnixTime(item->email->sent_date, NULL);
@@ -495,10 +495,10 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
         strftime(c_time, C_TIME_SIZE, "%T+0000", gmtime(&t));
         write_simple("TIMERCVD", c_time);
     }
-    if (item->email->subject) {
-        write_simple("SUBJECT", item->email->subject->subj);
+    if (item->subject.str) {
+        write_simple("SUBJECT", item->subject.str);
     }
-    write_simple("MSGID", item->email->messageid);
+    write_simple("MSGID", item->email->messageid.str);
     if (item->email->flag) {
         write_simple("READ", (item->email->flag & 1) ? "Y" : "N");
     }
@@ -506,8 +506,8 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     DEBUG_EMAIL(("About to print Header\n"));
     fprintf(dii_file, "@HEADER\n");
 
-    if (item && item->email && item->email->subject && item->email->subject->subj) {
-        DEBUG_EMAIL(("item->email->subject->subj = %s\n", item->email->subject->subj));
+    if (item && item->subject.str) {
+        DEBUG_EMAIL(("item->subject = %s\n", item->subject.str));
     }
 
     if (soh) {
@@ -521,23 +521,23 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
 
     } else {
         //make up our own headers
-        const char *temp = item->email->outlook_sender;
+        const char *temp = item->email->outlook_sender.str;
         if (!temp) temp = "";
-        snprintf(line, sizeof(line), "From: \"%s\" <%s>\n", item->email->outlook_sender_name, temp);
+        snprintf(line, sizeof(line), "From: \"%s\" <%s>\n", item->email->outlook_sender_name.str, temp);
         print_pdf(line);
 
-        if (item->email->subject) {
-            snprintf(line, sizeof(line), "Subject: %s\n", item->email->subject->subj);
+        if (item->subject.str) {
+            snprintf(line, sizeof(line), "Subject: %s\n", item->subject.str);
         } else {
             snprintf(line, sizeof(line), "Subject: \n");
         }
         print_pdf(line);
 
-        snprintf(line, sizeof(line), "To: %s\n", item->email->sentto_address);
+        snprintf(line, sizeof(line), "To: %s\n", item->email->sentto_address.str);
         print_pdf(line);
 
-        if (item->email->cc_address) {
-            snprintf(line, sizeof(line), "Cc: %s\n", item->email->cc_address);
+        if (item->email->cc_address.str) {
+            snprintf(line, sizeof(line), "Cc: %s\n", item->email->cc_address.str);
             print_pdf(line);
         }
 
@@ -555,12 +555,12 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
 
     DEBUG_EMAIL(("About to print Body\n"));
     fprintf(dii_file, "@EMAIL-BODY\n");
-    if (item->email->body) {
-        removeCR(item->email->body);
-        print_pdf(item->email->body);
-    } else if (item->email->htmlbody) {
-        removeCR(item->email->htmlbody);
-        print_pdf(item->email->htmlbody);
+    if (item->body.str) {
+        removeCR(item->body.str);
+        print_pdf(item->body.str);
+    } else if (item->email->htmlbody.str) {
+        removeCR(item->email->htmlbody.str);
+        print_pdf(item->email->htmlbody.str);
     } else if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
         char ln[LINE_SIZE];
         snprintf(ln, sizeof(ln), "%s", "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
@@ -591,7 +591,7 @@ static void create_enter_dir(file_ll &f, file_ll *parent, pst_item *item)
     f.skip_count   = 0;
     f.type         = item->type;
     f.stored_count = (item->folder) ? item->folder->email_count : 0;
-    f.name         = ((parent) ? parent->name + "/" : "") + string(item->file_as);
+    f.name         = ((parent) ? parent->name + "/" : "") + string(item->file_as.str);
 }
 
 

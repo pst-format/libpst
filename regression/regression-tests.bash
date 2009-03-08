@@ -77,8 +77,8 @@ elif [ "$1" == "ldif" ]; then
     #doldif  13 test-text.pst
     #doldif  14 joe.romanowski.pst
     #doldif  15 hourig1.pst
-    #doldif  16 hourig2.pst
-    #doldif  17 hourig3.pst
+    ##doldif  16 hourig2.pst
+    ##doldif  17 hourig3.pst
     #doldif  18 test-mac.pst
     doldif  19 harris.pst
 else
@@ -100,7 +100,7 @@ else
     #dopst  16 hourig2.pst
     #dopst  17 hourig3.pst
     dopst  18 test-mac.pst
-    dopst  19 harris.pst
+    #dopst  19 harris.pst
 fi
 
 grep 'lost:' *err | grep -v 'lost: 0 '

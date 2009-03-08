@@ -4,6 +4,9 @@ LibPST 0.6.30 (2009-xx-xx)
     * remove decrypt option from getidblock - we always decrypt.
     * rename some structure fields to reflect our better understanding
       of the pst format.
+    * track character set for each mapi element, since some could be
+      unicode (therefore utf8) and others sbcs with character set
+      specified by the mapi object.
 
 LibPST 0.6.29 (2009-02-24)
 ===============================

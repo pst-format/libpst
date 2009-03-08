@@ -1115,7 +1115,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
 
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x692))) {
         // DSN/MDN reports?
-        DEBUG_EMAIL(("DSN/MDN processing \n"));
+        DEBUG_EMAIL(("DSN/MDN processing\n"));
         list = pst_parse_block(pf, id2_ptr->id->id, id2_head, NULL);
         if (!list) {
             DEBUG_WARN(("ERROR error processing main DSN/MDN record\n"));
@@ -1141,14 +1141,6 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
     }
 
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x671))) {
-        // should not have any existing attachments anyway
-        //while (item->attach) {
-        //    DEBUG_EMAIL(("throw away existing attachment\n"));
-        //    attach = item->attach->next;
-        //    free(item->attach);
-        //    item->attach = attach;
-        //}
-
         DEBUG_EMAIL(("ATTACHMENT processing attachment\n"));
         list = pst_parse_block(pf, id2_ptr->id->id, id2_head, NULL);
         if (!list) {
@@ -1718,7 +1710,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 
 // This version of free does NULL check first
 #define SAFE_FREE(x) {if (x) free(x);}
-
+#define SAFE_FREE_STR(x) SAFE_FREE(x.str)
 
 // check if item->email is NULL, and init if so
 #define MALLOC_EMAIL(x)        { if (!x->email)         { x->email         = (pst_item_email*)         xmalloc(sizeof(pst_item_email));         memset(x->email,         0, sizeof(pst_item_email)        );} }
@@ -1727,19 +1719,70 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 #define MALLOC_MESSAGESTORE(x) { if (!x->message_store) { x->message_store = (pst_item_message_store*) xmalloc(sizeof(pst_item_message_store)); memset(x->message_store, 0, sizeof(pst_item_message_store));} }
 #define MALLOC_JOURNAL(x)      { if (!x->journal)       { x->journal       = (pst_item_journal*)       xmalloc(sizeof(pst_item_journal));       memset(x->journal,       0, sizeof(pst_item_journal)      );} }
 #define MALLOC_APPOINTMENT(x)  { if (!x->appointment)   { x->appointment   = (pst_item_appointment*)   xmalloc(sizeof(pst_item_appointment));   memset(x->appointment,   0, sizeof(pst_item_appointment)  );} }
+
 // malloc space and copy the current item's data null terminated
-#define LIST_COPY(targ, type) {                               \
-    targ = type realloc(targ, list->items[x]->size+1);        \
-    memcpy(targ, list->items[x]->data, list->items[x]->size); \
-    memset(((char*)targ)+list->items[x]->size, 0, (size_t)1); \
+#define LIST_COPY(targ, type) {                                 \
+    targ = type realloc(targ, list->items[x]->size+1);          \
+    memcpy(targ, list->items[x]->data, list->items[x]->size);   \
+    memset(((char*)targ)+list->items[x]->size, 0, (size_t)1);   \
 }
+
+#define LIST_COPY_BOOL(label, targ) {                           \
+    if (*(int16_t*)list->items[x]->data) {                      \
+        DEBUG_EMAIL((label" - True\n"));                        \
+        targ = 1;                                               \
+    } else {                                                    \
+        DEBUG_EMAIL((label" - False\n"));                       \
+        targ = 0;                                               \
+    }                                                           \
+}
+
+#define LIST_COPY_EMAIL_BOOL(label, targ) {                     \
+    MALLOC_EMAIL(item);                                         \
+    LIST_COPY_BOOL(label, targ)                                 \
+}
+
+#define LIST_COPY_CONTACT_BOOL(label, targ) {                   \
+    MALLOC_CONTACT(item);                                       \
+    LIST_COPY_BOOL(label, targ)                                 \
+}
+
+#define LIST_COPY_APPT_BOOL(label, targ) {                      \
+    MALLOC_APPOINTMENT(item);                                   \
+    LIST_COPY_BOOL(label, targ)                                 \
+}
+
+// malloc space and copy the current item's data null terminated
+// including the utf8 flag
+#define LIST_COPY_STR(label, targ) {                                    \
+    LIST_COPY(targ.str, (char*));                                       \
+    targ.is_utf8 = (list->items[x]->type == 0x1f) ? 1 : 0;              \
+    DEBUG_EMAIL((label" - unicode %d - %s\n", targ.is_utf8, targ.str)); \
+}
+
+#define LIST_COPY_EMAIL_STR(label, targ) {                      \
+    MALLOC_EMAIL(item);                                         \
+    LIST_COPY_STR(label, targ);                                 \
+}
+
+#define LIST_COPY_CONTACT_STR(label, targ) {                    \
+    MALLOC_CONTACT(item);                                       \
+    LIST_COPY_STR(label, targ);                                 \
+}
+
+#define LIST_COPY_APPT_STR(label, targ) {                       \
+    MALLOC_APPOINTMENT(item);                                   \
+    LIST_COPY_STR(label, targ);                                 \
+}
+
 // malloc space and copy the item filetime
-#define LIST_COPY_TIME(targ) {                                \
-    targ = (FILETIME*) realloc(targ, sizeof(FILETIME));       \
-    memcpy(targ, list->items[x]->data, list->items[x]->size); \
-    LE32_CPU(targ->dwLowDateTime);                            \
-    LE32_CPU(targ->dwHighDateTime);                           \
+#define LIST_COPY_TIME(targ) {                                  \
+    targ = (FILETIME*) realloc(targ, sizeof(FILETIME));         \
+    memcpy(targ, list->items[x]->data, list->items[x]->size);   \
+    LE32_CPU(targ->dwLowDateTime);                              \
+    LE32_CPU(targ->dwHighDateTime);                             \
 }
+
 // malloc space and copy the current item's data and size
 #define LIST_COPY_SIZE(targ, type, mysize) {        \
     mysize = list->items[x]->size;                  \
@@ -1779,8 +1822,8 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
     }
 
     while (list) {
-        int32_t x = 0;
-        while (x < list->count_item) {
+        int32_t x;
+        for (x=0; x<list->count_item; x++) {
             int32_t t;
             pst_item_extra_field *ef;
             // check here to see if the id is one that is mapped.
@@ -1788,7 +1831,6 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
 
             switch (list->items[x]->id) {
                 case PST_ATTRIB_HEADER: // CUSTOM attribute for saying the Extra Headers
-                    DEBUG_EMAIL(("Extra Field - "));
                     if (list->items[x]->extra) {
                         ef = (pst_item_extra_field*) xmalloc(sizeof(pst_item_extra_field));
                         memset(ef, 0, sizeof(pst_item_extra_field));
@@ -1797,7 +1839,7 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                         LIST_COPY(ef->value, (char*));
                         ef->next = item->extra_fields;
                         item->extra_fields = ef;
-                        DEBUG_EMAIL(("\"%s\" = \"%s\"\n", ef->field_name, ef->value));
+                        DEBUG_EMAIL(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
                         if (strcmp(ef->field_name, "content-type") == 0) {
                             char *p = strstr(ef->value, "charset=\"");
                             if (p) {
@@ -1807,8 +1849,9 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                                     *pp = '\0';
                                     char *set = strdup(p);
                                     *pp = '"';
-                                    if (item->body_charset) free(item->body_charset);
-                                    item->body_charset = set;
+                                    if (item->body_charset.str) free(item->body_charset.str);
+                                    item->body_charset.str     = set;
+                                    item->body_charset.is_utf8 = 1;
                                     DEBUG_EMAIL(("body charset %s from content-type extra field\n", set));
                                 }
                             }
@@ -1820,15 +1863,8 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     break;
                 case 0x0002: // PR_ALTERNATE_RECIPIENT_ALLOWED
                     // If set to true, the sender allows this email to be autoforwarded
-                    DEBUG_EMAIL(("AutoForward allowed - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->autoforward = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->autoforward = -1;
-                    }
+                    LIST_COPY_EMAIL_BOOL("AutoForward allowed", item->email->autoforward);
+                    if (!item->email->autoforward) item->email->autoforward = -1;
                     break;
                 case 0x0003: // Extended Attributes table
                     DEBUG_EMAIL(("Extended Attributes Table - NOT PROCESSED\n"));
@@ -1838,18 +1874,16 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     // 0 - Low
                     // 1 - Normal
                     // 2 - High
-                    DEBUG_EMAIL(("Importance Level - "));
                     MALLOC_EMAIL(item);
                     memcpy(&(item->email->importance), list->items[x]->data, sizeof(item->email->importance));
                     LE32_CPU(item->email->importance);
                     t = item->email->importance;
-                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"Low":
-                                              ((int)t==1?"Normal":
-                                                         "High")), t));
+                    DEBUG_EMAIL(("Importance Level - %s [%i]\n", ((int)t==0?"Low"    :
+                                                                 ((int)t==1?"Normal" :
+                                                                            "High")), t));
                     break;
                 case 0x001A: // PR_MESSAGE_CLASS Ascii type of messages - NOT FOLDERS
                     // must be case insensitive
-                    DEBUG_EMAIL(("IPM.x - "));
                     LIST_COPY(item->ascii_type, (char*));
                     if (pst_strincmp("IPM.Note", item->ascii_type, 8) == 0)
                         // the string begins with IPM.Note...
@@ -1872,52 +1906,28 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     else
                         item->type = PST_TYPE_OTHER;
 
-                    DEBUG_EMAIL(("%s\n", item->ascii_type));
+                    DEBUG_EMAIL(("IPM.x - %s\n", item->ascii_type));
                     break;
                 case 0x0023: // PR_ORIGINATOR_DELIVERY_REPORT_REQUESTED
                     // set if the sender wants a delivery report from all recipients
-                    DEBUG_EMAIL(("Global Delivery Report - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->delivery_report = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->delivery_report = 0;
-                    }
+                    LIST_COPY_EMAIL_BOOL("Global Delivery Report", item->email->delivery_report);
                     break;
                 case 0x0026: // PR_PRIORITY
                     // Priority of a message
                     // -1 NonUrgent
                     //  0 Normal
                     //  1 Urgent
-                    DEBUG_EMAIL(("Priority - "));
                     MALLOC_EMAIL(item);
                     memcpy(&(item->email->priority), list->items[x]->data, sizeof(item->email->priority));
                     LE32_CPU(item->email->priority);
                     t = item->email->priority;
-                    DEBUG_EMAIL(("%s [%i]\n", (t<0?"NonUrgent":(t==0?"Normal":"Urgent")), t));
+                    DEBUG_EMAIL(("Priority - %s [%i]\n", (t<0?"NonUrgent":(t==0?"Normal":"Urgent")), t));
                     break;
                 case 0x0029: // PR_READ_RECEIPT_REQUESTED
-                    DEBUG_EMAIL(("Read Receipt - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->read_receipt = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->read_receipt = 0;
-                    }
+                    LIST_COPY_EMAIL_BOOL("Read Receipt", item->email->read_receipt);
                     break;
                 case 0x002B: // PR_RECIPIENT_REASSIGNMENT_PROHIBITED
-                    DEBUG_EMAIL(("Reassignment Prohibited (Private) - "));
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->private_member = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->private_member = 0;
-                    }
+                    LIST_COPY_BOOL("Reassignment Prohibited (Private)", item->private_member);
                     break;
                 case 0x002E: // PR_ORIGINAL_SENSITIVITY
                     // the sensitivity of the message before being replied to or forwarded
@@ -1925,21 +1935,19 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     // 1 - Personal
                     // 2 - Private
                     // 3 - Company Confidential
-                    DEBUG_EMAIL(("Original Sensitivity - "));
                     MALLOC_EMAIL(item);
                     memcpy(&(item->email->orig_sensitivity), list->items[x]->data, sizeof(item->email->orig_sensitivity));
                     LE32_CPU(item->email->orig_sensitivity);
                     t = item->email->orig_sensitivity;
-                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"None":
-                                              ((int)t==1?"Personal":
-                                              ((int)t==2?"Private":
-                                                         "Company Confidential"))), t));
+                    DEBUG_EMAIL(("Original Sensitivity - %s [%i]\n", ((int)t==0?"None"     :
+                                                                     ((int)t==1?"Personal" :
+                                                                     ((int)t==2?"Private"  :
+                                                                                "Company Confidential"))), t));
                     break;
                 case 0x0032: // PR_REPORT_TIME
-                    DEBUG_EMAIL(("Report time - "));
                     MALLOC_EMAIL(item);
                     LIST_COPY_TIME(item->email->report_time);
-                    DEBUG_EMAIL(("%s", fileTimeToAscii(item->email->report_time)));
+                    DEBUG_EMAIL(("Report time - %s\n", fileTimeToAscii(item->email->report_time)));
                     break;
                 case 0x0036: // PR_SENSITIVITY
                     // sender's opinion of the sensitivity of an email
@@ -1947,59 +1955,35 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     // 1 - Personal
                     // 2 - Private
                     // 3 - Company Confidential
-                    DEBUG_EMAIL(("Sensitivity - "));
                     MALLOC_EMAIL(item);
                     memcpy(&(item->email->sensitivity), list->items[x]->data, sizeof(item->email->sensitivity));
                     LE32_CPU(item->email->sensitivity);
                     t = item->email->sensitivity;
-                    DEBUG_EMAIL(("%s [%i]\n", ((int)t==0?"None":
-                                              ((int)t==1?"Personal":
-                                              ((int)t==2?"Private":
-                                                         "Company Confidential"))), t));
+                    DEBUG_EMAIL(("Sensitivity - %s [%i]\n", ((int)t==0?"None"     :
+                                                            ((int)t==1?"Personal" :
+                                                            ((int)t==2?"Private"  :
+                                                                       "Company Confidential"))), t));
                     break;
                 case 0x0037: // PR_SUBJECT raw subject
-                    DEBUG_EMAIL(("Raw Subject - "));
-                    MALLOC_EMAIL(item);
-                    item->email->subject = (pst_item_email_subject*) realloc(item->email->subject, sizeof(pst_item_email_subject));
-                    memset(item->email->subject, 0, sizeof(pst_item_email_subject));
-                    DEBUG_EMAIL((" [size = %i] ", list->items[x]->size));
-                    if (list->items[x]->size > 0) {
-                        if (isprint(list->items[x]->data[0]) || (list->items[x]->size < 2)) {
-                            // then there are no control bytes at the front
-                            item->email->subject->off1 = 0;
-                            item->email->subject->off2 = 0;
-                            item->email->subject->subj = realloc(item->email->subject->subj, list->items[x]->size+1);
-                            memset(item->email->subject->subj, 0, list->items[x]->size+1);
-                            memcpy(item->email->subject->subj, list->items[x]->data, list->items[x]->size);
-                        } else {
-                            DEBUG_EMAIL(("Raw Subject has control codes\n"));
-                            // there might be some control bytes in the first and second bytes
-                            item->email->subject->off1 = (int)(unsigned)list->items[x]->data[0];
-                            item->email->subject->off2 = (int)(unsigned)list->items[x]->data[1];
-                            item->email->subject->subj = realloc(item->email->subject->subj, list->items[x]->size-1);
-                            memset(item->email->subject->subj, 0, list->items[x]->size-1);
-                            memcpy(item->email->subject->subj, &(list->items[x]->data[2]), list->items[x]->size-2);
+                    {
+                        int off = 0;
+                        if ((list->items[x]->size > 2) && (((uint8_t)list->items[x]->data[0]) < 0x20)) {
+                            off = 2;
                         }
-                        DEBUG_EMAIL(("%s\n", item->email->subject->subj));
-                    } else {
-                        // obviously outlook has decided not to be straight with this one.
-                        item->email->subject->off1 = 0;
-                        item->email->subject->off2 = 0;
-                        item->email->subject = NULL;
-                        DEBUG_EMAIL(("NULL subject detected\n"));
+                        list->items[x]->data += off;
+                        list->items[x]->size -= off;
+                        LIST_COPY_STR("Raw Subject", item->subject);
+                        list->items[x]->size += off;
+                        list->items[x]->data -= off;
                     }
                     break;
                 case 0x0039: // PR_CLIENT_SUBMIT_TIME Date Email Sent/Created
-                    DEBUG_EMAIL(("Date sent - "));
                     MALLOC_EMAIL(item);
                     LIST_COPY_TIME(item->email->sent_date);
-                    DEBUG_EMAIL(("%s", fileTimeToAscii(item->email->sent_date)));
+                    DEBUG_EMAIL(("Date sent - %s\n", fileTimeToAscii(item->email->sent_date)));
                     break;
                 case 0x003B: // PR_SENT_REPRESENTING_SEARCH_KEY Sender address 1
-                    DEBUG_EMAIL(("Sent on behalf of address 1 - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->outlook_sender, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->outlook_sender));
+                    LIST_COPY_EMAIL_STR("Sent on behalf of address 1", item->email->outlook_sender);
                     break;
                 case 0x003F: // PR_RECEIVED_BY_ENTRYID Structure containing Recipient
                     DEBUG_EMAIL(("Recipient Structure 1 -- NOT HANDLED\n"));
@@ -2010,105 +1994,50 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                 case 0x0041: // PR_SENT_REPRESENTING_ENTRYID Structure containing Sender
                     DEBUG_EMAIL(("Sent on behalf of Structure 1 -- NOT HANDLED\n"));
                     break;
-                case 0x0042: // PR_SENT_REPRESENTING_NAME Name of Sender Structure
-                    DEBUG_EMAIL(("Sent on behalf of Structure Name - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->outlook_sender_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->outlook_sender_name));
+                case 0x0042: // PR_SENT_REPRESENTING_NAME
+                    LIST_COPY_EMAIL_STR("Sent on behalf of", item->email->outlook_sender_name);
                     break;
                 case 0x0043: // PR_RCVD_REPRESENTING_ENTRYID Recipient Structure 2
                     DEBUG_EMAIL(("Received on behalf of Structure -- NOT HANDLED\n"));
                     break;
-                case 0x0044: // PR_RCVD_REPRESENTING_NAME Name of Recipient Structure 2
-                    DEBUG_EMAIL(("Received on behalf of Structure Name -- NOT HANDLED\n"));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->outlook_recipient_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->outlook_recipient_name));
+                case 0x0044: // PR_RCVD_REPRESENTING_NAME
+                    LIST_COPY_EMAIL_STR("Received on behalf of", item->email->outlook_recipient_name);
                     break;
                 case 0x004F: // PR_REPLY_RECIPIENT_ENTRIES Reply-To Structure
                     DEBUG_EMAIL(("Reply-To Structure -- NOT HANDLED\n"));
                     break;
                 case 0x0050: // PR_REPLY_RECIPIENT_NAMES Name of Reply-To Structure
-                    DEBUG_EMAIL(("Name of Reply-To Structure -"));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->reply_to, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->reply_to));
+                    LIST_COPY_EMAIL_STR("Reply-To", item->email->reply_to);
                     break;
                 case 0x0051: // PR_RECEIVED_BY_SEARCH_KEY Recipient Address 1
-                    DEBUG_EMAIL(("Recipient's Address 1 (Search Key) - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY (item->email->outlook_recipient, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->outlook_recipient));
+                    LIST_COPY_EMAIL_STR("Recipient's Address 1", item->email->outlook_recipient);
                     break;
                 case 0x0052: // PR_RCVD_REPRESENTING_SEARCH_KEY Recipient Address 2
-                    DEBUG_EMAIL(("Received on behalf of Address (Search Key) - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->outlook_recipient2, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->outlook_recipient2));
+                    LIST_COPY_EMAIL_STR("Recipient's Address 2", item->email->outlook_recipient2);
                     break;
                 case 0x0057: // PR_MESSAGE_TO_ME
                     // this user is listed explicitly in the TO address
-                    DEBUG_EMAIL(("My address in TO field - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->message_to_me = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->message_to_me = 0;
-                    }
+                    LIST_COPY_EMAIL_BOOL("My address in TO field", item->email->message_to_me);
                     break;
                 case 0x0058: // PR_MESSAGE_CC_ME
                     // this user is listed explicitly in the CC address
-                    DEBUG_EMAIL(("My address in CC field - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->message_cc_me = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->message_cc_me = 0;
-                    }
+                    LIST_COPY_EMAIL_BOOL("My address in CC field", item->email->message_cc_me);
                     break;
                 case 0x0059: // PR_MESSAGE_RECIP_ME
                     // this user appears in TO, CC or BCC address list
-                    DEBUG_EMAIL(("Message addressed to me - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->message_recip_me = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->message_recip_me = 0;
-                    }
+                    LIST_COPY_EMAIL_BOOL("Message addressed to me", item->email->message_recip_me);
                     break;
                 case 0x0063: // PR_RESPONSE_REQUESTED
-                    DEBUG_EMAIL(("Response requested - "));
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->response_requested = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->response_requested = 0;
-                    }
+                    LIST_COPY_BOOL("Response requested", item->response_requested);
                     break;
                 case 0x0064: // PR_SENT_REPRESENTING_ADDRTYPE Access method for Sender Address
-                    DEBUG_EMAIL(("Sent on behalf of address type - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->sender_access, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->sender_access));
+                    LIST_COPY_EMAIL_STR("Sent on behalf of address type", item->email->sender_access);
                     break;
                 case 0x0065: // PR_SENT_REPRESENTING_EMAIL_ADDRESS Sender Address
-                    DEBUG_EMAIL(("Sent on behalf of Address - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->sender_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->sender_address));
+                    LIST_COPY_EMAIL_STR("Sent on behalf of address", item->email->sender_address);
                     break;
                 case 0x0070: // PR_CONVERSATION_TOPIC Processed Subject
-                    DEBUG_EMAIL(("Processed Subject (Conversation Topic) - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->proc_subject, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->proc_subject));
+                    LIST_COPY_EMAIL_STR("Processed Subject (Conversation Topic)", item->email->processed_subject);
                     break;
                 case 0x0071: // PR_CONVERSATION_INDEX
                     DEBUG_EMAIL(("Conversation Index - "));
@@ -2117,52 +2046,28 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%i\n", item->email->conv_index));
                     break;
                 case 0x0072: // PR_ORIGINAL_DISPLAY_BCC
-                    DEBUG_EMAIL(("Original display bcc - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->original_bcc, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->original_bcc));
+                    LIST_COPY_EMAIL_STR("Original display bcc", item->email->original_bcc);
                     break;
                 case 0x0073: // PR_ORIGINAL_DISPLAY_CC
-                    DEBUG_EMAIL(("Original display cc - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->original_cc, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->original_cc));
+                    LIST_COPY_EMAIL_STR("Original display cc", item->email->original_cc);
                     break;
                 case 0x0074: // PR_ORIGINAL_DISPLAY_TO
-                    DEBUG_EMAIL(("Original display to - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->original_to, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->original_to));
+                    LIST_COPY_EMAIL_STR("Original display to", item->email->original_to);
                     break;
                 case 0x0075: // PR_RECEIVED_BY_ADDRTYPE Recipient Access Method
-                    DEBUG_EMAIL(("Received by Address type - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->recip_access, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->recip_access));
+                    LIST_COPY_EMAIL_STR("Received by Address type", item->email->recip_access);
                     break;
                 case 0x0076: // PR_RECEIVED_BY_EMAIL_ADDRESS Recipient Address
-                    DEBUG_EMAIL(("Received by Address - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->recip_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->recip_address));
+                    LIST_COPY_EMAIL_STR("Received by Address", item->email->recip_address);
                     break;
                 case 0x0077: // PR_RCVD_REPRESENTING_ADDRTYPE Recipient Access Method 2
-                    DEBUG_EMAIL(("Received on behalf of Address type - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->recip2_access, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->recip2_access));
+                    LIST_COPY_EMAIL_STR("Received on behalf of Address type", item->email->recip2_access);
                     break;
                 case 0x0078: // PR_RCVD_REPRESENTING_EMAIL_ADDRESS Recipient Address 2
-                    DEBUG_EMAIL(("Received on behalf of Address -"));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->recip2_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->recip2_address));
+                    LIST_COPY_EMAIL_STR("Received on behalf of Address", item->email->recip2_address);
                     break;
                 case 0x007D: // PR_TRANSPORT_MESSAGE_HEADERS Internet Header
-                    DEBUG_EMAIL(("Internet Header - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->header, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->header));
+                    LIST_COPY_EMAIL_STR("Internet Header", item->email->header);
                     break;
                 case 0x0C04: // PR_NDR_REASON_CODE
                     MALLOC_EMAIL(item);
@@ -2180,22 +2085,9 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     break;
                 case 0x0C06: // PR_NON_RECEIPT_NOTIFICATION_REQUESTED
                     DEBUG_EMAIL(("Non-Receipt Notification Requested - (ignored) - "));
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                    }
                     break;
                 case 0x0C17: // PR_REPLY_REQUESTED
-                    DEBUG_EMAIL(("Reply Requested - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->reply_requested = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->reply_requested = 0;
-                    }
+                    LIST_COPY_EMAIL_BOOL("Reply Requested", item->email->reply_requested);
                     break;
                 case 0x0C19: // PR_SENDER_ENTRYID Sender Structure 2
                     DEBUG_EMAIL(("Sender Structure 2 -- NOT HANDLED\n"));
@@ -2204,28 +2096,16 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("Name of Sender Structure 2 -- NOT HANDLED\n"));
                     break;
                 case 0x0C1B: // PR_SUPPLEMENTARY_INFO
-                    DEBUG_EMAIL(("Supplementary info - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->supplementary_info, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->supplementary_info));
+                    LIST_COPY_EMAIL_STR("Supplementary info", item->email->supplementary_info);
                     break;
                 case 0x0C1D: // PR_SENDER_SEARCH_KEY Name of Sender Address 2
-                    DEBUG_EMAIL(("Name of Sender Address 2 (Sender search key) - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->outlook_sender2, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->outlook_sender2));
+                    LIST_COPY_EMAIL_STR("Name of Sender Address 2 (Sender search key)", item->email->outlook_sender2);
                     break;
                 case 0x0C1E: // PR_SENDER_ADDRTYPE Sender Address 2 access method
-                    DEBUG_EMAIL(("Sender Address type - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->sender2_access, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->sender2_access));
+                    LIST_COPY_EMAIL_STR("Sender Address type", item->email->sender2_access);
                     break;
                 case 0x0C1F: // PR_SENDER_EMAIL_ADDRESS Sender Address 2
-                    DEBUG_EMAIL(("Sender Address - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->sender2_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->sender2_address));
+                    LIST_COPY_EMAIL_STR("Sender Address", item->email->sender2_address);
                     break;
                 case 0x0C20: // PR_NDR_STATUS_CODE
                     MALLOC_EMAIL(item);
@@ -2235,34 +2115,16 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("NDR status code - [%i]\n", (int)t));
                     break;
                 case 0x0E01: // PR_DELETE_AFTER_SUBMIT
-                    // I am not too sure how this works
-                    DEBUG_EMAIL(("Delete after submit - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->delete_after_submit = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->delete_after_submit = 0;
-                    }
+                    LIST_COPY_EMAIL_BOOL("Delete after submit", item->email->delete_after_submit);
                     break;
                 case 0x0E02: // PR_DISPLAY_BCC BCC Addresses
-                    DEBUG_EMAIL(("Display BCC Addresses - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->bcc_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->bcc_address));
+                    LIST_COPY_EMAIL_STR("Display BCC Addresses", item->email->bcc_address);
                     break;
                 case 0x0E03: // PR_DISPLAY_CC CC Addresses
-                    DEBUG_EMAIL(("Display CC Addresses - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->cc_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->cc_address));
+                    LIST_COPY_EMAIL_STR("Display CC Addresses", item->email->cc_address);
                     break;
                 case 0x0E04: // PR_DISPLAY_TO Address Sent-To
-                    DEBUG_EMAIL(("Display Sent-To Address - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->sentto_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->sentto_address));
+                    LIST_COPY_EMAIL_STR("Display Sent-To Address", item->email->sentto_address);
                     break;
                 case 0x0E06: // PR_MESSAGE_DELIVERY_TIME Date 3 - Email Arrival Date
                     DEBUG_EMAIL(("Date 3 (Delivery Time) - "));
@@ -2306,15 +2168,7 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     // False means rtf version is more up-to-date than text body
                     // if this value doesn't exist, text body is more up-to-date than rtf and
                     //   cannot update to the rtf
-                    DEBUG_EMAIL(("Compressed RTF in Sync - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->rtf_in_sync = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->rtf_in_sync = 0;
-                    }
+                    LIST_COPY_EMAIL_BOOL("Compressed RTF in Sync", item->email->rtf_in_sync);
                     break;
                 case 0x0E20: // PR_ATTACH_SIZE binary Attachment data in record
                     DEBUG_EMAIL(("Attachment Size - "));
@@ -2332,19 +2186,10 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("\n"));
                     break;
                 case 0x1000: // PR_BODY
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->body, (char*));
-                    item->email->body_was_unicode = (list->items[x]->type == 0x1f) ? 1 : 0;
-                    DEBUG_EMAIL(("Plain Text body %s - \n%s\n", (item->email->body_was_unicode) ? "unicode" : "sbcs",
-                                                               item->email->body));
+                    LIST_COPY_EMAIL_STR("Plain Text body", item->body);
                     break;
                 case 0x1001: // PR_REPORT_TEXT
-                    DEBUG_EMAIL(("Report Text - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->report_text, (char*));
-                    item->email->report_was_unicode = (list->items[x]->type == 0x1f) ? 1 : 0;
-                    DEBUG_EMAIL(("Report Text %s - \n%s\n", (item->email->report_was_unicode) ? "unicode" : "sbcs",
-                                                               item->email->report_text));
+                    LIST_COPY_EMAIL_STR("Report Text", item->email->report_text);
                     break;
                 case 0x1006: // PR_RTF_SYNC_BODY_CRC
                     DEBUG_EMAIL(("RTF Sync Body CRC - "));
@@ -2365,10 +2210,7 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                 case 0x1008: // PR_RTF_SYNC_BODY_TAG
                     // the first couple of lines of RTF body so that after modification, then beginning can
                     // once again be found
-                    DEBUG_EMAIL(("RTF Sync body tag - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->rtf_body_tag, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->rtf_body_tag));
+                    LIST_COPY_EMAIL_STR("RTF Sync body tag", item->email->rtf_body_tag);
                     break;
                 case 0x1009: // PR_RTF_COMPRESSED
                     // rtf data is lzw compressed
@@ -2392,52 +2234,28 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%i\n", item->email->rtf_ws_trailing_count));
                     break;
                 case 0x1013: // HTML body
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->htmlbody, (char*));
-                    item->email->htmlbody_was_unicode = (list->items[x]->type == 0x1f) ? 1 : 0;
-                    DEBUG_EMAIL(("HTML body %s - \n%s\n", (item->email->htmlbody_was_unicode) ? "unicode" : "sbcs",
-                                                          item->email->htmlbody));
+                    LIST_COPY_EMAIL_STR("HTML body", item->email->htmlbody);
                     break;
                 case 0x1035: // Message ID
-                    DEBUG_EMAIL(("Message ID - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->messageid, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->messageid));
+                    LIST_COPY_EMAIL_STR("Message ID", item->email->messageid);
                     break;
                 case 0x1042: // in-reply-to
-                    DEBUG_EMAIL(("In-Reply-To - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->in_reply_to, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->in_reply_to));
+                    LIST_COPY_EMAIL_STR("In-Reply-To", item->email->in_reply_to);
                     break;
                 case 0x1046: // Return Path - this seems to be the message-id of the rfc822 mail that is being returned
-                    DEBUG_EMAIL(("Return Path - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->return_path_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->return_path_address));
+                    LIST_COPY_EMAIL_STR("Return Path", item->email->return_path_address);
                     break;
                 case 0x3001: // PR_DISPLAY_NAME File As
-                    DEBUG_EMAIL(("Display Name - "));
-                    LIST_COPY(item->file_as, (char*));
-                    DEBUG_EMAIL(("%s\n", item->file_as));
+                    LIST_COPY_STR("Display Name", item->file_as);
                     break;
                 case 0x3002: // PR_ADDRTYPE
-                    DEBUG_EMAIL(("Address Type - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address1_transport, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address1_transport));
+                    LIST_COPY_CONTACT_STR("Address Type", item->contact->address1_transport);
                     break;
                 case 0x3003: // PR_EMAIL_ADDRESS
-                    // Contact's email address
-                    DEBUG_EMAIL(("Contact Address - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address1, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address1));
+                    LIST_COPY_CONTACT_STR("Contact email Address", item->contact->address1);
                     break;
                 case 0x3004: // PR_COMMENT Comment for item - usually folders
-                    DEBUG_EMAIL(("Comment - "));
-                    LIST_COPY(item->comment, (char*));
-                    DEBUG_EMAIL(("%s\n", item->comment));
+                    LIST_COPY_STR("Comment", item->comment);
                     break;
                 case 0x3007: // PR_CREATION_TIME Date 4 - Creation Date?
                     DEBUG_EMAIL(("Date 4 (Item Creation Date) - "));
@@ -2532,15 +2350,8 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%i\n", item->folder->unseen_email_count));
                     break;
                 case 0x360A: // PR_SUBFOLDERS Has children
-                    DEBUG_EMAIL(("Has Subfolders - "));
                     MALLOC_FOLDER(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->folder->subfolder = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->folder->subfolder = 0;
-                    }
+                    LIST_COPY_BOOL("Has Subfolders", item->folder->subfolder);
                     break;
                 case 0x3613: // PR_CONTAINER_CLASS IPF.x
                     DEBUG_EMAIL(("IPF.x - "));
@@ -2585,10 +2396,8 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     }
                     break;
                 case 0x3704: // PR_ATTACH_FILENAME Attachment filename (8.3)
-                    DEBUG_EMAIL(("Attachment Filename - "));
                     NULL_CHECK(attach);
-                    LIST_COPY(attach->filename1, (char*));
-                    DEBUG_EMAIL(("%s\n", attach->filename1));
+                    LIST_COPY_STR("Attachment Filename", attach->filename1);
                     break;
                 case 0x3705: // PR_ATTACH_METHOD
                     // 0 - No Attachment
@@ -2611,10 +2420,8 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                                        (t==5?"Embedded Message":"OLE")))))),t));
                     break;
                 case 0x3707: // PR_ATTACH_LONG_FILENAME Attachment filename (long?)
-                    DEBUG_EMAIL(("Attachment Filename long - "));
                     NULL_CHECK(attach);
-                    LIST_COPY(attach->filename2, (char*));
-                    DEBUG_EMAIL(("%s\n", attach->filename2));
+                    LIST_COPY_STR("Attachment Filename long", attach->filename2);
                     break;
                 case 0x370B: // PR_RENDERING_POSITION
                     // position in characters that the attachment appears in the plain text body
@@ -2625,10 +2432,8 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%i [%#x]\n", attach->position));
                     break;
                 case 0x370E: // PR_ATTACH_MIME_TAG Mime type of encoding
-                    DEBUG_EMAIL(("Attachment mime encoding - "));
                     NULL_CHECK(attach);
-                    LIST_COPY(attach->mimetype, (char*));
-                    DEBUG_EMAIL(("%s\n", attach->mimetype));
+                    LIST_COPY_STR("Attachment mime encoding", attach->mimetype);
                     break;
                 case 0x3710: // PR_ATTACH_MIME_SEQUENCE
                     // sequence number for mime parts. Includes body
@@ -2639,113 +2444,55 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%i\n", attach->sequence));
                     break;
                 case 0x3A00: // PR_ACCOUNT
-                    DEBUG_EMAIL(("Contact's Account name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->account_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->account_name));
+                    LIST_COPY_CONTACT_STR("Contact's Account name", item->contact->account_name);
                     break;
                 case 0x3A01: // PR_ALTERNATE_RECIPIENT
                     DEBUG_EMAIL(("Contact Alternate Recipient - NOT PROCESSED\n"));
                     break;
                 case 0x3A02: // PR_CALLBACK_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Callback telephone number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->callback_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->callback_phone));
+                    LIST_COPY_CONTACT_STR("Callback telephone number", item->contact->callback_phone);
                     break;
                 case 0x3A03: // PR_CONVERSION_PROHIBITED
-                    DEBUG_EMAIL(("Message Conversion Prohibited - "));
-                    MALLOC_EMAIL(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->email->conversion_prohib = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->email->conversion_prohib = 0;
-                    }
+                    LIST_COPY_EMAIL_BOOL("Message Conversion Prohibited", item->email->conversion_prohibited);
                     break;
                 case 0x3A05: // PR_GENERATION suffix
-                    DEBUG_EMAIL(("Contacts Suffix - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->suffix, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->suffix));
+                    LIST_COPY_CONTACT_STR("Contacts Suffix", item->contact->suffix);
                     break;
                 case 0x3A06: // PR_GIVEN_NAME Contact's first name
-                    DEBUG_EMAIL(("Contacts First Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->first_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->first_name));
+                    LIST_COPY_CONTACT_STR("Contacts First Name", item->contact->first_name);
                     break;
                 case 0x3A07: // PR_GOVERNMENT_ID_NUMBER
-                    DEBUG_EMAIL(("Contacts Government ID Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->gov_id, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->gov_id));
+                    LIST_COPY_CONTACT_STR("Contacts Government ID Number", item->contact->gov_id);
                     break;
                 case 0x3A08: // PR_BUSINESS_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Business Telephone Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_phone));
+                    LIST_COPY_CONTACT_STR("Business Telephone Number", item->contact->business_phone);
                     break;
                 case 0x3A09: // PR_HOME_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Home Telephone Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_phone));
+                    LIST_COPY_CONTACT_STR("Home Telephone Number", item->contact->home_phone);
                     break;
                 case 0x3A0A: // PR_INITIALS Contact's Initials
-                    DEBUG_EMAIL(("Contacts Initials - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->initials, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->initials));
+                    LIST_COPY_CONTACT_STR("Contacts Initials", item->contact->initials);
                     break;
                 case 0x3A0B: // PR_KEYWORD
-                    DEBUG_EMAIL(("Keyword - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->keyword, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->keyword));
+                    LIST_COPY_CONTACT_STR("Keyword", item->contact->keyword);
                     break;
                 case 0x3A0C: // PR_LANGUAGE
-                    DEBUG_EMAIL(("Contact's Language - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->language, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->language));
+                    LIST_COPY_CONTACT_STR("Contact's Language", item->contact->language);
                     break;
                 case 0x3A0D: // PR_LOCATION
-                    DEBUG_EMAIL(("Contact's Location - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->location, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->location));
+                    LIST_COPY_CONTACT_STR("Contact's Location", item->contact->location);
                     break;
                 case 0x3A0E: // PR_MAIL_PERMISSION - Can the recipient receive and send email
-                    DEBUG_EMAIL(("Mail Permission - "));
-                    MALLOC_CONTACT(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->contact->mail_permission = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->contact->mail_permission = 0;
-                    }
+                    LIST_COPY_CONTACT_BOOL("Mail Permission", item->contact->mail_permission);
                     break;
                 case 0x3A0F: // PR_MHS_COMMON_NAME
-                    DEBUG_EMAIL(("MHS Common Name - "));
-                    MALLOC_EMAIL(item);
-                    LIST_COPY(item->email->common_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->email->common_name));
+                    LIST_COPY_CONTACT_STR("MHS Common Name", item->contact->common_name);
                     break;
                 case 0x3A10: // PR_ORGANIZATIONAL_ID_NUMBER
-                    DEBUG_EMAIL(("Organizational ID # - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->org_id, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->org_id));
+                    LIST_COPY_CONTACT_STR("Organizational ID #", item->contact->org_id);
                     break;
                 case 0x3A11: // PR_SURNAME Contact's Surname
-                    DEBUG_EMAIL(("Contacts Surname - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->surname, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->surname));
+                    LIST_COPY_CONTACT_STR("Contacts Surname", item->contact->surname);
                     break;
                 case 0x3A12: // PR_ORIGINAL_ENTRY_ID
                     DEBUG_EMAIL(("Original Entry ID - NOT PROCESSED\n"));
@@ -2757,180 +2504,91 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("Original Search Key - NOT PROCESSED\n"));
                     break;
                 case 0x3A15: // PR_POSTAL_ADDRESS
-                    DEBUG_EMAIL(("Default Postal Address - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->def_postal_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->def_postal_address));
+                    LIST_COPY_CONTACT_STR("Default Postal Address", item->contact->def_postal_address);
                     break;
                 case 0x3A16: // PR_COMPANY_NAME
-                    DEBUG_EMAIL(("Company Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->company_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->company_name));
+                    LIST_COPY_CONTACT_STR("Company Name", item->contact->company_name);
                     break;
                 case 0x3A17: // PR_TITLE - Job Title
-                    DEBUG_EMAIL(("Job Title - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->job_title, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->job_title));
+                    LIST_COPY_CONTACT_STR("Job Title", item->contact->job_title);
                     break;
                 case 0x3A18: // PR_DEPARTMENT_NAME
-                    DEBUG_EMAIL(("Department Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->department, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->department));
+                    LIST_COPY_CONTACT_STR("Department Name", item->contact->department);
                     break;
                 case 0x3A19: // PR_OFFICE_LOCATION
-                    DEBUG_EMAIL(("Office Location - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->office_loc, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->office_loc));
+                    LIST_COPY_CONTACT_STR("Office Location", item->contact->office_loc);
                     break;
                 case 0x3A1A: // PR_PRIMARY_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Primary Telephone - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->primary_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->primary_phone));
+                    LIST_COPY_CONTACT_STR("Primary Telephone", item->contact->primary_phone);
                     break;
                 case 0x3A1B: // PR_BUSINESS2_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Business Phone Number 2 - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_phone2, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_phone2));
+                    LIST_COPY_CONTACT_STR("Business Phone Number 2", item->contact->business_phone2);
                     break;
                 case 0x3A1C: // PR_MOBILE_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Mobile Phone Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->mobile_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->mobile_phone));
+                    LIST_COPY_CONTACT_STR("Mobile Phone Number", item->contact->mobile_phone);
                     break;
                 case 0x3A1D: // PR_RADIO_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Radio Phone Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->radio_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->radio_phone));
+                    LIST_COPY_CONTACT_STR("Radio Phone Number", item->contact->radio_phone);
                     break;
                 case 0x3A1E: // PR_CAR_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Car Phone Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->car_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->car_phone));
+                    LIST_COPY_CONTACT_STR("Car Phone Number", item->contact->car_phone);
                     break;
                 case 0x3A1F: // PR_OTHER_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Other Phone Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->other_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->other_phone));
+                    LIST_COPY_CONTACT_STR("Other Phone Number", item->contact->other_phone);
                     break;
                 case 0x3A20: // PR_TRANSMITTABLE_DISPLAY_NAME
-                    DEBUG_EMAIL(("Transmittable Display Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->transmittable_display_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->transmittable_display_name));
+                    LIST_COPY_CONTACT_STR("Transmittable Display Name", item->contact->transmittable_display_name);
                     break;
                 case 0x3A21: // PR_PAGER_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Pager Phone Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->pager_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->pager_phone));
+                    LIST_COPY_CONTACT_STR("Pager Phone Number", item->contact->pager_phone);
                     break;
                 case 0x3A22: // PR_USER_CERTIFICATE
                     DEBUG_EMAIL(("User Certificate - NOT PROCESSED"));
                     break;
                 case 0x3A23: // PR_PRIMARY_FAX_NUMBER
-                    DEBUG_EMAIL(("Primary Fax Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->primary_fax, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->primary_fax));
+                    LIST_COPY_CONTACT_STR("Primary Fax Number", item->contact->primary_fax);
                     break;
                 case 0x3A24: // PR_BUSINESS_FAX_NUMBER
-                    DEBUG_EMAIL(("Business Fax Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_fax, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_fax));
+                    LIST_COPY_CONTACT_STR("Business Fax Number", item->contact->business_fax);
                     break;
                 case 0x3A25: // PR_HOME_FAX_NUMBER
-                    DEBUG_EMAIL(("Home Fax Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_fax, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_fax));
+                    LIST_COPY_CONTACT_STR("Home Fax Number", item->contact->home_fax);
                     break;
                 case 0x3A26: // PR_BUSINESS_ADDRESS_COUNTRY
-                    DEBUG_EMAIL(("Business Address Country - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_country, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_country));
+                    LIST_COPY_CONTACT_STR("Business Address Country", item->contact->business_country);
                     break;
                 case 0x3A27: // PR_BUSINESS_ADDRESS_CITY
-                    DEBUG_EMAIL(("Business Address City - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_city, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_city));
+                    LIST_COPY_CONTACT_STR("Business Address City", item->contact->business_city);
                     break;
                 case 0x3A28: // PR_BUSINESS_ADDRESS_STATE_OR_PROVINCE
-                    DEBUG_EMAIL(("Business Address State - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_state, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_state));
+                    LIST_COPY_CONTACT_STR("Business Address State", item->contact->business_state);
                     break;
                 case 0x3A29: // PR_BUSINESS_ADDRESS_STREET
-                    DEBUG_EMAIL(("Business Address Street - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_street, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_street));
+                    LIST_COPY_CONTACT_STR("Business Address Street", item->contact->business_street);
                     break;
                 case 0x3A2A: // PR_BUSINESS_POSTAL_CODE
-                    DEBUG_EMAIL(("Business Postal Code - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_postal_code, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_postal_code));
+                    LIST_COPY_CONTACT_STR("Business Postal Code", item->contact->business_postal_code);
                     break;
                 case 0x3A2B: // PR_BUSINESS_PO_BOX
-                    DEBUG_EMAIL(("Business PO Box - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_po_box, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_po_box));
+                    LIST_COPY_CONTACT_STR("Business PO Box", item->contact->business_po_box);
                     break;
                 case 0x3A2C: // PR_TELEX_NUMBER
-                    DEBUG_EMAIL(("Telex Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->telex, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->telex));
+                    LIST_COPY_CONTACT_STR("Telex Number", item->contact->telex);
                     break;
                 case 0x3A2D: // PR_ISDN_NUMBER
-                    DEBUG_EMAIL(("ISDN Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->isdn_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->isdn_phone));
+                    LIST_COPY_CONTACT_STR("ISDN Number", item->contact->isdn_phone);
                     break;
                 case 0x3A2E: // PR_ASSISTANT_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Assistant Phone Number - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->assistant_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->assistant_phone));
+                    LIST_COPY_CONTACT_STR("Assistant Phone Number", item->contact->assistant_phone);
                     break;
                 case 0x3A2F: // PR_HOME2_TELEPHONE_NUMBER
-                    DEBUG_EMAIL(("Home Phone 2 - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_phone2, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_phone2));
+                    LIST_COPY_CONTACT_STR("Home Phone 2", item->contact->home_phone2);
                     break;
                 case 0x3A30: // PR_ASSISTANT
-                    DEBUG_EMAIL(("Assistant's Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->assistant_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->assistant_name));
+                    LIST_COPY_CONTACT_STR("Assistant's Name", item->contact->assistant_name);
                     break;
                 case 0x3A40: // PR_SEND_RICH_INFO
-                    DEBUG_EMAIL(("Can receive Rich Text - "));
-                    MALLOC_CONTACT(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->contact->rich_text = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->contact->rich_text = 0;
-                    }
+                    LIST_COPY_CONTACT_BOOL("Can receive Rich Text", item->contact->rich_text);
                     break;
                 case 0x3A41: // PR_WEDDING_ANNIVERSARY
                     DEBUG_EMAIL(("Wedding Anniversary - "));
@@ -2945,64 +2603,34 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->contact->birthday)));
                     break;
                 case 0x3A43: // PR_HOBBIES
-                    DEBUG_EMAIL(("Hobbies - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->hobbies, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->hobbies));
+                    LIST_COPY_CONTACT_STR("Hobbies", item->contact->hobbies);
                     break;
                 case 0x3A44: // PR_MIDDLE_NAME
-                    DEBUG_EMAIL(("Middle Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->middle_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->middle_name));
+                    LIST_COPY_CONTACT_STR("Middle Name", item->contact->middle_name);
                     break;
                 case 0x3A45: // PR_DISPLAY_NAME_PREFIX
-                    DEBUG_EMAIL(("Display Name Prefix (Title) - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->display_name_prefix, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->display_name_prefix));
+                    LIST_COPY_CONTACT_STR("Display Name Prefix (Title)", item->contact->display_name_prefix);
                     break;
                 case 0x3A46: // PR_PROFESSION
-                    DEBUG_EMAIL(("Profession - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->profession, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->profession));
+                    LIST_COPY_CONTACT_STR("Profession", item->contact->profession);
                     break;
                 case 0x3A47: // PR_PREFERRED_BY_NAME
-                    DEBUG_EMAIL(("Preferred By Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->pref_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->pref_name));
+                    LIST_COPY_CONTACT_STR("Preferred By Name", item->contact->pref_name);
                     break;
                 case 0x3A48: // PR_SPOUSE_NAME
-                    DEBUG_EMAIL(("Spouse's Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->spouse_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->spouse_name));
+                    LIST_COPY_CONTACT_STR("Spouse's Name", item->contact->spouse_name);
                     break;
                 case 0x3A49: // PR_COMPUTER_NETWORK_NAME
-                    DEBUG_EMAIL(("Computer Network Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->computer_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->computer_name));
+                    LIST_COPY_CONTACT_STR("Computer Network Name", item->contact->computer_name);
                     break;
                 case 0x3A4A: // PR_CUSTOMER_ID
-                    DEBUG_EMAIL(("Customer ID - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->customer_id, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->customer_id));
+                    LIST_COPY_CONTACT_STR("Customer ID", item->contact->customer_id);
                     break;
                 case 0x3A4B: // PR_TTYTDD_PHONE_NUMBER
-                    DEBUG_EMAIL(("TTY/TDD Phone - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->ttytdd_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->ttytdd_phone));
+                    LIST_COPY_CONTACT_STR("TTY/TDD Phone", item->contact->ttytdd_phone);
                     break;
                 case 0x3A4C: // PR_FTP_SITE
-                    DEBUG_EMAIL(("Ftp Site - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->ftp_site, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->ftp_site));
+                    LIST_COPY_CONTACT_STR("Ftp Site", item->contact->ftp_site);
                     break;
                 case 0x3A4D: // PR_GENDER
                     DEBUG_EMAIL(("Gender - "));
@@ -3024,109 +2652,58 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     }
                     break;
                 case 0x3A4E: // PR_MANAGER_NAME
-                    DEBUG_EMAIL(("Manager's Name - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->manager_name, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->manager_name));
+                    LIST_COPY_CONTACT_STR("Manager's Name", item->contact->manager_name);
                     break;
                 case 0x3A4F: // PR_NICKNAME
-                    DEBUG_EMAIL(("Nickname - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->nickname, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->nickname));
+                    LIST_COPY_CONTACT_STR("Nickname", item->contact->nickname);
                     break;
                 case 0x3A50: // PR_PERSONAL_HOME_PAGE
-                    DEBUG_EMAIL(("Personal Home Page - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->personal_homepage, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->personal_homepage));
+                    LIST_COPY_CONTACT_STR("Personal Home Page", item->contact->personal_homepage);
                     break;
                 case 0x3A51: // PR_BUSINESS_HOME_PAGE
-                    DEBUG_EMAIL(("Business Home Page - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_homepage, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_homepage));
+                    LIST_COPY_CONTACT_STR("Business Home Page", item->contact->business_homepage);
                     break;
                 case 0x3A57: // PR_COMPANY_MAIN_PHONE_NUMBER
-                    DEBUG_EMAIL(("Company Main Phone - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->company_main_phone, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->company_main_phone));
+                    LIST_COPY_CONTACT_STR("Company Main Phone", item->contact->company_main_phone);
                     break;
                 case 0x3A58: // PR_CHILDRENS_NAMES
                     DEBUG_EMAIL(("Children's Names - NOT PROCESSED\n"));
                     break;
                 case 0x3A59: // PR_HOME_ADDRESS_CITY
-                    DEBUG_EMAIL(("Home Address City - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_city, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_city));
+                    LIST_COPY_CONTACT_STR("Home Address City", item->contact->home_city);
                     break;
                 case 0x3A5A: // PR_HOME_ADDRESS_COUNTRY
-                    DEBUG_EMAIL(("Home Address Country - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_country, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_country));
+                    LIST_COPY_CONTACT_STR("Home Address Country", item->contact->home_country);
                     break;
                 case 0x3A5B: // PR_HOME_ADDRESS_POSTAL_CODE
-                    DEBUG_EMAIL(("Home Address Postal Code - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_postal_code, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_postal_code));
+                    LIST_COPY_CONTACT_STR("Home Address Postal Code", item->contact->home_postal_code);
                     break;
                 case 0x3A5C: // PR_HOME_ADDRESS_STATE_OR_PROVINCE
-                    DEBUG_EMAIL(("Home Address State or Province - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_state, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_state));
+                    LIST_COPY_CONTACT_STR("Home Address State or Province", item->contact->home_state);
                     break;
                 case 0x3A5D: // PR_HOME_ADDRESS_STREET
-                    DEBUG_EMAIL(("Home Address Street - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_street, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_street));
+                    LIST_COPY_CONTACT_STR("Home Address Street", item->contact->home_street);
                     break;
                 case 0x3A5E: // PR_HOME_ADDRESS_POST_OFFICE_BOX
-                    DEBUG_EMAIL(("Home Address Post Office Box - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_po_box, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_po_box));
+                    LIST_COPY_CONTACT_STR("Home Address Post Office Box", item->contact->home_po_box);
                     break;
                 case 0x3A5F: // PR_OTHER_ADDRESS_CITY
-                    DEBUG_EMAIL(("Other Address City - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->other_city, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->other_city));
+                    LIST_COPY_CONTACT_STR("Other Address City", item->contact->other_city);
                     break;
                 case 0x3A60: // PR_OTHER_ADDRESS_COUNTRY
-                    DEBUG_EMAIL(("Other Address Country - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->other_country, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->other_country));
+                    LIST_COPY_CONTACT_STR("Other Address Country", item->contact->other_country);
                     break;
                 case 0x3A61: // PR_OTHER_ADDRESS_POSTAL_CODE
-                    DEBUG_EMAIL(("Other Address Postal Code - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->other_postal_code, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->other_postal_code));
+                    LIST_COPY_CONTACT_STR("Other Address Postal Code", item->contact->other_postal_code);
                     break;
                 case 0x3A62: // PR_OTHER_ADDRESS_STATE_OR_PROVINCE
-                    DEBUG_EMAIL(("Other Address State - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->other_state, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->other_state));
+                    LIST_COPY_CONTACT_STR("Other Address State", item->contact->other_state);
                     break;
                 case 0x3A63: // PR_OTHER_ADDRESS_STREET
-                    DEBUG_EMAIL(("Other Address Street - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->other_street, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->other_street));
+                    LIST_COPY_CONTACT_STR("Other Address Street", item->contact->other_street);
                     break;
                 case 0x3A64: // PR_OTHER_ADDRESS_POST_OFFICE_BOX
-                    DEBUG_EMAIL(("Other Address Post Office box - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->other_po_box, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->other_po_box));
+                    LIST_COPY_CONTACT_STR("Other Address Post Office box", item->contact->other_po_box);
                     break;
                 case 0x3FDE: // PR_INTERNET_CPID
                     memcpy(&(item->internet_cpid), list->items[x]->data, sizeof(item->internet_cpid));
@@ -3191,142 +2768,73 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL_HEXPRINT((char*)item->message_store->top_of_folder->entryid, 16);
                     break;
                 case 0x8005: // Contact's Fullname
-                    DEBUG_EMAIL(("Contact Fullname - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->fullname, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->fullname));
+                    LIST_COPY_CONTACT_STR("Contact Fullname", item->contact->fullname);
                     break;
                 case 0x801A: // Full Home Address
-                    DEBUG_EMAIL(("Home Address - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->home_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->home_address));
+                    LIST_COPY_CONTACT_STR("Home Address", item->contact->home_address);
                     break;
                 case 0x801B: // Full Business Address
-                    DEBUG_EMAIL(("Business Address - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->business_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->business_address));
+                    LIST_COPY_CONTACT_STR("Business Address", item->contact->business_address);
                     break;
                 case 0x801C: // Full Other Address
-                    DEBUG_EMAIL(("Other Address - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->other_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->other_address));
+                    LIST_COPY_CONTACT_STR("Other Address", item->contact->other_address);
                     break;
                 case 0x8045: // Work address street
-                    DEBUG_EMAIL(("Work address street - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->work_address_street, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->work_address_street));
+                    LIST_COPY_CONTACT_STR("Work address street", item->contact->work_address_street);
                     break;
                 case 0x8046: // Work address city
-                    DEBUG_EMAIL(("Work address city - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->work_address_city, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->work_address_city));
+                    LIST_COPY_CONTACT_STR("Work address city", item->contact->work_address_city);
                     break;
                 case 0x8047: // Work address state
-                    DEBUG_EMAIL(("Work address state - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->work_address_state, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->work_address_state));
+                    LIST_COPY_CONTACT_STR("Work address state", item->contact->work_address_state);
                     break;
                 case 0x8048: // Work address postalcode
-                    DEBUG_EMAIL(("Work address postalcode - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->work_address_postalcode, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->work_address_postalcode));
+                    LIST_COPY_CONTACT_STR("Work address postalcode", item->contact->work_address_postalcode);
                     break;
                 case 0x8049: // Work address country
-                    DEBUG_EMAIL(("Work address country - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->work_address_country, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->work_address_country));
+                    LIST_COPY_CONTACT_STR("Work address country", item->contact->work_address_country);
                     break;
                 case 0x804A: // Work address postofficebox
-                    DEBUG_EMAIL(("Work address postofficebox - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->work_address_postofficebox, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->work_address_postofficebox));
+                    LIST_COPY_CONTACT_STR("Work address postofficebox", item->contact->work_address_postofficebox);
                     break;
                 case 0x8082: // Email Address 1 Transport
-                    DEBUG_EMAIL(("Email Address 1 Transport - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address1_transport, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address1_transport));
+                    LIST_COPY_CONTACT_STR("Email Address 1 Transport", item->contact->address1_transport);
                     break;
                 case 0x8083: // Email Address 1 Address
-                    DEBUG_EMAIL(("Email Address 1 Address - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address1, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address1));
+                    LIST_COPY_CONTACT_STR("Email Address 1 Address", item->contact->address1);
                     break;
                 case 0x8084: // Email Address 1 Description
-                    DEBUG_EMAIL(("Email Address 1 Description - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address1_desc, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address1_desc));
+                    LIST_COPY_CONTACT_STR("Email Address 1 Description", item->contact->address1_desc);
                     break;
                 case 0x8085: // Email Address 1 Record
-                    DEBUG_EMAIL(("Email Address 1 Record - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address1a, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address1a));
+                    LIST_COPY_CONTACT_STR("Email Address 1 Record", item->contact->address1a);
                     break;
                 case 0x8092: // Email Address 2 Transport
-                    DEBUG_EMAIL(("Email Address 2 Transport - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address2_transport, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address2_transport));
+                    LIST_COPY_CONTACT_STR("Email Address 2 Transport", item->contact->address2_transport);
                     break;
                 case 0x8093: // Email Address 2 Address
-                    DEBUG_EMAIL(("Email Address 2 Address - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address2, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address2));
+                    LIST_COPY_CONTACT_STR("Email Address 2 Address", item->contact->address2);
                     break;
                 case 0x8094: // Email Address 2 Description
-                    DEBUG_EMAIL (("Email Address 2 Description - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address2_desc, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address2_desc));
+                    LIST_COPY_CONTACT_STR("Email Address 2 Description", item->contact->address2_desc);
                     break;
                 case 0x8095: // Email Address 2 Record
-                    DEBUG_EMAIL(("Email Address 2 Record - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address2a, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address2a));
+                    LIST_COPY_CONTACT_STR("Email Address 2 Record", item->contact->address2a);
                     break;
                 case 0x80A2: // Email Address 3 Transport
-                    DEBUG_EMAIL (("Email Address 3 Transport - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address3_transport, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address3_transport));
+                    LIST_COPY_CONTACT_STR("Email Address 3 Transport", item->contact->address3_transport);
                     break;
                 case 0x80A3: // Email Address 3 Address
-                    DEBUG_EMAIL(("Email Address 3 Address - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address3, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address3));
+                    LIST_COPY_CONTACT_STR("Email Address 3 Address", item->contact->address3);
                     break;
                 case 0x80A4: // Email Address 3 Description
-                    DEBUG_EMAIL(("Email Address 3 Description - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address3_desc, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address3_desc));
+                    LIST_COPY_CONTACT_STR("Email Address 3 Description", item->contact->address3_desc);
                     break;
                 case 0x80A5: // Email Address 3 Record
-                    DEBUG_EMAIL(("Email Address 3 Record - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->address3a, (char*));
-                    DEBUG_EMAIL(("|%s|\n", item->contact->address3a));
+                    LIST_COPY_CONTACT_STR("Email Address 3 Record", item->contact->address3a);
                     break;
                 case 0x80D8: // Internet Free/Busy
-                    DEBUG_EMAIL(("Internet Free/Busy - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->free_busy_address, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->free_busy_address));
+                    LIST_COPY_CONTACT_STR("Internet Free/Busy", item->contact->free_busy_address);
                     break;
                 case 0x8205: // Show on Free/Busy as
                     // 0: Free
@@ -3351,10 +2859,7 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     }
                     break;
                 case 0x8208: // Location of an appointment
-                    DEBUG_EMAIL(("Appointment Location - "));
-                    MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->location, (char*));
-                    DEBUG_EMAIL(("%s\n", item->appointment->location));
+                    LIST_COPY_APPT_STR("Appointment Location", item->appointment->location);
                     break;
                 case 0x820d: // Appointment start
                     DEBUG_EMAIL(("Appointment Date Start - "));
@@ -3399,15 +2904,7 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     }
                     break;
                 case 0x8215: // All day appointment flag
-                    DEBUG_EMAIL(("All day flag - "));
-                    MALLOC_APPOINTMENT(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->appointment->all_day = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->appointment->all_day = 0;
-                    }
+                    LIST_COPY_APPT_BOOL("All day flag", item->appointment->all_day);
                     break;
                 case 0x8231: // Recurrence type
                     // 1: Daily
@@ -3432,16 +2929,10 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     }
                     break;
                 case 0x8232: // Recurrence description
-                    DEBUG_EMAIL(("Appointment recurrence description - "));
-                    MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->recurrence, (char*));
-                    DEBUG_EMAIL(("%s\n", item->appointment->recurrence));
+                    LIST_COPY_APPT_STR("Appointment recurrence description", item->appointment->recurrence);
                     break;
                 case 0x8234: // TimeZone as String
-                    DEBUG_EMAIL(("TimeZone of times - "));
-                    MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->timezonestring, (char*));
-                    DEBUG_EMAIL(("%s\n", item->appointment->timezonestring));
+                    LIST_COPY_APPT_STR("TimeZone of times", item->appointment->timezonestring);
                     break;
                 case 0x8235: // Recurrence start date
                     DEBUG_EMAIL(("Recurrence Start Date - "));
@@ -3463,15 +2954,7 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%i\n", item->appointment->alarm_minutes));
                     break;
                 case 0x8503: // Reminder alarm
-                    DEBUG_EMAIL(("Reminder alarm - "));
-                    MALLOC_APPOINTMENT(item);
-                    if (*(int16_t*)list->items[x]->data) {
-                        DEBUG_EMAIL(("True\n"));
-                        item->appointment->alarm = 1;
-                    } else {
-                        DEBUG_EMAIL(("False\n"));
-                        item->appointment->alarm = 0;
-                    }
+                    LIST_COPY_APPT_BOOL("Reminder alarm", item->appointment->alarm);
                     break;
                 case 0x8516: // Common start
                     DEBUG_EMAIL(("Common Start Date - "));
@@ -3482,33 +2965,19 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii((FILETIME*)list->items[x]->data)));
                     break;
                 case 0x851f: // Play reminder sound filename
-                    DEBUG_EMAIL(("Appointment reminder sound filename - "));
-                    MALLOC_APPOINTMENT(item);
-                    LIST_COPY(item->appointment->alarm_filename, (char*));
-                    DEBUG_EMAIL(("%s\n", item->appointment->alarm_filename));
+                    LIST_COPY_APPT_STR("Appointment reminder sound filename", item->appointment->alarm_filename);
                     break;
                 case 0x8530: // Followup
-                    DEBUG_EMAIL(("Followup String - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->followup, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->followup));
+                    LIST_COPY_CONTACT_STR("Followup String", item->contact->followup);
                     break;
                 case 0x8534: // Mileage
-                    DEBUG_EMAIL(("Mileage - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->mileage, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->mileage));
+                    LIST_COPY_CONTACT_STR("Mileage", item->contact->mileage);
                     break;
                 case 0x8535: // Billing Information
-                    DEBUG_EMAIL(("Billing Information - "));
-                    MALLOC_CONTACT(item);
-                    LIST_COPY(item->contact->billing_information, (char*));
-                    DEBUG_EMAIL(("%s\n", item->contact->billing_information));
+                    LIST_COPY_CONTACT_STR("Billing Information", item->contact->billing_information);
                     break;
                 case 0x8554: // Outlook Version
-                    DEBUG_EMAIL(("Outlook Version - "));
-                    LIST_COPY(item->outlook_version, (char*));
-                    DEBUG_EMAIL(("%s\n", item->outlook_version));
+                    LIST_COPY_STR("Outlook Version", item->outlook_version);
                     break;
                 case 0x8560: // Appointment Reminder Time
                     DEBUG_EMAIL(("Appointment Reminder Time - "));
@@ -3517,10 +2986,8 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->appointment->reminder)));
                     break;
                 case 0x8700: // Journal Type
-                    DEBUG_EMAIL(("Journal Entry Type - "));
                     MALLOC_JOURNAL(item);
-                    LIST_COPY(item->journal->type, (char*));
-                    DEBUG_EMAIL(("%s\n", item->journal->type));
+                    LIST_COPY_STR("Journal Entry Type", item->journal->type);
                     break;
                 case 0x8706: // Journal Start date/time
                     DEBUG_EMAIL(("Start Timestamp - "));
@@ -3535,10 +3002,8 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("%s\n", fileTimeToAscii(item->journal->end)));
                     break;
                 case 0x8712: // Title?
-                    DEBUG_EMAIL(("Journal Entry Type - "));
                     MALLOC_JOURNAL(item);
-                    LIST_COPY(item->journal->type, (char*));
-                    DEBUG_EMAIL(("%s\n", item->journal->type));
+                    LIST_COPY_STR("Journal Entry Type", item->journal->type);
                     break;
                 default:
                     if (list->items[x]->type == (uint32_t)0x0002) {
@@ -3647,7 +3112,6 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                         list->items[x]->data = NULL;
                     }
             }
-            x++;
         }
         list = list->next;
         if (attach) attach = attach->next;
@@ -3813,9 +3277,9 @@ pst_id2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
 void pst_free_attach(pst_item_attach *attach) {
     while (attach) {
         pst_item_attach *t;
-        SAFE_FREE(attach->filename1);
-        SAFE_FREE(attach->filename2);
-        SAFE_FREE(attach->mimetype);
+        SAFE_FREE_STR(attach->filename1);
+        SAFE_FREE_STR(attach->filename2);
+        SAFE_FREE_STR(attach->mimetype);
         SAFE_FREE(attach->data);
         pst_free_id2(attach->id2_head);
         t = attach->next;
@@ -3832,47 +3296,42 @@ void pst_freeItem(pst_item *item) {
     if (item) {
         if (item->email) {
             SAFE_FREE(item->email->arrival_date);
-            SAFE_FREE(item->email->body);
-            SAFE_FREE(item->email->cc_address);
-            SAFE_FREE(item->email->bcc_address);
-            SAFE_FREE(item->email->common_name);
+            SAFE_FREE_STR(item->email->cc_address);
+            SAFE_FREE_STR(item->email->bcc_address);
             SAFE_FREE(item->email->encrypted_body);
             SAFE_FREE(item->email->encrypted_htmlbody);
-            SAFE_FREE(item->email->header);
-            SAFE_FREE(item->email->htmlbody);
-            SAFE_FREE(item->email->in_reply_to);
-            SAFE_FREE(item->email->messageid);
-            SAFE_FREE(item->email->original_bcc);
-            SAFE_FREE(item->email->original_cc);
-            SAFE_FREE(item->email->original_to);
-            SAFE_FREE(item->email->outlook_recipient);
-            SAFE_FREE(item->email->outlook_recipient_name);
-            SAFE_FREE(item->email->outlook_recipient2);
-            SAFE_FREE(item->email->outlook_sender);
-            SAFE_FREE(item->email->outlook_sender_name);
-            SAFE_FREE(item->email->outlook_sender2);
-            SAFE_FREE(item->email->proc_subject);
-            SAFE_FREE(item->email->recip_access);
-            SAFE_FREE(item->email->recip_address);
-            SAFE_FREE(item->email->recip2_access);
-            SAFE_FREE(item->email->recip2_address);
-            SAFE_FREE(item->email->reply_to);
-            SAFE_FREE(item->email->rtf_body_tag);
+            SAFE_FREE_STR(item->email->header);
+            SAFE_FREE_STR(item->email->htmlbody);
+            SAFE_FREE_STR(item->email->in_reply_to);
+            SAFE_FREE_STR(item->email->messageid);
+            SAFE_FREE_STR(item->email->original_bcc);
+            SAFE_FREE_STR(item->email->original_cc);
+            SAFE_FREE_STR(item->email->original_to);
+            SAFE_FREE_STR(item->email->outlook_recipient);
+            SAFE_FREE_STR(item->email->outlook_recipient_name);
+            SAFE_FREE_STR(item->email->outlook_recipient2);
+            SAFE_FREE_STR(item->email->outlook_sender);
+            SAFE_FREE_STR(item->email->outlook_sender_name);
+            SAFE_FREE_STR(item->email->outlook_sender2);
+            SAFE_FREE_STR(item->email->processed_subject);
+            SAFE_FREE_STR(item->email->recip_access);
+            SAFE_FREE_STR(item->email->recip_address);
+            SAFE_FREE_STR(item->email->recip2_access);
+            SAFE_FREE_STR(item->email->recip2_address);
+            SAFE_FREE_STR(item->email->reply_to);
+            SAFE_FREE_STR(item->email->rtf_body_tag);
             SAFE_FREE(item->email->rtf_compressed);
-            SAFE_FREE(item->email->return_path_address);
-            SAFE_FREE(item->email->sender_access);
-            SAFE_FREE(item->email->sender_address);
-            SAFE_FREE(item->email->sender2_access);
-            SAFE_FREE(item->email->sender2_address);
+            SAFE_FREE_STR(item->email->return_path_address);
+            SAFE_FREE_STR(item->email->sender_access);
+            SAFE_FREE_STR(item->email->sender_address);
+            SAFE_FREE_STR(item->email->sender2_access);
+            SAFE_FREE_STR(item->email->sender2_address);
             SAFE_FREE(item->email->sent_date);
             SAFE_FREE(item->email->sentmail_folder);
-            SAFE_FREE(item->email->sentto_address);
-            if (item->email->subject)
-                SAFE_FREE(item->email->subject->subj);
-            SAFE_FREE(item->email->subject);
-            SAFE_FREE(item->email->report_text);
+            SAFE_FREE_STR(item->email->sentto_address);
+            SAFE_FREE_STR(item->email->report_text);
             SAFE_FREE(item->email->report_time);
-            SAFE_FREE(item->email->supplementary_info);
+            SAFE_FREE_STR(item->email->supplementary_info);
             free(item->email);
         }
         if (item->folder) {
@@ -3890,102 +3349,103 @@ void pst_freeItem(pst_item *item) {
             free(item->message_store);
         }
         if (item->contact) {
-            SAFE_FREE(item->contact->access_method);
-            SAFE_FREE(item->contact->account_name);
-            SAFE_FREE(item->contact->address1);
-            SAFE_FREE(item->contact->address1a);
-            SAFE_FREE(item->contact->address1_desc);
-            SAFE_FREE(item->contact->address1_transport);
-            SAFE_FREE(item->contact->address2);
-            SAFE_FREE(item->contact->address2a);
-            SAFE_FREE(item->contact->address2_desc);
-            SAFE_FREE(item->contact->address2_transport);
-            SAFE_FREE(item->contact->address3);
-            SAFE_FREE(item->contact->address3a);
-            SAFE_FREE(item->contact->address3_desc);
-            SAFE_FREE(item->contact->address3_transport);
-            SAFE_FREE(item->contact->assistant_name);
-            SAFE_FREE(item->contact->assistant_phone);
-            SAFE_FREE(item->contact->billing_information);
+            SAFE_FREE_STR(item->contact->access_method);
+            SAFE_FREE_STR(item->contact->account_name);
+            SAFE_FREE_STR(item->contact->address1);
+            SAFE_FREE_STR(item->contact->address1a);
+            SAFE_FREE_STR(item->contact->address1_desc);
+            SAFE_FREE_STR(item->contact->address1_transport);
+            SAFE_FREE_STR(item->contact->address2);
+            SAFE_FREE_STR(item->contact->address2a);
+            SAFE_FREE_STR(item->contact->address2_desc);
+            SAFE_FREE_STR(item->contact->address2_transport);
+            SAFE_FREE_STR(item->contact->address3);
+            SAFE_FREE_STR(item->contact->address3a);
+            SAFE_FREE_STR(item->contact->address3_desc);
+            SAFE_FREE_STR(item->contact->address3_transport);
+            SAFE_FREE_STR(item->contact->assistant_name);
+            SAFE_FREE_STR(item->contact->assistant_phone);
+            SAFE_FREE_STR(item->contact->billing_information);
             SAFE_FREE(item->contact->birthday);
-            SAFE_FREE(item->contact->business_address);
-            SAFE_FREE(item->contact->business_city);
-            SAFE_FREE(item->contact->business_country);
-            SAFE_FREE(item->contact->business_fax);
-            SAFE_FREE(item->contact->business_homepage);
-            SAFE_FREE(item->contact->business_phone);
-            SAFE_FREE(item->contact->business_phone2);
-            SAFE_FREE(item->contact->business_po_box);
-            SAFE_FREE(item->contact->business_postal_code);
-            SAFE_FREE(item->contact->business_state);
-            SAFE_FREE(item->contact->business_street);
-            SAFE_FREE(item->contact->callback_phone);
-            SAFE_FREE(item->contact->car_phone);
-            SAFE_FREE(item->contact->company_main_phone);
-            SAFE_FREE(item->contact->company_name);
-            SAFE_FREE(item->contact->computer_name);
-            SAFE_FREE(item->contact->customer_id);
-            SAFE_FREE(item->contact->def_postal_address);
-            SAFE_FREE(item->contact->department);
-            SAFE_FREE(item->contact->display_name_prefix);
-            SAFE_FREE(item->contact->first_name);
-            SAFE_FREE(item->contact->followup);
-            SAFE_FREE(item->contact->free_busy_address);
-            SAFE_FREE(item->contact->ftp_site);
-            SAFE_FREE(item->contact->fullname);
-            SAFE_FREE(item->contact->gov_id);
-            SAFE_FREE(item->contact->hobbies);
-            SAFE_FREE(item->contact->home_address);
-            SAFE_FREE(item->contact->home_city);
-            SAFE_FREE(item->contact->home_country);
-            SAFE_FREE(item->contact->home_fax);
-            SAFE_FREE(item->contact->home_po_box);
-            SAFE_FREE(item->contact->home_phone);
-            SAFE_FREE(item->contact->home_phone2);
-            SAFE_FREE(item->contact->home_postal_code);
-            SAFE_FREE(item->contact->home_state);
-            SAFE_FREE(item->contact->home_street);
-            SAFE_FREE(item->contact->initials);
-            SAFE_FREE(item->contact->isdn_phone);
-            SAFE_FREE(item->contact->job_title);
-            SAFE_FREE(item->contact->keyword);
-            SAFE_FREE(item->contact->language);
-            SAFE_FREE(item->contact->location);
-            SAFE_FREE(item->contact->manager_name);
-            SAFE_FREE(item->contact->middle_name);
-            SAFE_FREE(item->contact->mileage);
-            SAFE_FREE(item->contact->mobile_phone);
-            SAFE_FREE(item->contact->nickname);
-            SAFE_FREE(item->contact->office_loc);
-            SAFE_FREE(item->contact->org_id);
-            SAFE_FREE(item->contact->other_address);
-            SAFE_FREE(item->contact->other_city);
-            SAFE_FREE(item->contact->other_country);
-            SAFE_FREE(item->contact->other_phone);
-            SAFE_FREE(item->contact->other_po_box);
-            SAFE_FREE(item->contact->other_postal_code);
-            SAFE_FREE(item->contact->other_state);
-            SAFE_FREE(item->contact->other_street);
-            SAFE_FREE(item->contact->pager_phone);
-            SAFE_FREE(item->contact->personal_homepage);
-            SAFE_FREE(item->contact->pref_name);
-            SAFE_FREE(item->contact->primary_fax);
-            SAFE_FREE(item->contact->primary_phone);
-            SAFE_FREE(item->contact->profession);
-            SAFE_FREE(item->contact->radio_phone);
-            SAFE_FREE(item->contact->spouse_name);
-            SAFE_FREE(item->contact->suffix);
-            SAFE_FREE(item->contact->surname);
-            SAFE_FREE(item->contact->telex);
-            SAFE_FREE(item->contact->transmittable_display_name);
-            SAFE_FREE(item->contact->ttytdd_phone);
+            SAFE_FREE_STR(item->contact->business_address);
+            SAFE_FREE_STR(item->contact->business_city);
+            SAFE_FREE_STR(item->contact->business_country);
+            SAFE_FREE_STR(item->contact->business_fax);
+            SAFE_FREE_STR(item->contact->business_homepage);
+            SAFE_FREE_STR(item->contact->business_phone);
+            SAFE_FREE_STR(item->contact->business_phone2);
+            SAFE_FREE_STR(item->contact->business_po_box);
+            SAFE_FREE_STR(item->contact->business_postal_code);
+            SAFE_FREE_STR(item->contact->business_state);
+            SAFE_FREE_STR(item->contact->business_street);
+            SAFE_FREE_STR(item->contact->callback_phone);
+            SAFE_FREE_STR(item->contact->car_phone);
+            SAFE_FREE_STR(item->contact->company_main_phone);
+            SAFE_FREE_STR(item->contact->company_name);
+            SAFE_FREE_STR(item->contact->computer_name);
+            SAFE_FREE_STR(item->contact->customer_id);
+            SAFE_FREE_STR(item->contact->def_postal_address);
+            SAFE_FREE_STR(item->contact->department);
+            SAFE_FREE_STR(item->contact->display_name_prefix);
+            SAFE_FREE_STR(item->contact->first_name);
+            SAFE_FREE_STR(item->contact->followup);
+            SAFE_FREE_STR(item->contact->free_busy_address);
+            SAFE_FREE_STR(item->contact->ftp_site);
+            SAFE_FREE_STR(item->contact->fullname);
+            SAFE_FREE_STR(item->contact->gov_id);
+            SAFE_FREE_STR(item->contact->hobbies);
+            SAFE_FREE_STR(item->contact->home_address);
+            SAFE_FREE_STR(item->contact->home_city);
+            SAFE_FREE_STR(item->contact->home_country);
+            SAFE_FREE_STR(item->contact->home_fax);
+            SAFE_FREE_STR(item->contact->home_po_box);
+            SAFE_FREE_STR(item->contact->home_phone);
+            SAFE_FREE_STR(item->contact->home_phone2);
+            SAFE_FREE_STR(item->contact->home_postal_code);
+            SAFE_FREE_STR(item->contact->home_state);
+            SAFE_FREE_STR(item->contact->home_street);
+            SAFE_FREE_STR(item->contact->initials);
+            SAFE_FREE_STR(item->contact->isdn_phone);
+            SAFE_FREE_STR(item->contact->job_title);
+            SAFE_FREE_STR(item->contact->keyword);
+            SAFE_FREE_STR(item->contact->language);
+            SAFE_FREE_STR(item->contact->location);
+            SAFE_FREE_STR(item->contact->manager_name);
+            SAFE_FREE_STR(item->contact->middle_name);
+            SAFE_FREE_STR(item->contact->mileage);
+            SAFE_FREE_STR(item->contact->mobile_phone);
+            SAFE_FREE_STR(item->contact->nickname);
+            SAFE_FREE_STR(item->contact->office_loc);
+            SAFE_FREE_STR(item->contact->common_name);
+            SAFE_FREE_STR(item->contact->org_id);
+            SAFE_FREE_STR(item->contact->other_address);
+            SAFE_FREE_STR(item->contact->other_city);
+            SAFE_FREE_STR(item->contact->other_country);
+            SAFE_FREE_STR(item->contact->other_phone);
+            SAFE_FREE_STR(item->contact->other_po_box);
+            SAFE_FREE_STR(item->contact->other_postal_code);
+            SAFE_FREE_STR(item->contact->other_state);
+            SAFE_FREE_STR(item->contact->other_street);
+            SAFE_FREE_STR(item->contact->pager_phone);
+            SAFE_FREE_STR(item->contact->personal_homepage);
+            SAFE_FREE_STR(item->contact->pref_name);
+            SAFE_FREE_STR(item->contact->primary_fax);
+            SAFE_FREE_STR(item->contact->primary_phone);
+            SAFE_FREE_STR(item->contact->profession);
+            SAFE_FREE_STR(item->contact->radio_phone);
+            SAFE_FREE_STR(item->contact->spouse_name);
+            SAFE_FREE_STR(item->contact->suffix);
+            SAFE_FREE_STR(item->contact->surname);
+            SAFE_FREE_STR(item->contact->telex);
+            SAFE_FREE_STR(item->contact->transmittable_display_name);
+            SAFE_FREE_STR(item->contact->ttytdd_phone);
             SAFE_FREE(item->contact->wedding_anniversary);
-            SAFE_FREE(item->contact->work_address_street);
-            SAFE_FREE(item->contact->work_address_city);
-            SAFE_FREE(item->contact->work_address_state);
-            SAFE_FREE(item->contact->work_address_postalcode);
-            SAFE_FREE(item->contact->work_address_country);
-            SAFE_FREE(item->contact->work_address_postofficebox);
+            SAFE_FREE_STR(item->contact->work_address_street);
+            SAFE_FREE_STR(item->contact->work_address_city);
+            SAFE_FREE_STR(item->contact->work_address_state);
+            SAFE_FREE_STR(item->contact->work_address_postalcode);
+            SAFE_FREE_STR(item->contact->work_address_country);
+            SAFE_FREE_STR(item->contact->work_address_postofficebox);
             free(item->contact);
         }
 
@@ -4001,28 +3461,30 @@ void pst_freeItem(pst_item *item) {
         if (item->journal) {
             SAFE_FREE(item->journal->end);
             SAFE_FREE(item->journal->start);
-            SAFE_FREE(item->journal->type);
+            SAFE_FREE_STR(item->journal->type);
             free(item->journal);
         }
         if (item->appointment) {
-            SAFE_FREE(item->appointment->location);
+            SAFE_FREE_STR(item->appointment->location);
             SAFE_FREE(item->appointment->reminder);
-            SAFE_FREE(item->appointment->alarm_filename);
+            SAFE_FREE_STR(item->appointment->alarm_filename);
             SAFE_FREE(item->appointment->start);
             SAFE_FREE(item->appointment->end);
-            SAFE_FREE(item->appointment->timezonestring);
-            SAFE_FREE(item->appointment->recurrence);
+            SAFE_FREE_STR(item->appointment->timezonestring);
+            SAFE_FREE_STR(item->appointment->recurrence);
             SAFE_FREE(item->appointment->recurrence_start);
             SAFE_FREE(item->appointment->recurrence_end);
             free(item->appointment);
         }
         SAFE_FREE(item->ascii_type);
-        SAFE_FREE(item->body_charset);
-        SAFE_FREE(item->comment);
+        SAFE_FREE_STR(item->body_charset);
+        SAFE_FREE_STR(item->body);
+        SAFE_FREE_STR(item->subject);
+        SAFE_FREE_STR(item->comment);
         SAFE_FREE(item->create_date);
-        SAFE_FREE(item->file_as);
+        SAFE_FREE_STR(item->file_as);
         SAFE_FREE(item->modify_date);
-        SAFE_FREE(item->outlook_version);
+        SAFE_FREE_STR(item->outlook_version);
         SAFE_FREE(item->record_key);
         free(item);
     }
@@ -4787,3 +4249,95 @@ char *pst_rfc2445_datetime_format(FILETIME *ft) {
 }
 
 
+/** Convert a code page integer into a string suitable for iconv
+ *
+ *  @param cp the code page integer used in the pst file
+ *  @return pointer to a static buffer holding the string representation of the
+ *          equivalent iconv character set
+ */
+const char* codepage(int cp) {
+    static char buffer[20];
+    switch (cp) {
+        case   932 : return "iso-2022-jp";
+        case   936 : return "gb2313";
+        case   950 : return "big5";
+        case 20127 : return "us-ascii";
+        case 20269 : return "iso-6937";
+        case 20865 : return "iso-8859-15";
+        case 20866 : return "koi8-r";
+        case 21866 : return "koi8-u";
+        case 28591 : return "iso-8859-1";
+        case 28592 : return "iso-8859-2";
+        case 28595 : return "iso-8859-5";
+        case 28596 : return "iso-8859-6";
+        case 28597 : return "iso-8859-7";
+        case 28598 : return "iso-8859-8";
+        case 28599 : return "iso-8859-9";
+        case 50220 : return "iso-2022-jp";
+        case 50221 : return "csiso2022jp";
+        case 51932 : return "euc-jp";
+        case 51949 : return "euc-kr";
+        case 65000 : return "utf-7";
+        case 65001 : return "utf-8";
+        default :
+            snprintf(buffer, sizeof(buffer), "windows-%d", cp);
+            return buffer;
+    }
+    return NULL;
+}
+
+
+/** get the default character set for this item
+ *  @param item   pointer to the mapi item of interest
+ *  @return default character set
+ */
+const char*    pst_default_charset(pst_item *item)
+{
+    return (item->body_charset.str) ? item->body_charset.str :
+           (item->message_codepage) ? codepage(item->message_codepage) :
+           (item->internet_cpid)    ? codepage(item->internet_cpid) :
+           "utf-8";
+}
+
+
+/** Convert str to utf8 if possible. Null strings are preserved
+ *
+ *  @param item  pointer to the mapi item of interest
+ *  &param str   pointer to the mapi string of interest
+ */
+void pst_convert_utf8_null(pst_item *item, pst_string *str)
+{
+    if (!str->str) return;
+    pst_convert_utf8(item, str);
+}
+
+
+/** Convert str to utf8 if possible. Null strings are converted into empty strings.
+ *
+ *  @param item  pointer to the mapi item of interest
+ *  &param str   pointer to the mapi string of interest
+ */
+void pst_convert_utf8(pst_item *item, pst_string *str)
+{
+    if (str->is_utf8) return;
+    if (!str->str) {
+        str->str = strdup("");
+        return;
+    }
+    DEBUG_ENT("pst_convert_utf8");
+    const char *charset = pst_default_charset(item);
+    if (!strcasecmp("utf-8", charset)) return;  // already utf8
+    vbuf *newer = vballoc(2);
+    size_t rc = vb_8bit2utf8(newer, str->str, strlen(str->str) + 1, charset);
+    if (rc == (size_t)-1) {
+        free(newer->b);
+        DEBUG_EMAIL(("Failed to convert %s to utf-8 - %s\n", charset, str->str));
+    }
+    else {
+        free(str->str);
+        str->str = newer->b;
+        str->is_utf8 = 1;
+    }
+    free(newer);
+    DEBUG_RET();
+}

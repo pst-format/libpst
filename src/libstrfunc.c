@@ -63,29 +63,3 @@ char *base64_encode_multiple(void *data, size_t size, int *line_count)
 };
 
 
-void hexdump(char *hbuf, int start, int stop, int ascii) /* {{{ HexDump all or a part of some buffer */
-{
-    char c;
-    int diff,i;
-
-    while (start < stop ) {
-        diff = stop - start;
-        if (diff > 16) diff = 16;
-
-        fprintf(stderr, ":%08X  ",start);
-
-        for (i = 0; i < diff; i++) {
-            if( 8 == i ) fprintf( stderr, " " );
-            fprintf(stderr, "%02X ",(unsigned char)*(hbuf+start+i));
-        }
-        if (ascii) {
-            for (i = diff; i < 16; i++) fprintf(stderr, "   ");
-            for (i = 0; i < diff; i++) {
-                c = *(hbuf+start+i);
-                fprintf(stderr, "%c", isprint(c) ? c : '.');
-            }
-        }
-        fprintf(stderr, "\n");
-        start += 16;
-    }
-}

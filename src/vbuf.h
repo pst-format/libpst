@@ -88,6 +88,7 @@ void unicode_init();
 void unicode_close();
 size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen);
 size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* charset);
+size_t vb_8bit2utf8(vbuf *dest, const char *inbuf, int iblen, const char* charset);
 
 int vb_skipline( struct varbuf *vb ); // in: vb->b == "stuff\nmore_stuff"; out: vb->b == "more_stuff"
 

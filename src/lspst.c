@@ -28,12 +28,13 @@ pst_file pstfile;
 
 void create_enter_dir(struct file_ll* f, pst_item *item)
 {
+    pst_convert_utf8(item, &item->file_as);
     f->email_count  = 0;
     f->skip_count   = 0;
     f->type         = item->type;
     f->stored_count = (item->folder) ? item->folder->email_count : 0;
-    f->dname        = (char*) xmalloc(strlen(item->file_as)+1);
-    strcpy(f->dname, item->file_as);
+    f->dname        = (char*) xmalloc(strlen(item->file_as.str)+1);
+    strcpy(f->dname, item->file_as.str);
 }
 
 
@@ -70,7 +71,8 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
 
                 if (item->folder && d_ptr->child) {
                     // if this is a folder, we want to recurse into it
-                    printf("Folder \"%s\"\n", item->file_as);
+                    pst_convert_utf8(item, &item->file_as);
+                    printf("Folder \"%s\"\n", item->file_as.str);
                     process(item, d_ptr->child);
 
                 } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
@@ -79,8 +81,8 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. Processing anyway\n"));
                     }
                     printf("Contact");
-                    if (item->contact->fullname)
-                        printf("\t%s", pst_rfc2426_escape(item->contact->fullname));
+                    if (item->contact->fullname.str)
+                        printf("\t%s", pst_rfc2426_escape(item->contact->fullname.str));
                     printf("\n");
 
                 } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT || item->type == PST_TYPE_OTHER)) {
@@ -89,10 +91,10 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
                     printf("Email");
-                    if (item->email->outlook_sender_name)
-                        printf("\tFrom: %s", item->email->outlook_sender_name);
-                    if (item->email->subject && item->email->subject->subj)
-                        printf("\tSubject: %s", item->email->subject->subj);
+                    if (item->email->outlook_sender_name.str)
+                        printf("\tFrom: %s", item->email->outlook_sender_name.str);
+                    if (item->subject.str)
+                        printf("\tSubject: %s", item->subject.str);
                     printf("\n");
 
                 } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
@@ -100,8 +102,8 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     if (ff.type != PST_TYPE_JOURNAL) {
                         DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
                     }
-                    if (item->email && item->email->subject && item->email->subject->subj)
-                        printf("Journal\t%s\n", pst_rfc2426_escape(item->email->subject->subj));
+                    if (item->subject.str)
+                        printf("Journal\t%s\n", pst_rfc2426_escape(item->subject.str));
 
                 } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
                     // Process Calendar Appointment item
@@ -110,8 +112,8 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
                     }
                     printf("Appointment");
-                    if (item->email && item->email->subject)
-                        printf("\tSUMMARY: %s", pst_rfc2426_escape(item->email->subject->subj));
+                    if (item->subject.str)
+                        printf("\tSUMMARY: %s", pst_rfc2426_escape(item->subject.str));
                     if (item->appointment->start)
                         printf("\tSTART: %s", pst_rfc2445_datetime_format(item->appointment->start));
                     if (item->appointment->end)
@@ -222,7 +224,7 @@ int main(int argc, char* const* argv) {
     }
 
     // default the file_as to the same as the main filename if it doesn't exist
-    if (!item->file_as) {
+    if (!item->file_as.str) {
         if (!(temp = strrchr(argv[1], '/')))
             if (!(temp = strrchr(argv[1], '\\')))
                 temp = argv[1];
@@ -230,10 +232,11 @@ int main(int argc, char* const* argv) {
                 temp++; // get past the "\\"
         else
             temp++; // get past the "/"
-        item->file_as = (char*)xmalloc(strlen(temp)+1);
-        strcpy(item->file_as, temp);
+        item->file_as.str = (char*)xmalloc(strlen(temp)+1);
+        strcpy(item->file_as.str, temp);
+        item->file_as.is_utf8 = 1;
     }
-    fprintf(stderr, "item->file_as = '%s'.\n", item->file_as);
+    WARN(("item->file_as = '%s'.\n", item->file_as.str));
 
     d_ptr = pst_getTopOfFolders(&pstfile, item);
     if (!d_ptr) DIE(("Top of folders record not found. Cannot continue\n"));
@@ -259,51 +262,6 @@ void canonicalize_filename(char *fname) {
     while ((fname = strpbrk(fname, "/\\:")))
         *fname = '_';
     DEBUG_RET();
-}
-
-
-void debug_print(char *fmt, ...) {
-    // shamlessly stolen from minprintf() in K&R pg. 156
-    va_list ap;
-    char *p, *sval;
-    void *pval;
-    int ival;
-    double dval;
-    FILE *fp = stderr;
-
-    va_start(ap, fmt);
-    for(p = fmt; *p; p++) {
-        if (*p != '%') {
-            fputc(*p, fp);
-            continue;
-        }
-        switch (tolower(*++p)) {
-            case 'd': case 'i':
-                ival = va_arg(ap, int);
-                fprintf(fp, "%d", ival);
-                break;
-            case 'f':
-                dval = va_arg(ap, double);
-                fprintf(fp, "%f", dval);
-                break;
-            case 's':
-                for (sval = va_arg(ap, char *); *sval; ++sval)
-                    fputc(*sval, fp);
-                break;
-            case 'p':
-                pval = va_arg(ap, void *);
-                fprintf(fp, "%p", pval);
-                break;
-            case 'x':
-                ival = va_arg(ap, int);
-                fprintf(fp, "%#010x", ival);
-                break;
-            default:
-                fputc(*p, fp);
-                break;
-        }
-    }
-    va_end(ap);
 }
 
 
