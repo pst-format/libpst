@@ -177,7 +177,7 @@ typedef struct pst_item_email {
     int         autoforward;            // 1 = true, 0 = not set, -1 = false
     pst_string  cc_address;
     pst_string  bcc_address;
-    int32_t     conv_index;
+    int32_t     conversation_index;
     int         conversion_prohibited;  // 1 = true, 0 = false
     int         delete_after_submit;    // 1 = true, 0 = false
     int         delivery_report;        // 1 = true, 0 = false
@@ -393,6 +393,7 @@ typedef struct pst_item_journal {
     FILETIME   *end;
     FILETIME   *start;
     pst_string  type;
+    pst_string  description;
 } pst_item_journal;
 
 

@@ -62,7 +62,7 @@ if [ "$1" == "dii" ]; then
     dodii 3 test.pst
     dodii 4 big_mail.pst
 elif [ "$1" == "ldif" ]; then
-    #doldif   1 ams.pst
+    doldif   1 ams.pst
     #doldif   2 sample_64.pst
     #doldif   3 test.pst
     #doldif   4 big_mail.pst
@@ -100,7 +100,7 @@ else
     #dopst  16 hourig2.pst
     #dopst  17 hourig3.pst
     dopst  18 test-mac.pst
-    #dopst  19 harris.pst
+    dopst  19 harris.pst
 fi
 
 grep 'lost:' *err | grep -v 'lost: 0 '
