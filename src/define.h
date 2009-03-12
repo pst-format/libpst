@@ -74,7 +74,7 @@
     #include <errno.h>
 #endif
 
-#ifdef HAVE_ICONV_H
+#ifdef HAVE_ICONV
     #include <iconv.h>
 #endif
 

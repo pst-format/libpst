@@ -494,22 +494,22 @@ typedef struct pst_block_offset_pointer {
 } pst_block_offset_pointer;
 
 
-typedef struct pst_num_item {
-    uint32_t   id;      // not an id1 or id2, this is actually some sort of type code
+typedef struct pst_mapi_element {
+    uint32_t   mapi_id;
     char      *data;
     uint32_t   type;
     size_t     size;
     char      *extra;
-} pst_num_item;
+} pst_mapi_element;
 
 
-typedef struct pst_num_array {
-    int32_t count_item;
-    int32_t orig_count;
-    int32_t count_array;
-    struct pst_num_item ** items;
-    struct pst_num_array *next;
-} pst_num_array;
+typedef struct pst_mapi_object {
+    int32_t count_elements;     // count of active elements
+    int32_t orig_count;         // originally allocated elements
+    int32_t count_objects;      // number of mapi objects in the list
+    struct pst_mapi_element **elements;
+    struct pst_mapi_object *next;
+} pst_mapi_object;
 
 
 typedef struct pst_holder {
@@ -547,9 +547,9 @@ int            pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uin
 int            pst_build_desc_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 pst_item*      pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 pst_item*      pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head);
-pst_num_array* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_head, pst_num_array *na_head);
-int            pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach);
-void           pst_free_list(pst_num_array *list);
+pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_head);
+int            pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach);
+void           pst_free_list(pst_mapi_object *list);
 void           pst_freeItem(pst_item *item);
 void           pst_free_id2(pst_id2_ll * head);
 void           pst_free_id (pst_index_ll *head);

@@ -6,7 +6,7 @@ AM_INIT_AUTOMAKE
 AC_CANONICAL_HOST
 
 
-# Check for win32 which needs iconv library specified on the link line
+# Check for win32
 AC_MSG_CHECKING([for Win32])
 case "$host" in
     *-mingw*)
@@ -107,7 +107,7 @@ AC_CHECK_HEADER([unistd.h],
     )
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([ctype.h dirent.h errno.h fcntl.h iconv.h inttypes.h limits.h regex.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h sys/param.h sys/stat.h sys/types.h time.h unistd.h wchar.h])
+AC_CHECK_HEADERS([ctype.h dirent.h errno.h fcntl.h inttypes.h limits.h regex.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h sys/param.h sys/stat.h sys/types.h time.h unistd.h wchar.h])
 
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -130,41 +130,10 @@ fi
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([memchr memmove memset regcomp strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol])
-
-
-# iconv on mac is a library
-SAVELIBS="$LIBS"
-AC_SEARCH_LIBS([iconv_open], [iconv])
-if test "$SAVELIBS" != "$LIBS"; then
-    all_libraries="-L/usr/lib $all_libraries"
-    AC_SUBST(all_libraries)
-    AC_MSG_WARN([This should be building on Mac OSX, adding /usr/lib to the library path])
+AM_ICONV
+if test "$am_cv_func_iconv" != "yes"; then
+    AC_MSG_ERROR([libpst requires iconv which is missing])
 fi
-
-AC_MSG_CHECKING([if iconv uses const arguments])
-AC_LANG_PUSH([C++])
-AC_COMPILE_IFELSE([
-        #include <iconv.h>
-        #include <stddef.h>
-        int main(int argc, char* const* argv)
-        {
-            size_t  inlen = 100;
-            char buffer[[inlen]];
-            char *p = buffer;
-            size_t utf8_len = 2 * inlen + 1;
-            char utf8_buffer[[utf8_len]];
-            char *utf8_p = utf8_buffer;
-            iconv_t cd = 0;
-            iconv(cd, (const char**)&p, &inlen, &utf8_p, &utf8_len);
-        }
-    ],
-    [AC_DEFINE(ICONV_CONST,const,[do we have const headers])
-     AC_MSG_RESULT([yes])
-    ],
-    [AC_DEFINE(ICONV_CONST,,[do we have const headers])
-     AC_MSG_RESULT([no])
-    ])
-AC_LANG_POP([C++])
 
 
 AC_CHECK_FUNCS(regexec,,[AC_CHECK_LIB(regex,regexec,

@@ -4,3 +4,6 @@ calls.
 
 pst2diii needs header and mime type updates from readpst.
 
+Change more c symbols to reflect mapi_element and mapi_object.  A
+mapi_object (email etc.) is composed of a list of mapi_elements
+(subject, charset, etc.).

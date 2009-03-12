@@ -184,7 +184,7 @@ int pst_open(pst_file *pf, char *name) {
     memset(pf, 0, sizeof(*pf));
 
     if ((pf->fp = fopen(name, "rb")) == NULL) {
-        WARN(("cannot open PST file. Error\n"));
+        perror("Error opening PST file");
         DEBUG_RET();
         return -1;
     }
@@ -521,7 +521,7 @@ typedef struct pst_x_attrib {
 int pst_load_extended_attributes(pst_file *pf) {
     // for PST files this will load up ID2 0x61 and check it's "list" attribute.
     pst_desc_ll *p;
-    pst_num_array *na;
+    pst_mapi_object *na;
     pst_id2_ll *id2_head = NULL;
     char *buffer=NULL, *headerbuffer=NULL;
     size_t bsize=0, hsize=0, bptr=0;
@@ -550,7 +550,7 @@ int pst_load_extended_attributes(pst_file *pf) {
         DEBUG_WARN(("Have not been able to fetch any id2 values for item 0x61. Brace yourself!\n"));
     }
 
-    na = pst_parse_block(pf, p->desc->id, id2_head, NULL);
+    na = pst_parse_block(pf, p->desc->id, id2_head);
     if (!na) {
         DEBUG_WARN(("Cannot process desc block for item 0x61. Not loading extended Attributes\n"));
         pst_free_id2(id2_head);
@@ -558,13 +558,13 @@ int pst_load_extended_attributes(pst_file *pf) {
         return 0;
     }
 
-    for (x=0; x < na->count_item; x++) {
-        if (na->items[x]->id == (uint32_t)0x0003) {
-            buffer = na->items[x]->data;
-            bsize = na->items[x]->size;
-        } else if (na->items[x]->id == (uint32_t)0x0004) {
-            headerbuffer = na->items[x]->data;
-            hsize = na->items[x]->size;
+    for (x=0; x < na->count_elements; x++) {
+        if (na->elements[x]->mapi_id == (uint32_t)0x0003) {
+            buffer = na->elements[x]->data;
+            bsize = na->elements[x]->size;
+        } else if (na->elements[x]->mapi_id == (uint32_t)0x0004) {
+            headerbuffer = na->elements[x]->data;
+            hsize = na->elements[x]->size;
         } else {
             // leave them null
         }
@@ -1064,7 +1064,7 @@ int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t li
 /** Process a high level object from the pst file.
  */
 pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
-    pst_num_array * list;
+    pst_mapi_object * list;
     pst_id2_ll *id2_head = m_head;
     pst_id2_ll *id2_ptr  = NULL;
     pst_item *item = NULL;
@@ -1092,7 +1092,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
     }
     pst_printID2ptr(id2_head);
 
-    list = pst_parse_block(pf, d_ptr->desc->id, id2_head, NULL);
+    list = pst_parse_block(pf, d_ptr->desc->id, id2_head);
     if (!list) {
         DEBUG_WARN(("pst_parse_block() returned an error for d_ptr->desc->id [%#"PRIx64"]\n", d_ptr->desc->id));
         if (!m_head) pst_free_id2(id2_head);
@@ -1116,14 +1116,14 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x692))) {
         // DSN/MDN reports?
         DEBUG_EMAIL(("DSN/MDN processing\n"));
-        list = pst_parse_block(pf, id2_ptr->id->id, id2_head, NULL);
+        list = pst_parse_block(pf, id2_ptr->id->id, id2_head);
         if (!list) {
             DEBUG_WARN(("ERROR error processing main DSN/MDN record\n"));
             if (!m_head) pst_free_id2(id2_head);
             DEBUG_RET();
             return item;
         }
-        for (x=0; x < list->count_array; x++) {
+        for (x=0; x < list->count_objects; x++) {
             attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
@@ -1142,14 +1142,14 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
 
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x671))) {
         DEBUG_EMAIL(("ATTACHMENT processing attachment\n"));
-        list = pst_parse_block(pf, id2_ptr->id->id, id2_head, NULL);
+        list = pst_parse_block(pf, id2_ptr->id->id, id2_head);
         if (!list) {
             DEBUG_WARN(("ERROR error processing main attachment record\n"));
             if (!m_head) pst_free_id2(id2_head);
             DEBUG_RET();
             return item;
         }
-        for (x=0; x < list->count_array; x++) {
+        for (x=0; x < list->count_objects; x++) {
             attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
@@ -1176,13 +1176,13 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
                 // id_ptr is a record describing the attachment
                 // we pass NULL instead of id2_head cause we don't want it to
                 // load all the extra stuff here.
-                list = pst_parse_block(pf, id2_ptr->id->id, NULL, NULL);
+                list = pst_parse_block(pf, id2_ptr->id->id, NULL);
                 if (!list) {
                     DEBUG_WARN(("ERROR error processing an attachment record\n"));
                     attach = attach->next;
                     continue;
                 }
-                if (list->count_array > 1) {
+                if (list->count_objects > 1) {
                     DEBUG_WARN(("ERROR probably fatal, list count array will overrun attach structure.\n"));
                 }
                 if (pst_process(list, item, attach)) {
@@ -1246,15 +1246,16 @@ static void freeall(pst_subblocks *subs, pst_block_offset_pointer *p1,
 
 
 /** Process a low level descriptor block (0x0101, 0xbcec, 0x7cec) into a
- *  list of objects, each of which contains a list of MAPI elements.
+ *  list of MAPI objects, each of which contains a list of MAPI elements.
  *
- *  @return list of objects
+ *  @return list of MAPI objects
  */
-pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_head, pst_num_array *na_head) {
+pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_head) {
+    pst_mapi_object *mo_head = NULL;
     char  *buf       = NULL;
     size_t read_size = 0;
     pst_subblocks  subblocks;
-    pst_num_array *na_ptr = NULL;
+    pst_mapi_object *mo_ptr = NULL;
     pst_block_offset_pointer block_offset1;
     pst_block_offset_pointer block_offset2;
     pst_block_offset_pointer block_offset3;
@@ -1480,19 +1481,19 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 
     DEBUG_EMAIL(("Mallocing number of records %i\n", num_recs));
     for (count_rec=0; count_rec<num_recs; count_rec++) {
-        na_ptr = (pst_num_array*) xmalloc(sizeof(pst_num_array));
-        memset(na_ptr, 0, sizeof(pst_num_array));
-        na_ptr->next = na_head;
-        na_head = na_ptr;
-        // allocate an array of count num_recs to contain sizeof(pst_num_item)
-        na_ptr->items       = (pst_num_item**) xmalloc(sizeof(pst_num_item)*num_list);
-        na_ptr->count_item  = num_list;
-        na_ptr->orig_count  = num_list;
-        na_ptr->count_array = (int32_t)num_recs; // each record will have a record of the total number of records
-        for (x=0; x<num_list; x++) na_ptr->items[x] = NULL;
+        mo_ptr = (pst_mapi_object*) xmalloc(sizeof(pst_mapi_object));
+        memset(mo_ptr, 0, sizeof(pst_mapi_object));
+        mo_ptr->next = mo_head;
+        mo_head = mo_ptr;
+        // allocate an array of count num_recs to contain sizeof(pst_mapi_element)
+        mo_ptr->elements        = (pst_mapi_element**) xmalloc(sizeof(pst_mapi_element)*num_list);
+        mo_ptr->count_elements  = num_list;
+        mo_ptr->orig_count      = num_list;
+        mo_ptr->count_objects   = (int32_t)num_recs; // each record will have a record of the total number of records
+        for (x=0; x<num_list; x++) mo_ptr->elements[x] = NULL;
         x = 0;
 
-        DEBUG_EMAIL(("going to read %i (%#x) items\n", na_ptr->count_item, na_ptr->count_item));
+        DEBUG_EMAIL(("going to read %i (%#x) items\n", mo_ptr->count_elements, mo_ptr->count_elements));
 
         fr_ptr = list_start; // initialize fr_ptr to the start of the list.
         for (cur_list=0; cur_list<num_list; cur_list++) { //we will increase fr_ptr as we progress through index
@@ -1535,38 +1536,38 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
             } else {
                 WARN(("Missing code for block_type %i\n", block_type));
                 freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
-                pst_free_list(na_head);
+                pst_free_list(mo_head);
                 DEBUG_RET();
                 return NULL;
             }
             DEBUG_EMAIL(("reading block %i (type=%#x, ref_type=%#x, value=%#x)\n",
                 x, table_rec.type, table_rec.ref_type, table_rec.value));
 
-            if (!na_ptr->items[x]) {
-                na_ptr->items[x] = (pst_num_item*) xmalloc(sizeof(pst_num_item));
+            if (!mo_ptr->elements[x]) {
+                mo_ptr->elements[x] = (pst_mapi_element*) xmalloc(sizeof(pst_mapi_element));
             }
-            memset(na_ptr->items[x], 0, sizeof(pst_num_item)); //init it
+            memset(mo_ptr->elements[x], 0, sizeof(pst_mapi_element)); //init it
 
             // check here to see if the id of the attribute is a mapped one
             mapptr = pf->x_head;
             while (mapptr && (mapptr->map < table_rec.type)) mapptr = mapptr->next;
             if (mapptr && (mapptr->map == table_rec.type)) {
                 if (mapptr->mytype == PST_MAP_ATTRIB) {
-                    na_ptr->items[x]->id = *((uint32_t*)mapptr->data);
-                    DEBUG_EMAIL(("Mapped attrib %#x to %#x\n", table_rec.type, na_ptr->items[x]->id));
+                    mo_ptr->elements[x]->mapi_id = *((uint32_t*)mapptr->data);
+                    DEBUG_EMAIL(("Mapped attrib %#x to %#x\n", table_rec.type, mo_ptr->elements[x]->mapi_id));
                 } else if (mapptr->mytype == PST_MAP_HEADER) {
                     DEBUG_EMAIL(("Internet Header mapping found %#x\n", table_rec.type));
-                    na_ptr->items[x]->id = (uint32_t)PST_ATTRIB_HEADER;
-                    na_ptr->items[x]->extra = mapptr->data;
+                    mo_ptr->elements[x]->mapi_id = (uint32_t)PST_ATTRIB_HEADER;
+                    mo_ptr->elements[x]->extra = mapptr->data;
                 }
                 else {
                     DEBUG_WARN(("Missing assertion failure\n"));
                     // nothing, should be assertion failure here
                 }
             } else {
-                na_ptr->items[x]->id = table_rec.type;
+                mo_ptr->elements[x]->mapi_id = table_rec.type;
             }
-            na_ptr->items[x]->type = 0; // checked later before it is set
+            mo_ptr->elements[x]->type = 0; // checked later before it is set
             /* Reference Types
                 0x0002 - Signed 16bit value
                 0x0003 - Signed 32bit value
@@ -1593,10 +1594,10 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
                 table_rec.ref_type == (uint16_t)0x0003 ||
                 table_rec.ref_type == (uint16_t)0x000b) {
                 //contains 32 bits of data
-                na_ptr->items[x]->size = sizeof(int32_t);
-                na_ptr->items[x]->type = table_rec.ref_type;
-                na_ptr->items[x]->data = xmalloc(sizeof(int32_t));
-                memcpy(na_ptr->items[x]->data, &(table_rec.value), sizeof(int32_t));
+                mo_ptr->elements[x]->size = sizeof(int32_t);
+                mo_ptr->elements[x]->type = table_rec.ref_type;
+                mo_ptr->elements[x]->data = xmalloc(sizeof(int32_t));
+                memcpy(mo_ptr->elements[x]->data, &(table_rec.value), sizeof(int32_t));
                 // are we missing an LE32_CPU() call here? table_rec.value is still
                 // in the original order.
 
@@ -1618,44 +1619,44 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
                 if (value_pointer) {
                     // in a type 2 block, with a value that is more than 4 bytes
                     // directly stored in this block.
-                    na_ptr->items[x]->size = value_size;
-                    na_ptr->items[x]->type = table_rec.ref_type;
-                    na_ptr->items[x]->data = xmalloc(value_size);
-                    memcpy(na_ptr->items[x]->data, value_pointer, value_size);
+                    mo_ptr->elements[x]->size = value_size;
+                    mo_ptr->elements[x]->type = table_rec.ref_type;
+                    mo_ptr->elements[x]->data = xmalloc(value_size);
+                    memcpy(mo_ptr->elements[x]->data, value_pointer, value_size);
                 }
                 else if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset7)) {
                     if ((table_rec.value & 0xf) == (uint32_t)0xf) {
                         DEBUG_WARN(("failed to get block offset for table_rec.value of %#x to be read later.\n", table_rec.value));
-                        na_ptr->items[x]->size = 0;
-                        na_ptr->items[x]->data = NULL;
-                        na_ptr->items[x]->type = table_rec.value;
+                        mo_ptr->elements[x]->size = 0;
+                        mo_ptr->elements[x]->data = NULL;
+                        mo_ptr->elements[x]->type = table_rec.value;
                     }
                     else {
                         if (table_rec.value) {
                             DEBUG_WARN(("failed to get block offset for table_rec.value of %#x\n", table_rec.value));
                         }
-                        na_ptr->count_item --; //we will be skipping a row
+                        mo_ptr->count_elements --; //we will be skipping a row
                         continue;
                     }
                 }
                 else {
                     value_size = (size_t)(block_offset7.to - block_offset7.from);
-                    na_ptr->items[x]->size = value_size;
-                    na_ptr->items[x]->type = table_rec.ref_type;
-                    na_ptr->items[x]->data = xmalloc(value_size+1);
-                    memcpy(na_ptr->items[x]->data, block_offset7.from, value_size);
-                    na_ptr->items[x]->data[value_size] = '\0';  // it might be a string, null terminate it.
+                    mo_ptr->elements[x]->size = value_size;
+                    mo_ptr->elements[x]->type = table_rec.ref_type;
+                    mo_ptr->elements[x]->data = xmalloc(value_size+1);
+                    memcpy(mo_ptr->elements[x]->data, block_offset7.from, value_size);
+                    mo_ptr->elements[x]->data[value_size] = '\0';  // it might be a string, null terminate it.
                 }
                 if (table_rec.ref_type == (uint16_t)0xd) {
                     // there is still more to do for the type of 0xD embedded objects
-                    type_d_rec = (struct _type_d_rec*) na_ptr->items[x]->data;
+                    type_d_rec = (struct _type_d_rec*) mo_ptr->elements[x]->data;
                     LE32_CPU(type_d_rec->id);
-                    na_ptr->items[x]->size = pst_ff_getID2block(pf, type_d_rec->id, i2_head, &(na_ptr->items[x]->data));
-                    if (!na_ptr->items[x]->size){
+                    mo_ptr->elements[x]->size = pst_ff_getID2block(pf, type_d_rec->id, i2_head, &(mo_ptr->elements[x]->data));
+                    if (!mo_ptr->elements[x]->size){
                         DEBUG_WARN(("not able to read the ID2 data. Setting to be read later. %#x\n", type_d_rec->id));
-                        na_ptr->items[x]->type = type_d_rec->id;    // fetch before freeing data, alias pointer
-                        free(na_ptr->items[x]->data);
-                        na_ptr->items[x]->data = NULL;
+                        mo_ptr->elements[x]->type = type_d_rec->id;    // fetch before freeing data, alias pointer
+                        free(mo_ptr->elements[x]->data);
+                        mo_ptr->elements[x]->data = NULL;
                     }
                 }
                 if (table_rec.ref_type == (uint16_t)0x1f) {
@@ -1671,7 +1672,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
                     //VBUF_STATIC(unibuf, 1024);
 
                     //need UTF-16 zero-termination
-                    vbset(strbuf, na_ptr->items[x]->data, na_ptr->items[x]->size);
+                    vbset(strbuf, mo_ptr->elements[x]->data, mo_ptr->elements[x]->size);
                     vbappend(strbuf, "\0\0", (size_t)2);
                     DEBUG_INDEX(("Iconv in:\n"));
                     DEBUG_HEXDUMPC(strbuf->b, strbuf->dlen, 0x10);
@@ -1681,19 +1682,19 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
                         DEBUG_EMAIL(("Failed to convert utf-16 to utf-8\n"));
                     }
                     else {
-                        free(na_ptr->items[x]->data);
-                        na_ptr->items[x]->size = unibuf->dlen;
-                        na_ptr->items[x]->data = xmalloc(unibuf->dlen);
-                        memcpy(na_ptr->items[x]->data, unibuf->b, unibuf->dlen);
+                        free(mo_ptr->elements[x]->data);
+                        mo_ptr->elements[x]->size = unibuf->dlen;
+                        mo_ptr->elements[x]->data = xmalloc(unibuf->dlen);
+                        memcpy(mo_ptr->elements[x]->data, unibuf->b, unibuf->dlen);
                     }
                     DEBUG_INDEX(("Iconv out:\n"));
-                    DEBUG_HEXDUMPC(na_ptr->items[x]->data, na_ptr->items[x]->size, 0x10);
+                    DEBUG_HEXDUMPC(mo_ptr->elements[x]->data, mo_ptr->elements[x]->size, 0x10);
                 }
-                if (na_ptr->items[x]->type == 0) na_ptr->items[x]->type = table_rec.ref_type;
+                if (mo_ptr->elements[x]->type == 0) mo_ptr->elements[x]->type = table_rec.ref_type;
             } else {
                 WARN(("ERROR Unknown ref_type %#hx\n", table_rec.ref_type));
                 freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
-                pst_free_list(na_head);
+                pst_free_list(mo_head);
                 DEBUG_RET();
                 return NULL;
             }
@@ -1704,7 +1705,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
     }
     freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
     DEBUG_RET();
-    return na_head;
+    return mo_head;
 }
 
 
@@ -1722,13 +1723,13 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 
 // malloc space and copy the current item's data null terminated
 #define LIST_COPY(targ, type) {                                 \
-    targ = type realloc(targ, list->items[x]->size+1);          \
-    memcpy(targ, list->items[x]->data, list->items[x]->size);   \
-    memset(((char*)targ)+list->items[x]->size, 0, (size_t)1);   \
+    targ = type realloc(targ, list->elements[x]->size+1);          \
+    memcpy(targ, list->elements[x]->data, list->elements[x]->size);   \
+    memset(((char*)targ)+list->elements[x]->size, 0, (size_t)1);   \
 }
 
 #define LIST_COPY_BOOL(label, targ) {                           \
-    if (*(int16_t*)list->items[x]->data) {                      \
+    if (*(int16_t*)list->elements[x]->data) {                      \
         DEBUG_EMAIL((label" - True\n"));                        \
         targ = 1;                                               \
     } else {                                                    \
@@ -1753,7 +1754,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 }
 
 #define LIST_COPY_INT16_N(label, targ) {                        \
-    memcpy(&(targ), list->items[x]->data, sizeof(targ));        \
+    memcpy(&(targ), list->elements[x]->data, sizeof(targ));        \
     LE16_CPU(targ);                                             \
 }
 
@@ -1763,7 +1764,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 }
 
 #define LIST_COPY_INT32_N(label, targ) {                        \
-    memcpy(&(targ), list->items[x]->data, sizeof(targ));        \
+    memcpy(&(targ), list->elements[x]->data, sizeof(targ));        \
     LE32_CPU(targ);                                             \
 }
 
@@ -1850,7 +1851,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 // including the utf8 flag
 #define LIST_COPY_STR(label, targ) {                                    \
     LIST_COPY(targ.str, (char*));                                       \
-    targ.is_utf8 = (list->items[x]->type == 0x1f) ? 1 : 0;              \
+    targ.is_utf8 = (list->elements[x]->type == 0x1f) ? 1 : 0;              \
     DEBUG_EMAIL((label" - unicode %d - %s\n", targ.is_utf8, targ.str)); \
 }
 
@@ -1877,7 +1878,7 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 // malloc space and copy the item filetime
 #define LIST_COPY_TIME(label, targ) {                           \
     targ = (FILETIME*) realloc(targ, sizeof(FILETIME));         \
-    memcpy(targ, list->items[x]->data, list->items[x]->size);   \
+    memcpy(targ, list->elements[x]->data, list->elements[x]->size);   \
     LE32_CPU(targ->dwLowDateTime);                              \
     LE32_CPU(targ->dwHighDateTime);                             \
     DEBUG_EMAIL((label" - %s", fileTimeToAscii(targ)));         \
@@ -1905,10 +1906,10 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 
 // malloc space and copy the current item's data and size
 #define LIST_COPY_SIZE(targ, type, mysize) {        \
-    mysize = list->items[x]->size;                  \
+    mysize = list->elements[x]->size;                  \
     if (mysize) {                                   \
         targ = type realloc(targ, mysize);          \
-        memcpy(targ, list->items[x]->data, mysize); \
+        memcpy(targ, list->elements[x]->data, mysize); \
     }                                               \
     else {                                          \
         SAFE_FREE(targ);                            \
@@ -1926,20 +1927,20 @@ pst_num_array * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_
 
 
 /**
- * process the list of objects produced from parse_block()
+ * process the list of MAPI objects produced from parse_block()
  *
- * @param list  pointer to the list of objects from parse_block()
+ * @param list  pointer to the list of MAPI objects from parse_block()
  * @param item  pointer to the high level item to be updated from the list.
  *              this item may be an email, contact or other sort of item.
  *              the type of this item is generally set by the MAPI elements
  *              from the list.
  * @param attach pointer to the list of attachment records. If
  *               this is non-null, the length of the this attachment list
- *               must be at least as large as the length of the objects list.
+ *               must be at least as large as the length of the MAPI objects list.
  *
  * @return 0 for ok, -1 for error.
  */
-int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
+int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) {
     DEBUG_ENT("pst_process");
     if (!item) {
         DEBUG_EMAIL(("item cannot be NULL.\n"));
@@ -1949,19 +1950,19 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
 
     while (list) {
         int32_t x;
-        for (x=0; x<list->count_item; x++) {
+        for (x=0; x<list->count_elements; x++) {
             int32_t t;
             pst_item_extra_field *ef;
             // check here to see if the id is one that is mapped.
-            DEBUG_EMAIL(("#%d - id: %#x type: %#x length: %#x\n", x, list->items[x]->id, list->items[x]->type, list->items[x]->size));
+            DEBUG_EMAIL(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
 
-            switch (list->items[x]->id) {
+            switch (list->elements[x]->mapi_id) {
                 case PST_ATTRIB_HEADER: // CUSTOM attribute for saying the Extra Headers
-                    if (list->items[x]->extra) {
+                    if (list->elements[x]->extra) {
                         ef = (pst_item_extra_field*) xmalloc(sizeof(pst_item_extra_field));
                         memset(ef, 0, sizeof(pst_item_extra_field));
-                        ef->field_name = (char*) xmalloc(strlen(list->items[x]->extra)+1);
-                        strcpy(ef->field_name, list->items[x]->extra);
+                        ef->field_name = (char*) xmalloc(strlen(list->elements[x]->extra)+1);
+                        strcpy(ef->field_name, list->elements[x]->extra);
                         LIST_COPY(ef->value, (char*));
                         ef->next = item->extra_fields;
                         item->extra_fields = ef;
@@ -2053,14 +2054,14 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                 case 0x0037: // PR_SUBJECT raw subject
                     {
                         int off = 0;
-                        if ((list->items[x]->size > 2) && (((uint8_t)list->items[x]->data[0]) < 0x20)) {
+                        if ((list->elements[x]->size > 2) && (((uint8_t)list->elements[x]->data[0]) < 0x20)) {
                             off = 2;
                         }
-                        list->items[x]->data += off;
-                        list->items[x]->size -= off;
+                        list->elements[x]->data += off;
+                        list->elements[x]->size -= off;
                         LIST_COPY_STR("Raw Subject", item->subject);
-                        list->items[x]->size += off;
-                        list->items[x]->data -= off;
+                        list->elements[x]->size += off;
+                        list->elements[x]->data -= off;
                     }
                     break;
                 case 0x0039: // PR_CLIENT_SUBMIT_TIME Date Email Sent/Created
@@ -2212,7 +2213,7 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     LIST_COPY_EMAIL_INT32("Message Flags", item->email->flag);
                     break;
                 case 0x0E08: // PR_MESSAGE_SIZE Total size of a message object
-                    LIST_COPY_EMAIL_INT32("Message Size", item->message_size);
+                    LIST_COPY_INT32("Message Size", item->message_size);
                     break;
                 case 0x0E0A: // PR_SENTMAIL_ENTRYID
                     // folder that this message is sent to after submission
@@ -2234,12 +2235,12 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                 case 0x0FF9: // PR_RECORD_KEY Record Header 1
                     DEBUG_EMAIL(("Record Key 1 - "));
                     LIST_COPY(item->record_key, (char*));
-                    item->record_key_size = list->items[x]->size;
+                    item->record_key_size = list->elements[x]->size;
                     DEBUG_EMAIL_HEXPRINT(item->record_key, item->record_key_size);
                     DEBUG_EMAIL(("\n"));
                     break;
                 case 0x1000: // PR_BODY
-                    LIST_COPY_EMAIL_STR("Plain Text body", item->body);
+                    LIST_COPY_STR("Plain Text body", item->body);
                     break;
                 case 0x1001: // PR_REPORT_TEXT
                     LIST_COPY_EMAIL_STR("Report Text", item->email->report_text);
@@ -2293,10 +2294,10 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     LIST_COPY_STR("Comment", item->comment);
                     break;
                 case 0x3007: // PR_CREATION_TIME Date 4 - Creation Date?
-                    LIST_COPY_EMAIL_TIME("Date 4 (Item Creation Date)", item->create_date);
+                    LIST_COPY_TIME("Date 4 (Item Creation Date)", item->create_date);
                     break;
                 case 0x3008: // PR_LAST_MODIFICATION_TIME Date 5 - Modify Date
-                    LIST_COPY_EMAIL_TIME("Date 5 (Modify Date)", item->modify_date);
+                    LIST_COPY_TIME("Date 5 (Modify Date)", item->modify_date);
                     break;
                 case 0x300B: // PR_SEARCH_KEY Record Header 2
                     DEBUG_EMAIL(("Record Search 2 -- NOT HANDLED\n"));
@@ -2370,15 +2371,15 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     LIST_COPY_FOLDER_INT32("Associate Content count", item->folder->assoc_count);
                     break;
                 case 0x3701: // PR_ATTACH_DATA_OBJ binary data of attachment
-                    DEBUG_EMAIL(("Binary Data [Size %i] - ", list->items[x]->size));
+                    DEBUG_EMAIL(("Binary Data [Size %i] - ", list->elements[x]->size));
                     NULL_CHECK(attach);
-                    if (!list->items[x]->data) { //special case
-                        attach->id2_val = list->items[x]->type;
+                    if (!list->elements[x]->data) { //special case
+                        attach->id2_val = list->elements[x]->type;
                         DEBUG_EMAIL(("Seen a Reference. The data hasn't been loaded yet. [%#"PRIx64"][%#x]\n",
-                                 attach->id2_val, list->items[x]->type));
+                                 attach->id2_val, list->elements[x]->type));
                     } else {
                         LIST_COPY(attach->data, (char*));
-                        attach->size = list->items[x]->size;
+                        attach->size = list->elements[x]->size;
                         DEBUG_EMAIL(("NOT PRINTED\n"));
                     }
                     break;
@@ -2664,7 +2665,7 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                 case 0x65E3: // Entry ID?
                     DEBUG_EMAIL(("Entry ID - "));
                     item->record_key = (char*) xmalloc(16+1);
-                    memcpy(item->record_key, &(list->items[x]->data[1]), 16); //skip first byte
+                    memcpy(item->record_key, &(list->elements[x]->data[1]), 16); //skip first byte
                     item->record_key[16]='\0';
                     item->record_key_size=16;
                     DEBUG_EMAIL_HEXPRINT((char*)item->record_key, 16);
@@ -2673,12 +2674,12 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     DEBUG_EMAIL(("Attachment ID2 value - "));
                     if (attach) {
                         uint32_t tempid;
-                        memcpy(&(tempid), list->items[x]->data, sizeof(tempid));
+                        memcpy(&(tempid), list->elements[x]->data, sizeof(tempid));
                         LE32_CPU(tempid);
                         attach->id2_val = tempid;
                         DEBUG_EMAIL(("%#"PRIx64"\n", attach->id2_val));
                     } else {
-                        DEBUG_EMAIL(("NOT AN ATTACHMENT: %#x\n", list->items[x]->id));
+                        DEBUG_EMAIL(("NOT AN ATTACHMENT: %#x\n", list->elements[x]->mapi_id));
                     }
                     break;
                 case 0x67FF: // Extra Property Identifier (Password CheckSum)
@@ -2818,10 +2819,10 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     LIST_COPY_APPT_BOOL("Reminder alarm", item->appointment->alarm);
                     break;
                 case 0x8516: // Common start
-                    DEBUG_EMAIL(("Common Start Date - %s\n", fileTimeToAscii((FILETIME*)list->items[x]->data)));
+                    DEBUG_EMAIL(("Common Start Date - %s\n", fileTimeToAscii((FILETIME*)list->elements[x]->data)));
                     break;
                 case 0x8517: // Common end
-                    DEBUG_EMAIL(("Common End Date - %s\n", fileTimeToAscii((FILETIME*)list->items[x]->data)));
+                    DEBUG_EMAIL(("Common End Date - %s\n", fileTimeToAscii((FILETIME*)list->elements[x]->data)));
                     break;
                 case 0x851f: // Play reminder sound filename
                     LIST_COPY_APPT_STR("Appointment reminder sound filename", item->appointment->alarm_filename);
@@ -2854,110 +2855,110 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
                     LIST_COPY_JOURNAL_STR("Journal description", item->journal->description);
                     break;
                 default:
-                    if (list->items[x]->type == (uint32_t)0x0002) {
-                        DEBUG_EMAIL(("Unknown type %#x 16bit int = %hi\n", list->items[x]->id,
-                            *(int16_t*)list->items[x]->data));
+                    if (list->elements[x]->type == (uint32_t)0x0002) {
+                        DEBUG_EMAIL(("Unknown type %#x 16bit int = %hi\n", list->elements[x]->mapi_id,
+                            *(int16_t*)list->elements[x]->data));
 
-                    } else if (list->items[x]->type == (uint32_t)0x0003) {
-                        DEBUG_EMAIL(("Unknown type %#x 32bit int = %i\n", list->items[x]->id,
-                            *(int32_t*)list->items[x]->data));
+                    } else if (list->elements[x]->type == (uint32_t)0x0003) {
+                        DEBUG_EMAIL(("Unknown type %#x 32bit int = %i\n", list->elements[x]->mapi_id,
+                            *(int32_t*)list->elements[x]->data));
 
-                    } else if (list->items[x]->type == (uint32_t)0x0004) {
-                        DEBUG_EMAIL(("Unknown type %#x 4-byte floating [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x0004) {
+                        DEBUG_EMAIL(("Unknown type %#x 4-byte floating [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x0005) {
-                        DEBUG_EMAIL(("Unknown type %#x double floating [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x0005) {
+                        DEBUG_EMAIL(("Unknown type %#x double floating [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x0006) {
-                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %"PRIi64"\n", list->items[x]->id,
-                            *(int64_t*)list->items[x]->data));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x0006) {
+                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %"PRIi64"\n", list->elements[x]->mapi_id,
+                            *(int64_t*)list->elements[x]->data));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x0007) {
-                        DEBUG_EMAIL(("Unknown type %#x application time [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x0007) {
+                        DEBUG_EMAIL(("Unknown type %#x application time [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x000a) {
-                        DEBUG_EMAIL(("Unknown type %#x 32bit error value = %i\n", list->items[x]->id,
-                            *(int32_t*)list->items[x]->data));
+                    } else if (list->elements[x]->type == (uint32_t)0x000a) {
+                        DEBUG_EMAIL(("Unknown type %#x 32bit error value = %i\n", list->elements[x]->mapi_id,
+                            *(int32_t*)list->elements[x]->data));
 
-                    } else if (list->items[x]->type == (uint32_t)0x000b) {
-                        DEBUG_EMAIL(("Unknown type %#x 16bit boolean = %s [%hi]\n", list->items[x]->id,
-                            (*((int16_t*)list->items[x]->data)!=0?"True":"False"),
-                            *((int16_t*)list->items[x]->data)));
+                    } else if (list->elements[x]->type == (uint32_t)0x000b) {
+                        DEBUG_EMAIL(("Unknown type %#x 16bit boolean = %s [%hi]\n", list->elements[x]->mapi_id,
+                            (*((int16_t*)list->elements[x]->data)!=0?"True":"False"),
+                            *((int16_t*)list->elements[x]->data)));
 
-                    } else if (list->items[x]->type == (uint32_t)0x000d) {
-                        DEBUG_EMAIL(("Unknown type %#x Embedded object [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x000d) {
+                        DEBUG_EMAIL(("Unknown type %#x Embedded object [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x0014) {
-                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %"PRIi64"\n", list->items[x]->id,
-                            *(int64_t*)list->items[x]->data));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x0014) {
+                        DEBUG_EMAIL(("Unknown type %#x signed 64bit int = %"PRIi64"\n", list->elements[x]->mapi_id,
+                            *(int64_t*)list->elements[x]->data));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x001e) {
-                        DEBUG_EMAIL(("Unknown type %#x String Data = \"%s\"\n", list->items[x]->id,
-                            list->items[x]->data));
+                    } else if (list->elements[x]->type == (uint32_t)0x001e) {
+                        DEBUG_EMAIL(("Unknown type %#x String Data = \"%s\"\n", list->elements[x]->mapi_id,
+                            list->elements[x]->data));
 
-                    } else if (list->items[x]->type == (uint32_t)0x001f) {
-                        DEBUG_EMAIL(("Unknown type %#x Unicode String Data [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x001f) {
+                        DEBUG_EMAIL(("Unknown type %#x Unicode String Data [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x0040) {
-                        DEBUG_EMAIL(("Unknown type %#x Date = \"%s\"\n", list->items[x]->id,
-                            fileTimeToAscii((FILETIME*)list->items[x]->data)));
+                    } else if (list->elements[x]->type == (uint32_t)0x0040) {
+                        DEBUG_EMAIL(("Unknown type %#x Date = \"%s\"\n", list->elements[x]->mapi_id,
+                            fileTimeToAscii((FILETIME*)list->elements[x]->data)));
 
-                    } else if (list->items[x]->type == (uint32_t)0x0048) {
-                        DEBUG_EMAIL(("Unknown type %#x OLE GUID [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x0048) {
+                        DEBUG_EMAIL(("Unknown type %#x OLE GUID [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x0102) {
-                        DEBUG_EMAIL(("Unknown type %#x Binary Data [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x0102) {
+                        DEBUG_EMAIL(("Unknown type %#x Binary Data [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x1003) {
-                        DEBUG_EMAIL(("Unknown type %#x Array of 32 bit values [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x1003) {
+                        DEBUG_EMAIL(("Unknown type %#x Array of 32 bit values [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x1014) {
-                        DEBUG_EMAIL(("Unknown type %#x Array of 64 bit values [siize = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x1014) {
+                        DEBUG_EMAIL(("Unknown type %#x Array of 64 bit values [siize = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x101E) {
-                        DEBUG_EMAIL(("Unknown type %#x Array of Strings [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x101E) {
+                        DEBUG_EMAIL(("Unknown type %#x Array of Strings [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x101F) {
-                        DEBUG_EMAIL(("Unknown type %#x Array of Unicode Strings [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x101F) {
+                        DEBUG_EMAIL(("Unknown type %#x Array of Unicode Strings [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->items[x]->type == (uint32_t)0x1102) {
-                        DEBUG_EMAIL(("Unknown type %#x Array of binary data blobs [size = %#x]\n", list->items[x]->id,
-                            list->items[x]->size));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                    } else if (list->elements[x]->type == (uint32_t)0x1102) {
+                        DEBUG_EMAIL(("Unknown type %#x Array of binary data blobs [size = %#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->size));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else {
-                        DEBUG_EMAIL(("Unknown type %#x Not Printable [%#x]\n", list->items[x]->id,
-                            list->items[x]->type));
-                        DEBUG_HEXDUMP(list->items[x]->data, list->items[x]->size);
+                        DEBUG_EMAIL(("Unknown type %#x Not Printable [%#x]\n", list->elements[x]->mapi_id,
+                            list->elements[x]->type));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
                     }
 
-                    if (list->items[x]->data) {
-                        free(list->items[x]->data);
-                        list->items[x]->data = NULL;
+                    if (list->elements[x]->data) {
+                        free(list->elements[x]->data);
+                        list->elements[x]->data = NULL;
                     }
             }
         }
@@ -2969,19 +2970,19 @@ int pst_process(pst_num_array *list, pst_item *item, pst_item_attach *attach) {
 }
 
 
-void pst_free_list(pst_num_array *list) {
-    pst_num_array *l;
+void pst_free_list(pst_mapi_object *list) {
+    pst_mapi_object *l;
     DEBUG_ENT("pst_free_list");
     while (list) {
-        if (list->items) {
+        if (list->elements) {
             int32_t x;
             for (x=0; x < list->orig_count; x++) {
-                if (list->items[x]) {
-                    if (list->items[x]->data) free(list->items[x]->data);
-                    free(list->items[x]);
+                if (list->elements[x]) {
+                    if (list->elements[x]->data) free(list->elements[x]->data);
+                    free(list->elements[x]);
                 }
             }
-            free(list->items);
+            free(list->elements);
         }
         l = list->next;
         free (list);
@@ -4121,6 +4122,13 @@ const char* codepage(int cp) {
         case 28597 : return "iso-8859-7";
         case 28598 : return "iso-8859-8";
         case 28599 : return "iso-8859-9";
+        case 28600 : return "iso-8859-10";
+        case 28601 : return "iso-8859-11";
+        case 28602 : return "iso-8859-12";
+        case 28603 : return "iso-8859-13";
+        case 28604 : return "iso-8859-14";
+        case 28605 : return "iso-8859-15";
+        case 28606 : return "iso-8859-16";
         case 50220 : return "iso-2022-jp";
         case 50221 : return "csiso2022jp";
         case 51932 : return "euc-jp";
@@ -4148,10 +4156,10 @@ const char*    pst_default_charset(pst_item *item)
 }
 
 
-/** Convert str to utf8 if possible. Null strings are preserved
+/** Convert str to utf8 if possible; null strings are preserved.
  *
  *  @param item  pointer to the mapi item of interest
- *  &param str   pointer to the mapi string of interest
+ *  @param str   pointer to the mapi string of interest
  */
 void pst_convert_utf8_null(pst_item *item, pst_string *str)
 {
@@ -4160,10 +4168,10 @@ void pst_convert_utf8_null(pst_item *item, pst_string *str)
 }
 
 
-/** Convert str to utf8 if possible. Null strings are converted into empty strings.
+/** Convert str to utf8 if possible; null strings are converted into empty strings.
  *
  *  @param item  pointer to the mapi item of interest
- *  &param str   pointer to the mapi string of interest
+ *  @param str   pointer to the mapi string of interest
  */
 void pst_convert_utf8(pst_item *item, pst_string *str)
 {

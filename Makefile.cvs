@@ -4,7 +4,7 @@ HOST=$(shell hostname)
 
 all:
 	libtoolize --force --copy
-	aclocal
+	aclocal -I m4
 	autoheader
 	automake
 	autoconf

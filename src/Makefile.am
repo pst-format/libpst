@@ -1,8 +1,6 @@
 if PLATFORM_WIN32
-    ICONVLIB     = -liconv
     NO_UNDEFINED = -no-undefined
 else
-    ICONVLIB     =
     NO_UNDEFINED =
 endif
 
@@ -80,7 +78,7 @@ else
 endif
 
 libpst_la_SOURCES     = $(common_source) $(common_header)
-libpst_la_LIBADD      = $(ICONVLIB)
+libpst_la_LIBADD      = $(LTLIBICONV)
 
 
 EXTRA_DIST = testdebug.c
@@ -92,13 +90,13 @@ endif
 INCLUDES= -I$(srcdir)/.. $(all_includes)
 
 # the library search path.
-lspst_LDADD       = $(all_libraries) $(PSTLIB) $(ICONVLIB)
-readpst_LDADD     = $(all_libraries) $(PSTLIB) $(ICONVLIB) $(REGEXLIB)
-readpstlog_LDADD  = $(all_libraries) $(PSTLIB) $(ICONVLIB)
-pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(ICONVLIB)
-pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(ICONVLIB) -lgd
-dumpblocks_LDADD  = $(all_libraries) $(PSTLIB) $(ICONVLIB)
-getidblock_LDADD  = $(all_libraries) $(PSTLIB) $(ICONVLIB)
-deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(ICONVLIB)
+lspst_LDADD       = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
+readpst_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) $(REGEXLIB)
+readpstlog_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
+pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
+pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) -lgd
+dumpblocks_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
+getidblock_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
+deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 
 

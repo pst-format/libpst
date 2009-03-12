@@ -33,7 +33,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2009-02-28</date>
+            <date>2009-03-11</date>
         </refentryinfo>
 
         <refmeta>
@@ -233,7 +233,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2009-02-28</date>
+            <date>2009-03-11</date>
         </refentryinfo>
 
         <refmeta>
@@ -336,7 +336,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2009-02-28</date>
+            <date>2009-03-11</date>
         </refentryinfo>
 
         <refmeta>
@@ -520,7 +520,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2009-02-28</date>
+            <date>2009-03-11</date>
         </refentryinfo>
 
         <refmeta>
@@ -541,7 +541,6 @@
                 <arg><option>-V</option></arg>
                 <arg><option>-b <replaceable class="parameter">ldap-base</replaceable></option></arg>
                 <arg><option>-c <replaceable class="parameter">class</replaceable></option></arg>
-                <arg><option>-C <replaceable class="parameter">character-set</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
                 <arg><option>-l <replaceable class="parameter">extra-line</replaceable></option></arg>
                 <arg><option>-o</option></arg>
@@ -573,12 +572,6 @@
                         defined in the schema used by your LDAP server, and at a minimum it must
                         contain the ldap attributes given below. This option may be specified
                         multiple times to generate entries with multiple object classes.
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>-C <replaceable class="parameter">character-set</replaceable></term>
-                    <listitem><para>
-                        Specify the name of the character set used in your pst file for contacts.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -696,7 +689,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2009-02-28</date>
+            <date>2009-03-11</date>
         </refentryinfo>
 
         <refmeta>
@@ -830,7 +823,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2009-02-28</date>
+            <date>2009-03-11</date>
         </refentryinfo>
 
         <refmeta>

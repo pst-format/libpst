@@ -10,6 +10,8 @@ LibPST 0.6.30 (2009-xx-xx)
       character set specified by the mapi object. remove charset option
       from pst2ldif since we get that from each object now.
     * more code cleanup.
+    * use AM_ICONV for better portability of the library location.
+    * structure renaming to be more specific.
 
 LibPST 0.6.29 (2009-02-24)
 ===============================

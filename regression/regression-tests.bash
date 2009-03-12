@@ -50,7 +50,7 @@ function dopst()
 
 
 val="valgrind --leak-check=full"
-val=''
+#val=''
 
 pushd ..
 make || exit
@@ -80,7 +80,7 @@ elif [ "$1" == "ldif" ]; then
     ##doldif  16 hourig2.pst
     ##doldif  17 hourig3.pst
     #doldif  18 test-mac.pst
-    doldif  19 harris.pst
+    #doldif  19 harris.pst
 else
     dopst   1 ams.pst
     dopst   2 sample_64.pst
