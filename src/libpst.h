@@ -49,9 +49,9 @@
 #define PST_ATTRIB_HEADER -1
 
 // defines types of free/busy values for appointment->showas
-#define PST_FREEBUSY_FREE 0
-#define PST_FREEBUSY_TENTATIVE 1
-#define PST_FREEBUSY_BUSY 2
+#define PST_FREEBUSY_FREE          0
+#define PST_FREEBUSY_TENTATIVE     1
+#define PST_FREEBUSY_BUSY          2
 #define PST_FREEBUSY_OUT_OF_OFFICE 3
 
 // defines labels for appointment->label
@@ -172,29 +172,39 @@ typedef struct pst_string {
 } pst_string;
 
 
+/** This struct defines an email message
+ */
 typedef struct pst_item_email {
     FILETIME   *arrival_date;
-    int         autoforward;            // 1 = true, 0 = not set, -1 = false
+    /** 1 = true, 0 = not set, -1 = false */
+    int         autoforward;
     pst_string  cc_address;
     pst_string  bcc_address;
     int32_t     conversation_index;
-    int         conversion_prohibited;  // 1 = true, 0 = false
-    int         delete_after_submit;    // 1 = true, 0 = false
-    int         delivery_report;        // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         conversion_prohibited;
+    /** 1 = true, 0 = false */
+    int         delete_after_submit;
+    /** 1 = true, 0 = false */
+    int         delivery_report;
     char       *encrypted_body;
     size_t      encrypted_body_size;
     char       *encrypted_htmlbody;
     size_t      encrypted_htmlbody_size;
-    int32_t     flag;
     pst_string  header;
     pst_string  htmlbody;
+    /** 0=low, 1=normal, 2=high */
     int32_t     importance;
     pst_string  in_reply_to;
-    int         message_cc_me;          // 1 = true, 0 = false
-    int         message_recip_me;       // 1 = true, 0 = false
-    int         message_to_me;          // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         message_cc_me;
+    /** 1 = true, 0 = false */
+    int         message_recip_me;
+    /** 1 = true, 0 = false */
+    int         message_to_me;
     pst_string  messageid;
-    int32_t     orig_sensitivity;
+    /** 0=none, 1=personal, 2=private, 3=company confidential */
+    int32_t     original_sensitivity;
     pst_string  original_bcc;
     pst_string  original_cc;
     pst_string  original_to;
@@ -204,14 +214,17 @@ typedef struct pst_item_email {
     pst_string  outlook_sender;
     pst_string  outlook_sender_name;
     pst_string  outlook_sender2;
+    /** 0=nonurgent, 1=normal, 2=urgent */
     int32_t     priority;
     pst_string  processed_subject;
-    int         read_receipt;           // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         read_receipt;
     pst_string  recip_access;
     pst_string  recip_address;
     pst_string  recip2_access;
     pst_string  recip2_address;
-    int         reply_requested;        // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         reply_requested;
     pst_string  reply_to;
     pst_string  return_path_address;
     int32_t     rtf_body_char_count;
@@ -219,13 +232,15 @@ typedef struct pst_item_email {
     pst_string  rtf_body_tag;
     char       *rtf_compressed;
     uint32_t    rtf_compressed_size;
-    int         rtf_in_sync;            // 1 = true, 0 = doesn't exist, -1 = false
+    /** 1 = true, 0 = false */
+    int         rtf_in_sync;
     int32_t     rtf_ws_prefix_count;
     int32_t     rtf_ws_trailing_count;
     pst_string  sender_access;
     pst_string  sender_address;
     pst_string  sender2_access;
     pst_string  sender2_address;
+    /** 0=none, 1=personal, 2=private, 3=company confidential */
     int32_t     sensitivity;
     FILETIME    *sent_date;
     pst_entryid *sentmail_folder;
@@ -244,7 +259,8 @@ typedef struct pst_item_folder {
     int32_t  email_count;
     int32_t  unseen_email_count;
     int32_t  assoc_count;
-    int      subfolder;               // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int      subfolder;
 } pst_item_folder;
 
 
@@ -257,11 +273,23 @@ typedef struct pst_item_message_store {
     pst_entryid *common_view_folder;            // 0x35e6
     pst_entryid *search_root_folder;            // 0x35e7
     pst_entryid *top_of_folder;                 // 0x7c07
-    int32_t valid_mask;                         // 0x35df  // what folders the message store contains
+    /** what folders the message store contains
+        @li FOLDER_IPM_SUBTREE_VALID  0x1
+        @li FOLDER_IPM_INBOX_VALID    0x2
+        @li FOLDER_IPM_OUTBOX_VALID   0x4
+        @li FOLDER_IPM_WASTEBOX_VALID 0x8
+        @li FOLDER_IPM_SENTMAIL_VALID 0x10
+        @li FOLDER_VIEWS_VALID        0x20
+        @li FOLDER_COMMON_VIEWS_VALID 0x40
+        @li FOLDER_FINDER_VALID       0x80
+     */
+    int32_t valid_mask;                         // 0x35df
     int32_t pwd_chksum;                         // 0x76ff
 } pst_item_message_store;
 
 
+/** This struct defines a contact
+ */
 typedef struct pst_item_contact {
     pst_string  access_method;
     pst_string  account_name;
@@ -306,6 +334,7 @@ typedef struct pst_item_contact {
     pst_string  free_busy_address;
     pst_string  ftp_site;
     pst_string  fullname;
+    /** 0=unspecified, 1=female, 2=male */
     int16_t     gender;
     pst_string  gov_id;
     pst_string  hobbies;
@@ -325,7 +354,8 @@ typedef struct pst_item_contact {
     pst_string  keyword;
     pst_string  language;
     pst_string  location;
-    int         mail_permission;                // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         mail_permission;
     pst_string  manager_name;
     pst_string  middle_name;
     pst_string  mileage;
@@ -349,7 +379,8 @@ typedef struct pst_item_contact {
     pst_string  primary_phone;
     pst_string  profession;
     pst_string  radio_phone;
-    int         rich_text;                      // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         rich_text;
     pst_string  spouse_name;
     pst_string  suffix;
     pst_string  surname;
@@ -373,8 +404,11 @@ typedef struct pst_item_attach {
     char       *data;
     size_t      size;
     uint64_t    id2_val;
-    uint64_t    id_val;     // calculated from id2_val during creation of record
-    pst_id2_ll *id2_head;   // deep copy from child
+    /** calculated from id2_val during creation of record */
+    uint64_t    id_val;
+    /** deep copy from child */
+    pst_id2_ll *id2_head;
+    /** 0=no attachment, 1=attach by value, 2=attach by reference, 3=attach by reference resolve, 4=attach by reference only, 5=embedded message, 6=OLE */
     int32_t     method;
     int32_t     position;
     int32_t     sequence;
@@ -389,6 +423,8 @@ typedef struct pst_item_extra_field {
 } pst_item_extra_field;
 
 
+/** This struct defines a journal entry
+ */
 typedef struct pst_item_journal {
     FILETIME   *end;
     FILETIME   *start;
@@ -397,19 +433,38 @@ typedef struct pst_item_journal {
 } pst_item_journal;
 
 
+/** This struct defines an appointment
+ */
 typedef struct pst_item_appointment {
     FILETIME   *end;
     pst_string  location;
-    int         alarm;              // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         alarm;
     FILETIME   *reminder;
     int32_t     alarm_minutes;
     pst_string  alarm_filename;
     FILETIME   *start;
     pst_string  timezonestring;
+    /** 0=free, 1=tentative, 2=busy, 3=out of office*/
     int32_t     showas;
+    /** @li 0=None
+        @li 1=Important
+        @li 2=Business
+        @li 3=Personal
+        @li 4=Vacation
+        @li 5=Must Attend
+        @li 6=Travel Required
+        @li 7=Needs Preparation
+        @li 8=Birthday
+        @li 9=Anniversary
+       @li 10=Phone Call
+    */
     int32_t     label;
-    int         all_day;            // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         all_day;
+    /** recurrence description */
     pst_string  recurrence;
+    /** 0=none, 1=daily, 2=weekly, 3=monthly, 4=yearly */
     int32_t     recurrence_type;
     FILETIME   *recurrence_start;
     FILETIME   *recurrence_end;
@@ -427,21 +482,38 @@ typedef struct pst_item {
     struct pst_item_appointment   *appointment;     // data referring to a calendar entry
     int         type;
     char       *ascii_type;
+    /** @li 0x01 - Read
+        @li 0x02 - Unmodified
+        @li 0x04 - Submit
+        @li 0x08 - Unsent
+        @li 0x10 - Has Attachments
+        @li 0x20 - From Me
+        @li 0x40 - Associated
+        @li 0x80 - Resend
+        @li 0x100 - RN Pending
+        @li 0x200 - NRN Pending
+     */
+    int32_t     flags;
     pst_string  file_as;
     pst_string  comment;
-    pst_string  body_charset;           // null if not specified
-    pst_string  body;                   // email, journal
-    pst_string  subject;                // email, journal
+    /** null if not specified */
+    pst_string  body_charset;
+    /** used by email and journal types */
+    pst_string  body;
+    /** used by email and journal types */
+    pst_string  subject;
     int32_t     internet_cpid;
     int32_t     message_codepage;
     int32_t     message_size;
     pst_string  outlook_version;
     char       *record_key;             // probably 16 bytes long.
     size_t      record_key_size;
-    int         response_requested;     // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         response_requested;
     FILETIME   *create_date;
     FILETIME   *modify_date;
-    int         private_member;         // 1 = true, 0 = false
+    /** 1 = true, 0 = false */
+    int         private_member;
 } pst_item;
 
 

@@ -11,7 +11,7 @@
 #define OUTPUT_TEMPLATE "%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
 #define KMAIL_INDEX ".%s.index"
-#define SEP_MAIL_FILE_TEMPLATE "%i" /* "%09i" */
+#define SEP_MAIL_FILE_TEMPLATE "%i"
 
 // max size of the c_time char*. It will store the date of the email
 #define C_TIME_SIZE 500
@@ -31,9 +31,9 @@ void      write_email_body(FILE *f, char *body);
 void      removeCR(char *c);
 void      usage();
 void      version();
-char*     mk_kmail_dir(char*);
+char*     mk_kmail_dir(char* fname);
 int       close_kmail_dir();
-char*     mk_recurse_dir(char*);
+char*     mk_recurse_dir(char* dir, int32_t folder_type);
 int       close_recurse_dir();
 char*     mk_separate_dir(char *dir);
 int       close_separate_dir();
@@ -109,11 +109,12 @@ char*  kmail_chdir = NULL;
 #define RTF_ATTACH_TYPE "application/rtf"
 
 // global settings
-int mode = MODE_NORMAL;
-int mode_MH = 0;
-int output_mode = OUTPUT_NORMAL;
+int mode         = MODE_NORMAL;
+int mode_MH      = 0;   // a submode of MODE_SEPARATE
+int output_mode  = OUTPUT_NORMAL;
 int contact_mode = CMODE_VCARD;
 int deleted_mode = DMODE_EXCLUDE;
+int contact_mode_specified = 0;
 int overwrite = 0;
 int save_rtf_body = 1;
 pst_file pstfile;
@@ -150,14 +151,11 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     process(item, d_ptr->child);
 
                 } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
-                    // deal with a contact
-                    // write them to the file, one per line in this format
-                    // Desc Name <email@address>\n
                     if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Contact\n"));
                     if (ff.type != PST_TYPE_CONTACT) {
-                        DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. Processing anyway\n"));
+                        DEBUG_MAIN(("main: I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Processing anyway\n", ff.type));
                     }
                     if (contact_mode == CMODE_VCARD) {
                         pst_convert_utf8_null(item, &item->comment);
@@ -169,23 +167,22 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                         fprintf(ff.output, "%s <%s>\n", item->contact->fullname.str, item->contact->address1.str);
                     }
 
-                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT || item->type == PST_TYPE_OTHER)) {
+                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
                     char *extra_mime_headers = NULL;
                     if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Email\n"));
-                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT) && (ff.type != PST_TYPE_OTHER)) {
-                        DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
+                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT)) {
+                        DEBUG_MAIN(("main: I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Processing anyway\n", item->type, ff.type));
                     }
                     write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
 
                 } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
-                    // deal with journal items
                     if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Journal Entry\n"));
                     if (ff.type != PST_TYPE_JOURNAL) {
-                        DEBUG_MAIN(("main: I have a journal entry, but the folder isn't a journal folder. Processing anyway\n"));
+                        DEBUG_MAIN(("main: I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Processing anyway\n", ff.type));
                     }
                     fprintf(ff.output, "BEGIN:VJOURNAL\n");
                     if (item->subject.str) {
@@ -201,12 +198,11 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
                     fprintf(ff.output, "END:VJOURNAL\n\n");
 
                 } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
-                    // deal with Calendar appointments
                     if (mode == MODE_SEPARATE) mk_separate_file(&ff);
                     ff.email_count++;
                     DEBUG_MAIN(("main: Processing Appointment Entry\n"));
                     if (ff.type != PST_TYPE_APPOINTMENT) {
-                        DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
+                        DEBUG_MAIN(("main: I have an appointment, but folder type %"PRIi32" isn't an appointment folder. Processing anyway\n", ff.type));
                     }
                     write_appointment(ff.output, item, item->appointment, item->create_date, item->modify_date);
 
@@ -261,10 +257,14 @@ int main(int argc, char* const* argv) {
             mode = MODE_DECSPEW;
             break;
         case 'c':
-            if (optarg && optarg[0]=='v')
+            if (optarg && optarg[0]=='v') {
                 contact_mode=CMODE_VCARD;
-            else if (optarg && optarg[0]=='l')
+                contact_mode_specified = 1;
+            }
+            else if (optarg && optarg[0]=='l') {
                 contact_mode=CMODE_LIST;
+                contact_mode_specified = 1;
+            }
             else {
                 usage();
                 exit(0);
@@ -302,6 +302,7 @@ int main(int argc, char* const* argv) {
             break;
         case 'S':
             mode = MODE_SEPARATE;
+            mode_MH = 0;
             break;
         case 'w':
             overwrite = 1;
@@ -538,7 +539,7 @@ int close_kmail_dir() {
 // this will create a directory by that name, then make an mbox file inside
 // that dir.  any subsequent dirs will be created by name, and they will
 // contain mbox files
-char *mk_recurse_dir(char *dir) {
+char *mk_recurse_dir(char *dir, int32_t folder_type) {
     int x;
     char *out_name;
     DEBUG_ENT("mk_recurse_dir");
@@ -553,8 +554,25 @@ char *mk_recurse_dir(char *dir) {
         x = errno;
         DIE(("mk_recurse_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
     }
-    out_name = malloc(strlen("mbox")+1);
-    strcpy(out_name, "mbox");
+    switch (folder_type) {
+        case PST_TYPE_APPOINTMENT:
+            out_name = strdup("calendar");
+            break;
+        case PST_TYPE_CONTACT:
+            out_name = strdup("contacts");
+            break;
+        case PST_TYPE_JOURNAL:
+            out_name = strdup("journal");
+            break;
+        case PST_TYPE_STICKYNOTE:
+        case PST_TYPE_TASK:
+        case PST_TYPE_NOTE:
+        case PST_TYPE_OTHER:
+        case PST_TYPE_REPORT:
+        default:
+            out_name = strdup("mbox");
+            break;
+    }
     DEBUG_RET();
     return out_name;
 }
@@ -1558,9 +1576,9 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
 
     DEBUG_ENT("create_enter_dir");
     if (mode == MODE_KMAIL)
-        f->name = mk_kmail_dir(item->file_as.str); //create directory and form filename
+        f->name = mk_kmail_dir(item->file_as.str);
     else if (mode == MODE_RECURSE)
-        f->name = mk_recurse_dir(item->file_as.str);
+        f->name = mk_recurse_dir(item->file_as.str, f->type);
     else if (mode == MODE_SEPARATE) {
         // do similar stuff to recurse here.
         mk_separate_dir(item->file_as.str);

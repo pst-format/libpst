@@ -275,7 +275,7 @@ static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_de
 {
     DEBUG_ENT("add_descriptor_to_list");
     //DEBUG_INDEX(("Added node %#"PRIx64" parent %#"PRIx64" real parent %#"PRIx64" prev %#"PRIx64" next %#"PRIx64"\n",
-    //             node->id, node->parent_id,
+    //             node->id, node->parent_d_id,
     //             (node->parent ? node->parent->id : (uint64_t)0),
     //             (node->prev   ? node->prev->id   : (uint64_t)0),
     //             (node->next   ? node->next->id   : (uint64_t)0)));
@@ -335,10 +335,10 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
         DEBUG_INDEX(("%#"PRIx64" is its own parent. What is this world coming to?\n"));
         add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
     } else {
-        //DEBUG_INDEX(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_id, node->id));
+        //DEBUG_INDEX(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_d_id, node->d_id));
         pst_desc_ll *parent = pst_getDptr(pf, node->parent_d_id);
         if (parent) {
-            //DEBUG_INDEX(("Found parent %#"PRIx64"\n", node->parent_id));
+            //DEBUG_INDEX(("Found parent %#"PRIx64"\n", node->parent_d_id));
             parent->no_child++;
             node->parent = parent;
             add_descriptor_to_list(node, &parent->child, &parent->child_tail);
@@ -687,8 +687,8 @@ static size_t pst_decode_desc(pst_file *pf, pst_descn *desc, char *buf) {
         memcpy(desc, buf, sizeof(pst_descn));
         LE64_CPU(desc->d_id);
         LE64_CPU(desc->desc_id);
-        LE64_CPU(desc->list_id);
-        LE32_CPU(desc->parent_id);
+        LE64_CPU(desc->tree_id);
+        LE32_CPU(desc->parent_d_id);
         LE32_CPU(desc->u1);
         r = sizeof(pst_descn);
     }
@@ -1999,20 +1999,15 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                 case 0x0017: // PR_IMPORTANCE - How important the sender deems it to be
                     LIST_COPY_EMAIL_ENUM("Importance Level", item->email->importance, 0, 3, "Low", "Normal", "High");
                     break;
-                case 0x001A: // PR_MESSAGE_CLASS Ascii type of messages - NOT FOLDERS
-                    // must be case insensitive
+                case 0x001A: // PR_MESSAGE_CLASS IPM.x
                     LIST_COPY(item->ascii_type, (char*));
                     if (pst_strincmp("IPM.Note", item->ascii_type, 8) == 0)
-                        // the string begins with IPM.Note...
                         item->type = PST_TYPE_NOTE;
                     else if (pst_stricmp("IPM", item->ascii_type) == 0)
-                        // the whole string is just IPM
                         item->type = PST_TYPE_NOTE;
                     else if (pst_strincmp("IPM.Contact", item->ascii_type, 11) == 0)
-                        // the string begins with IPM.Contact...
                         item->type = PST_TYPE_CONTACT;
                     else if (pst_strincmp("REPORT.IPM.Note", item->ascii_type, 15) == 0)
-                        // the string begins with the above
                         item->type = PST_TYPE_REPORT;
                     else if (pst_strincmp("IPM.Activity", item->ascii_type, 12) == 0)
                         item->type = PST_TYPE_JOURNAL;
@@ -2022,18 +2017,13 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                         item->type = PST_TYPE_TASK;
                     else
                         item->type = PST_TYPE_OTHER;
-
-                    DEBUG_EMAIL(("IPM.x - %s\n", item->ascii_type));
+                    DEBUG_EMAIL(("Message class %s [%"PRIi32"] \n", item->ascii_type, item->type));
                     break;
                 case 0x0023: // PR_ORIGINATOR_DELIVERY_REPORT_REQUESTED
                     // set if the sender wants a delivery report from all recipients
                     LIST_COPY_EMAIL_BOOL("Global Delivery Report", item->email->delivery_report);
                     break;
                 case 0x0026: // PR_PRIORITY
-                    // Priority of a message
-                    // -1 NonUrgent
-                    //  0 Normal
-                    //  1 Urgent
                     LIST_COPY_EMAIL_ENUM("Priority", item->email->priority, 1, 3, "NonUrgent", "Normal", "Urgent");
                     break;
                 case 0x0029: // PR_READ_RECEIPT_REQUESTED
@@ -2043,13 +2033,15 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_BOOL("Reassignment Prohibited (Private)", item->private_member);
                     break;
                 case 0x002E: // PR_ORIGINAL_SENSITIVITY - the sensitivity of the message before being replied to or forwarded
-                    LIST_COPY_EMAIL_ENUM("Original Sensitivity", item->email->orig_sensitivity, 0, 4, "None", "Personal", "Private", "Company Confidential");
+                    LIST_COPY_EMAIL_ENUM("Original Sensitivity", item->email->original_sensitivity, 0, 4,
+                        "None", "Personal", "Private", "Company Confidential");
                     break;
                 case 0x0032: // PR_REPORT_TIME
                     LIST_COPY_EMAIL_TIME("Report time", item->email->report_time);
                     break;
                 case 0x0036: // PR_SENSITIVITY - sender's opinion of the sensitivity of an email
-                    LIST_COPY_EMAIL_ENUM("Sensitivity", item->email->sensitivity, 0, 4, "None", "Personal", "Private", "Company Confidential");
+                    LIST_COPY_EMAIL_ENUM("Sensitivity", item->email->sensitivity, 0, 4,
+                        "None", "Personal", "Private", "Company Confidential");
                     break;
                 case 0x0037: // PR_SUBJECT raw subject
                     {
@@ -2200,17 +2192,7 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_EMAIL_TIME("Date 3 (Delivery Time)", item->email->arrival_date);
                     break;
                 case 0x0E07: // PR_MESSAGE_FLAGS Email Flag
-                    // 0x01 - Read
-                    // 0x02 - Unmodified
-                    // 0x04 - Submit
-                    // 0x08 - Unsent
-                    // 0x10 - Has Attachments
-                    // 0x20 - From Me
-                    // 0x40 - Associated
-                    // 0x80 - Resend
-                    // 0x100 - RN Pending
-                    // 0x200 - NRN Pending
-                    LIST_COPY_EMAIL_INT32("Message Flags", item->email->flag);
+                    LIST_COPY_EMAIL_INT32("Message Flags", item->flags);
                     break;
                 case 0x0E08: // PR_MESSAGE_SIZE Total size of a message object
                     LIST_COPY_INT32("Message Size", item->message_size);
@@ -2303,15 +2285,6 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     DEBUG_EMAIL(("Record Search 2 -- NOT HANDLED\n"));
                     break;
                 case 0x35DF: // PR_VALID_FOLDER_MASK
-                    // States which folders are valid for this message store
-                    // FOLDER_IPM_SUBTREE_VALID  0x1
-                    // FOLDER_IPM_INBOX_VALID    0x2
-                    // FOLDER_IPM_OUTBOX_VALID   0x4
-                    // FOLDER_IPM_WASTEBOX_VALID 0x8
-                    // FOLDER_IPM_SENTMAIL_VALID 0x10
-                    // FOLDER_VIEWS_VALID        0x20
-                    // FOLDER_COMMON_VIEWS_VALID 0x40
-                    // FOLDER_FINDER_VALID       0x80
                     LIST_COPY_STORE_INT32("Valid Folder Mask", item->message_store->valid_mask);
                     break;
                 case 0x35E0: // PR_IPM_SUBTREE_ENTRYID Top of Personal Folder Record
@@ -2346,29 +2319,30 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_BOOL("Has Subfolders", item->folder->subfolder);
                     break;
                 case 0x3613: // PR_CONTAINER_CLASS IPF.x
-                    DEBUG_EMAIL(("IPF.x - "));
                     LIST_COPY(item->ascii_type, (char*));
-                    if (strncmp("IPF.Note", item->ascii_type, 8) == 0)
+                    if (pst_strincmp("IPF.Note", item->ascii_type, 8) == 0)
                         item->type = PST_TYPE_NOTE;
-                    else if (strncmp("IPF.Contact", item->ascii_type, 11) == 0)
+                    else if (pst_stricmp("IPF", item->ascii_type) == 0)
+                        item->type = PST_TYPE_NOTE;
+                    else if (pst_strincmp("IPF.Contact", item->ascii_type, 11) == 0)
                         item->type = PST_TYPE_CONTACT;
-                    else if (strncmp("IPF.Journal", item->ascii_type, 11) == 0)
+                    else if (pst_strincmp("IPF.Journal", item->ascii_type, 11) == 0)
                         item->type = PST_TYPE_JOURNAL;
-                    else if (strncmp("IPF.Appointment", item->ascii_type, 15) == 0)
+                    else if (pst_strincmp("IPF.Appointment", item->ascii_type, 15) == 0)
                         item->type = PST_TYPE_APPOINTMENT;
-                    else if (strncmp("IPF.StickyNote", item->ascii_type, 14) == 0)
+                    else if (pst_strincmp("IPF.StickyNote", item->ascii_type, 14) == 0)
                         item->type = PST_TYPE_STICKYNOTE;
-                    else if (strncmp("IPF.Task", item->ascii_type, 8) == 0)
+                    else if (pst_strincmp("IPF.Task", item->ascii_type, 8) == 0)
                         item->type = PST_TYPE_TASK;
                     else
                         item->type = PST_TYPE_OTHER;
 
-                    DEBUG_EMAIL(("%s [%i]\n", item->ascii_type, item->type));
+                    DEBUG_EMAIL(("Container class %s [%"PRIi32"]\n", item->ascii_type, item->type));
                     break;
                 case 0x3617: // PR_ASSOC_CONTENT_COUNT
                     // associated content are items that are attached to this folder
                     // but are hidden from users
-                    LIST_COPY_FOLDER_INT32("Associate Content count", item->folder->assoc_count);
+                    LIST_COPY_FOLDER_INT32("Associated Content count", item->folder->assoc_count);
                     break;
                 case 0x3701: // PR_ATTACH_DATA_OBJ binary data of attachment
                     DEBUG_EMAIL(("Binary Data [Size %i] - ", list->elements[x]->size));
@@ -2764,7 +2738,8 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_CONTACT_STR("Internet Free/Busy", item->contact->free_busy_address);
                     break;
                 case 0x8205: // Show on Free/Busy as
-                    LIST_COPY_APPT_ENUM("Appointment shows as", item->appointment->showas, 0, 4, "Free", "Tentative", "Busy", "Out Of Office");
+                    LIST_COPY_APPT_ENUM("Appointment shows as", item->appointment->showas, 0, 4,
+                        "Free", "Tentative", "Busy", "Out Of Office");
                     break;
                 case 0x8208: // Location of an appointment
                     LIST_COPY_APPT_STR("Appointment Location", item->appointment->location);
@@ -2793,7 +2768,7 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_APPT_BOOL("All day flag", item->appointment->all_day);
                     break;
                 case 0x8231: // Recurrence type
-                    LIST_COPY_APPT_ENUM("Appointment reccurs", item->appointment->recurrence_type, 0, 5,
+                    LIST_COPY_APPT_ENUM("Appointment reccurence", item->appointment->recurrence_type, 0, 5,
                         "None",
                         "Daily",
                         "Weekly",

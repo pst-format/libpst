@@ -499,9 +499,7 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
         write_simple("SUBJECT", item->subject.str);
     }
     write_simple("MSGID", item->email->messageid.str);
-    if (item->email->flag) {
-        write_simple("READ", (item->email->flag & 1) ? "Y" : "N");
-    }
+    write_simple("READ", (item->flags & 1) ? "Y" : "N");
 
     DEBUG_EMAIL(("About to print Header\n"));
     fprintf(dii_file, "@HEADER\n");

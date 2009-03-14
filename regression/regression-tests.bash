@@ -38,7 +38,7 @@ function dopst()
     mkdir output$n
     #    ../src/readpst -cv -o output$n $fn >$ba.err 2>&1
     #           readpst -cv -o output$n -d dumper $fn >$ba.err 2>&1
-    $val ../src/readpst -cv -o output$n -d dumper $fn >$ba.err 2>&1
+    $val ../src/readpst -r -cv -o output$n -d dumper $fn >$ba.err 2>&1
          ../src/readpstlog -f I dumper >$ba.log
 
     #../src/getidblock -d -p $fn 0 >$ba.fulldump
@@ -50,7 +50,7 @@ function dopst()
 
 
 val="valgrind --leak-check=full"
-#val=''
+val=''
 
 pushd ..
 make || exit
@@ -83,6 +83,7 @@ elif [ "$1" == "ldif" ]; then
     #doldif  19 harris.pst
 else
     dopst   1 ams.pst
+    exit
     dopst   2 sample_64.pst
     dopst   3 test.pst
     dopst   4 big_mail.pst

@@ -1,4 +1,4 @@
-LibPST 0.6.30 (2009-xx-xx)
+LibPST 0.6.30 (2009-03-14)
 ===============================
 
     * improve documentation of .pst format.
@@ -12,6 +12,9 @@ LibPST 0.6.30 (2009-xx-xx)
     * more code cleanup.
     * use AM_ICONV for better portability of the library location.
     * structure renaming to be more specific.
+    * improve internal doxygen documentation.
+    * avoid emitting bogus empty email messages into contacts and
+      calendar files.
 
 LibPST 0.6.29 (2009-02-24)
 ===============================
