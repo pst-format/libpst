@@ -47,6 +47,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Mar 14 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.30-1
+- track character set individually for each mapi element.
+- remove charset option from pst2ldif since we get that from each
+  object now.
+- avoid emitting bogus empty email messages into contacts and
+  calendar files.
+
 * Tue Feb 24 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.29-1
 - fix for 64bit on Fedora 11
 

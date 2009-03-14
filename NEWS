@@ -1,4 +1,4 @@
-0.6.30  2009-xx-xx improve documentation of .pst format.
+0.6.30  2009-03-14 track character set individually for each mapi element, avoid emitting bogus empty email messages into contacts and calendar files.
 0.6.29  2009-02-24 fix for 64bit on Fedora 11
 0.6.28  2009-02-24 improve decoding of multipart/report and message/rfc822 mime types.
 0.6.27  2009-02-07 fix for const correctness on Fedora 11
