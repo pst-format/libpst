@@ -1,3 +1,8 @@
+LibPST 0.6.33 (2009-xx-xx)
+===============================
+
+    * fix fedora 11 type mismatch warning (actually an error in this case).
+
 LibPST 0.6.32 (2009-03-14)
 ===============================
 
