@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Mar 14 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.32-1
+- fix ppc64 compile error
+
 * Sat Mar 14 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.31-1
 - bump version for fedora cvs tagging mistake
 

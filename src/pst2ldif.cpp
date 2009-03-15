@@ -174,7 +174,8 @@ static void process(pst_desc_ll *d_ptr) {
                     if (cn[0] != 0) {
                         // have a valid cn
                         pst_string ucn;
-                        ucn.str = (char*)unique_string(cn);
+                        ucn.str     = (char*)unique_string(cn);
+                        ucn.is_utf8 = 1;    // all the components are already utf8
 
                         print_ldif_dn("dn", ucn, ldap_base);
                         print_ldif_single("cn", ucn);

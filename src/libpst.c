@@ -792,7 +792,7 @@ static size_t pst_decode_assoc(pst_file *pf, pst_id2_assoc *assoc, char *buf) {
         memcpy(&assoc32, buf, sizeof(pst_id2_assoc32));
         LE32_CPU(assoc32.id2);
         LE32_CPU(assoc32.id);
-        LE32_CPU(assoc32.table2);
+        LE32_CPU(assoc32.child_id);
         assoc->id2      = assoc32.id2;
         assoc->id       = assoc32.id;
         assoc->child_id = assoc32.child_id;
