@@ -44,13 +44,13 @@ function dopst()
     #../src/getidblock -d -p $fn 0 >$ba.fulldump
     #../src/readpstlog -f I getidblock.log >$ba.fulldump.log
 
-    rm -f dumper
+    #rm -f dumper
 }
 
 
 
 val="valgrind --leak-check=full"
-val=''
+#val=''
 
 pushd ..
 make || exit

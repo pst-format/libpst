@@ -3717,7 +3717,6 @@ size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, char** buf) {
 }
 
 
-#define PST_PTR_BLOCK_SIZE 0x120
 size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_ll *id2_head, char** buf) {
     size_t ret;
     pst_id2_ll* ptr;

@@ -8,16 +8,14 @@
 #ifndef DEFINEH_H
 #define DEFINEH_H
 
-#include "libpst.h"
-#include "timeconv.h"
-#include "libstrfunc.h"
-#include "vbuf.h"
-
-
 #ifdef HAVE_CONFIG_H
     #include "config.h"
 #endif
 
+#include "libpst.h"
+#include "timeconv.h"
+#include "libstrfunc.h"
+#include "vbuf.h"
 
 #define DEBUG_MODE_GEN
 #define DEBUGPRINT
