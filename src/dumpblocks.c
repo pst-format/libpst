@@ -56,16 +56,16 @@ int main(int argc, char* const* argv)
     printf("Saving blocks\n");
     while (ptr != NULL) {
         /*    if (pstfile.encryption == PST_ENC) {
-           c = pst_ff_getIDblock_dec(&pstfile, ptr->id, buf);
+           c = pst_ff_getIDblock_dec(&pstfile, ptr->i_id, buf);
            } else { */
-        if ((ptr->id & 0x02) == 0 && pstfile.encryption == PST_ENC) {
-            c = pst_ff_getIDblock_dec(&pstfile, ptr->id, &buf);
+        if ((ptr->i_id & 0x02) == 0 && pstfile.encryption == PST_ENC) {
+            c = pst_ff_getIDblock_dec(&pstfile, ptr->i_id, &buf);
         } else {
-            c = pst_ff_getIDblock(&pstfile, ptr->id, &buf);
+            c = pst_ff_getIDblock(&pstfile, ptr->i_id, &buf);
         }
 
         if (c > 0) {
-            snprintf(outname, OUT_BUF, "%#"PRIx64, ptr->id);
+            snprintf(outname, OUT_BUF, "%#"PRIx64, ptr->i_id);
             if ((fp = fopen(outname, "wb")) == NULL) {
                 printf("Failed to open file %s\n", outname);
                 continue;
@@ -73,7 +73,7 @@ int main(int argc, char* const* argv)
             pst_fwrite(buf, 1, c, fp);
             fclose(fp);
         } else {
-            printf("Failed to read block id %#"PRIx64"\n", ptr->id);
+            printf("Failed to read block i_id %#"PRIx64"\n", ptr->i_id);
         }
         ptr = ptr->next;
     }

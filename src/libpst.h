@@ -127,7 +127,7 @@ typedef struct pst_index_struct {
 
 
 typedef struct pst_index_tree32 {
-    uint32_t id;
+    uint32_t i_id;
     uint32_t offset;
     uint32_t size;
     int32_t  u1;
@@ -136,7 +136,7 @@ typedef struct pst_index_tree32 {
 
 
 typedef struct pst_index_tree {
-    uint64_t id;
+    uint64_t i_id;
     uint64_t offset;
     uint64_t size;
     int64_t  u1;
@@ -405,7 +405,7 @@ typedef struct pst_item_attach {
     size_t      size;
     uint64_t    id2_val;
     /** calculated from id2_val during creation of record */
-    uint64_t    id_val;
+    uint64_t    i_id;
     /** deep copy from child */
     pst_id2_ll *id2_head;
     /** 0=no attachment, 1=attach by value, 2=attach by reference, 3=attach by reference resolve, 4=attach by reference only, 5=embedded message, 6=OLE */
@@ -630,9 +630,9 @@ void           pst_free_xattrib(pst_x_attrib_ll *x);
 int            pst_getBlockOffsetPointer(pst_file *pf, pst_id2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p);
 int            pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p);
 pst_id2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list);
-pst_index_ll*  pst_getID(pst_file* pf, uint64_t id);
+pst_index_ll*  pst_getID(pst_file* pf, uint64_t i_id);
 pst_id2_ll* pst_getID2(pst_id2_ll * ptr, uint64_t id);
-pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t id);
+pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t d_id);
 size_t         pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
 int            pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type);
 uint64_t       pst_getIntAt(pst_file *pf, char *buf);

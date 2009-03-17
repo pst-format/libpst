@@ -137,7 +137,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
             ff.skip_count++;
         }
         else {
-            DEBUG_MAIN(("main: Desc Email ID %#"PRIx64" [d_ptr->d_id = %#"PRIx64"]\n", d_ptr->desc->id, d_ptr->d_id));
+            DEBUG_MAIN(("main: Desc Email ID %#"PRIx64" [d_ptr->d_id = %#"PRIx64"]\n", d_ptr->desc->i_id, d_ptr->d_id));
 
             item = pst_parse_item(&pstfile, d_ptr, NULL);
             DEBUG_MAIN(("main: About to process item\n"));
@@ -410,6 +410,7 @@ int main(int argc, char* const* argv) {
 void write_email_body(FILE *f, char *body) {
     char *n = body;
     DEBUG_ENT("write_email_body");
+    DEBUG_INFO(("buffer pointer %p\n", body));
     while (n) {
         if (strncmp(body, "From ", 5) == 0)
             fprintf(f, ">");
@@ -731,6 +732,16 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
                                                     : attach->filename1.str;
     DEBUG_ENT("write_separate_attachment");
 
+    if (!attach->data) {
+        // make sure we can fetch data from the id
+        pst_index_ll *ptr = pst_getID(pst, attach->i_id);
+        if (!ptr) {
+            DEBUG_WARN(("Couldn't find i_id %#"PRIx64". Cannot save attachment to file\n", attach->i_id));
+            DEBUG_RET();
+            return;
+        }
+    }
+
     check_filename(f_name);
     if (!attach_filename) {
         // generate our own (dummy) filename for the attachement
@@ -755,7 +766,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
         WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
         if (attach->data)
-            pst_fwrite(attach->data, 1, attach->size, fp);
+            pst_fwrite(attach->data, (size_t)1, attach->size, fp);
         else {
             (void)pst_attach_to_file(pst, attach, fp);
         }
@@ -772,7 +783,7 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
     DEBUG_ENT("write_embedded_message");
     fprintf(f_output, "\n--%s\n", boundary);
     fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype.str);
-    ptr = pst_getID(pf, attach->id_val);
+    ptr = pst_getID(pf, attach->i_id);
 
     pst_desc_ll d_ptr;
     d_ptr.d_id        = 0;
@@ -799,7 +810,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
     char *attach_filename;
     char *enc = NULL; // base64 encoded attachment
     DEBUG_ENT("write_inline_attachment");
-    DEBUG_EMAIL(("Attachment Size is %i, pointer %p, id %d\n", attach->size, attach->data, attach->id_val));
+    DEBUG_EMAIL(("Attachment Size is %"PRIu64", id %#"PRIx64"\n", (uint64_t)attach->size, attach->i_id));
     if (attach->data) {
         enc = base64_encode (attach->data, attach->size);
         if (!enc) {
@@ -810,7 +821,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
     }
     else {
         // make sure we can fetch data from the id
-        pst_index_ll *ptr = pst_getID(pst, attach->id_val);
+        pst_index_ll *ptr = pst_getID(pst, attach->i_id);
         if (!ptr) {
             DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
             DEBUG_RET();
@@ -1023,7 +1034,7 @@ void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset
         size_t rc;
         DEBUG_EMAIL(("Convert %s utf-8 to %s\n", mime, charset));
         vbuf *newer = vballoc(2);
-        rc = vb_utf8to8bit(newer, body->str, strlen(body->str) + 1, charset);
+        rc = vb_utf8to8bit(newer, body->str, strlen(body->str), charset);
         if (rc == (size_t)-1) {
             // unable to convert, change the charset to utf8
             free(newer->b);
@@ -1031,6 +1042,9 @@ void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset
             charset = "utf-8";
         }
         else {
+            // null terminate the output string
+            vbgrow(newer, 1);
+            newer->b[newer->dlen] = '\0';
             free(body->str);
             body->str = newer->b;
         }
@@ -1323,10 +1337,12 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
                 find_rfc822_headers(extra_mime_headers);
                 write_embedded_message(f_output, attach, boundary, pst, extra_mime_headers);
             }
-            else if (mode == MODE_SEPARATE && !mode_MH)
-                write_separate_attachment(f_name, attach, ++attach_num, pst);
-            else
-                write_inline_attachment(f_output, attach, boundary, pst);
+            else if (attach->data || attach->i_id) {
+                if (mode == MODE_SEPARATE && !mode_MH)
+                    write_separate_attachment(f_name, attach, ++attach_num, pst);
+                else
+                    write_inline_attachment(f_output, attach, boundary, pst);
+            }
         }
     }
 

@@ -59,7 +59,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
             ff.skip_count++;
         }
         else {
-            DEBUG_MAIN(("main: Desc Email ID %"PRIx64" [d_ptr->d_id = %"PRIx64"]\n", d_ptr->desc->id, d_ptr->d_id));
+            DEBUG_MAIN(("main: Desc Email ID %"PRIx64" [d_ptr->d_id = %"PRIx64"]\n", d_ptr->desc->i_id, d_ptr->d_id));
 
             item = pst_parse_item(&pstfile, d_ptr, NULL);
             DEBUG_MAIN(("main: About to process item @ %p.\n", item));

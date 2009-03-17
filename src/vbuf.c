@@ -100,11 +100,10 @@ size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen)
     size_t icresult     = (size_t)-1;
     size_t outbytesleft = 0;
     char *outbuf        = NULL;
+    int   myerrno;
 
     ASSERT(unicode_up, "vb_utf16to8() called before unicode started.");
-
-    if (2 > dest->blen) vbresize(dest, 2);
-    dest->dlen = 0;
+    vbresize(dest, iblen);
 
     //Bad Things can happen if a non-zero-terminated utf16 string comes through here
     if (!utf16_is_terminated(inbuf, iblen))
@@ -114,12 +113,13 @@ size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen)
         outbytesleft = dest->blen - dest->dlen;
         outbuf = dest->b + dest->dlen;
         icresult = iconv(i16to8, (ICONV_CONST char**)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
+        myerrno  = errno;
         dest->dlen = outbuf - dest->b;
-        vbgrow(dest, inbytesleft);
-    } while ((size_t)-1 == icresult && E2BIG == errno);
+        if (inbytesleft) vbgrow(dest, inbytesleft);
+    } while ((size_t)-1 == icresult && E2BIG == myerrno);
 
     if (icresult == (size_t)-1) {
-        DEBUG_WARN(("iconv failure: %s\n", strerror(errno)));
+        DEBUG_WARN(("iconv failure: %s\n", strerror(myerrno)));
         unicode_init();
         return (size_t)-1;
     }
@@ -158,20 +158,21 @@ static size_t sbcs_conversion(vbuf *dest, const char *inbuf, int iblen, iconv_t 
     size_t icresult     = (size_t)-1;
     size_t outbytesleft = 0;
     char *outbuf        = NULL;
+    int   myerrno;
 
     vbresize(dest, 2*iblen);
-    dest->dlen = 0;
 
     do {
         outbytesleft = dest->blen - dest->dlen;
         outbuf = dest->b + dest->dlen;
         icresult = iconv(conversion, (ICONV_CONST char**)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
+        myerrno  = errno;
         dest->dlen = outbuf - dest->b;
         if (inbytesleft) vbgrow(dest, 2*inbytesleft);
-    } while ((size_t)-1 == icresult && E2BIG == errno);
+    } while ((size_t)-1 == icresult && E2BIG == myerrno);
 
     if (icresult == (size_t)-1) {
-        WARN(("iconv failure: %s\n", strerror(errno)));
+        DEBUG_WARN(("iconv failure: %s\n", strerror(myerrno)));
         unicode_init();
         return (size_t)-1;
     }
@@ -287,7 +288,6 @@ void vbgrow(struct varbuf *vb, size_t len)      // out: vbavail(vb) >= len, data
 void vbset(vbuf * vb, void *b, size_t len)      // set vbuf b size=len, resize if necessary, relen = how much to over-allocate
 {
     vbresize(vb, len);
-
     memcpy(vb->b, b, len);
     vb->dlen = len;
 }

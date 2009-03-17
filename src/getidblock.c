@@ -17,44 +17,44 @@ void usage()
 }
 
 
-void dumper(uint64_t id);
-void dumper(uint64_t id)
+void dumper(uint64_t i_id);
+void dumper(uint64_t i_id)
 {
     char *buf = NULL;
     size_t readSize;
     pst_desc_ll *ptr;
 
-    DEBUG_MAIN(("\n\n\nLooking at block index1 id %#"PRIx64"\n", id));
+    DEBUG_MAIN(("\n\n\nLooking at block index1 id %#"PRIx64"\n", i_id));
 
-    if ((readSize = pst_ff_getIDblock_dec(&pstfile, id, &buf)) <= 0 || buf == 0) {
+    if ((readSize = pst_ff_getIDblock_dec(&pstfile, i_id, &buf)) <= 0 || buf == 0) {
         DIE(("Error loading block\n"));
     }
 
-    DEBUG_MAIN(("Printing block id %#"PRIx64", size %#"PRIx64"\n", id, (uint64_t)readSize));
+    DEBUG_MAIN(("Printing block id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize));
     if (binary) {
         if (fwrite(buf, 1, readSize, stdout) != 0) {
             DIE(("Error occured during writing of buf to stdout\n"));
         }
     } else {
-        printf("Block id %#"PRIx64", size %#"PRIx64"\n", id, (uint64_t)readSize);
+        printf("Block id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize);
         pst_debug_hexdumper(stdout, buf, readSize, 0x10, 0);
     }
     if (buf) free(buf);
 
     if (process) {
-        DEBUG_MAIN(("Parsing block id %#"PRIx64"\n", id));
+        DEBUG_MAIN(("Parsing block id %#"PRIx64"\n", i_id));
         ptr = pstfile.d_head;
         while (ptr) {
-            if (ptr->assoc_tree && ptr->assoc_tree->id == id)
+            if (ptr->assoc_tree && ptr->assoc_tree->i_id == i_id)
                 break;
-            if (ptr->desc && ptr->desc->id == id)
+            if (ptr->desc && ptr->desc->i_id == i_id)
                 break;
             ptr = pst_getNextDptr(ptr);
         }
         if (!ptr) {
             ptr = (pst_desc_ll *) xmalloc(sizeof(pst_desc_ll));
             memset(ptr, 0, sizeof(pst_desc_ll));
-            ptr->desc = pst_getID(&pstfile, id);
+            ptr->desc = pst_getID(&pstfile, i_id);
         }
         pst_item *item = pst_parse_item(&pstfile, ptr, NULL);
         if (item) pst_freeItem(item);
@@ -67,8 +67,8 @@ void dump_desc(pst_desc_ll *ptr)
 {
     while (ptr) {
         DEBUG_MAIN(("\n\n\nLooking at block desc id %#"PRIx64"\n", ptr->d_id));
-        if (ptr->desc       && ptr->desc->id)       dumper(ptr->desc->id);
-        if (ptr->assoc_tree && ptr->assoc_tree->id) dumper(ptr->assoc_tree->id);
+        if (ptr->desc       && ptr->desc->i_id)       dumper(ptr->desc->i_id);
+        if (ptr->assoc_tree && ptr->assoc_tree->i_id) dumper(ptr->assoc_tree->i_id);
         if (ptr->child) dump_desc(ptr->child);
         ptr = ptr->next;
     }
@@ -79,7 +79,7 @@ int main(int argc, char* const* argv)
 {
     // pass the id number to display on the command line
     char *fname, *sid;
-    uint64_t id;
+    uint64_t i_id;
     int c;
 
     DEBUG_INIT("getidblock.log");
@@ -109,7 +109,7 @@ int main(int argc, char* const* argv)
     }
     fname = argv[optind];
     sid   = argv[optind + 1];
-    id    = (uint64_t)strtoll(sid, NULL, 0);
+    i_id  = (uint64_t)strtoll(sid, NULL, 0);
 
     DEBUG_MAIN(("Opening file\n"));
     memset(&pstfile, 0, sizeof(pstfile));
@@ -122,13 +122,13 @@ int main(int argc, char* const* argv)
         DIE(("Error loading file index\n"));
     }
 
-    if (id) {
-        dumper(id);
+    if (i_id) {
+        dumper(i_id);
     }
     else {
         pst_index_ll *ptr = pstfile.i_head;
         while (ptr) {
-            dumper(ptr->id);
+            dumper(ptr->i_id);
             ptr = ptr->next;
         }
         dump_desc(pstfile.d_head);

@@ -409,8 +409,8 @@ size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b){
     pst_index_ll *ptr;
     pst_holder h = {b, NULL, 0};
     DEBUG_ENT("pst_attach_to_mem");
-    if (attach->id_val != (uint64_t)-1) {
-        ptr = pst_getID(pf, attach->id_val);
+    if (attach->i_id != (uint64_t)-1) {
+        ptr = pst_getID(pf, attach->i_id);
         if (ptr) {
             size = pst_ff_getID2data(pf, ptr, &h);
         } else {
@@ -431,8 +431,8 @@ size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     pst_holder h = {NULL, fp, 0};
     size_t size = 0;
     DEBUG_ENT("pst_attach_to_file");
-    if (attach->id_val != (uint64_t)-1) {
-        ptr = pst_getID(pf, attach->id_val);
+    if (attach->i_id != (uint64_t)-1) {
+        ptr = pst_getID(pf, attach->i_id);
         if (ptr) {
             size = pst_ff_getID2data(pf, ptr, &h);
         } else {
@@ -454,8 +454,8 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
     pst_holder h = {NULL, fp, 1};
     size_t size = 0;
     DEBUG_ENT("pst_attach_to_file_base64");
-    if (attach->id_val != (uint64_t)-1) {
-        ptr = pst_getID(pf, attach->id_val);
+    if (attach->i_id != (uint64_t)-1) {
+        ptr = pst_getID(pf, attach->i_id);
         if (ptr) {
             size = pst_ff_getID2data(pf, ptr, &h);
         } else {
@@ -550,7 +550,7 @@ int pst_load_extended_attributes(pst_file *pf) {
         DEBUG_WARN(("Have not been able to fetch any id2 values for item 0x61. Brace yourself!\n"));
     }
 
-    na = pst_parse_block(pf, p->desc->id, id2_head);
+    na = pst_parse_block(pf, p->desc->i_id, id2_head);
     if (!na) {
         DEBUG_WARN(("Cannot process desc block for item 0x61. Not loading extended Attributes\n"));
         pst_free_id2(id2_head);
@@ -894,7 +894,7 @@ int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku
                 }
             }
             i_ptr = (pst_index_ll*) xmalloc(sizeof(pst_index_ll));
-            i_ptr->id     = index.id;
+            i_ptr->i_id   = index.id;
             i_ptr->offset = index.offset;
             i_ptr->u1     = index.u1;
             i_ptr->size   = index.size;
@@ -1092,9 +1092,9 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
     }
     pst_printID2ptr(id2_head);
 
-    list = pst_parse_block(pf, d_ptr->desc->id, id2_head);
+    list = pst_parse_block(pf, d_ptr->desc->i_id, id2_head);
     if (!list) {
-        DEBUG_WARN(("pst_parse_block() returned an error for d_ptr->desc->id [%#"PRIx64"]\n", d_ptr->desc->id));
+        DEBUG_WARN(("pst_parse_block() returned an error for d_ptr->desc->i_id [%#"PRIx64"]\n", d_ptr->desc->i_id));
         if (!m_head) pst_free_id2(id2_head);
         DEBUG_RET();
         return NULL;
@@ -1116,7 +1116,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x692))) {
         // DSN/MDN reports?
         DEBUG_EMAIL(("DSN/MDN processing\n"));
-        list = pst_parse_block(pf, id2_ptr->id->id, id2_head);
+        list = pst_parse_block(pf, id2_ptr->id->i_id, id2_head);
         if (!list) {
             DEBUG_WARN(("ERROR error processing main DSN/MDN record\n"));
             if (!m_head) pst_free_id2(id2_head);
@@ -1142,7 +1142,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
 
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x671))) {
         DEBUG_EMAIL(("ATTACHMENT processing attachment\n"));
-        list = pst_parse_block(pf, id2_ptr->id->id, id2_head);
+        list = pst_parse_block(pf, id2_ptr->id->i_id, id2_head);
         if (!list) {
             DEBUG_WARN(("ERROR error processing main attachment record\n"));
             if (!m_head) pst_free_id2(id2_head);
@@ -1172,11 +1172,11 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
         while (attach) {
             DEBUG_WARN(("initial attachment id2 %#"PRIx64"\n", attach->id2_val));
             if ((id2_ptr = pst_getID2(id2_head, attach->id2_val))) {
-                DEBUG_WARN(("initial attachment id2 found id %#"PRIx64"\n", id2_ptr->id->id));
+                DEBUG_WARN(("initial attachment id2 found id %#"PRIx64"\n", id2_ptr->id->i_id));
                 // id_ptr is a record describing the attachment
                 // we pass NULL instead of id2_head cause we don't want it to
                 // load all the extra stuff here.
-                list = pst_parse_block(pf, id2_ptr->id->id, NULL);
+                list = pst_parse_block(pf, id2_ptr->id->i_id, NULL);
                 if (!list) {
                     DEBUG_WARN(("ERROR error processing an attachment record\n"));
                     attach = attach->next;
@@ -1194,10 +1194,10 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
                 pst_free_list(list);
                 id2_ptr = pst_getID2(id2_head, attach->id2_val);
                 if (id2_ptr) {
-                    DEBUG_WARN(("second pass attachment updating id2 found id %#"PRIx64"\n", id2_ptr->id->id));
+                    DEBUG_WARN(("second pass attachment updating id2 found i_id %#"PRIx64"\n", id2_ptr->id->i_id));
                     // id2_val has been updated to the ID2 value of the datablock containing the
                     // attachment data
-                    attach->id_val   = id2_ptr->id->id;
+                    attach->i_id     = id2_ptr->id->i_id;
                     attach->id2_head = deep_copy(id2_ptr->child);
                 } else {
                     DEBUG_WARN(("have not located the correct value for the attachment [%#"PRIx64"]\n", attach->id2_val));
@@ -1662,30 +1662,29 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
                 if (table_rec.ref_type == (uint16_t)0x1f) {
                     // there is more to do for the type 0x1f unicode strings
                     size_t rc;
-                    static vbuf *strbuf = NULL;
-                    static vbuf *unibuf = NULL;
-                    if (!strbuf) strbuf=vballoc((size_t)1024);
-                    if (!unibuf) unibuf=vballoc((size_t)1024);
+                    static vbuf *utf16buf = NULL;
+                    static vbuf *utf8buf  = NULL;
+                    if (!utf16buf) utf16buf = vballoc((size_t)1024);
+                    if (!utf8buf)  utf8buf  = vballoc((size_t)1024);
 
                     // splint barfed on the following lines
-                    //VBUF_STATIC(strbuf, 1024);
-                    //VBUF_STATIC(unibuf, 1024);
+                    //VBUF_STATIC(utf16buf, 1024);
+                    //VBUF_STATIC(utf8buf, 1024);
 
                     //need UTF-16 zero-termination
-                    vbset(strbuf, mo_ptr->elements[x]->data, mo_ptr->elements[x]->size);
-                    vbappend(strbuf, "\0\0", (size_t)2);
+                    vbset(utf16buf, mo_ptr->elements[x]->data, mo_ptr->elements[x]->size);
+                    vbappend(utf16buf, "\0\0", (size_t)2);
                     DEBUG_INDEX(("Iconv in:\n"));
-                    DEBUG_HEXDUMPC(strbuf->b, strbuf->dlen, 0x10);
-                    rc = vb_utf16to8(unibuf, strbuf->b, strbuf->dlen);
+                    DEBUG_HEXDUMPC(utf16buf->b, utf16buf->dlen, 0x10);
+                    rc = vb_utf16to8(utf8buf, utf16buf->b, utf16buf->dlen);
                     if (rc == (size_t)-1) {
-                        free(unibuf->b);
                         DEBUG_EMAIL(("Failed to convert utf-16 to utf-8\n"));
                     }
                     else {
                         free(mo_ptr->elements[x]->data);
-                        mo_ptr->elements[x]->size = unibuf->dlen;
-                        mo_ptr->elements[x]->data = xmalloc(unibuf->dlen);
-                        memcpy(mo_ptr->elements[x]->data, unibuf->b, unibuf->dlen);
+                        mo_ptr->elements[x]->size = utf8buf->dlen;
+                        mo_ptr->elements[x]->data = xmalloc(utf8buf->dlen);
+                        memcpy(mo_ptr->elements[x]->data, utf8buf->b, utf8buf->dlen);
                     }
                     DEBUG_INDEX(("Iconv out:\n"));
                     DEBUG_HEXDUMPC(mo_ptr->elements[x]->data, mo_ptr->elements[x]->size, 0x10);
@@ -3061,7 +3060,7 @@ pst_id2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
     }
 
     DEBUG_INDEX(("ID %#"PRIx64" is likely to be a description record. Count is %i (offset %#"PRIx64")\n",
-            list->id, block_head.count, list->offset));
+            list->i_id, block_head.count, list->offset));
     x = 0;
     b_ptr = buf + ((pf->do_read64) ? 0x08 : 0x04);
     while (x < block_head.count) {
@@ -3071,7 +3070,7 @@ pst_id2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
             DEBUG_WARN(("%#"PRIx64" - Not Found\n", id2_rec.id));
         } else {
             DEBUG_INDEX(("%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
-                         i_ptr->id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
+                         i_ptr->i_id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
             // add it to the tree
             i2_ptr = (pst_id2_ll*) xmalloc(sizeof(pst_id2_ll));
             i2_ptr->id2   = id2_rec.id2;
@@ -3393,25 +3392,25 @@ int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t 
 }
 
 
-pst_index_ll* pst_getID(pst_file* pf, uint64_t id) {
+pst_index_ll* pst_getID(pst_file* pf, uint64_t i_id) {
     pst_index_ll *ptr;
     DEBUG_ENT("pst_getID");
-    if (id == 0) {
+    if (i_id == 0) {
         DEBUG_RET();
         return NULL;
     }
 
-    //if (id & 1) DEBUG_INDEX(("have odd id bit %#"PRIx64"\n", id));
-    //if (id & 2) DEBUG_INDEX(("have two id bit %#"PRIx64"\n", id));
-    id -= (id & 1);
+    //if (i_id & 1) DEBUG_INDEX(("have odd id bit %#"PRIx64"\n", i_id));
+    //if (i_id & 2) DEBUG_INDEX(("have two id bit %#"PRIx64"\n", i_id));
+    i_id -= (i_id & 1);
 
-    DEBUG_INDEX(("Trying to find %#"PRIx64"\n", id));
+    DEBUG_INDEX(("Trying to find %#"PRIx64"\n", i_id));
     ptr = pf->i_head;
-    while (ptr && (ptr->id != id)) {
+    while (ptr && (ptr->i_id != i_id)) {
         ptr = ptr->next;
     }
-    if (ptr) {DEBUG_INDEX(("Found Value %#"PRIx64"\n", id));            }
-    else     {DEBUG_INDEX(("ERROR: Value %#"PRIx64" not found\n", id)); }
+    if (ptr) {DEBUG_INDEX(("Found Value %#"PRIx64"\n", i_id));            }
+    else     {DEBUG_INDEX(("ERROR: Value %#"PRIx64" not found\n", i_id)); }
     DEBUG_RET();
     return ptr;
 }
@@ -3433,7 +3432,7 @@ pst_id2_ll *pst_getID2(pst_id2_ll *head, uint64_t id2) {
         ptr = ptr->next;
     }
     if (ptr && ptr->id) {
-        DEBUG_INDEX(("Found value %#"PRIx64"\n", ptr->id->id));
+        DEBUG_INDEX(("Found value %#"PRIx64"\n", ptr->id->i_id));
         DEBUG_RET();
         return ptr;
     }
@@ -3474,8 +3473,8 @@ void pst_printDptr(pst_file *pf, pst_desc_ll *ptr) {
     DEBUG_ENT("pst_printDptr");
     while (ptr) {
         DEBUG_INDEX(("%#"PRIx64" [%i] desc=%#"PRIx64", assoc tree=%#"PRIx64"\n", ptr->d_id, ptr->no_child,
-                    (ptr->desc       ? ptr->desc->id       : (uint64_t)0),
-                    (ptr->assoc_tree ? ptr->assoc_tree->id : (uint64_t)0)));
+                    (ptr->desc       ? ptr->desc->i_id       : (uint64_t)0),
+                    (ptr->assoc_tree ? ptr->assoc_tree->i_id : (uint64_t)0)));
         if (ptr->child) {
             pst_printDptr(pf, ptr->child);
         }
@@ -3489,7 +3488,7 @@ void pst_printIDptr(pst_file* pf) {
     pst_index_ll *ptr = pf->i_head;
     DEBUG_ENT("pst_printIDptr");
     while (ptr) {
-        DEBUG_INDEX(("%#"PRIx64" offset=%#"PRIx64" size=%#"PRIx64"\n", ptr->id, ptr->offset, ptr->size));
+        DEBUG_INDEX(("%#"PRIx64" offset=%#"PRIx64" size=%#"PRIx64"\n", ptr->i_id, ptr->offset, ptr->size));
         ptr = ptr->next;
     }
     DEBUG_RET();
@@ -3499,7 +3498,7 @@ void pst_printIDptr(pst_file* pf) {
 void pst_printID2ptr(pst_id2_ll *ptr) {
     DEBUG_ENT("pst_printID2ptr");
     while (ptr) {
-        DEBUG_INDEX(("%#"PRIx64" id=%#"PRIx64"\n", ptr->id2, (ptr->id ? ptr->id->id : (uint64_t)0)));
+        DEBUG_INDEX(("%#"PRIx64" id=%#"PRIx64"\n", ptr->id2, (ptr->id ? ptr->id->i_id : (uint64_t)0)));
         if (ptr->child) pst_printID2ptr(ptr->child);
         ptr = ptr->next;
     }
@@ -3739,8 +3738,8 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
     size_t ret;
     char *b = NULL, *t;
     DEBUG_ENT("pst_ff_getID2data");
-    if (!(ptr->id & 0x02)) {
-        ret = pst_ff_getIDblock_dec(pf, ptr->id, &b);
+    if (!(ptr->i_id & 0x02)) {
+        ret = pst_ff_getIDblock_dec(pf, ptr->i_id, &b);
         if (h->buf) {
             *(h->buf) = b;
         } else if ((h->base64 == 1) && h->fp) {
@@ -3760,7 +3759,7 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
     } else {
         // here we will assume it is a block that points to others
         DEBUG_READ(("Assuming it is a multi-block record because of it's id\n"));
-        ret = pst_ff_compile_ID(pf, ptr->id, h, (size_t)0);
+        ret = pst_ff_compile_ID(pf, ptr->i_id, h, (size_t)0);
     }
     DEBUG_RET();
     return ret;
