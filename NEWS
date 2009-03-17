@@ -1,3 +1,4 @@
+0.6.33  2009-03-17 fix utf-7 conversions, don't produce empty attachment files in separate mode
 0.6.32  2009-03-14 fix ppc64 compile error
 0.6.31  2009-03-14 bump version for fedora cvs tagging mistake
 0.6.30  2009-03-14 track character set individually for each mapi element, avoid emitting bogus empty email messages into contacts and calendar files.
