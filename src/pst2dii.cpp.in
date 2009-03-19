@@ -204,8 +204,8 @@ static string write_separate_attachment(string fname, pst_item_attach* current_a
     if (!(fp = fopen(temp, "wb"))) {
         WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
-        if (current_attach->data)
-            pst_fwrite(current_attach->data, 1, current_attach->size, fp);
+        if (current_attach->data.data)
+            pst_fwrite(current_attach->data.data, 1, current_attach->data.size, fp);
         else {
             (void)pst_attach_to_file(pst, current_attach, fp);
         }
@@ -559,7 +559,7 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     } else if (item->email->htmlbody.str) {
         removeCR(item->email->htmlbody.str);
         print_pdf(item->email->htmlbody.str);
-    } else if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
+    } else if (item->email->encrypted_body.data || item->email->encrypted_htmlbody.data) {
         char ln[LINE_SIZE];
         snprintf(ln, sizeof(ln), "%s", "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
         print_pdf(ln);
@@ -569,8 +569,8 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     int attach_num = 0;
     for (pst_item_attach* current_attach = item->attach; current_attach; current_attach = current_attach->next) {
         DEBUG_EMAIL(("Attempting Attachment encoding\n"));
-        if (!current_attach->data) {
-            DEBUG_EMAIL(("Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->size));
+        if (!current_attach->data.data) {
+            DEBUG_EMAIL(("Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->data.size));
         }
         string an = write_separate_attachment(f.name, current_attach, ++attach_num, pst);
         fprintf(dii_file, "@EATTACH %s\n", an.c_str());
@@ -588,7 +588,7 @@ static void create_enter_dir(file_ll &f, file_ll *parent, pst_item *item)
     f.email_count  = 0;
     f.skip_count   = 0;
     f.type         = item->type;
-    f.stored_count = (item->folder) ? item->folder->email_count : 0;
+    f.stored_count = (item->folder) ? item->folder->item_count : 0;
     f.name         = ((parent) ? parent->name + "/" : "") + string(item->file_as.str);
 }
 

@@ -74,7 +74,7 @@ else
         libstrfunc.h\
         timeconv.h  \
         vbuf.h
-    libpst_la_LDFLAGS     = $(NO_UNDEFINED) -version-info 1:2:0
+    libpst_la_LDFLAGS     = $(NO_UNDEFINED) -version-info 1:3:0
 endif
 
 libpst_la_SOURCES     = $(common_source) $(common_header)

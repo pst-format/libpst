@@ -417,9 +417,9 @@ size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b){
             DEBUG_WARN(("Couldn't find ID pointer. Cannot handle attachment\n"));
             size = 0;
         }
-        attach->size = size;
+        attach->data.size = size;
     } else {
-        size = attach->size;
+        size = attach->data.size;
     }
     DEBUG_RET();
     return size;
@@ -438,11 +438,11 @@ size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
         } else {
             DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
         }
-        attach->size = size;
+        attach->data.size = size;
     } else {
         // save the attachment to the file
-        size = attach->size;
-        (void)pst_fwrite(attach->data, (size_t)1, size, fp);
+        size = attach->data.size;
+        (void)pst_fwrite(attach->data.data, (size_t)1, size, fp);
     }
     DEBUG_RET();
     return size;
@@ -461,15 +461,15 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
         } else {
             DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to Base64\n"));
         }
-        attach->size = size;
+        attach->data.size = size;
     } else {
         // encode the attachment to the file
-        char *c = base64_encode(attach->data, attach->size);
+        char *c = base64_encode(attach->data.data, attach->data.size);
         if (c) {
             (void)pst_fwrite(c, (size_t)1, strlen(c), fp);
             free(c);    // caught by valgrind
         }
-        size = attach->size;
+        size = attach->data.size;
     }
     DEBUG_RET();
     return size;
@@ -1711,6 +1711,7 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 // This version of free does NULL check first
 #define SAFE_FREE(x) {if (x) free(x);}
 #define SAFE_FREE_STR(x) SAFE_FREE(x.str)
+#define SAFE_FREE_BIN(x) SAFE_FREE(x.data)
 
 // check if item->email is NULL, and init if so
 #define MALLOC_EMAIL(x)        { if (!x->email)         { x->email         = (pst_item_email*)         xmalloc(sizeof(pst_item_email));         memset(x->email,         0, sizeof(pst_item_email)        );} }
@@ -1721,20 +1722,38 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 #define MALLOC_APPOINTMENT(x)  { if (!x->appointment)   { x->appointment   = (pst_item_appointment*)   xmalloc(sizeof(pst_item_appointment));   memset(x->appointment,   0, sizeof(pst_item_appointment)  );} }
 
 // malloc space and copy the current item's data null terminated
-#define LIST_COPY(targ, type) {                                 \
+#define LIST_COPY(targ, type) {                                    \
     targ = type realloc(targ, list->elements[x]->size+1);          \
-    memcpy(targ, list->elements[x]->data, list->elements[x]->size);   \
+    memcpy(targ, list->elements[x]->data, list->elements[x]->size);\
     memset(((char*)targ)+list->elements[x]->size, 0, (size_t)1);   \
 }
 
-#define LIST_COPY_BOOL(label, targ) {                           \
-    if (*(int16_t*)list->elements[x]->data) {                      \
-        DEBUG_EMAIL((label" - True\n"));                        \
-        targ = 1;                                               \
-    } else {                                                    \
-        DEBUG_EMAIL((label" - False\n"));                       \
-        targ = 0;                                               \
-    }                                                           \
+#define LIST_COPY_CSTR(targ) {                                              \
+    if ((list->elements[x]->type == 0x1f) ||                                \
+        (list->elements[x]->type == 0x1e) ||                                \
+        (list->elements[x]->type == 0x102)) {                               \
+        LIST_COPY(targ, (char*))                                            \
+    }                                                                       \
+    else {                                                                  \
+        DEBUG_EMAIL(("src not 0x1e or 0x1f or 0x102 for string dst\n"));    \
+        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
+        SAFE_FREE(targ);                                                    \
+        targ = NULL;                                                        \
+    }                                                                       \
+}
+
+#define LIST_COPY_BOOL(label, targ) {                                       \
+    if (list->elements[x]->type != 0x0b) {                                  \
+        DEBUG_EMAIL(("src not 0x0b for boolean dst\n"));                    \
+        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
+    }                                                                       \
+    if (*(int16_t*)list->elements[x]->data) {                               \
+        DEBUG_EMAIL((label" - True\n"));                                    \
+        targ = 1;                                                           \
+    } else {                                                                \
+        DEBUG_EMAIL((label" - False\n"));                                   \
+        targ = 0;                                                           \
+    }                                                                       \
 }
 
 #define LIST_COPY_EMAIL_BOOL(label, targ) {                     \
@@ -1752,23 +1771,31 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
     LIST_COPY_BOOL(label, targ)                                 \
 }
 
-#define LIST_COPY_INT16_N(label, targ) {                        \
-    memcpy(&(targ), list->elements[x]->data, sizeof(targ));        \
-    LE16_CPU(targ);                                             \
+#define LIST_COPY_INT16_N(targ) {                                           \
+    if (list->elements[x]->type != 0x02) {                                  \
+        DEBUG_EMAIL(("src not 0x02 for int16 dst\n"));                      \
+        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
+    }                                                                       \
+    memcpy(&(targ), list->elements[x]->data, sizeof(targ));                 \
+    LE16_CPU(targ);                                                         \
 }
 
 #define LIST_COPY_INT16(label, targ) {                          \
-    LIST_COPY_INT16_N(label, targ);                             \
+    LIST_COPY_INT16_N(targ);                                    \
     DEBUG_EMAIL((label" - %i %#x\n", (int)targ, (int)targ));    \
 }
 
-#define LIST_COPY_INT32_N(label, targ) {                        \
-    memcpy(&(targ), list->elements[x]->data, sizeof(targ));        \
-    LE32_CPU(targ);                                             \
+#define LIST_COPY_INT32_N(targ) {                                           \
+    if (list->elements[x]->type != 0x03) {                                  \
+        DEBUG_EMAIL(("src not 0x03 for int32 dst\n"));                      \
+        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
+    }                                                                       \
+    memcpy(&(targ), list->elements[x]->data, sizeof(targ));                 \
+    LE32_CPU(targ);                                                         \
 }
 
 #define LIST_COPY_INT32(label, targ) {                          \
-    LIST_COPY_INT32_N(label, targ);                             \
+    LIST_COPY_INT32_N(targ);                                    \
     DEBUG_EMAIL((label" - %i %#x\n", (int)targ, (int)targ));    \
 }
 
@@ -1794,7 +1821,7 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 
 #define LIST_COPY_ENUM(label, targ, delta, count, ...) {        \
     char *tlabels[] = {__VA_ARGS__};                            \
-    LIST_COPY_INT32_N(label, targ);                             \
+    LIST_COPY_INT32_N(targ);                                    \
     targ += delta;                                              \
     DEBUG_EMAIL((label" - %s [%i]\n",                           \
         (((int)targ < 0) || ((int)targ >= count))               \
@@ -1814,7 +1841,7 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 
 #define LIST_COPY_ENUM16(label, targ, delta, count, ...) {      \
     char *tlabels[] = {__VA_ARGS__};                            \
-    LIST_COPY_INT16_N(label, targ);                             \
+    LIST_COPY_INT16_N(targ);                                    \
     targ += delta;                                              \
     DEBUG_EMAIL((label" - %s [%i]\n",                           \
         (((int)targ < 0) || ((int)targ >= count))               \
@@ -1828,7 +1855,6 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 }
 
 #define LIST_COPY_ENTRYID(label, targ) {                        \
-    MALLOC_MESSAGESTORE(item);                                  \
     LIST_COPY(targ, (pst_entryid*));                            \
     LE32_CPU(targ->u1);                                         \
     LE32_CPU(targ->id);                                         \
@@ -1849,8 +1875,8 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 // malloc space and copy the current item's data null terminated
 // including the utf8 flag
 #define LIST_COPY_STR(label, targ) {                                    \
-    LIST_COPY(targ.str, (char*));                                       \
-    targ.is_utf8 = (list->elements[x]->type == 0x1f) ? 1 : 0;              \
+    LIST_COPY_CSTR(targ.str);                                           \
+    targ.is_utf8 = (list->elements[x]->type == 0x1f) ? 1 : 0;           \
     DEBUG_EMAIL((label" - unicode %d - %s\n", targ.is_utf8, targ.str)); \
 }
 
@@ -1875,12 +1901,16 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 }
 
 // malloc space and copy the item filetime
-#define LIST_COPY_TIME(label, targ) {                           \
-    targ = (FILETIME*) realloc(targ, sizeof(FILETIME));         \
-    memcpy(targ, list->elements[x]->data, list->elements[x]->size);   \
-    LE32_CPU(targ->dwLowDateTime);                              \
-    LE32_CPU(targ->dwHighDateTime);                             \
-    DEBUG_EMAIL((label" - %s", fileTimeToAscii(targ)));         \
+#define LIST_COPY_TIME(label, targ) {                                       \
+    if (list->elements[x]->type != 0x40) {                                  \
+        DEBUG_EMAIL(("src not 0x40 for filetime dst\n"));                   \
+        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
+    }                                                                       \
+    targ = (FILETIME*) realloc(targ, sizeof(FILETIME));                     \
+    memcpy(targ, list->elements[x]->data, list->elements[x]->size);         \
+    LE32_CPU(targ->dwLowDateTime);                                          \
+    LE32_CPU(targ->dwHighDateTime);                                         \
+    DEBUG_EMAIL((label" - %s", fileTimeToAscii(targ)));                     \
 }
 
 #define LIST_COPY_EMAIL_TIME(label, targ) {                     \
@@ -1904,21 +1934,21 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 }
 
 // malloc space and copy the current item's data and size
-#define LIST_COPY_SIZE(targ, type, mysize) {        \
-    mysize = list->elements[x]->size;                  \
-    if (mysize) {                                   \
-        targ = type realloc(targ, mysize);          \
-        memcpy(targ, list->elements[x]->data, mysize); \
-    }                                               \
-    else {                                          \
-        SAFE_FREE(targ);                            \
-        targ = NULL;                                \
-    }                                               \
+#define LIST_COPY_BIN(targ) {                                       \
+    targ.size = list->elements[x]->size;                            \
+    if (targ.size) {                                                \
+        targ.data = (char*)realloc(targ.data, targ.size);           \
+        memcpy(targ.data, list->elements[x]->data, targ.size);      \
+    }                                                               \
+    else {                                                          \
+        SAFE_FREE_BIN(targ);                                        \
+        targ.data = NULL;                                           \
+    }                                                               \
 }
 
-#define LIST_COPY_EMAIL_SIZE(label, targ, mysize) { \
+#define LIST_COPY_EMAIL_BIN(label, targ) {          \
     MALLOC_EMAIL(item);                             \
-    LIST_COPY_SIZE(targ, (char*), mysize);          \
+    LIST_COPY_BIN(targ);                            \
     DEBUG_EMAIL((label"\n"));                       \
 }
 
@@ -1957,12 +1987,14 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
 
             switch (list->elements[x]->mapi_id) {
                 case PST_ATTRIB_HEADER: // CUSTOM attribute for saying the Extra Headers
-                    if (list->elements[x]->extra) {
+                    if ((list->elements[x]->extra) &&
+                        ((list->elements[x]->type == 0x1f)  ||
+                         (list->elements[x]->type == 0x1e))) {
                         ef = (pst_item_extra_field*) xmalloc(sizeof(pst_item_extra_field));
                         memset(ef, 0, sizeof(pst_item_extra_field));
                         ef->field_name = (char*) xmalloc(strlen(list->elements[x]->extra)+1);
                         strcpy(ef->field_name, list->elements[x]->extra);
-                        LIST_COPY(ef->value, (char*));
+                        LIST_COPY_CSTR(ef->value);
                         ef->next = item->extra_fields;
                         item->extra_fields = ef;
                         DEBUG_EMAIL(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
@@ -1984,13 +2016,19 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                         }
                     }
                     else {
-                        DEBUG_EMAIL(("NULL extra field\n"));
+                        DEBUG_EMAIL(("What does this mean?\n"));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
                     }
                     break;
                 case 0x0002: // PR_ALTERNATE_RECIPIENT_ALLOWED
-                    // If set to true, the sender allows this email to be autoforwarded
-                    LIST_COPY_EMAIL_BOOL("AutoForward allowed", item->email->autoforward);
-                    if (!item->email->autoforward) item->email->autoforward = -1;
+                    if (list->elements[x]->type == 0x0b) {
+                        // If set to true, the sender allows this email to be autoforwarded
+                        LIST_COPY_EMAIL_BOOL("AutoForward allowed", item->email->autoforward);
+                        if (!item->email->autoforward) item->email->autoforward = -1;
+                    } else {
+                        DEBUG_EMAIL(("What does this mean?\n"));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
+                    }
                     break;
                 case 0x0003: // Extended Attributes table
                     DEBUG_EMAIL(("Extended Attributes Table - NOT PROCESSED\n"));
@@ -1999,28 +2037,49 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_EMAIL_ENUM("Importance Level", item->email->importance, 0, 3, "Low", "Normal", "High");
                     break;
                 case 0x001A: // PR_MESSAGE_CLASS IPM.x
-                    LIST_COPY(item->ascii_type, (char*));
-                    if (pst_strincmp("IPM.Note", item->ascii_type, 8) == 0)
-                        item->type = PST_TYPE_NOTE;
-                    else if (pst_stricmp("IPM", item->ascii_type) == 0)
-                        item->type = PST_TYPE_NOTE;
-                    else if (pst_strincmp("IPM.Contact", item->ascii_type, 11) == 0)
-                        item->type = PST_TYPE_CONTACT;
-                    else if (pst_strincmp("REPORT.IPM.Note", item->ascii_type, 15) == 0)
-                        item->type = PST_TYPE_REPORT;
-                    else if (pst_strincmp("IPM.Activity", item->ascii_type, 12) == 0)
-                        item->type = PST_TYPE_JOURNAL;
-                    else if (pst_strincmp("IPM.Appointment", item->ascii_type, 15) == 0)
-                        item->type = PST_TYPE_APPOINTMENT;
-                    else if (pst_strincmp("IPM.Task", item->ascii_type, 8) == 0)
-                        item->type = PST_TYPE_TASK;
-                    else
-                        item->type = PST_TYPE_OTHER;
-                    DEBUG_EMAIL(("Message class %s [%"PRIi32"] \n", item->ascii_type, item->type));
+                    if ((list->elements[x]->type == 0x1e) ||
+                        (list->elements[x]->type == 0x1e)) {
+                        LIST_COPY_CSTR(item->ascii_type);
+                        if (!item->ascii_type) item->ascii_type = strdup("unknown");
+                        if (pst_strincmp("IPM.Note", item->ascii_type, 8) == 0)
+                            item->type = PST_TYPE_NOTE;
+                        else if (pst_stricmp("IPM", item->ascii_type) == 0)
+                            item->type = PST_TYPE_NOTE;
+                        else if (pst_strincmp("IPM.Contact", item->ascii_type, 11) == 0)
+                            item->type = PST_TYPE_CONTACT;
+                        else if (pst_strincmp("REPORT.IPM.Note", item->ascii_type, 15) == 0)
+                            item->type = PST_TYPE_REPORT;
+                        else if (pst_strincmp("IPM.Activity", item->ascii_type, 12) == 0)
+                            item->type = PST_TYPE_JOURNAL;
+                        else if (pst_strincmp("IPM.Appointment", item->ascii_type, 15) == 0)
+                            item->type = PST_TYPE_APPOINTMENT;
+                        //else if (pst_strincmp("IPM.Schedule.Meeting", item->ascii_type, 20) == 0)
+                        //    item->type = PST_TYPE_APPOINTMENT;
+                        // these seem to be appointments, but they are inside the email folder,
+                        // and unless we are in separate mode, we would dump an appointment
+                        // into the middle of a mailbox file.
+                        else if (pst_strincmp("IPM.StickyNote", item->ascii_type, 14) == 0)
+                            item->type = PST_TYPE_STICKYNOTE;
+                        else if (pst_strincmp("IPM.Task", item->ascii_type, 8) == 0)
+                            item->type = PST_TYPE_TASK;
+                        else
+                            item->type = PST_TYPE_OTHER;
+                        DEBUG_EMAIL(("Message class %s [%"PRIi32"] \n", item->ascii_type, item->type));
+                    }
+                    else {
+                        DEBUG_EMAIL(("What does this mean?\n"));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
+                    }
                     break;
                 case 0x0023: // PR_ORIGINATOR_DELIVERY_REPORT_REQUESTED
-                    // set if the sender wants a delivery report from all recipients
-                    LIST_COPY_EMAIL_BOOL("Global Delivery Report", item->email->delivery_report);
+                    if (list->elements[x]->type == 0x0b) {
+                        // set if the sender wants a delivery report from all recipients
+                        LIST_COPY_EMAIL_BOOL("Global Delivery Report", item->email->delivery_report);
+                    }
+                    else {
+                        DEBUG_EMAIL(("What does this mean?\n"));
+                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
+                    }
                     break;
                 case 0x0026: // PR_PRIORITY
                     LIST_COPY_EMAIL_ENUM("Priority", item->email->priority, 1, 3, "NonUrgent", "Normal", "Urgent");
@@ -2116,7 +2175,7 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_EMAIL_STR("Processed Subject (Conversation Topic)", item->email->processed_subject);
                     break;
                 case 0x0071: // PR_CONVERSATION_INDEX
-                    LIST_COPY_EMAIL_INT32("Conversation Index", item->email->conversation_index);
+                    LIST_COPY_EMAIL_BIN("Conversation Index", item->email->conversation_index);
                     break;
                 case 0x0072: // PR_ORIGINAL_DISPLAY_BCC
                     LIST_COPY_EMAIL_STR("Original display bcc", item->email->original_bcc);
@@ -2208,17 +2267,14 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_EMAIL_BOOL("Compressed RTF in Sync", item->email->rtf_in_sync);
                     break;
                 case 0x0E20: // PR_ATTACH_SIZE binary Attachment data in record
-                    DEBUG_EMAIL(("Attachment Size - "));
                     NULL_CHECK(attach);
                     LIST_COPY_INT32("Attachment Size", t);
-                    attach->size = (size_t)t;
+                    attach->data.size = (size_t)t;
                     break;
                 case 0x0FF9: // PR_RECORD_KEY Record Header 1
-                    DEBUG_EMAIL(("Record Key 1 - "));
-                    LIST_COPY(item->record_key, (char*));
-                    item->record_key_size = list->elements[x]->size;
-                    DEBUG_EMAIL_HEXPRINT(item->record_key, item->record_key_size);
-                    DEBUG_EMAIL(("\n"));
+                    LIST_COPY_BIN(item->record_key);
+                    DEBUG_EMAIL(("Record Key\n"));
+                    DEBUG_EMAIL_HEXPRINT(item->record_key.data, item->record_key.size);
                     break;
                 case 0x1000: // PR_BODY
                     LIST_COPY_STR("Plain Text body", item->body);
@@ -2240,7 +2296,7 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_EMAIL_STR("RTF Sync body tag", item->email->rtf_body_tag);
                     break;
                 case 0x1009: // PR_RTF_COMPRESSED - rtf data is lzw compressed
-                    LIST_COPY_EMAIL_SIZE("RTF Compressed body", item->email->rtf_compressed, item->email->rtf_compressed_size);
+                    LIST_COPY_EMAIL_BIN("RTF Compressed body", item->email->rtf_compressed);
                     break;
                 case 0x1010: // PR_RTF_SYNC_PREFIX_COUNT
                     // a count of the ignored characters before the first significant character
@@ -2308,17 +2364,17 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_STORE_ENTRYID("Search Root Folder record", item->message_store->search_root_folder);
                     break;
                 case 0x3602: // PR_CONTENT_COUNT Number of emails stored in a folder
-                    LIST_COPY_FOLDER_INT32("Folder Email Count", item->folder->email_count);
+                    LIST_COPY_FOLDER_INT32("Folder Email Count", item->folder->item_count);
                     break;
                 case 0x3603: // PR_CONTENT_UNREAD Number of unread emails
-                    LIST_COPY_FOLDER_INT32("Unread Email Count", item->folder->unseen_email_count);
+                    LIST_COPY_FOLDER_INT32("Unread Email Count", item->folder->unseen_item_count);
                     break;
                 case 0x360A: // PR_SUBFOLDERS Has children
                     MALLOC_FOLDER(item);
                     LIST_COPY_BOOL("Has Subfolders", item->folder->subfolder);
                     break;
                 case 0x3613: // PR_CONTAINER_CLASS IPF.x
-                    LIST_COPY(item->ascii_type, (char*));
+                    LIST_COPY_CSTR(item->ascii_type);
                     if (pst_strincmp("IPF.Note", item->ascii_type, 8) == 0)
                         item->type = PST_TYPE_NOTE;
                     else if (pst_stricmp("IPF", item->ascii_type) == 0)
@@ -2348,12 +2404,9 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     NULL_CHECK(attach);
                     if (!list->elements[x]->data) { //special case
                         attach->id2_val = list->elements[x]->type;
-                        DEBUG_EMAIL(("Seen a Reference. The data hasn't been loaded yet. [%#"PRIx64"][%#x]\n",
-                                 attach->id2_val, list->elements[x]->type));
+                        DEBUG_EMAIL(("Seen a Reference. The data hasn't been loaded yet. [%#"PRIx64"]\n", attach->id2_val));
                     } else {
-                        LIST_COPY(attach->data, (char*));
-                        attach->size = list->elements[x]->size;
-                        DEBUG_EMAIL(("NOT PRINTED\n"));
+                        LIST_COPY_BIN(attach->data);
                     }
                     break;
                 case 0x3704: // PR_ATTACH_FILENAME Attachment filename (8.3)
@@ -2635,13 +2688,10 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                 case 0x3FFD: // PR_MESSAGE_CODEPAGE
                     LIST_COPY_INT32("Message code page", item->message_codepage);
                     break;
-                case 0x65E3: // Entry ID?
-                    DEBUG_EMAIL(("Entry ID - "));
-                    item->record_key = (char*) xmalloc(16+1);
-                    memcpy(item->record_key, &(list->elements[x]->data[1]), 16); //skip first byte
-                    item->record_key[16]='\0';
-                    item->record_key_size=16;
-                    DEBUG_EMAIL_HEXPRINT((char*)item->record_key, 16);
+                case 0x65E3: // PR_PREDECESSOR_CHANGE_LIST
+                    LIST_COPY_BIN(item->predecessor_change);
+                    DEBUG_EMAIL(("Predecessor Change\n"));
+                    DEBUG_EMAIL_HEXPRINT(item->predecessor_change.data, item->predecessor_change.size);
                     break;
                 case 0x67F2: // ID2 value of the attachments proper record
                     DEBUG_EMAIL(("Attachment ID2 value - "));
@@ -2659,13 +2709,13 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_STORE_INT32("Password checksum", item->message_store->pwd_chksum);
                     break;
                 case 0x6F02: // Secure HTML Body
-                    LIST_COPY_EMAIL_SIZE("Secure HTML Body", item->email->encrypted_htmlbody, item->email->encrypted_htmlbody_size);
+                    LIST_COPY_EMAIL_BIN("Secure HTML Body", item->email->encrypted_htmlbody);
                     break;
                 case 0x6F04: // Secure Text Body
-                    LIST_COPY_EMAIL_SIZE("Secure Text Body", item->email->encrypted_body, item->email->encrypted_body_size);
+                    LIST_COPY_EMAIL_BIN("Secure Text Body", item->email->encrypted_body);
                     break;
                 case 0x7C07: // top of folders ENTRYID
-                    LIST_COPY_ENTRYID("Top of folders RecID", item->message_store->top_of_folder);
+                    LIST_COPY_STORE_ENTRYID("Top of folders RecID", item->message_store->top_of_folder);
                     break;
                 case 0x8005: // Contact's Fullname
                     LIST_COPY_CONTACT_STR("Contact Fullname", item->contact->fullname);
@@ -2909,12 +2959,12 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->elements[x]->type == (uint32_t)0x101E) {
+                    } else if (list->elements[x]->type == (uint32_t)0x101e) {
                         DEBUG_EMAIL(("Unknown type %#x Array of Strings [size = %#x]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
-                    } else if (list->elements[x]->type == (uint32_t)0x101F) {
+                    } else if (list->elements[x]->type == (uint32_t)0x101f) {
                         DEBUG_EMAIL(("Unknown type %#x Array of Unicode Strings [size = %#x]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
@@ -3103,7 +3153,7 @@ void pst_free_attach(pst_item_attach *attach) {
         SAFE_FREE_STR(attach->filename1);
         SAFE_FREE_STR(attach->filename2);
         SAFE_FREE_STR(attach->mimetype);
-        SAFE_FREE(attach->data);
+        SAFE_FREE_BIN(attach->data);
         pst_free_id2(attach->id2_head);
         t = attach->next;
         free(attach);
@@ -3121,8 +3171,9 @@ void pst_freeItem(pst_item *item) {
             SAFE_FREE(item->email->arrival_date);
             SAFE_FREE_STR(item->email->cc_address);
             SAFE_FREE_STR(item->email->bcc_address);
-            SAFE_FREE(item->email->encrypted_body);
-            SAFE_FREE(item->email->encrypted_htmlbody);
+            SAFE_FREE_BIN(item->email->conversation_index);
+            SAFE_FREE_BIN(item->email->encrypted_body);
+            SAFE_FREE_BIN(item->email->encrypted_htmlbody);
             SAFE_FREE_STR(item->email->header);
             SAFE_FREE_STR(item->email->htmlbody);
             SAFE_FREE_STR(item->email->in_reply_to);
@@ -3143,7 +3194,7 @@ void pst_freeItem(pst_item *item) {
             SAFE_FREE_STR(item->email->recip2_address);
             SAFE_FREE_STR(item->email->reply_to);
             SAFE_FREE_STR(item->email->rtf_body_tag);
-            SAFE_FREE(item->email->rtf_compressed);
+            SAFE_FREE_BIN(item->email->rtf_compressed);
             SAFE_FREE_STR(item->email->return_path_address);
             SAFE_FREE_STR(item->email->sender_access);
             SAFE_FREE_STR(item->email->sender_address);
@@ -3308,7 +3359,8 @@ void pst_freeItem(pst_item *item) {
         SAFE_FREE_STR(item->file_as);
         SAFE_FREE(item->modify_date);
         SAFE_FREE_STR(item->outlook_version);
-        SAFE_FREE(item->record_key);
+        SAFE_FREE_BIN(item->record_key);
+        SAFE_FREE_BIN(item->predecessor_change);
         free(item);
     }
     DEBUG_RET();
@@ -3784,7 +3836,7 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
         DEBUG_RET();
         return 0;
     }
-    DEBUG_HEXDUMPC(buf3, a, 0x10);
+    DEBUG_HEXDUMPC(buf3, a, 16);
     memcpy(&block_hdr, buf3, sizeof(block_hdr));
     LE16_CPU(block_hdr.index_offset);
     LE16_CPU(block_hdr.type);

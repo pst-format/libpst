@@ -1,3 +1,8 @@
+LibPST 0.6.34 (2009-0x-xx)
+===============================
+    * improve consistency checking when fetching items from the pst file.
+    * avoid putting mixed item types into the same output folder.
+
 LibPST 0.6.33 (2009-03-17)
 ===============================
 

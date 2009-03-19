@@ -172,6 +172,12 @@ typedef struct pst_string {
 } pst_string;
 
 
+typedef struct pst_binary {
+    size_t  size;
+    char   *data;
+} pst_binary;
+
+
 /** This struct defines an email message
  */
 typedef struct pst_item_email {
@@ -180,17 +186,15 @@ typedef struct pst_item_email {
     int         autoforward;
     pst_string  cc_address;
     pst_string  bcc_address;
-    int32_t     conversation_index;
+    pst_binary  conversation_index;
     /** 1 = true, 0 = false */
     int         conversion_prohibited;
     /** 1 = true, 0 = false */
     int         delete_after_submit;
     /** 1 = true, 0 = false */
     int         delivery_report;
-    char       *encrypted_body;
-    size_t      encrypted_body_size;
-    char       *encrypted_htmlbody;
-    size_t      encrypted_htmlbody_size;
+    pst_binary  encrypted_body;
+    pst_binary  encrypted_htmlbody;
     pst_string  header;
     pst_string  htmlbody;
     /** 0=low, 1=normal, 2=high */
@@ -230,8 +234,7 @@ typedef struct pst_item_email {
     int32_t     rtf_body_char_count;
     int32_t     rtf_body_crc;
     pst_string  rtf_body_tag;
-    char       *rtf_compressed;
-    uint32_t    rtf_compressed_size;
+    pst_binary  rtf_compressed;
     /** 1 = true, 0 = false */
     int         rtf_in_sync;
     int32_t     rtf_ws_prefix_count;
@@ -256,8 +259,8 @@ typedef struct pst_item_email {
 
 
 typedef struct pst_item_folder {
-    int32_t  email_count;
-    int32_t  unseen_email_count;
+    int32_t  item_count;
+    int32_t  unseen_item_count;
     int32_t  assoc_count;
     /** 1 = true, 0 = false */
     int      subfolder;
@@ -401,8 +404,7 @@ typedef struct pst_item_attach {
     pst_string  filename1;
     pst_string  filename2;
     pst_string  mimetype;
-    char       *data;
-    size_t      size;
+    pst_binary  data;
     uint64_t    id2_val;
     /** calculated from id2_val during creation of record */
     uint64_t    i_id;
@@ -506,8 +508,8 @@ typedef struct pst_item {
     int32_t     message_codepage;
     int32_t     message_size;
     pst_string  outlook_version;
-    char       *record_key;             // probably 16 bytes long.
-    size_t      record_key_size;
+    pst_binary  record_key;
+    pst_binary  predecessor_change;     // was formerly stored in record_key
     /** 1 = true, 0 = false */
     int         response_requested;
     FILETIME   *create_date;

@@ -11,7 +11,7 @@
 struct file_ll {
     char *dname;
     int32_t stored_count;
-    int32_t email_count;
+    int32_t item_count;
     int32_t skip_count;
     int32_t type;
 };
@@ -29,10 +29,10 @@ pst_file pstfile;
 void create_enter_dir(struct file_ll* f, pst_item *item)
 {
     pst_convert_utf8(item, &item->file_as);
-    f->email_count  = 0;
+    f->item_count   = 0;
     f->skip_count   = 0;
     f->type         = item->type;
-    f->stored_count = (item->folder) ? item->folder->email_count : 0;
+    f->stored_count = (item->folder) ? item->folder->item_count : 0;
     f->dname        = (char*) xmalloc(strlen(item->file_as.str)+1);
     strcpy(f->dname, item->file_as.str);
 }

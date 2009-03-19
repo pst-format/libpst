@@ -21,7 +21,7 @@ struct file_ll {
     char *dname;
     FILE * output;
     int32_t stored_count;
-    int32_t email_count;
+    int32_t item_count;
     int32_t skip_count;
     int32_t type;
 };
@@ -130,99 +130,120 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
     memset(&ff, 0, sizeof(ff));
     create_enter_dir(&ff, outeritem);
 
-    while (d_ptr) {
+    for (; d_ptr; d_ptr = d_ptr->next) {
         DEBUG_MAIN(("main: New item record\n"));
         if (!d_ptr->desc) {
-            DEBUG_WARN(("main: ERROR item's desc record is NULL\n"));
             ff.skip_count++;
+            DEBUG_WARN(("main: ERROR item's desc record is NULL\n"));
+            continue;
         }
-        else {
-            DEBUG_MAIN(("main: Desc Email ID %#"PRIx64" [d_ptr->d_id = %#"PRIx64"]\n", d_ptr->desc->i_id, d_ptr->d_id));
+        DEBUG_MAIN(("main: Desc Email ID %#"PRIx64" [d_ptr->d_id = %#"PRIx64"]\n", d_ptr->desc->i_id, d_ptr->d_id));
 
-            item = pst_parse_item(&pstfile, d_ptr, NULL);
-            DEBUG_MAIN(("main: About to process item\n"));
-            if (item && item->subject.str) {
-                DEBUG_EMAIL(("item->subject = %s\n", item->subject.str));
+        item = pst_parse_item(&pstfile, d_ptr, NULL);
+        DEBUG_MAIN(("main: About to process item\n"));
+
+        if (!item) {
+            ff.skip_count++;
+            DEBUG_MAIN(("main: A NULL item was seen\n"));
+            continue;
+        }
+
+        if (item->subject.str) {
+            DEBUG_EMAIL(("item->subject = %s\n", item->subject.str));
+        }
+
+        if (item->folder && item->file_as.str) {
+            DEBUG_MAIN(("Processing Folder \"%s\"\n", item->file_as.str));
+            if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as.str);
+            ff.item_count++;
+            if (d_ptr->child && (deleted_mode == DMODE_INCLUDE || strcasecmp(item->file_as.str, "Deleted Items"))) {
+                //if this is a non-empty folder other than deleted items, we want to recurse into it
+                process(item, d_ptr->child);
             }
-            if (item) {
-                if (item->folder && d_ptr->child && item->file_as.str && (deleted_mode == DMODE_INCLUDE || strcasecmp(item->file_as.str, "Deleted Items"))) {
-                    //if this is a non-empty folder other than deleted items, we want to recurse into it
-                    if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as.str);
-                    process(item, d_ptr->child);
 
-                } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                    ff.email_count++;
-                    DEBUG_MAIN(("main: Processing Contact\n"));
-                    if (ff.type != PST_TYPE_CONTACT) {
-                        DEBUG_MAIN(("main: I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Processing anyway\n", ff.type));
-                    }
-                    if (contact_mode == CMODE_VCARD) {
-                        pst_convert_utf8_null(item, &item->comment);
-                        write_vcard(ff.output, item, item->contact, item->comment.str);
-                    }
-                    else {
-                        pst_convert_utf8(item, &item->contact->fullname);
-                        pst_convert_utf8(item, &item->contact->address1);
-                        fprintf(ff.output, "%s <%s>\n", item->contact->fullname.str, item->contact->address1.str);
-                    }
-
-                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
-                    char *extra_mime_headers = NULL;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                    ff.email_count++;
-                    DEBUG_MAIN(("main: Processing Email\n"));
-                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT)) {
-                        DEBUG_MAIN(("main: I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Processing anyway\n", item->type, ff.type));
-                    }
-                    write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
-
-                } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                    ff.email_count++;
-                    DEBUG_MAIN(("main: Processing Journal Entry\n"));
-                    if (ff.type != PST_TYPE_JOURNAL) {
-                        DEBUG_MAIN(("main: I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Processing anyway\n", ff.type));
-                    }
-                    fprintf(ff.output, "BEGIN:VJOURNAL\n");
-                    if (item->subject.str) {
-                        pst_convert_utf8(item, &item->subject);
-                        fprintf(ff.output, "SUMMARY:%s\n", pst_rfc2426_escape(item->subject.str));
-                    }
-                    if (item->body.str) {
-                        pst_convert_utf8(item, &item->body);
-                        fprintf(ff.output, "DESCRIPTION:%s\n", pst_rfc2426_escape(item->body.str));
-                    }
-                    if (item->journal->start)
-                        fprintf(ff.output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(item->journal->start));
-                    fprintf(ff.output, "END:VJOURNAL\n\n");
-
-                } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                    ff.email_count++;
-                    DEBUG_MAIN(("main: Processing Appointment Entry\n"));
-                    if (ff.type != PST_TYPE_APPOINTMENT) {
-                        DEBUG_MAIN(("main: I have an appointment, but folder type %"PRIi32" isn't an appointment folder. Processing anyway\n", ff.type));
-                    }
-                    write_appointment(ff.output, item, item->appointment, item->create_date, item->modify_date);
-
-                } else if (item->message_store) {
-                    // there should only be one message_store, and we have already done it
-                    DEBUG_MAIN(("item with message store content, type %i %s folder type %i, skipping it\n", item->type, item->ascii_type, ff.type));
-
-                } else {
-                    // these all seem to be things that MS agrees are not included in the item count
-                    //ff.skip_count++;
-                    DEBUG_MAIN(("main: Unknown item type %i (%s) name (%s)\n",
-                                item->type, item->ascii_type, item->file_as.str));
-                }
-                pst_freeItem(item);
-            } else {
+        } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
+            if (!ff.type) ff.type = item->type;
+            DEBUG_MAIN(("main: Processing Contact\n"));
+            if (ff.type != PST_TYPE_CONTACT) {
                 ff.skip_count++;
-                DEBUG_MAIN(("main: A NULL item was seen\n"));
+                DEBUG_MAIN(("main: I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Skipping it\n", ff.type));
             }
-            d_ptr = d_ptr->next;
+            else {
+                ff.item_count++;
+                if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                if (contact_mode == CMODE_VCARD) {
+                    pst_convert_utf8_null(item, &item->comment);
+                    write_vcard(ff.output, item, item->contact, item->comment.str);
+                }
+                else {
+                    pst_convert_utf8(item, &item->contact->fullname);
+                    pst_convert_utf8(item, &item->contact->address1);
+                    fprintf(ff.output, "%s <%s>\n", item->contact->fullname.str, item->contact->address1.str);
+                }
+            }
+
+        } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+            if (!ff.type) ff.type = item->type;
+            DEBUG_MAIN(("main: Processing Email\n"));
+            if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT)) {
+                ff.skip_count++;
+                DEBUG_MAIN(("main: I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
+            }
+            else {
+                char *extra_mime_headers = NULL;
+                ff.item_count++;
+                if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+            }
+
+        } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
+            if (!ff.type) ff.type = item->type;
+            DEBUG_MAIN(("main: Processing Journal Entry\n"));
+            if (ff.type != PST_TYPE_JOURNAL) {
+                ff.skip_count++;
+                DEBUG_MAIN(("main: I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Skipping it\n", ff.type));
+            }
+            else {
+                ff.item_count++;
+                if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                fprintf(ff.output, "BEGIN:VJOURNAL\n");
+                if (item->subject.str) {
+                    pst_convert_utf8(item, &item->subject);
+                    fprintf(ff.output, "SUMMARY:%s\n", pst_rfc2426_escape(item->subject.str));
+                }
+                if (item->body.str) {
+                    pst_convert_utf8(item, &item->body);
+                    fprintf(ff.output, "DESCRIPTION:%s\n", pst_rfc2426_escape(item->body.str));
+                }
+                if (item->journal->start)
+                    fprintf(ff.output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(item->journal->start));
+                fprintf(ff.output, "END:VJOURNAL\n\n");
+            }
+
+        } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
+            if (!ff.type) ff.type = item->type;
+            DEBUG_MAIN(("main: Processing Appointment Entry\n"));
+            if (ff.type != PST_TYPE_APPOINTMENT) {
+                ff.skip_count++;
+                DEBUG_MAIN(("main: I have an appointment, but the folder type %"PRIi32" isn't an appointment folder. Skipping it\n", ff.type));
+            }
+            else {
+                ff.item_count++;
+                if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                write_appointment(ff.output, item, item->appointment, item->create_date, item->modify_date);
+            }
+
+        } else if (item->message_store) {
+            // there should only be one message_store, and we have already done it
+            ff.skip_count++;
+            DEBUG_MAIN(("item with message store content, type %i %s folder type %i, skipping it\n", item->type, item->ascii_type, ff.type));
+
+        } else {
+            ff.skip_count++;
+            DEBUG_MAIN(("main: Unknown item type %i (%s) name (%s)\n",
+                        item->type, item->ascii_type, item->file_as.str));
         }
+        pst_freeItem(item);
     }
     close_enter_dir(&ff);
     DEBUG_RET();
@@ -665,10 +686,10 @@ int mk_separate_file(struct file_ll *f) {
     const int name_offset = 1;
     DEBUG_ENT("mk_separate_file");
     DEBUG_MAIN(("opening next file to save email\n"));
-    if (f->email_count > 999999999) { // bigger than nine 9's
+    if (f->item_count > 999999999) { // bigger than nine 9's
         DIE(("mk_separate_file: The number of emails in this folder has become too high to handle"));
     }
-    sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count + name_offset);
+    sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->item_count + name_offset);
     if (f->output) fclose(f->output);
     f->output = NULL;
     check_filename(f->name);
@@ -732,7 +753,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
                                                     : attach->filename1.str;
     DEBUG_ENT("write_separate_attachment");
 
-    if (!attach->data) {
+    if (!attach->data.data) {
         // make sure we can fetch data from the id
         pst_index_ll *ptr = pst_getID(pst, attach->i_id);
         if (!ptr) {
@@ -765,8 +786,8 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
     if (!(fp = fopen(temp, "w"))) {
         WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
-        if (attach->data)
-            pst_fwrite(attach->data, (size_t)1, attach->size, fp);
+        if (attach->data.data)
+            pst_fwrite(attach->data.data, (size_t)1, attach->data.size, fp);
         else {
             (void)pst_attach_to_file(pst, attach, fp);
         }
@@ -810,9 +831,9 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
     char *attach_filename;
     char *enc = NULL; // base64 encoded attachment
     DEBUG_ENT("write_inline_attachment");
-    DEBUG_EMAIL(("Attachment Size is %"PRIu64", id %#"PRIx64"\n", (uint64_t)attach->size, attach->i_id));
-    if (attach->data) {
-        enc = base64_encode (attach->data, attach->size);
+    DEBUG_EMAIL(("Attachment Size is %"PRIu64", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->i_id));
+    if (attach->data.data) {
+        enc = base64_encode (attach->data.data, attach->data.size);
         if (!enc) {
             DEBUG_EMAIL(("ERROR base64_encode returned NULL. Must have failed\n"));
             DEBUG_RET();
@@ -846,7 +867,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
         fprintf(f_output, "Content-Disposition: attachment; filename=\"%s\"\n\n", attach_filename);
     }
 
-    if (attach->data) {
+    if (attach->data.data) {
         pst_fwrite(enc, 1, strlen(enc), f_output);
         DEBUG_EMAIL(("Attachment Size after encoding is %i\n", strlen(enc)));
         free(enc);  // caught by valgrind
@@ -1256,9 +1277,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         // multipart/report for DSN/MDN reports
         fprintf(f_output, "Content-Type: multipart/report; report-type=%s;\n\tboundary=\"%s\"\n", body_report, boundary);
     }
-    else if (item->attach || (item->email->rtf_compressed && save_rtf)
-                          || item->email->encrypted_body
-                          || item->email->encrypted_htmlbody) {
+    else if (item->attach || (item->email->rtf_compressed.data && save_rtf)
+                          || item->email->encrypted_body.data
+                          || item->email->encrypted_htmlbody.data) {
         // use multipart/mixed if we have attachments
         fprintf(f_output, "Content-Type: multipart/mixed;\n\tboundary=\"%s\"\n", boundary);
     } else {
@@ -1282,43 +1303,43 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         write_body_part(f_output, &item->email->htmlbody, "text/html", body_charset, boundary, pst);
     }
 
-    if (item->email->rtf_compressed && save_rtf) {
+    if (item->email->rtf_compressed.data && save_rtf) {
         pst_item_attach* attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
         DEBUG_EMAIL(("Adding RTF body as attachment\n"));
         memset(attach, 0, sizeof(pst_item_attach));
         attach->next = item->attach;
         item->attach = attach;
-        attach->data = lzfu_decompress(item->email->rtf_compressed, item->email->rtf_compressed_size, &attach->size);
+        attach->data.data         = lzfu_decompress(item->email->rtf_compressed.data, item->email->rtf_compressed.size, &attach->data.size);
         attach->filename2.str     = strdup(RTF_ATTACH_NAME);
         attach->filename2.is_utf8 = 1;
         attach->mimetype.str      = strdup(RTF_ATTACH_TYPE);
         attach->mimetype.is_utf8  = 1;
     }
 
-    if (item->email->encrypted_body || item->email->encrypted_htmlbody) {
+    if (item->email->encrypted_body.data || item->email->encrypted_htmlbody.data) {
         // if either the body or htmlbody is encrypted, add them as attachments
-        if (item->email->encrypted_body) {
+        if (item->email->encrypted_body.data) {
             pst_item_attach* attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
             DEBUG_EMAIL(("Adding Encrypted Body as attachment\n"));
             attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
             item->attach = attach;
-            attach->data = item->email->encrypted_body;
-            attach->size = item->email->encrypted_body_size;
-            item->email->encrypted_body = NULL;
+            attach->data.data = item->email->encrypted_body.data;
+            attach->data.size = item->email->encrypted_body.size;
+            item->email->encrypted_body.data = NULL;
         }
 
-        if (item->email->encrypted_htmlbody) {
+        if (item->email->encrypted_htmlbody.data) {
             pst_item_attach* attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
             DEBUG_EMAIL(("Adding encrypted HTML body as attachment\n"));
             attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
             item->attach = attach;
-            attach->data = item->email->encrypted_htmlbody;
-            attach->size = item->email->encrypted_htmlbody_size;
-            item->email->encrypted_htmlbody = NULL;
+            attach->data.data = item->email->encrypted_htmlbody.data;
+            attach->data.size = item->email->encrypted_htmlbody.size;
+            item->email->encrypted_htmlbody.data = NULL;
         }
         write_email_body(f_output, "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
     }
@@ -1332,12 +1353,12 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             pst_convert_utf8_null(item, &attach->filename2);
             pst_convert_utf8_null(item, &attach->mimetype);
             DEBUG_EMAIL(("Attempting Attachment encoding\n"));
-            if (!attach->data && attach->mimetype.str && !strcmp(attach->mimetype.str, RFC822)) {
+            if (!attach->data.data && attach->mimetype.str && !strcmp(attach->mimetype.str, RFC822)) {
                 DEBUG_EMAIL(("seem to have special embedded message attachment\n"));
                 find_rfc822_headers(extra_mime_headers);
                 write_embedded_message(f_output, attach, boundary, pst, extra_mime_headers);
             }
-            else if (attach->data || attach->i_id) {
+            else if (attach->data.data || attach->i_id) {
                 if (mode == MODE_SEPARATE && !mode_MH)
                     write_separate_attachment(f_name, attach, ++attach_num, pst);
                 else
@@ -1585,10 +1606,10 @@ void write_appointment(FILE* f_output, pst_item *item,  pst_item_appointment* ap
 void create_enter_dir(struct file_ll* f, pst_item *item)
 {
     pst_convert_utf8(item, &item->file_as);
-    f->email_count  = 0;
+    f->item_count  = 0;
     f->skip_count   = 0;
     f->type         = item->type;
-    f->stored_count = (item->folder) ? item->folder->email_count : 0;
+    f->stored_count = (item->folder) ? item->folder->item_count : 0;
 
     DEBUG_ENT("create_enter_dir");
     if (mode == MODE_KMAIL)
@@ -1600,7 +1621,6 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
         mk_separate_dir(item->file_as.str);
         f->name = (char*) xmalloc(10);
         memset(f->name, 0, 10);
-        //      sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->email_count);
     } else {
         f->name = (char*) xmalloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+1);
         sprintf(f->name, OUTPUT_TEMPLATE, item->file_as.str);
@@ -1647,10 +1667,10 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
 
 void close_enter_dir(struct file_ll *f)
 {
-    DEBUG_MAIN(("main: Email Count for folder %s is %i\n", f->dname, f->email_count));
+    DEBUG_MAIN(("main: processed item count for folder %s is %i, skipped %i, total %i \n",
+                f->dname, f->item_count, f->skip_count, f->stored_count));
     if (output_mode != OUTPUT_QUIET)
-        printf("\t\"%s\" - %i items done, skipped %i, should have been %i\n",
-               f->dname, f->email_count, f->skip_count, f->stored_count);
+        printf("\t\"%s\" - %i items done.\n", f->dname, f->item_count);
     if (f->output) fclose(f->output);
     free(f->name);
     free(f->dname);
