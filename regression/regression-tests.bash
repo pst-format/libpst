@@ -50,7 +50,7 @@ function dopst()
 
 
 val="valgrind --leak-check=full"
-#val=''
+val=''
 
 pushd ..
 make || exit
@@ -84,8 +84,6 @@ elif [ "$1" == "ldif" ]; then
     #doldif  18 test-mac.pst
     #doldif  19 harris.pst
 else
-    dopst  11 flow.pst
-    exit
     dopst   1 ams.pst
     dopst   2 sample_64.pst
     dopst   3 test.pst
@@ -96,6 +94,7 @@ else
     dopst   8 ol2k3high.pst
     dopst   9 ol97high.pst
     dopst  10 returned_message.pst
+    dopst  11 flow.pst
     dopst  12 test-html.pst
     dopst  13 test-text.pst
     dopst  14 joe.romanowski.pst
@@ -108,4 +107,3 @@ else
 fi
 
 grep 'lost:' *err | grep -v 'lost: 0 '
-grep 'should have been' *err

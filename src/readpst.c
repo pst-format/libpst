@@ -1669,8 +1669,8 @@ void close_enter_dir(struct file_ll *f)
 {
     DEBUG_MAIN(("main: processed item count for folder %s is %i, skipped %i, total %i \n",
                 f->dname, f->item_count, f->skip_count, f->stored_count));
-    if (output_mode != OUTPUT_QUIET)
-        printf("\t\"%s\" - %i items done.\n", f->dname, f->item_count);
+    if (output_mode != OUTPUT_QUIET) printf("\t\"%s\" - %i items done, %i items skipped.\n",
+                                            f->dname, f->item_count, f->skip_count);
     if (f->output) fclose(f->output);
     free(f->name);
     free(f->dname);

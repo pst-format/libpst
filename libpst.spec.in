@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Mar 19 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.34-1
+- avoid putting mixed item types into the same output folder.
+
 * Tue Mar 17 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.33-1
 - compensate for iconv conversion to utf-7 that produces strings that
   are not null terminated.

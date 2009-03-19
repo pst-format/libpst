@@ -2038,7 +2038,7 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     break;
                 case 0x001A: // PR_MESSAGE_CLASS IPM.x
                     if ((list->elements[x]->type == 0x1e) ||
-                        (list->elements[x]->type == 0x1e)) {
+                        (list->elements[x]->type == 0x1f)) {
                         LIST_COPY_CSTR(item->ascii_type);
                         if (!item->ascii_type) item->ascii_type = strdup("unknown");
                         if (pst_strincmp("IPM.Note", item->ascii_type, 8) == 0)
