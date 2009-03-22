@@ -518,27 +518,30 @@ typedef struct pst_x_attrib {
 } pst_x_attrib;
 
 
+/** Try to load the extended attributes from the pst file.
+    @return true(1) or false(0) to indicate whether the extended attributes have been loaded
+ */
 int pst_load_extended_attributes(pst_file *pf) {
-    // for PST files this will load up ID2 0x61 and check it's "list" attribute.
+    // for PST files this will load up d_id 0x61 and check it's "assoc_tree" attribute.
     pst_desc_ll *p;
-    pst_mapi_object *na;
+    pst_mapi_object *list;
     pst_id2_ll *id2_head = NULL;
     char *buffer=NULL, *headerbuffer=NULL;
     size_t bsize=0, hsize=0, bptr=0;
     pst_x_attrib xattrib;
     int32_t tint, err=0, x;
-    pst_x_attrib_ll *ptr, *p_head=NULL, *p_sh=NULL, *p_sh2=NULL;
+    pst_x_attrib_ll *ptr, *p_head=NULL;
 
     DEBUG_ENT("pst_loadExtendedAttributes");
     p = pst_getDptr(pf, (uint64_t)0x61);
     if (!p) {
-        DEBUG_WARN(("Cannot find DescID 0x61 for loading the Extended Attributes\n"));
+        DEBUG_WARN(("Cannot find d_id 0x61 for loading the Extended Attributes\n"));
         DEBUG_RET();
         return 0;
     }
 
     if (!p->desc) {
-        DEBUG_WARN(("desc is NULL for item 0x61. Cannot load Extended Attributes\n"));
+        DEBUG_WARN(("descriptor is NULL for d_id 0x61. Cannot load Extended Attributes\n"));
         DEBUG_RET();
         return 0;
     }
@@ -547,49 +550,53 @@ int pst_load_extended_attributes(pst_file *pf) {
         id2_head = pst_build_id2(pf, p->assoc_tree);
         pst_printID2ptr(id2_head);
     } else {
-        DEBUG_WARN(("Have not been able to fetch any id2 values for item 0x61. Brace yourself!\n"));
+        DEBUG_WARN(("Have not been able to fetch any id2 values for d_id 0x61. Brace yourself!\n"));
     }
 
-    na = pst_parse_block(pf, p->desc->i_id, id2_head);
-    if (!na) {
+    list = pst_parse_block(pf, p->desc->i_id, id2_head);
+    if (!list) {
         DEBUG_WARN(("Cannot process desc block for item 0x61. Not loading extended Attributes\n"));
         pst_free_id2(id2_head);
         DEBUG_RET();
         return 0;
     }
 
-    for (x=0; x < na->count_elements; x++) {
-        if (na->elements[x]->mapi_id == (uint32_t)0x0003) {
-            buffer = na->elements[x]->data;
-            bsize = na->elements[x]->size;
-        } else if (na->elements[x]->mapi_id == (uint32_t)0x0004) {
-            headerbuffer = na->elements[x]->data;
-            hsize = na->elements[x]->size;
+    DEBUG_EMAIL(("look thru d_id 0x61 list of mapi objects\n"));
+    for (x=0; x < list->count_elements; x++) {
+        DEBUG_EMAIL(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
+        if (list->elements[x]->data) {
+            DEBUG_HEXDUMPC(list->elements[x]->data, list->elements[x]->size, 0x10);
+        }
+        if (list->elements[x]->mapi_id == (uint32_t)0x0003) {
+            buffer = list->elements[x]->data;
+            bsize  = list->elements[x]->size;
+        } else if (list->elements[x]->mapi_id == (uint32_t)0x0004) {
+            headerbuffer = list->elements[x]->data;
+            hsize        = list->elements[x]->size;
         } else {
             // leave them null
         }
     }
 
     if (!buffer) {
-        pst_free_list(na);
+        pst_free_list(list);
         DEBUG_WARN(("No extended attributes buffer found. Not processing\n"));
         DEBUG_RET();
         return 0;
     }
 
-	xattrib.extended= PST_LE_GET_UINT32(buffer+bptr), bptr += 4;
-	xattrib.type    = PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
-	xattrib.map     = PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
-
-    while (xattrib.type != 0 && bptr < bsize) {
+    while (bptr < bsize) {
+        int err = 0;
+        xattrib.extended= PST_LE_GET_UINT32(buffer+bptr), bptr += 4;
+        xattrib.type    = PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
+        xattrib.map     = PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
         ptr = (pst_x_attrib_ll*) xmalloc(sizeof(*ptr));
         memset(ptr, 0, sizeof(*ptr));
         ptr->type = xattrib.type;
         ptr->map  = xattrib.map+0x8000;
         ptr->next = NULL;
-        DEBUG_INDEX(("xattrib: ext = %#x, type = %#hx, map = %#hx\n",
+        DEBUG_INDEX(("xattrib: ext = %#"PRIx32", type = %#"PRIx16", map = %#"PRIx16"\n",
              xattrib.extended, xattrib.type, xattrib.map));
-        err=0;
         if (xattrib.type & 0x0001) { // if the Bit 1 is set
             // pointer to Unicode field in buffer
             if (xattrib.extended < hsize) {
@@ -602,9 +609,10 @@ int pst_load_extended_attributes(pst_file *pf) {
                 memcpy(wt, &(headerbuffer[xattrib.extended+sizeof(tint)]), (size_t)tint);
                 ptr->data = pst_wide_to_single(wt, (size_t)tint);
                 free(wt);
-                DEBUG_INDEX(("Read string (converted from UTF-16): %s\n", ptr->data));
+                DEBUG_INDEX(("Mapped attribute %#"PRIx32" to %s\n", ptr->map, ptr->data));
             } else {
                 DEBUG_INDEX(("Cannot read outside of buffer [%i !< %i]\n", xattrib.extended, hsize));
+                err = 1;
             }
             ptr->mytype = PST_MAP_HEADER;
         } else {
@@ -613,16 +621,16 @@ int pst_load_extended_attributes(pst_file *pf) {
             memset(ptr->data, 0, sizeof(uint32_t));
             *((uint32_t*)ptr->data) = xattrib.extended;
             ptr->mytype = PST_MAP_ATTRIB;
-            DEBUG_INDEX(("Mapped attribute %#x to %#x\n", ptr->map, *((int32_t*)ptr->data)));
+            DEBUG_INDEX(("Mapped attribute %#"PRIx32" to %#"PRIx32"\n", ptr->map, *((uint32_t*)ptr->data)));
         }
 
-        if (err==0) {
+        if (!err) {
             // add it to the list
-            p_sh = p_head;
-            p_sh2 = NULL;
+            pst_x_attrib_ll *p_sh  = p_head;
+            pst_x_attrib_ll *p_sh2 = NULL;
             while (p_sh && ptr->map > p_sh->map) {
                 p_sh2 = p_sh;
-                p_sh = p_sh->next;
+                p_sh  = p_sh->next;
             }
             if (!p_sh2) {
                 // needs to go before first item
@@ -635,16 +643,10 @@ int pst_load_extended_attributes(pst_file *pf) {
             }
         } else {
             free(ptr);
-            ptr = NULL;
         }
-        memcpy(&xattrib, &(buffer[bptr]), sizeof(xattrib));
-        LE32_CPU(xattrib.extended);
-        LE16_CPU(xattrib.type);
-        LE16_CPU(xattrib.map);
-        bptr += sizeof(xattrib);
     }
     pst_free_id2(id2_head);
-    pst_free_list(na);
+    pst_free_list(list);
     pf->x_head = p_head;
     DEBUG_RET();
     return 1;
@@ -1556,9 +1558,9 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
                     mo_ptr->elements[x]->mapi_id = *((uint32_t*)mapptr->data);
                     DEBUG_EMAIL(("Mapped attrib %#x to %#x\n", table_rec.type, mo_ptr->elements[x]->mapi_id));
                 } else if (mapptr->mytype == PST_MAP_HEADER) {
-                    DEBUG_EMAIL(("Internet Header mapping found %#x\n", table_rec.type));
+                    DEBUG_EMAIL(("Internet Header mapping found %#"PRIx32" to %s\n", table_rec.type, mapptr->data));
                     mo_ptr->elements[x]->mapi_id = (uint32_t)PST_ATTRIB_HEADER;
-                    mo_ptr->elements[x]->extra = mapptr->data;
+                    mo_ptr->elements[x]->extra   = mapptr->data;
                 }
                 else {
                     DEBUG_WARN(("Missing assertion failure\n"));
@@ -1981,43 +1983,40 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
         int32_t x;
         for (x=0; x<list->count_elements; x++) {
             int32_t t;
-            pst_item_extra_field *ef;
-            // check here to see if the id is one that is mapped.
             DEBUG_EMAIL(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
 
             switch (list->elements[x]->mapi_id) {
                 case PST_ATTRIB_HEADER: // CUSTOM attribute for saying the Extra Headers
-                    if ((list->elements[x]->extra) &&
-                        ((list->elements[x]->type == 0x1f)  ||
-                         (list->elements[x]->type == 0x1e))) {
-                        ef = (pst_item_extra_field*) xmalloc(sizeof(pst_item_extra_field));
+                    if (list->elements[x]->extra) {
+                        pst_item_extra_field *ef = (pst_item_extra_field*) xmalloc(sizeof(pst_item_extra_field));
                         memset(ef, 0, sizeof(pst_item_extra_field));
-                        ef->field_name = (char*) xmalloc(strlen(list->elements[x]->extra)+1);
-                        strcpy(ef->field_name, list->elements[x]->extra);
+                        ef->field_name = strdup(list->elements[x]->extra);
                         LIST_COPY_CSTR(ef->value);
-                        ef->next = item->extra_fields;
-                        item->extra_fields = ef;
-                        DEBUG_EMAIL(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
-                        if (strcmp(ef->field_name, "content-type") == 0) {
-                            char *p = strstr(ef->value, "charset=\"");
-                            if (p) {
-                                p += 9; // skip over charset="
-                                char *pp = strchr(p, '"');
-                                if (pp) {
-                                    *pp = '\0';
-                                    char *set = strdup(p);
-                                    *pp = '"';
-                                    if (item->body_charset.str) free(item->body_charset.str);
-                                    item->body_charset.str     = set;
-                                    item->body_charset.is_utf8 = 1;
-                                    DEBUG_EMAIL(("body charset %s from content-type extra field\n", set));
+                        if (ef->value) {
+                            ef->next = item->extra_fields;
+                            item->extra_fields = ef;
+                            DEBUG_EMAIL(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
+                            if (strcmp(ef->field_name, "content-type") == 0) {
+                                char *p = strstr(ef->value, "charset=\"");
+                                if (p) {
+                                    p += 9; // skip over charset="
+                                    char *pp = strchr(p, '"');
+                                    if (pp) {
+                                        *pp = '\0';
+                                        char *set = strdup(p);
+                                        *pp = '"';
+                                        if (item->body_charset.str) free(item->body_charset.str);
+                                        item->body_charset.str     = set;
+                                        item->body_charset.is_utf8 = 1;
+                                        DEBUG_EMAIL(("body charset %s from content-type extra field\n", set));
+                                    }
                                 }
                             }
                         }
-                    }
-                    else {
-                        DEBUG_EMAIL(("What does this mean?\n"));
-                        DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
+                        else {
+                            DEBUG_EMAIL(("What does this mean? Internet header %s value\n", list->elements[x]->extra));
+                            DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
+                        }
                     }
                     break;
                 case 0x0002: // PR_ALTERNATE_RECIPIENT_ALLOWED

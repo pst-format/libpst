@@ -240,15 +240,15 @@ static void print_pdf_short(const char *line, int len, int color)
     while ((p = strchr(l, '&'))) {
         *p = '\0';
         char *err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, l, &strex);
-        if (err) printf(err);
+        if (err) printf("%s", err);
         x_position += (brect[2]-brect[6]);
         l = p+1;
         err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, (char*)"&amp;", &strex);
-        if (err) printf(err);
+        if (err) printf("%s", err);
         x_position += (brect[2]-brect[6]);
     }
     char *err = gdImageStringFTEx(image, &brect[0], color, font_file, sz, 0.0, x_position, y_position, l, &strex);
-    if (err) printf(err);
+    if (err) printf("%s", err);
     x_position += (brect[2]-brect[6]);
     col_number += len;
 }
@@ -331,7 +331,7 @@ static void open_png()
 
         char line[LINE_SIZE];
         char *err = gdImageStringFTEx(NULL, &brect[0], black, font_file, sz, 0.0, margin, margin, (char*)"LMgqQ", &strex);
-        if (err) printf(err);
+        if (err) printf("%s", err);
         line_height = (brect[3]-brect[7]) * 12/10;
         char_width  = (brect[2]-brect[6]) / 5;
         col_number  = 0;

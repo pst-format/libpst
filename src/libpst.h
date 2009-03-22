@@ -542,8 +542,10 @@ typedef struct pst_file {
     pst_x_attrib_ll *x_head;
     pst_block_recorder *block_head;
 
-    int do_read64;              // 0 is 32-bit pst file, pre Outlook 2003;
-                                // 1 is 64-bit pst file, Outlook 2003 and later
+    /** 0 is 32-bit pst file, pre Outlook 2003;
+     *  1 is 64-bit pst file, Outlook 2003 and later
+     */
+    int do_read64;
     uint64_t index1;
     uint64_t index1_back;
     uint64_t index2;
