@@ -3,6 +3,7 @@ LibPST 0.6.35 (2009-xx-xx)
     * fix bug where we failed to pickup the last extended attribute.
     * patch from Emmanuel Andry to fix potential security bug in
       pst2dii with printf(err).
+    * properly add trailing mime boundary in all modes.	
 
 LibPST 0.6.34 (2009-03-19)
 ===============================

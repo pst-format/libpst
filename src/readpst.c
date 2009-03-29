@@ -1367,12 +1367,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         }
     }
 
-    // end of this mail message
-    if (mode != MODE_SEPARATE) { /* do not add a boundary after the last attachment for mode_MH */
-        DEBUG_EMAIL(("Writing buffer between emails\n"));
-        fprintf(f_output, "\n--%s--\n", boundary);
-        fprintf(f_output, "\n\n");
-    }
+    fprintf(f_output, "\n--%s--\n\n\n", boundary);
     DEBUG_RET();
 }
 

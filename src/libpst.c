@@ -628,7 +628,7 @@ int pst_load_extended_attributes(pst_file *pf) {
             // add it to the list
             pst_x_attrib_ll *p_sh  = p_head;
             pst_x_attrib_ll *p_sh2 = NULL;
-            while (p_sh && ptr->map > p_sh->map) {
+            while (p_sh && (ptr->map > p_sh->map)) {
                 p_sh2 = p_sh;
                 p_sh  = p_sh->next;
             }
