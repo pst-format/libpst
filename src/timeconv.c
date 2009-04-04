@@ -15,17 +15,17 @@
 
 #include "define.h"
 
-char * fileTimeToAscii (const FILETIME *filetime) {
-  time_t t1;
+char * pst_fileTimeToAscii (const FILETIME *filetime) {
+    time_t t1;
 
-  t1 = fileTimeToUnixTime(filetime, NULL);
-  return ctime(&t1);
+    t1 = pst_fileTimeToUnixTime(filetime, NULL);
+    return ctime(&t1);
 }
 
-struct tm * fileTimeToStructTM (const FILETIME *filetime) {
-  time_t t1;
-  t1 = fileTimeToUnixTime(filetime, NULL);
-  return gmtime(&t1);
+struct tm * pst_fileTimeToStructTM (const FILETIME *filetime) {
+    time_t t1;
+    t1 = pst_fileTimeToUnixTime(filetime, NULL);
+    return gmtime(&t1);
 }
 
 /***********************************************************************
@@ -35,7 +35,7 @@ struct tm * fileTimeToStructTM (const FILETIME *filetime) {
  * If not NULL, 'remainder' contains the fractional part of the filetime,
  * in the range of [0..9999999] (even if time_t is negative).
  */
-time_t fileTimeToUnixTime( const FILETIME *filetime, DWORD *remainder )
+time_t pst_fileTimeToUnixTime( const FILETIME *filetime, DWORD *remainder )
 {
     /* Read the comment in the function DOSFS_UnixTimeToFileTime. */
 #if USE_LONG_LONG

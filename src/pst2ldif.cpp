@@ -406,7 +406,7 @@ void print_ldif_single(const char *attr, const char *value)
         printf("%s: %s\n", attr, &buffer[0]);
     }
     else {
-        p = base64_encode(&buffer[0], buffer.size());
+        p = pst_base64_encode(&buffer[0], buffer.size());
         printf("%s:: %s\n", attr, p);
         free(p);
     }

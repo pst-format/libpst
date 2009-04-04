@@ -3,7 +3,7 @@
 #define BUF_SIZE 100000
 
 int main(int argc, const char** argv) {
-  char *x = xmalloc(BUF_SIZE); // 10k
+  char *x = pst_malloc(BUF_SIZE); // 10k
   memset(x, '.', BUF_SIZE-1);
   x[BUF_SIZE-2]='P';
   x[BUF_SIZE-1]='\0';

@@ -63,7 +63,7 @@ int main(int argc, char* const* argv) {
         return 4;
     }
 
-    buf = (char*) xmalloc(BUF_SIZE);
+    buf = (char*) pst_malloc(BUF_SIZE);
 
     while (!stop) {
         int64_t temp;
@@ -213,7 +213,7 @@ int split_args(char *args, int **targ) {
     while ((tmp = strchr(tmp, ',')) != NULL) {
         tmp++; count++;
     }
-    *targ = (int*)xmalloc(count * sizeof(int));
+    *targ = (int*)pst_malloc(count * sizeof(int));
     i = *targ; // for convienience
     tmp = args;
     z = 0;

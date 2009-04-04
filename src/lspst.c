@@ -33,8 +33,7 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
     f->skip_count   = 0;
     f->type         = item->type;
     f->stored_count = (item->folder) ? item->folder->item_count : 0;
-    f->dname        = (char*) xmalloc(strlen(item->file_as.str)+1);
-    strcpy(f->dname, item->file_as.str);
+    f->dname        = strdup(item->file_as.str);
 }
 
 
@@ -232,8 +231,7 @@ int main(int argc, char* const* argv) {
                 temp++; // get past the "\\"
         else
             temp++; // get past the "/"
-        item->file_as.str = (char*)xmalloc(strlen(temp)+1);
-        strcpy(item->file_as.str, temp);
+        item->file_as.str = strdup(temp);
         item->file_as.is_utf8 = 1;
     }
     WARN(("item->file_as = '%s'.\n", item->file_as.str));

@@ -172,7 +172,7 @@ static unsigned char comp_high2 [] = {
 int pst_open(pst_file *pf, char *name) {
     int32_t sig;
 
-    unicode_init();
+    pst_unicode_init();
 
     DEBUG_ENT("pst_open");
 
@@ -363,7 +363,7 @@ static pst_id2_ll* deep_copy(pst_id2_ll *head);
 static pst_id2_ll* deep_copy(pst_id2_ll *head)
 {
     if (!head) return NULL;
-    pst_id2_ll* me = (pst_id2_ll*) xmalloc(sizeof(pst_id2_ll));
+    pst_id2_ll* me = (pst_id2_ll*) pst_malloc(sizeof(pst_id2_ll));
     me->id2 = head->id2;
     me->id  = head->id;
     me->child = deep_copy(head->child);
@@ -392,7 +392,7 @@ pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
     topnode = pst_getDptr(pf, (uint64_t)topid);
     if (!topnode) {
         // add dummy top record to pickup orphan children
-        topnode              = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
+        topnode              = (pst_desc_ll*) pst_malloc(sizeof(pst_desc_ll));
         topnode->d_id        = topid;
         topnode->parent_d_id = 0;
         topnode->assoc_tree  = NULL;
@@ -464,7 +464,7 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
         attach->data.size = size;
     } else {
         // encode the attachment to the file
-        char *c = base64_encode(attach->data.data, attach->data.size);
+        char *c = pst_base64_encode(attach->data.data, attach->data.size);
         if (c) {
             (void)pst_fwrite(c, (size_t)1, strlen(c), fp);
             free(c);    // caught by valgrind
@@ -590,7 +590,7 @@ int pst_load_extended_attributes(pst_file *pf) {
         xattrib.extended= PST_LE_GET_UINT32(buffer+bptr), bptr += 4;
         xattrib.type    = PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
         xattrib.map     = PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
-        ptr = (pst_x_attrib_ll*) xmalloc(sizeof(*ptr));
+        ptr = (pst_x_attrib_ll*) pst_malloc(sizeof(*ptr));
         memset(ptr, 0, sizeof(*ptr));
         ptr->type = xattrib.type;
         ptr->map  = xattrib.map+0x8000;
@@ -604,7 +604,7 @@ int pst_load_extended_attributes(pst_file *pf) {
                 // copy the size of the header. It is 32 bit int
                 memcpy(&tint, &(headerbuffer[xattrib.extended]), sizeof(tint));
                 LE32_CPU(tint);
-                wt = (char*) xmalloc((size_t)(tint+2)); // plus 2 for a uni-code zero
+                wt = (char*) pst_malloc((size_t)(tint+2)); // plus 2 for a uni-code zero
                 memset(wt, 0, (size_t)(tint+2));
                 memcpy(wt, &(headerbuffer[xattrib.extended+sizeof(tint)]), (size_t)tint);
                 ptr->data = pst_wide_to_single(wt, (size_t)tint);
@@ -617,7 +617,7 @@ int pst_load_extended_attributes(pst_file *pf) {
             ptr->mytype = PST_MAP_HEADER;
         } else {
             // contains the attribute code to map to.
-            ptr->data = (uint32_t*)xmalloc(sizeof(uint32_t));
+            ptr->data = (uint32_t*)pst_malloc(sizeof(uint32_t));
             memset(ptr->data, 0, sizeof(uint32_t));
             *((uint32_t*)ptr->data) = xattrib.extended;
             ptr->mytype = PST_MAP_ATTRIB;
@@ -895,7 +895,7 @@ int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku
                     return -1;
                 }
             }
-            i_ptr = (pst_index_ll*) xmalloc(sizeof(pst_index_ll));
+            i_ptr = (pst_index_ll*) pst_malloc(sizeof(pst_index_ll));
             i_ptr->i_id   = index.id;
             i_ptr->offset = index.offset;
             i_ptr->u1     = index.u1;
@@ -1011,7 +1011,7 @@ int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t li
             }
             DEBUG_INDEX(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_d_id));
             {
-                pst_desc_ll *d_ptr = (pst_desc_ll*) xmalloc(sizeof(pst_desc_ll));
+                pst_desc_ll *d_ptr = (pst_desc_ll*) pst_malloc(sizeof(pst_desc_ll));
                 d_ptr->d_id        = desc_rec.d_id;
                 d_ptr->parent_d_id = desc_rec.parent_d_id;
                 d_ptr->assoc_tree  = pst_getID(pf, desc_rec.tree_id);
@@ -1102,7 +1102,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
         return NULL;
     }
 
-    item = (pst_item*) xmalloc(sizeof(pst_item));
+    item = (pst_item*) pst_malloc(sizeof(pst_item));
     memset(item, 0, sizeof(pst_item));
 
     if (pst_process(list, item, NULL)) {
@@ -1126,7 +1126,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
             return item;
         }
         for (x=0; x < list->count_objects; x++) {
-            attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+            attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
             item->attach = attach;
@@ -1152,7 +1152,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
             return item;
         }
         for (x=0; x < list->count_objects; x++) {
-            attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+            attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
             item->attach = attach;
@@ -1483,12 +1483,12 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 
     DEBUG_EMAIL(("Mallocing number of records %i\n", num_recs));
     for (count_rec=0; count_rec<num_recs; count_rec++) {
-        mo_ptr = (pst_mapi_object*) xmalloc(sizeof(pst_mapi_object));
+        mo_ptr = (pst_mapi_object*) pst_malloc(sizeof(pst_mapi_object));
         memset(mo_ptr, 0, sizeof(pst_mapi_object));
         mo_ptr->next = mo_head;
         mo_head = mo_ptr;
         // allocate an array of count num_recs to contain sizeof(pst_mapi_element)
-        mo_ptr->elements        = (pst_mapi_element**) xmalloc(sizeof(pst_mapi_element)*num_list);
+        mo_ptr->elements        = (pst_mapi_element**) pst_malloc(sizeof(pst_mapi_element)*num_list);
         mo_ptr->count_elements  = num_list;
         mo_ptr->orig_count      = num_list;
         mo_ptr->count_objects   = (int32_t)num_recs; // each record will have a record of the total number of records
@@ -1546,7 +1546,7 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
                 x, table_rec.type, table_rec.ref_type, table_rec.value));
 
             if (!mo_ptr->elements[x]) {
-                mo_ptr->elements[x] = (pst_mapi_element*) xmalloc(sizeof(pst_mapi_element));
+                mo_ptr->elements[x] = (pst_mapi_element*) pst_malloc(sizeof(pst_mapi_element));
             }
             memset(mo_ptr->elements[x], 0, sizeof(pst_mapi_element)); //init it
 
@@ -1598,7 +1598,7 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
                 //contains 32 bits of data
                 mo_ptr->elements[x]->size = sizeof(int32_t);
                 mo_ptr->elements[x]->type = table_rec.ref_type;
-                mo_ptr->elements[x]->data = xmalloc(sizeof(int32_t));
+                mo_ptr->elements[x]->data = pst_malloc(sizeof(int32_t));
                 memcpy(mo_ptr->elements[x]->data, &(table_rec.value), sizeof(int32_t));
                 // are we missing an LE32_CPU() call here? table_rec.value is still
                 // in the original order.
@@ -1623,7 +1623,7 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
                     // directly stored in this block.
                     mo_ptr->elements[x]->size = value_size;
                     mo_ptr->elements[x]->type = table_rec.ref_type;
-                    mo_ptr->elements[x]->data = xmalloc(value_size);
+                    mo_ptr->elements[x]->data = pst_malloc(value_size);
                     memcpy(mo_ptr->elements[x]->data, value_pointer, value_size);
                 }
                 else if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset7)) {
@@ -1645,7 +1645,7 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
                     value_size = (size_t)(block_offset7.to - block_offset7.from);
                     mo_ptr->elements[x]->size = value_size;
                     mo_ptr->elements[x]->type = table_rec.ref_type;
-                    mo_ptr->elements[x]->data = xmalloc(value_size+1);
+                    mo_ptr->elements[x]->data = pst_malloc(value_size+1);
                     memcpy(mo_ptr->elements[x]->data, block_offset7.from, value_size);
                     mo_ptr->elements[x]->data[value_size] = '\0';  // it might be a string, null terminate it.
                 }
@@ -1666,26 +1666,26 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
                     size_t rc;
                     static vbuf *utf16buf = NULL;
                     static vbuf *utf8buf  = NULL;
-                    if (!utf16buf) utf16buf = vballoc((size_t)1024);
-                    if (!utf8buf)  utf8buf  = vballoc((size_t)1024);
+                    if (!utf16buf) utf16buf = pst_vballoc((size_t)1024);
+                    if (!utf8buf)  utf8buf  = pst_vballoc((size_t)1024);
 
                     // splint barfed on the following lines
                     //VBUF_STATIC(utf16buf, 1024);
                     //VBUF_STATIC(utf8buf, 1024);
 
                     //need UTF-16 zero-termination
-                    vbset(utf16buf, mo_ptr->elements[x]->data, mo_ptr->elements[x]->size);
-                    vbappend(utf16buf, "\0\0", (size_t)2);
+                    pst_vbset(utf16buf, mo_ptr->elements[x]->data, mo_ptr->elements[x]->size);
+                    pst_vbappend(utf16buf, "\0\0", (size_t)2);
                     DEBUG_INDEX(("Iconv in:\n"));
                     DEBUG_HEXDUMPC(utf16buf->b, utf16buf->dlen, 0x10);
-                    rc = vb_utf16to8(utf8buf, utf16buf->b, utf16buf->dlen);
+                    rc = pst_vb_utf16to8(utf8buf, utf16buf->b, utf16buf->dlen);
                     if (rc == (size_t)-1) {
                         DEBUG_EMAIL(("Failed to convert utf-16 to utf-8\n"));
                     }
                     else {
                         free(mo_ptr->elements[x]->data);
                         mo_ptr->elements[x]->size = utf8buf->dlen;
-                        mo_ptr->elements[x]->data = xmalloc(utf8buf->dlen);
+                        mo_ptr->elements[x]->data = pst_malloc(utf8buf->dlen);
                         memcpy(mo_ptr->elements[x]->data, utf8buf->b, utf8buf->dlen);
                     }
                     DEBUG_INDEX(("Iconv out:\n"));
@@ -1716,12 +1716,12 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
 #define SAFE_FREE_BIN(x) SAFE_FREE(x.data)
 
 // check if item->email is NULL, and init if so
-#define MALLOC_EMAIL(x)        { if (!x->email)         { x->email         = (pst_item_email*)         xmalloc(sizeof(pst_item_email));         memset(x->email,         0, sizeof(pst_item_email)        );} }
-#define MALLOC_FOLDER(x)       { if (!x->folder)        { x->folder        = (pst_item_folder*)        xmalloc(sizeof(pst_item_folder));        memset(x->folder,        0, sizeof(pst_item_folder)       );} }
-#define MALLOC_CONTACT(x)      { if (!x->contact)       { x->contact       = (pst_item_contact*)       xmalloc(sizeof(pst_item_contact));       memset(x->contact,       0, sizeof(pst_item_contact)      );} }
-#define MALLOC_MESSAGESTORE(x) { if (!x->message_store) { x->message_store = (pst_item_message_store*) xmalloc(sizeof(pst_item_message_store)); memset(x->message_store, 0, sizeof(pst_item_message_store));} }
-#define MALLOC_JOURNAL(x)      { if (!x->journal)       { x->journal       = (pst_item_journal*)       xmalloc(sizeof(pst_item_journal));       memset(x->journal,       0, sizeof(pst_item_journal)      );} }
-#define MALLOC_APPOINTMENT(x)  { if (!x->appointment)   { x->appointment   = (pst_item_appointment*)   xmalloc(sizeof(pst_item_appointment));   memset(x->appointment,   0, sizeof(pst_item_appointment)  );} }
+#define MALLOC_EMAIL(x)        { if (!x->email)         { x->email         = (pst_item_email*)         pst_malloc(sizeof(pst_item_email));         memset(x->email,         0, sizeof(pst_item_email)        );} }
+#define MALLOC_FOLDER(x)       { if (!x->folder)        { x->folder        = (pst_item_folder*)        pst_malloc(sizeof(pst_item_folder));        memset(x->folder,        0, sizeof(pst_item_folder)       );} }
+#define MALLOC_CONTACT(x)      { if (!x->contact)       { x->contact       = (pst_item_contact*)       pst_malloc(sizeof(pst_item_contact));       memset(x->contact,       0, sizeof(pst_item_contact)      );} }
+#define MALLOC_MESSAGESTORE(x) { if (!x->message_store) { x->message_store = (pst_item_message_store*) pst_malloc(sizeof(pst_item_message_store)); memset(x->message_store, 0, sizeof(pst_item_message_store));} }
+#define MALLOC_JOURNAL(x)      { if (!x->journal)       { x->journal       = (pst_item_journal*)       pst_malloc(sizeof(pst_item_journal));       memset(x->journal,       0, sizeof(pst_item_journal)      );} }
+#define MALLOC_APPOINTMENT(x)  { if (!x->appointment)   { x->appointment   = (pst_item_appointment*)   pst_malloc(sizeof(pst_item_appointment));   memset(x->appointment,   0, sizeof(pst_item_appointment)  );} }
 
 // malloc space and copy the current item's data null terminated
 #define LIST_COPY(targ, type) {                                    \
@@ -1912,7 +1912,7 @@ pst_mapi_object * pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i
     memcpy(targ, list->elements[x]->data, list->elements[x]->size);         \
     LE32_CPU(targ->dwLowDateTime);                                          \
     LE32_CPU(targ->dwHighDateTime);                                         \
-    DEBUG_EMAIL((label" - %s", fileTimeToAscii(targ)));                     \
+    DEBUG_EMAIL((label" - %s", pst_fileTimeToAscii(targ)));                     \
 }
 
 #define LIST_COPY_EMAIL_TIME(label, targ) {                     \
@@ -1988,7 +1988,7 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
             switch (list->elements[x]->mapi_id) {
                 case PST_ATTRIB_HEADER: // CUSTOM attribute for saying the Extra Headers
                     if (list->elements[x]->extra) {
-                        pst_item_extra_field *ef = (pst_item_extra_field*) xmalloc(sizeof(pst_item_extra_field));
+                        pst_item_extra_field *ef = (pst_item_extra_field*) pst_malloc(sizeof(pst_item_extra_field));
                         memset(ef, 0, sizeof(pst_item_extra_field));
                         ef->field_name = strdup(list->elements[x]->extra);
                         LIST_COPY_CSTR(ef->value);
@@ -2842,10 +2842,10 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
                     LIST_COPY_APPT_BOOL("Reminder alarm", item->appointment->alarm);
                     break;
                 case 0x8516: // Common start
-                    DEBUG_EMAIL(("Common Start Date - %s\n", fileTimeToAscii((FILETIME*)list->elements[x]->data)));
+                    DEBUG_EMAIL(("Common Start Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data)));
                     break;
                 case 0x8517: // Common end
-                    DEBUG_EMAIL(("Common End Date - %s\n", fileTimeToAscii((FILETIME*)list->elements[x]->data)));
+                    DEBUG_EMAIL(("Common End Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data)));
                     break;
                 case 0x851f: // Play reminder sound filename
                     LIST_COPY_APPT_STR("Appointment reminder sound filename", item->appointment->alarm_filename);
@@ -2936,7 +2936,7 @@ int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) 
 
                     } else if (list->elements[x]->type == (uint32_t)0x0040) {
                         DEBUG_EMAIL(("Unknown type %#x Date = \"%s\"\n", list->elements[x]->mapi_id,
-                            fileTimeToAscii((FILETIME*)list->elements[x]->data)));
+                            pst_fileTimeToAscii((FILETIME*)list->elements[x]->data)));
 
                     } else if (list->elements[x]->type == (uint32_t)0x0048) {
                         DEBUG_EMAIL(("Unknown type %#x OLE GUID [size = %#x]\n", list->elements[x]->mapi_id,
@@ -3121,7 +3121,7 @@ pst_id2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
             DEBUG_INDEX(("%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
                          i_ptr->i_id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
             // add it to the tree
-            i2_ptr = (pst_id2_ll*) xmalloc(sizeof(pst_id2_ll));
+            i2_ptr = (pst_id2_ll*) pst_malloc(sizeof(pst_id2_ll));
             i2_ptr->id2   = id2_rec.id2;
             i2_ptr->id    = i_ptr;
             i2_ptr->child = NULL;
@@ -3575,7 +3575,7 @@ size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf
         DEBUG_READ(("Freeing old memory\n"));
         free(*buf);
     }
-    *buf = (char*) xmalloc(size);
+    *buf = (char*) pst_malloc(size);
 
     rsize = pst_getAtPos(pf, offset, *buf, size);
     if (rsize != size) {
@@ -3698,7 +3698,7 @@ size_t pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size) {
 //  } else {
 //      // add a new block
 //      pst_block_recorder *tail = *t;
-//      p = (pst_block_recorder*)xmalloc(sizeof(*p));
+//      p = (pst_block_recorder*)pst_malloc(sizeof(*p));
 //      *t = p;
 //      p->next      = tail;
 //      p->offset    = pos;
@@ -3794,7 +3794,7 @@ size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
         if (h->buf) {
             *(h->buf) = b;
         } else if ((h->base64 == 1) && h->fp) {
-            t = base64_encode(b, ret);
+            t = pst_base64_encode(b, ret);
             if (t) {
                 (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
                 free(t);    // caught by valgrind
@@ -3848,7 +3848,7 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
         if (h->buf)
             *(h->buf) = buf3;
         else if (h->base64 == 1 && h->fp) {
-            t = base64_encode(buf3, a);
+            t = pst_base64_encode(buf3, a);
             if (t) {
                 (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
                 free(t);    // caught by valgrind
@@ -3897,7 +3897,7 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
             }
 
             // encode this chunk
-            t = base64_encode_multiple(buf2, z, &line_count);
+            t = pst_base64_encode_multiple(buf2, z, &line_count);
             if (t) {
                 DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
                 (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
@@ -3913,7 +3913,7 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
     }
     if ((h->base64 == 1) && h->fp && base64_extra) {
         // need to encode any bytes left over
-        t = base64_encode_multiple(base64_extra_chars, (size_t)base64_extra, &line_count);
+        t = pst_base64_encode_multiple(base64_extra_chars, (size_t)base64_extra, &line_count);
         if (t) {
             (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
             free(t);    // caught by valgrind
@@ -3927,10 +3927,10 @@ size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) 
 
 
 #ifdef _WIN32
-char * fileTimeToAscii(const FILETIME* filetime) {
+char * pst_fileTimeToAscii(const FILETIME* filetime) {
     time_t t;
-    DEBUG_ENT("fileTimeToAscii");
-    t = fileTimeToUnixTime(filetime, 0);
+    DEBUG_ENT("pst_fileTimeToAscii");
+    t = pst_fileTimeToUnixTime(filetime, 0);
     if (t == -1)
         DEBUG_WARN(("ERROR time_t varible that was produced, is -1\n"));
     DEBUG_RET();
@@ -3938,10 +3938,10 @@ char * fileTimeToAscii(const FILETIME* filetime) {
 }
 
 
-time_t fileTimeToUnixTime(const FILETIME* filetime, DWORD *x) {
+time_t pst_fileTimeToUnixTime(const FILETIME* filetime, DWORD *x) {
     SYSTEMTIME s;
     struct tm t;
-    DEBUG_ENT("fileTimeToUnixTime");
+    DEBUG_ENT("pst_fileTimeToUnixTime");
     memset (&t, 0, sizeof(struct tm));
     FileTimeToSystemTime(filetime, &s);
     t.tm_year = s.wYear-1900; // this is what is required
@@ -3955,9 +3955,9 @@ time_t fileTimeToUnixTime(const FILETIME* filetime, DWORD *x) {
 }
 
 
-struct tm * fileTimeToStructTM (const FILETIME *filetime) {
+struct tm * pst_fileTimeToStructTM (const FILETIME *filetime) {
     time_t t1;
-    t1 = fileTimeToUnixTime(filetime, 0);
+    t1 = pst_fileTimeToUnixTime(filetime, 0);
     return gmtime(&t1);
 }
 
@@ -4014,7 +4014,7 @@ char * pst_wide_to_single(char *wt, size_t size) {
     // returns the first byte of each wide char. the size is the number of bytes in source
     char *x, *y;
     DEBUG_ENT("pst_wide_to_single");
-    x = xmalloc((size/2)+1);
+    x = pst_malloc((size/2)+1);
     y = x;
     while (size != 0 && *wt != '\0') {
         *y = *wt;
@@ -4100,7 +4100,7 @@ char *pst_rfc2425_datetime_format(FILETIME *ft) {
     static char buffer[30];
     struct tm *stm = NULL;
     DEBUG_ENT("rfc2425_datetime_format");
-    stm = fileTimeToStructTM(ft);
+    stm = pst_fileTimeToStructTM(ft);
     if (strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", stm)==0) {
         DEBUG_INFO(("Problem occured formatting date\n"));
     }
@@ -4113,7 +4113,7 @@ char *pst_rfc2445_datetime_format(FILETIME *ft) {
     static char buffer[30];
     struct tm *stm = NULL;
     DEBUG_ENT("rfc2445_datetime_format");
-    stm = fileTimeToStructTM(ft);
+    stm = pst_fileTimeToStructTM(ft);
     if (strftime(buffer, sizeof(buffer), "%Y%m%dT%H%M%SZ", stm)==0) {
         DEBUG_INFO(("Problem occured formatting date\n"));
     }
@@ -4207,8 +4207,8 @@ void pst_convert_utf8(pst_item *item, pst_string *str)
     const char *charset = pst_default_charset(item);
     if (!strcasecmp("utf-8", charset)) return;  // already utf8
     DEBUG_ENT("pst_convert_utf8");
-    vbuf *newer = vballoc(2);
-    size_t rc = vb_8bit2utf8(newer, str->str, strlen(str->str) + 1, charset);
+    vbuf *newer = pst_vballoc(2);
+    size_t rc = pst_vb_8bit2utf8(newer, str->str, strlen(str->str) + 1, charset);
     if (rc == (size_t)-1) {
         free(newer->b);
         DEBUG_EMAIL(("Failed to convert %s to utf-8 - %s\n", charset, str->str));

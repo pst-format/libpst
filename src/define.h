@@ -154,8 +154,7 @@ void pst_debug_func_ret();
 void pst_debug_close(void);
 void pst_debug_write();
 size_t pst_debug_fwrite(const void *ptr, size_t size, size_t nitems, FILE *stream);
-
-void * xmalloc(size_t size);
+void*  pst_malloc(size_t size);
 
 #define MESSAGEPRINT(x,y) {pst_debug_msg_info(__LINE__,__FILE__,y);\
                            pst_debug_msg_text x;}

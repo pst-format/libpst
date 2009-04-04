@@ -6,9 +6,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    time_t fileTimeToUnixTime( const FILETIME *filetime, DWORD *remainder );
-    char * fileTimeToAscii (const FILETIME *filetime);
-    struct tm * fileTimeToStructTM (const FILETIME *filetime);
+    time_t pst_fileTimeToUnixTime( const FILETIME *filetime, DWORD *remainder );
+    char * pst_fileTimeToAscii (const FILETIME *filetime);
+    struct tm * pst_fileTimeToStructTM (const FILETIME *filetime);
 #ifdef __cplusplus
 }
 #endif

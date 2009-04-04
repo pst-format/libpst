@@ -5,6 +5,23 @@ AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
 AC_CANONICAL_HOST
 
+#
+#  1. Remember that version-info is current:revision:age, and age <= current.
+#  2. If the source code has changed at all since the last public release,
+#     then increment revision (`c:r:a' becomes `c:r+1:a').
+#  3. If any interfaces have been added, removed, or changed since the last
+#     update, increment current, and set revision to 0.
+#  4. If any interfaces have been added since the last public release, then
+#     increment age, since we should be backward compatible with the previous
+#     version.
+#  5. If any interfaces have been removed or changed since the last public
+#     release, then set age to 0, since we are not backward compatible.
+#  6. libtool will build libpst.so.x.y.z where the SONAME is libpst.so.x
+#     and x=current-age, y=age, z=revision
+
+libpst_version_info='2:0:0'
+AC_SUBST(LIBPST_VERSION_INFO, [$libpst_version_info])
+
 
 # Check for win32
 AC_MSG_CHECKING([for Win32])
@@ -195,7 +212,6 @@ if test "$enable_libpst_shared" = "yes"; then
     enable_shared=yes
     enable_static_tools=no
 fi
-
 
 # needed by STATIC_TOOLS in src/Makefile.am
 AC_SUBST(PST_OBJDIR, [$objdir])

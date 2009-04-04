@@ -5,7 +5,7 @@
 #define ASSERT(x,...) { if( !(x) ) DIE(( __VA_ARGS__)); }
 
 
-int skip_nl(char *s)
+int pst_skip_nl(char *s)
 {
     if (s[0] == '\n')
         return 1;
@@ -17,7 +17,7 @@ int skip_nl(char *s)
 }
 
 
-int find_nl(vstr * vs)
+int pst_find_nl(vstr * vs)
 {
     char *nextr, *nextn;
 
@@ -49,9 +49,9 @@ static iconv_t     i8totarget = (iconv_t)-1;
 static iconv_t     target2i8  = (iconv_t)-1;
 
 
-void unicode_init()
+void pst_unicode_init()
 {
-    if (unicode_up) unicode_close();
+    if (unicode_up) pst_unicode_close();
     i16to8 = iconv_open("utf-8", "utf-16le");
     if (i16to8 == (iconv_t)-1) {
         WARN(("Couldn't open iconv descriptor for utf-16le to utf-8.\n"));
@@ -61,7 +61,7 @@ void unicode_init()
 }
 
 
-void unicode_close()
+void pst_unicode_close()
 {
     iconv_close(i16to8);
     if (target_open_from) iconv_close(i8totarget);
@@ -74,7 +74,8 @@ void unicode_close()
 }
 
 
-int utf16_is_terminated(const char *str, int length)
+static int utf16_is_terminated(const char *str, int length);
+static int utf16_is_terminated(const char *str, int length)
 {
     VSTR_STATIC(errbuf, 100);
     int len = -1;
@@ -86,7 +87,7 @@ int utf16_is_terminated(const char *str, int length)
     }
 
     if (-1 == len) {
-        vshexdump(errbuf, str, 0, length, 1);
+        pst_vshexdump(errbuf, str, 0, length, 1);
         DEBUG_WARN(("String is not zero terminated (probably broken data from registry) %s.\n", errbuf->b));
     }
 
@@ -94,7 +95,7 @@ int utf16_is_terminated(const char *str, int length)
 }
 
 
-size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen)
+size_t pst_vb_utf16to8(vbuf *dest, const char *inbuf, int iblen)
 {
     size_t inbytesleft  = iblen;
     size_t icresult     = (size_t)-1;
@@ -103,7 +104,7 @@ size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen)
     int   myerrno;
 
     ASSERT(unicode_up, "vb_utf16to8() called before unicode started.");
-    vbresize(dest, iblen);
+    pst_vbresize(dest, iblen);
 
     //Bad Things can happen if a non-zero-terminated utf16 string comes through here
     if (!utf16_is_terminated(inbuf, iblen))
@@ -115,12 +116,12 @@ size_t vb_utf16to8(vbuf *dest, const char *inbuf, int iblen)
         icresult = iconv(i16to8, (ICONV_CONST char**)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
         myerrno  = errno;
         dest->dlen = outbuf - dest->b;
-        if (inbytesleft) vbgrow(dest, inbytesleft);
+        if (inbytesleft) pst_vbgrow(dest, inbytesleft);
     } while ((size_t)-1 == icresult && E2BIG == myerrno);
 
     if (icresult == (size_t)-1) {
         DEBUG_WARN(("iconv failure: %s\n", strerror(myerrno)));
-        unicode_init();
+        pst_unicode_init();
         return (size_t)-1;
     }
     return (icresult) ? (size_t)-1 : 0;
@@ -160,7 +161,7 @@ static size_t sbcs_conversion(vbuf *dest, const char *inbuf, int iblen, iconv_t 
     char *outbuf        = NULL;
     int   myerrno;
 
-    vbresize(dest, 2*iblen);
+    pst_vbresize(dest, 2*iblen);
 
     do {
         outbytesleft = dest->blen - dest->dlen;
@@ -168,19 +169,19 @@ static size_t sbcs_conversion(vbuf *dest, const char *inbuf, int iblen, iconv_t 
         icresult = iconv(conversion, (ICONV_CONST char**)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
         myerrno  = errno;
         dest->dlen = outbuf - dest->b;
-        if (inbytesleft) vbgrow(dest, 2*inbytesleft);
+        if (inbytesleft) pst_vbgrow(dest, 2*inbytesleft);
     } while ((size_t)-1 == icresult && E2BIG == myerrno);
 
     if (icresult == (size_t)-1) {
         DEBUG_WARN(("iconv failure: %s\n", strerror(myerrno)));
-        unicode_init();
+        pst_unicode_init();
         return (size_t)-1;
     }
     return (icresult) ? (size_t)-1 : 0;
 }
 
 
-size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* charset)
+size_t pst_vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* charset)
 {
     open_targets(charset);
     if (!target_open_from) return (size_t)-1;   // failure to open the target
@@ -188,7 +189,7 @@ size_t vb_utf8to8bit(vbuf *dest, const char *inbuf, int iblen, const char* chars
 }
 
 
-size_t vb_8bit2utf8(vbuf *dest, const char *inbuf, int iblen, const char* charset)
+size_t pst_vb_8bit2utf8(vbuf *dest, const char *inbuf, int iblen, const char* charset)
 {
     open_targets(charset);
     if (!target_open_to) return (size_t)-1;     // failure to open the target
@@ -196,21 +197,21 @@ size_t vb_8bit2utf8(vbuf *dest, const char *inbuf, int iblen, const char* charse
 }
 
 
-vbuf *vballoc(size_t len)
+vbuf *pst_vballoc(size_t len)
 {
     struct varbuf *result = malloc(sizeof(struct varbuf));
     if (result) {
         result->dlen = 0;
         result->blen = 0;
         result->buf = NULL;
-        vbresize(result, len);
+        pst_vbresize(result, len);
     }
     else DIE(("malloc() failure"));
     return result;
 }
 
 
-void vbcheck(vbuf * vb)
+void pst_vbcheck(vbuf * vb)
 {
     ASSERT(vb->b >= vb->buf, "vbcheck(): data not inside buffer");
     ASSERT((size_t)(vb->b - vb->buf) <= vb->blen, "vbcheck(): vb->b outside of buffer range.");
@@ -219,20 +220,20 @@ void vbcheck(vbuf * vb)
 }
 
 
-void vbfree(vbuf * vb)
+void pst_vbfree(vbuf * vb)
 {
     free(vb->buf);
     free(vb);
 }
 
 
-void vbclear(struct varbuf *vb) // ditch the data, keep the buffer
+void pst_vbclear(struct varbuf *vb) // ditch the data, keep the buffer
 {
-    vbresize(vb, 0);
+    pst_vbresize(vb, 0);
 }
 
 
-void vbresize(struct varbuf *vb, size_t len)    // DESTRUCTIVELY grow or shrink buffer
+void pst_vbresize(struct varbuf *vb, size_t len)    // DESTRUCTIVELY grow or shrink buffer
 {
     vb->dlen = 0;
 
@@ -247,26 +248,26 @@ void vbresize(struct varbuf *vb, size_t len)    // DESTRUCTIVELY grow or shrink 
 }
 
 
-size_t vbavail(vbuf * vb)
+size_t pst_vbavail(vbuf * vb)
 {
     return vb->blen  - vb->dlen - (size_t)(vb->b - vb->buf);
 }
 
 
-void vbgrow(struct varbuf *vb, size_t len)      // out: vbavail(vb) >= len, data are preserved
+void pst_vbgrow(struct varbuf *vb, size_t len)      // out: vbavail(vb) >= len, data are preserved
 {
     if (0 == len)
         return;
 
     if (0 == vb->blen) {
-        vbresize(vb, len);
+        pst_vbresize(vb, len);
         return;
     }
 
     if (vb->dlen + len > vb->blen) {
         if (vb->dlen + len < vb->blen * 1.5)
             len = vb->blen * 1.5;
-        char *nb = malloc(vb->blen + len);
+        char *nb = pst_malloc(vb->blen + len);
         if (!nb) DIE(("malloc() failure"));
         vb->blen = vb->blen + len;
         memcpy(nb, vb->b, vb->dlen);
@@ -281,43 +282,43 @@ void vbgrow(struct varbuf *vb, size_t len)      // out: vbavail(vb) >= len, data
 
     vb->b = vb->buf;
 
-    ASSERT(vbavail(vb) >= len, "vbgrow(): I have failed in my mission.");
+    ASSERT(pst_vbavail(vb) >= len, "vbgrow(): I have failed in my mission.");
 }
 
 
-void vbset(vbuf * vb, void *b, size_t len)      // set vbuf b size=len, resize if necessary, relen = how much to over-allocate
+void pst_vbset(vbuf * vb, void *b, size_t len)      // set vbuf b size=len, resize if necessary, relen = how much to over-allocate
 {
-    vbresize(vb, len);
+    pst_vbresize(vb, len);
     memcpy(vb->b, b, len);
     vb->dlen = len;
 }
 
 
-void vsskipws(vstr * vs)
+void pst_vsskipws(vstr * vs)
 {
     char *p = vs->b;
     while ((size_t)(p - vs->b) < vs->dlen && isspace(p[0]))
         p++;
 
-    vbskip((vbuf *) vs, p - vs->b);
+    pst_vbskip((vbuf *) vs, p - vs->b);
 }
 
 
 // append len bytes of b to vbuf, resize if necessary
-void vbappend(struct varbuf *vb, void *b, size_t len)
+void pst_vbappend(struct varbuf *vb, void *b, size_t len)
 {
     if (0 == vb->dlen) {
-        vbset(vb, b, len);
+        pst_vbset(vb, b, len);
         return;
     }
-    vbgrow(vb, len);
+    pst_vbgrow(vb, len);
     memcpy(vb->b + vb->dlen, b, len);
     vb->dlen += len;
 }
 
 
 // dumps the first skip bytes from vbuf
-void vbskip(struct varbuf *vb, size_t skip)
+void pst_vbskip(struct varbuf *vb, size_t skip)
 {
     ASSERT(skip <= vb->dlen, "vbskip(): Attempt to seek past end of buffer.");
     vb->b += skip;
@@ -326,44 +327,45 @@ void vbskip(struct varbuf *vb, size_t skip)
 
 
 // overwrite vbdest with vbsrc
-void vboverwrite(struct varbuf *vbdest, struct varbuf *vbsrc)
+void pst_vboverwrite(struct varbuf *vbdest, struct varbuf *vbsrc)
 {
-    vbresize(vbdest, vbsrc->blen);
+    pst_vbresize(vbdest, vbsrc->blen);
     memcpy(vbdest->b, vbsrc->b, vbsrc->dlen);
     vbdest->blen = vbsrc->blen;
     vbdest->dlen = vbsrc->dlen;
 }
 
 
-vstr *vsalloc(size_t len)
+vstr *pst_vsalloc(size_t len)
 {
-    vstr *result = (vstr *) vballoc(len + 1);
-    vsset(result, "");
+    vstr *result = (vstr *) pst_vballoc(len + 1);
+    pst_vsset(result, "");
     return result;
 }
 
 
-char *vsstr(vstr * vs)
+static char *pst_vsstr(vstr * vs);
+static char *pst_vsstr(vstr * vs)
 {
     return vs->b;
 }
 
 
-size_t vslen(vstr * vs)
+size_t pst_vslen(vstr * vs)
 {
-    return strlen(vsstr(vs));
+    return strlen(pst_vsstr(vs));
 }
 
 
-void vsfree(vstr * vs)
+void pst_vsfree(vstr * vs)
 {
-    vbfree((vbuf *) vs);
+    pst_vbfree((vbuf *) vs);
 }
 
 
-void vscharcat(vstr * vb, int ch)
+void pst_vscharcat(vstr * vb, int ch)
 {
-    vbgrow((vbuf *) vb, 1);
+    pst_vbgrow((vbuf *) vb, 1);
     vb->b[vb->dlen - 1] = ch;
     vb->b[vb->dlen] = '\0';
     vb->dlen++;
@@ -371,12 +373,12 @@ void vscharcat(vstr * vb, int ch)
 
 
 // prependappend string str to vbuf, vbuf must already contain a valid string
-void vsnprepend(vstr * vb, char *str, size_t len)
+void pst_vsnprepend(vstr * vb, char *str, size_t len)
 {
     ASSERT(vb->b[vb->dlen - 1] == '\0', "vsncat(): attempt to append string to non-string.");
     size_t sl = strlen(str);
     size_t n = (sl < len) ? sl : len;
-    vbgrow((vbuf *) vb, n + 1);
+    pst_vbgrow((vbuf *) vb, n + 1);
     memmove(vb->b + n, vb->b, vb->dlen - 1);
     memcpy(vb->b, str, n);
     vb->dlen += n;
@@ -385,18 +387,18 @@ void vsnprepend(vstr * vb, char *str, size_t len)
 
 
 // len < dlen-1 -> skip len chars, else DIE
-void vsskip(vstr * vs, size_t len)
+void pst_vsskip(vstr * vs, size_t len)
 {
     ASSERT(len < vs->dlen - 1, "Attempt to skip past end of string");
-    vbskip((vbuf *) vs, len);
+    pst_vbskip((vbuf *) vs, len);
 }
 
 
 // in: vb->b == "stuff\nmore_stuff"; out: vb->b == "more_stuff"
-int vsskipline(vstr * vs)
+int pst_vsskipline(vstr * vs)
 {
-    int nloff = find_nl(vs);
-    int nll   = skip_nl(vs->b + nloff);
+    int nloff = pst_find_nl(vs);
+    int nll   = pst_skip_nl(vs->b + nloff);
 
     if (nloff < 0) {
         //TODO: error
@@ -417,7 +419,7 @@ int vsskipline(vstr * vs)
 }
 
 
-int vscatprintf(vstr * vs, char *fmt, ...)
+int pst_vscatprintf(vstr * vs, char *fmt, ...)
 {
     int size;
     va_list ap;
@@ -425,7 +427,7 @@ int vscatprintf(vstr * vs, char *fmt, ...)
     /* Guess we need no more than 100 bytes. */
     //vsresize( vb, 100 );
     if (!vs->b || vs->dlen == 0) {
-        vsset(vs, "");
+        pst_vsset(vs, "");
     }
 
     while (1) {
@@ -441,15 +443,15 @@ int vscatprintf(vstr * vs, char *fmt, ...)
         }
         /* Else try again with more space. */
         if (size >= 0)          /* glibc 2.1 */
-            vbgrow((vbuf *) vs, size + 1);      /* precisely what is needed */
+            pst_vbgrow((vbuf *) vs, size + 1);      /* precisely what is needed */
         else                    /* glibc 2.0 */
-            vbgrow((vbuf *) vs, vs->blen);
+            pst_vbgrow((vbuf *) vs, vs->blen);
     }
 }
 
 
 //  returns the last character stored in a vstr
-int vslast(vstr * vs)
+int pst_vslast(vstr * vs)
 {
     if (vs->dlen < 1)
         return -1;
@@ -462,13 +464,13 @@ int vslast(vstr * vs)
 
 
 //  print over vb
-void vs_printf(vstr * vs, char *fmt, ...)
+void pst_vs_printf(vstr * vs, char *fmt, ...)
 {
     int size;
     va_list ap;
 
     /* Guess we need no more than 100 bytes. */
-    vbresize((vbuf *) vs, 100);
+    pst_vbresize((vbuf *) vs, 100);
 
     while (1) {
         /* Try to print in the allocated space. */
@@ -483,21 +485,21 @@ void vs_printf(vstr * vs, char *fmt, ...)
         }
         /* Else try again with more space. */
         if (size >= 0)          /* glibc 2.1 */
-            vbresize((vbuf *) vs, size + 1);    /* precisely what is needed */
+            pst_vbresize((vbuf *) vs, size + 1);    /* precisely what is needed */
         else                    /* glibc 2.0 */
-            vbresize((vbuf *) vs, vs->blen * 2);
+            pst_vbresize((vbuf *) vs, vs->blen * 2);
     }
 }
 
 
 // printf append to vs
-void vs_printfa(vstr * vs, char *fmt, ...)
+void pst_vs_printfa(vstr * vs, char *fmt, ...)
 {
     int size;
     va_list ap;
 
     if (vs->blen - vs->dlen < 50)
-        vbgrow((vbuf *) vs, 100);
+        pst_vbgrow((vbuf *) vs, 100);
 
     while (1) {
         /* Try to print in the allocated space. */
@@ -512,14 +514,14 @@ void vs_printfa(vstr * vs, char *fmt, ...)
         }
         /* Else try again with more space. */
         if (size >= 0)          /* glibc 2.1 */
-            vbgrow((vbuf *) vs, size + 1 - vs->dlen);   /* precisely what is needed */
+            pst_vbgrow((vbuf *) vs, size + 1 - vs->dlen);   /* precisely what is needed */
         else                    /* glibc 2.0 */
-            vbgrow((vbuf *) vs, size);
+            pst_vbgrow((vbuf *) vs, size);
     }
 }
 
 
-void vshexdump(vstr * vs, const char *b, size_t start, size_t stop, int ascii)
+void pst_vshexdump(vstr * vs, const char *b, size_t start, size_t stop, int ascii)
 {
     char c;
     int diff, i;
@@ -529,57 +531,57 @@ void vshexdump(vstr * vs, const char *b, size_t start, size_t stop, int ascii)
         if (diff > 16)
             diff = 16;
 
-        vs_printfa(vs, ":%08X  ", start);
+        pst_vs_printfa(vs, ":%08X  ", start);
 
         for (i = 0; i < diff; i++) {
             if (8 == i)
-                vs_printfa(vs, " ");
-            vs_printfa(vs, "%02X ", (unsigned char) *(b + start + i));
+                pst_vs_printfa(vs, " ");
+            pst_vs_printfa(vs, "%02X ", (unsigned char) *(b + start + i));
         }
         if (ascii) {
             for (i = diff; i < 16; i++)
-                vs_printfa(vs, "   ");
+                pst_vs_printfa(vs, "   ");
             for (i = 0; i < diff; i++) {
                 c = *(b + start + i);
-                vs_printfa(vs, "%c", isprint(c) ? c : '.');
+                pst_vs_printfa(vs, "%c", isprint(c) ? c : '.');
             }
         }
-        vs_printfa(vs, "\n");
+        pst_vs_printfa(vs, "\n");
         start += 16;
     }
 }
 
 
-void vsset(vstr * vs, char *s)  // Store string s in vs
+void pst_vsset(vstr * vs, char *s)  // Store string s in vs
 {
-    vsnset(vs, s, strlen(s));
+    pst_vsnset(vs, s, strlen(s));
 }
 
 
-void vsnset(vstr * vs, char *s, size_t n)       // Store string s in vs
+void pst_vsnset(vstr * vs, char *s, size_t n)       // Store string s in vs
 {
-    vbresize((vbuf *) vs, n + 1);
+    pst_vbresize((vbuf *) vs, n + 1);
     memcpy(vs->b, s, n);
     vs->b[n] = '\0';
     vs->dlen = n + 1;
 }
 
 
-void vsgrow(vstr * vs, size_t len)      // grow buffer by len bytes, data are preserved
+void pst_vsgrow(vstr * vs, size_t len)      // grow buffer by len bytes, data are preserved
 {
-    vbgrow((vbuf *) vs, len);
+    pst_vbgrow((vbuf *) vs, len);
 }
 
 
-size_t vsavail(vstr * vs)
+size_t pst_vsavail(vstr * vs)
 {
-    return vbavail((vbuf *) vs);
+    return pst_vbavail((vbuf *) vs);
 }
 
 
-void vsnset16(vstr * vs, char *s, size_t len)   // Like vbstrnset, but for UTF16
+void pst_vsnset16(vstr * vs, char *s, size_t len)   // Like vbstrnset, but for UTF16
 {
-    vbresize((vbuf *) vs, len + 1);
+    pst_vbresize((vbuf *) vs, len + 1);
     memcpy(vs->b, s, len);
 
     vs->b[len] = '\0';
@@ -588,32 +590,32 @@ void vsnset16(vstr * vs, char *s, size_t len)   // Like vbstrnset, but for UTF16
 }
 
 
-void vscat(vstr * vs, char *str)
+void pst_vscat(vstr * vs, char *str)
 {
-    vsncat(vs, str, strlen(str));
+    pst_vsncat(vs, str, strlen(str));
 }
 
 
-int vscmp(vstr * vs, char *str)
+int pst_vscmp(vstr * vs, char *str)
 {
     return strcmp(vs->b, str);
 }
 
 
-void vsncat(vstr * vs, char *str, size_t len)   // append string str to vstr, vstr must already contain a valid string
+void pst_vsncat(vstr * vs, char *str, size_t len)   // append string str to vstr, vstr must already contain a valid string
 {
     ASSERT(vs->b[vs->dlen - 1] == '\0', "vsncat(): attempt to append string to non-string.");
     size_t sl = strlen(str);
     size_t n = (sl < len) ? sl : len;
     //string append
-    vbgrow((vbuf *) vs, n + 1);
+    pst_vbgrow((vbuf *) vs, n + 1);
     memcpy(vs->b + vs->dlen - 1, str, n);
     vs->dlen += n;
     vs->b[vs->dlen - 1] = '\0';
 }
 
 
-void vstrunc(vstr * v, size_t off) // Drop chars [off..dlen]
+void pst_vstrunc(vstr * v, size_t off) // Drop chars [off..dlen]
 {
     if (off >= v->dlen - 1)
         return;                 //nothing to do

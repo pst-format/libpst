@@ -52,7 +52,7 @@ void dumper(uint64_t i_id)
             ptr = pst_getNextDptr(ptr);
         }
         if (!ptr) {
-            ptr = (pst_desc_ll *) xmalloc(sizeof(pst_desc_ll));
+            ptr = (pst_desc_ll *) pst_malloc(sizeof(pst_desc_ll));
             memset(ptr, 0, sizeof(pst_desc_ll));
             ptr->desc = pst_getID(&pstfile, i_id);
         }

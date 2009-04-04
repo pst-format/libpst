@@ -35,7 +35,7 @@ typedef struct _lzfuheader {
 } lzfuheader;
 
 
-char* lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
+char* pst_lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
 	unsigned char dict[4096];       // the dictionary buffer
 	unsigned int dict_length = 0;   // the dictionary pointer
 	lzfuheader lzfuhdr;             // the header of the lzfu block
@@ -63,7 +63,7 @@ char* lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
 	//printf("CRC       : %#x\n", lzfuhdr.dwCRC);
 	//printf("\n");
 	out_size = lzfuhdr.cbRawSize;
-	out_buf  = (char*)xmalloc(out_size);
+	out_buf  = (char*)pst_malloc(out_size);
 	in_ptr	 = sizeof(lzfuhdr);
 	// Make sure to correct lzfuhdr.cbSize with 4 bytes before comparing
 	// to compsize

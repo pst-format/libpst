@@ -7,18 +7,22 @@ struct pst_debug_item {
     char * file;
     char * text;
     struct pst_debug_item *next;
-} *item_head=NULL, *item_tail=NULL, *item_ptr=NULL, *info_ptr=NULL, *temp_list=NULL;
+};
+
+static struct pst_debug_item *item_head=NULL, *item_tail=NULL, *item_ptr=NULL, *info_ptr=NULL, *temp_list=NULL;
 
 
 struct pst_debug_func {
     char * name;
     struct pst_debug_func *next;
-} *func_head=NULL, *func_ptr=NULL;
+};
+
+static struct pst_debug_func *func_head=NULL, *func_ptr=NULL;
 
 
 void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *ap, int size);
 void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, int col);
-void * xmalloc(size_t size);
+void * pst_malloc(size_t size);
 
 size_t pst_debug_fwrite(const void *ptr, size_t size, size_t nitems, FILE *stream) {
     return fwrite(ptr, size, nitems, stream);
@@ -74,8 +78,8 @@ void pst_debug_hexdumper(FILE *out, char *buf, size_t size, int col, int delta) 
 }
 
 
-FILE *debug_fp = NULL;
-unsigned int max_items=DEBUG_MAX_ITEMS, curr_items=0;
+static FILE *debug_fp = NULL;
+static unsigned int max_items=DEBUG_MAX_ITEMS, curr_items=0;
 
 
 void pst_debug_init(const char* fname) {
@@ -97,14 +101,14 @@ void pst_debug_init(const char* fname) {
 void pst_debug_msg_info(int line, const char* file, int type) {
     char *x;
     if (!debug_fp) return;  // no file
-    info_ptr = (struct pst_debug_item*) xmalloc(sizeof(struct pst_debug_item));
+    info_ptr = (struct pst_debug_item*) pst_malloc(sizeof(struct pst_debug_item));
     info_ptr->type = type;
     info_ptr->line = line;
     x = (func_head==NULL?"No Function":func_head->name);
-    info_ptr->function = (char*) xmalloc(strlen(x)+1);
+    info_ptr->function = (char*) pst_malloc(strlen(x)+1);
     strcpy(info_ptr->function, x);
 
-    info_ptr->file = (char*) xmalloc(strlen(file)+1);
+    info_ptr->file = (char*) pst_malloc(strlen(file)+1);
     strcpy(info_ptr->file, file);
 
     //put the current record on a temp linked list
@@ -152,7 +156,7 @@ void pst_debug_msg_text(const char* fmt, ...) {
     #endif
 
     if (f > 0 && f < MAX_MESSAGE_SIZE) {
-        info_ptr->text = (char*) xmalloc(f+1);
+        info_ptr->text = (char*) pst_malloc(f+1);
         va_start(ap, fmt);
         if ((g = vsnprintf(info_ptr->text, f, fmt, ap)) == -1) {
             fprintf(stderr, "_debug_msg: Dying! vsnprintf returned -1 for format \"%s\"\n", fmt);
@@ -212,8 +216,8 @@ void pst_debug_hexdump(char *x, size_t y, int cols, int delta) {
 
 
 void pst_debug_func(const char *function) {
-    func_ptr = xmalloc (sizeof(struct pst_debug_func));
-    func_ptr->name = xmalloc(strlen(function)+1);
+    func_ptr = pst_malloc (sizeof(struct pst_debug_func));
+    func_ptr->name = pst_malloc(strlen(function)+1);
     strcpy(func_ptr->name, function);
     func_ptr->next = func_head;
     func_head = func_ptr;
@@ -262,7 +266,7 @@ void pst_debug_write() {
 
     if (curr_items == 0) return;    // no items to write.
 
-    index = (int64_t*)xmalloc(index_size);
+    index = (int64_t*)pst_malloc(index_size);
     memset(index, 0, index_size);   // valgrind, avoid writing uninitialized data
     file_pos += index_size;
     // write the index first, we will re-write it later, but
@@ -278,7 +282,7 @@ void pst_debug_write() {
                strlen(item_ptr->file)     +
                strlen(item_ptr->text)     + 3; //for the three \0s
         if (buf) free(buf);
-        buf = xmalloc(size+1);
+        buf = pst_malloc(size+1);
         ptr = 0;
         funcname=ptr;
         ptr += sprintf(&(buf[ptr]), "%s", item_ptr->function)+1;
@@ -435,10 +439,10 @@ void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, in
 }
 
 
-void *xmalloc(size_t size) {
+void *pst_malloc(size_t size) {
     void *mem = malloc(size);
     if (!mem) {
-        fprintf(stderr, "xMalloc: Out Of memory [req: %ld]\n", (long)size);
+        fprintf(stderr, "pst_malloc: Out Of memory [req: %ld]\n", (long)size);
         exit(1);
     }
     return mem;

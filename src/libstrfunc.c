@@ -6,7 +6,8 @@
 
 static char base64_code_chars[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/==";
 
-void base64_append(char **ou, int *line_count, char data)
+static void base64_append(char **ou, int *line_count, char data);
+static void base64_append(char **ou, int *line_count, char data)
 {
     if (*line_count == 76) {
         *(*ou)++ = '\n';
@@ -17,14 +18,14 @@ void base64_append(char **ou, int *line_count, char data)
 }
 
 
-char *base64_encode(void *data, size_t size)
+char *pst_base64_encode(void *data, size_t size)
 {
     int line_count = 0;
-    return base64_encode_multiple(data, size, &line_count);
+    return pst_base64_encode_multiple(data, size, &line_count);
 }
 
 
-char *base64_encode_multiple(void *data, size_t size, int *line_count)
+char *pst_base64_encode_multiple(void *data, size_t size, int *line_count)
 {
     char *output;
     char *ou;

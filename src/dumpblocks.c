@@ -52,7 +52,7 @@ int main(int argc, char* const* argv)
         }
 
     ptr = pstfile.i_head;
-    outname = (char *) xmalloc(OUT_BUF);
+    outname = (char *) pst_malloc(OUT_BUF);
     printf("Saving blocks\n");
     while (ptr != NULL) {
         /*    if (pstfile.encryption == PST_ENC) {

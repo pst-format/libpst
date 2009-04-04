@@ -406,7 +406,7 @@ int main(int argc, char* const* argv) {
                 temp++; // get past the "\\"
         else
             temp++; // get past the "/"
-        item->file_as.str = (char*)xmalloc(strlen(temp)+1);
+        item->file_as.str = (char*)pst_malloc(strlen(temp)+1);
         strcpy(item->file_as.str, temp);
         item->file_as.is_utf8 = 1;
         DEBUG_MAIN(("file_as was blank, so am using %s\n", item->file_as.str));
@@ -766,11 +766,11 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
     check_filename(f_name);
     if (!attach_filename) {
         // generate our own (dummy) filename for the attachement
-        temp = xmalloc(strlen(f_name)+15);
+        temp = pst_malloc(strlen(f_name)+15);
         sprintf(temp, "%s-attach%i", f_name, attach_num);
     } else {
         // have an attachment name, make sure it's unique
-        temp = xmalloc(strlen(f_name)+strlen(attach_filename)+15);
+        temp = pst_malloc(strlen(f_name)+strlen(attach_filename)+15);
         do {
             if (fp) fclose(fp);
             if (x == 0)
@@ -833,7 +833,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
     DEBUG_ENT("write_inline_attachment");
     DEBUG_EMAIL(("Attachment Size is %"PRIu64", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->i_id));
     if (attach->data.data) {
-        enc = base64_encode (attach->data.data, attach->data.size);
+        enc = pst_base64_encode (attach->data.data, attach->data.size);
         if (!enc) {
             DEBUG_EMAIL(("ERROR base64_encode returned NULL. Must have failed\n"));
             DEBUG_RET();
@@ -1054,8 +1054,8 @@ void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset
         // and is now in utf-8.
         size_t rc;
         DEBUG_EMAIL(("Convert %s utf-8 to %s\n", mime, charset));
-        vbuf *newer = vballoc(2);
-        rc = vb_utf8to8bit(newer, body->str, strlen(body->str), charset);
+        vbuf *newer = pst_vballoc(2);
+        rc = pst_vb_utf8to8bit(newer, body->str, strlen(body->str), charset);
         if (rc == (size_t)-1) {
             // unable to convert, change the charset to utf8
             free(newer->b);
@@ -1064,7 +1064,7 @@ void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset
         }
         else {
             // null terminate the output string
-            vbgrow(newer, 1);
+            pst_vbgrow(newer, 1);
             newer->b[newer->dlen] = '\0';
             free(body->str);
             body->str = newer->b;
@@ -1078,7 +1078,7 @@ void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset
     if (base64) fprintf(f_output, "Content-Transfer-Encoding: base64\n");
     fprintf(f_output, "\n");
     if (base64) {
-        char *enc = base64_encode(body->str, strlen(body->str));
+        char *enc = pst_base64_encode(body->str, strlen(body->str));
         if (enc) {
             write_email_body(f_output, enc);
             fprintf(f_output, "\n");
@@ -1130,7 +1130,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     // convert the sent date if it exists, or set it to a fixed date
     if (item->email->sent_date) {
-        em_time = fileTimeToUnixTime(item->email->sent_date, 0);
+        em_time = pst_fileTimeToUnixTime(item->email->sent_date, 0);
         c_time = ctime(&em_time);
         if (c_time)
             c_time[strlen(c_time)-1] = '\0'; //remove end \n
@@ -1304,12 +1304,12 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     }
 
     if (item->email->rtf_compressed.data && save_rtf) {
-        pst_item_attach* attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
+        pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
         DEBUG_EMAIL(("Adding RTF body as attachment\n"));
         memset(attach, 0, sizeof(pst_item_attach));
         attach->next = item->attach;
         item->attach = attach;
-        attach->data.data         = lzfu_decompress(item->email->rtf_compressed.data, item->email->rtf_compressed.size, &attach->data.size);
+        attach->data.data         = pst_lzfu_decompress(item->email->rtf_compressed.data, item->email->rtf_compressed.size, &attach->data.size);
         attach->filename2.str     = strdup(RTF_ATTACH_NAME);
         attach->filename2.is_utf8 = 1;
         attach->mimetype.str      = strdup(RTF_ATTACH_TYPE);
@@ -1319,9 +1319,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     if (item->email->encrypted_body.data || item->email->encrypted_htmlbody.data) {
         // if either the body or htmlbody is encrypted, add them as attachments
         if (item->email->encrypted_body.data) {
-            pst_item_attach* attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
+            pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
             DEBUG_EMAIL(("Adding Encrypted Body as attachment\n"));
-            attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+            attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
             item->attach = attach;
@@ -1331,9 +1331,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         }
 
         if (item->email->encrypted_htmlbody.data) {
-            pst_item_attach* attach = (pst_item_attach*)xmalloc(sizeof(pst_item_attach));
+            pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
             DEBUG_EMAIL(("Adding encrypted HTML body as attachment\n"));
-            attach = (pst_item_attach*) xmalloc(sizeof(pst_item_attach));
+            attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
             item->attach = attach;
@@ -1614,19 +1614,19 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
     else if (mode == MODE_SEPARATE) {
         // do similar stuff to recurse here.
         mk_separate_dir(item->file_as.str);
-        f->name = (char*) xmalloc(10);
+        f->name = (char*) pst_malloc(10);
         memset(f->name, 0, 10);
     } else {
-        f->name = (char*) xmalloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+1);
+        f->name = (char*) pst_malloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+1);
         sprintf(f->name, OUTPUT_TEMPLATE, item->file_as.str);
     }
 
-    f->dname = (char*) xmalloc(strlen(item->file_as.str)+1);
+    f->dname = (char*) pst_malloc(strlen(item->file_as.str)+1);
     strcpy(f->dname, item->file_as.str);
 
     if (overwrite != 1) {
         int x = 0;
-        char *temp = (char*) xmalloc (strlen(f->name)+10); //enough room for 10 digits
+        char *temp = (char*) pst_malloc (strlen(f->name)+10); //enough room for 10 digits
 
         sprintf(temp, "%s", f->name);
         check_filename(temp);
