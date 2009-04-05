@@ -8,7 +8,7 @@ version=3
 
 # Uncomment to examine a Webpage 
 # <Webpage URL> <string match>
-#http://www.example.com/downloads.php libpst-(.*)\.tar\.gz
+http://www.five-ten-sg.com/libpst/packages/ libpst-(.*)\.tar\.gz
 
 # Uncomment to examine a Webserver directory
 #http://www.example.com/pub/libpst-(.*)\.tar\.gz

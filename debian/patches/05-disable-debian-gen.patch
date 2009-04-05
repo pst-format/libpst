@@ -1,0 +1,19 @@
+--- libpst-0.6.27-orig/configure.in	2009-02-07 12:21:50.000000000 -0600
++++ libpst-0.6.27/configure.in	2009-02-24 16:19:03.000000000 -0600
+@@ -261,8 +261,6 @@
+ 
+ AC_OUTPUT(                  \
+     Makefile                \
+-    debian/Makefile         \
+-    debian/changelog        \
+     html/Makefile           \
+     info/Makefile           \
+     libpst.pc               \
+--- libpst-0.6.27-orig/Makefile.am	2009-02-07 12:21:50.000000000 -0600
++++ libpst-0.6.27/Makefile.am	2009-02-24 18:12:02.000000000 -0600
+@@ -1,4 +1,4 @@
+-SUBDIRS = src man html info debian
++SUBDIRS = src man html info
+ htmldir = ${datadir}/doc/@PACKAGE@-@VERSION@
+ html_DATA = AUTHORS COPYING ChangeLog NEWS README
+ CLEANFILES = xml/libpst xml/Makefile

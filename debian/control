@@ -1,17 +1,63 @@
 Source: libpst
+Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
+XSBC-Original-Maintainer: Carl Byington <carl@five-ten-sg.com>
 Section: utils
-Priority: extra
-Maintainer: Joachim Metz <forensics@hoffmannbv.nl>
-Build-Depends: debhelper (>= 5), autotools-dev, libfreetype6-dev, libgd2-noxpm-dev, zlib1g-dev, libjpeg62-dev
-Standards-Version: 3.7.2
+Priority: optional
+Build-Depends: debhelper (>= 7), \
+		cdbs, \
+		libtool, \
+		debhelper (>= 5), \
+		autotools-dev, \
+		libfreetype6-dev, \
+		libgd2-xpm-dev, \
+		zlib1g-dev, \
+		libjpeg62-dev
+Standards-Version: 3.8.0
 
-Package: libpst
+Package: readpst
+Priority: extra
+Section: utils
 Architecture: any
-Depends: ImageMagick, ${shlibs:Depends}, ${misc:Depends}
+Depends: 
+	imagemagick, \
+	libfreetype6, \
+	libgd2-xpm, \
+	zlib1g, \
+	libjpeg62
 Description: Utilities to convert Outlook .pst files to other formats
  The Libpst utilities include readpst which can convert email messages
  to both mbox and MH mailbox formats, pst2ldif which can convert the
  contacts to .ldif format for import into ldap databases, and pst2dii
  which can convert email messages to the DII load file format used by
- Summation.
+ Summation. A shared library is also provided.
 
+Package: libpst
+Architecture: any
+Priority: extra
+Section: utils
+Depends: readpst (= ${binary:Version}) \
+	imagemagick, \
+	libfreetype6, \
+	libgd2-xpm, \
+	zlib1g, \
+	libjpeg62
+Description: Utilities to convert Outlook .pst files to other formats
+ The Libpst utilities include readpst which can convert email messages
+ to both mbox and MH mailbox formats, pst2ldif which can convert the
+ contacts to .ldif format for import into ldap databases, and pst2dii
+ which can convert email messages to the DII load file format used by
+ Summation. A shared library is also provided.
+ This package provides the shared library.
+
+Package: libpst-dev
+Architecture: any
+Priority: extra
+Section: devel
+Depends: libpst (= ${binary:Version})
+Description: Utilities to convert Outlook .pst files to other formats
+ The Libpst utilities include readpst which can convert email messages
+ to both mbox and MH mailbox formats, pst2ldif which can convert the
+ contacts to .ldif format for import into ldap databases, and pst2dii
+ which can convert email messages to the DII load file format used by
+ Summation. A shared library is also provided.
+ This package provides the development-related files for libpst.

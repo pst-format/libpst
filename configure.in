@@ -247,7 +247,6 @@ fi
 AC_OUTPUT(                  \
     Makefile                \
     debian/Makefile         \
-    debian/changelog        \
     html/Makefile           \
     info/Makefile           \
     libpst.pc               \

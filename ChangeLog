@@ -7,6 +7,7 @@ LibPST 0.6.35 (2009-xx-xx)
     * move version-info into main configure.in, and set it properly
     * prefix all external symbols in the shared library with pst_ to
       avoid symbol clashes with other shared libraries.
+    * new debianization from hggdh.
 
 LibPST 0.6.34 (2009-03-19)
 ===============================
