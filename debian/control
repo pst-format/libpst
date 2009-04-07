@@ -3,61 +3,47 @@ Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
 XSBC-Original-Maintainer: Carl Byington <carl@five-ten-sg.com>
 Section: utils
 Priority: optional
-Build-Depends: debhelper (>= 7), \
-		cdbs, \
-		libtool, \
-		debhelper (>= 5), \
-		autotools-dev, \
-		libfreetype6-dev, \
-		libgd2-xpm-dev, \
-		zlib1g-dev, \
+Build-Depends: debhelper (>= 5),
+		cdbs,
+		libtool,
+		autotools-dev,
+		libfreetype6-dev,
+		libgd2-xpm-dev,
+		zlib1g-dev,
 		libjpeg62-dev
 Standards-Version: 3.8.0
 
 Package: readpst
-Priority: extra
-Section: utils
+Priority: optional
 Architecture: any
-Depends: 
-	imagemagick, \
-	libfreetype6, \
-	libgd2-xpm, \
-	zlib1g, \
-	libjpeg62
+Depends: ${shlibs:Depends},
+	${misc:Depends},
+	libpst1 (= ${binary:Version}),
+	imagemagick
 Description: Utilities to convert Outlook .pst files to other formats
- The Libpst utilities include readpst which can convert email messages
+ The readpst utilities include readpst which can convert email messages
  to both mbox and MH mailbox formats, pst2ldif which can convert the
  contacts to .ldif format for import into ldap databases, and pst2dii
  which can convert email messages to the DII load file format used by
- Summation. A shared library is also provided.
+ Summation. Requires the shared libray provided by libpst1.
 
-Package: libpst
+Package: libpst1
 Architecture: any
-Priority: extra
-Section: utils
-Depends: readpst (= ${binary:Version}) \
-	imagemagick, \
-	libfreetype6, \
-	libgd2-xpm, \
-	zlib1g, \
-	libjpeg62
-Description: Utilities to convert Outlook .pst files to other formats
- The Libpst utilities include readpst which can convert email messages
- to both mbox and MH mailbox formats, pst2ldif which can convert the
- contacts to .ldif format for import into ldap databases, and pst2dii
- which can convert email messages to the DII load file format used by
- Summation. A shared library is also provided.
- This package provides the shared library.
+Priority: optional
+Section: libs
+Depends: ${shlibs:Depends},
+	${misc:Depends}
+Description: Shared library needed by the readpst utilities, and
+ other programmes. The libpst shared library is required by the
+ readpst utilities, and provides the necessary functions to manipulate
+ the Outlook PST files.
 
 Package: libpst-dev
 Architecture: any
-Priority: extra
-Section: devel
-Depends: libpst (= ${binary:Version})
-Description: Utilities to convert Outlook .pst files to other formats
- The Libpst utilities include readpst which can convert email messages
- to both mbox and MH mailbox formats, pst2ldif which can convert the
- contacts to .ldif format for import into ldap databases, and pst2dii
- which can convert email messages to the DII load file format used by
- Summation. A shared library is also provided.
- This package provides the development-related files for libpst.
+Priority: optional
+Section: libdevel
+Depends: libpst1 (= ${binary:Version}),
+	${misc:Depends}
+Description: development files needed for libpst1.
+ Development files needed if coding or compiling programmes that use
+ the libpst shared libray.

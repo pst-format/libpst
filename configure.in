@@ -21,6 +21,14 @@ AC_CANONICAL_HOST
 
 libpst_version_info='2:0:0'
 AC_SUBST(LIBPST_VERSION_INFO, [$libpst_version_info])
+libpst_so_major='2'
+AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
+
+# libpst
+# version    soname         so library name
+# 0.6.35     libpst.so.2    libpst.so.2.0.0
+
+
 
 
 # Check for win32

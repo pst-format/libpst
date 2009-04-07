@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: libpst
 Description: A library for reading PST files
 Version: @VERSION@
-Requires: 
+Requires:
 Libs: -L${libdir} -lpst
-Cflags: -I${includedir}
+Cflags: -I${includedir}/libpst-@LIBPST_SO_MAJOR@

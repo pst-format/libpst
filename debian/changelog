@@ -1,128 +1,24 @@
-libpst (0.6.27-1ppa5) jaunty; urgency=low
+libpst (0.6.27-0ubuntu1) jaunty; urgency=low
 
-  * not yet... If I am going to libtoolize, I need libtool as
-    a build-depends...
-
- -- HggdH <hggdh2@gmail.com>  Tue, 24 Feb 2009 19:54:08 -0600
-
-libpst (0.6.27-1ppa4) jaunty; urgency=low
-
-  * final (I hope cleanup): we now run autoconf/automake/libtoolize
-    to rebuild the necessary environment after deleting the 
-    debianisation provided by upstream.
-
- -- HggdH <hggdh2@gmail.com>  Tue, 24 Feb 2009 18:57:02 -0600
-
-libpst (0.6.27-1ppa3) jaunty; urgency=low
-
-  * ndditional cleanups on the partial debianisation done upstream
-
- -- HggdH <hggdh2@gmail.com>  Tue, 24 Feb 2009 16:10:39 -0600
-
-libpst (0.6.27-1ppa2) jaunty; urgency=low
-
-  * ndditional cleanups on the partial debianisation done upstream
-
- -- HggdH <hggdh2@gmail.com>  Tue, 24 Feb 2009 04:33:28 -0600
-
-libpst (0.6.27-1ppa1) jaunty; urgency=low
-
-  * new upstream source being used -- www.five-ten-sg.com/libpst
-
- -- HggdH <hggdh2@gmail.com>  Mon, 23 Feb 2009 19:29:13 -0600
-
-libpst (0.6.25-1ppa1) jaunty; urgency=low
-
-  * new upstream source being used -- www.five-ten-sg.com/libpst
-  * debian/patches/10-current-attach.patch patch for Evolution use,
+  [ HggdH ]
+  * new upstream source being used  (LP: #317602) -- www.five-ten-sg.com/libpst:
+    Debian's libpst version does not provide a shared library, and
+    does not support newer Evolution PST files; dropping it.
+  * remove upstream basic debianisation, and re-debianise using CDBS.
+    upstream provides a basic, incomplete, and non-functional ./debian;
+    also, add a ./debian/rules get-orig-source target in order to 
+    cleanup nicely.
+  * debian/patches/10-current-attach.patch: patch for Evolution use,
       should be eventually dropped for a Evolution patch upstream.
+  * debian/patches/05-disable-debian-gen.patch: adjust configure.in
+    and Makefile.am not to generate the debian directory and files.
   * changed dependency from libgd2-noxpm to libgd2-xpm >= 2.0.36
       (current jaunty alpha 3 level).
+  * add a Conflitcs for readpst < 0.6.27, to guarantee upgrade for
+    those using the old libpst packages.
 
- -- HggdH <hggdh2@gmail.com>  Sat, 17 Jan 2009 14:13:20 -0600
+  [ Iain Lane ]
+  * Set priority: extra and remove conflicts on same binary package
+  * debian/copyright: Update and mention GPL-2+ licensed file src/lzfu.c 
 
-libpst (0.6.25-1) unstable; urgency=low
-
-  * Initial release
-
- -- Joachim Metz <forensics@hoffmannbv.nl>  Thu, 29 May 2008 15:37:06 +0200
-
-libpst (0.6.24-1) unstable; urgency=low
-
-  * Initial release
-
- -- Joachim Metz <forensics@hoffmannbv.nl>  Thu, 29 May 2008 15:37:06 +0200
-
-libpst (0.5.3-1) unstable; urgency=low
-
-  * New upstream release, closes: #489645.
-  * bump debhelper compat to 6, no changes.
-  * debian/control:
-    + bump std-ver to 3.8.0, no changes.
-    + add Homepage field
-  * create debug package to help with analyzing readpst problems
-    + use -O0 when compiling to ensure stuff is not optimized out
-
- -- Joe Nahmias <jello@debian.org>  Mon, 14 Jul 2008 23:53:37 -0400
-
-libpst (0.5.2-1) unstable; urgency=low
-
-  * New upstream release
-    * Fixes content-type for attachments, closes: #256819.
-    * many, many memory fixes, closes: #263025.
-    * lots of other improvements.
-  * Bump debhelper compat to 5, std-ver to 3.7.2.2; no changes.
-  * Update FSF address in debian/copyright.
-
- -- Joe Nahmias <jello@debian.org>  Sun, 31 Dec 2006 06:14:50 +0000
-
-libpst (0.5.1-1) unstable; urgency=low
-
-  * New upstream release.
-  * New upstream maintainer.
-  * update debian/watch to use files on alioth.
-
- -- Joe Nahmias <jello@debian.org>  Wed, 17 Nov 2004 20:10:18 -0500
-
-libpst (0.5-4) unstable; urgency=low
-
-  * The "I'm getting the feeling that I'm turning into upstream" release.
-  * readpst.c: ensure there's a blank line between header and body;
-      patch from <johnh@aproposretail.com> (SF #890745).
-  * readpst.c: fix string escaping to consider escaped '\n', closes: #242252;
-      thanks to Paul Bakker <bakker@fox-it.com>.
-  * updated version number to 0.5 to match upstream tarball name, thanks to
-    "Chris B." <chris@tech.com.au> for noticing.
-  * update debian/watch.
-
- -- Joe Nahmias <jello@debian.org>  Thu,  1 Jul 2004 16:35:16 -0400
-
-libpst (0.5-3) unstable; urgency=low
-
-  * libpst.c: fix date/time on big-endian machines.
-  * added debian/watch file for upstream version tracking with uscan.
-
- -- Joe Nahmias <jello@debian.org>  Fri, 12 Mar 2004 00:32:19 -0500
-
-libpst (0.5-2) unstable; urgency=low
-
-  * libpst.h: Fix endian handling, closes: #236944.
-  * lzfu.c: Fix endian mixups.
-
- -- Joe Nahmias <jello@debian.org>  Wed, 10 Mar 2004 23:58:03 -0500
-
-libpst (0.5-1) unstable; urgency=low
-
-  * New upstream release
-  * debian/copyright: updated download location.
-  * typo corrections in manpages (thanks era eriksson!)
-
- -- Joe Nahmias <jello@debian.org>  Tue, 24 Feb 2004 21:59:13 -0500
-
-libpst (0.4.3-1) unstable; urgency=low
-
-  * Initial Release (closes: #178113).
-  * Included critical updates that upstream sent me from CVS.
-  * Wrote manpage for readpstlog.
-
- -- Joe Nahmias <joe@nahmias.net>  Tue, 15 Apr 2003 18:55:00 -0400
+ -- HggdH <hggdh2@gmail.com>  Wed, 25 Feb 2009 10:49:13 -0600

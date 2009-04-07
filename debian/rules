@@ -1,7 +1,42 @@
 #!/usr/bin/make -f
-include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/class/autotools.mk
-include /usr/share/cdbs/1/rules/simple-patchsys.mk
+include /usr/share/cdbs/1/rules/debhelper.mk 
+include /usr/share/cdbs/1/class/autotools.mk 
+include /usr/share/cdbs/1/rules/simple-patchsys.mk 
 
 export DH_VERBOSE=1
 DEB_CONFIGURE_EXTRA_FLAGS = --enable-libpst-shared
+DEB_AUTO_UPDATE_AUTOCONF = 2.63
+DEB_AUTO_UPDATE_AUTOMAKE = 1.10
+DEB_AUTO_UPDATE_LIBTOOL = pre
+
+# Makefile arcanery warning:
+# $(dir $(_)) gives us the path containing this rules file.  
+# I haven't found this documented in any make documentation, so I am unsure 
+# how portable/version independent it is.
+# This magic care of Emmet Hickory:
+# (http://lists.debian.org/debian-devel-games/2008/02/msg00135.html)
+
+TEMP_DIR := $(shell mktemp -d)
+SOURCE_DIR = $(word 1, $(shell ls -d --group-directories-first $(TEMP_DIR)/*))
+SOURCE_VER = $(shell echo $(notdir $(SOURCE_DIR)) | sed s/libpst-//)
+CURVER = $(shell dpkg-parsechangelog | grep ^Version | cut -d" " -f2 | cut -d"-" -f1 | cut -d"+" -f1 )
+
+download-tarball:
+		uscan --download --destdir $(TEMP_DIR) \
+			--no-symlink --force-download --download-version $(CURVER) \
+			--watchfile=$(dir $(_))/watch
+	 	cd $(TEMP_DIR) && tar xzvf *.tar.gz
+
+delete-shipped-debian: download-tarball
+		rm -r $(TEMP_DIR)/libpst-$(CURVER)/debian
+repack-source: delete-shipped-debian
+	 	cd $(TEMP_DIR) && \
+		tar czvf libpst_$(SOURCE_VER).orig.tar.gz \
+			libpst-$(CURVER)
+
+get-orig-source: repack-source
+		mv $(TEMP_DIR)/libpst_$(CURVER).orig.tar.gz ..
+		rm -r $(TEMP_DIR)
+
+.PHONY: download-tarball delete-shipped-debian repack-source get-orig-source
+

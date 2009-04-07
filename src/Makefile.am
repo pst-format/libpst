@@ -67,7 +67,7 @@ if STATIC_TOOLS
     noinst_LTLIBRARIES    = libpst.la
 else
     lib_LTLIBRARIES       = libpst.la
-    libpstincludedir      = $(includedir)/libpst
+    libpstincludedir      = $(includedir)/libpst-@LIBPST_SO_MAJOR@/libpst
     libpstinclude_HEADERS = \
         common.h    \
         libpst.h    \
