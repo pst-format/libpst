@@ -1,6 +1,21 @@
 #!/bin/bash
 
 
+function consistency()
+{
+    # check source and xml documentation for consistency
+    (
+        cd ..   # back to top level of project
+        f1=/tmp/f1$$
+        f2=/tmp/f2$$
+        grep 'case 0x' src/libpst.c   | awk '{print $2}' | tr A-Z a-z | sed -e 's/://g'             | sort >$f1
+        grep '^0x'     xml/libpst.in  | awk '{print $1}' | (for i in {1..19}; do read a; done; cat) | sort >$f2
+        diff $f1 $f2
+        less $f1
+        rm -f $f1 $f2
+    )
+}
+
 function dodii()
 {
     n="$1"

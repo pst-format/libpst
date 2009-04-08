@@ -1,11 +1,54 @@
 
 #include "define.h"
 
+static int    pst_skip_nl(char *s);         // returns the width of the newline at s[0]
+static int    pst_find_nl(vstr *vs);        // find newline of type type in b
+
+// vbuf functions
+static void   pst_vbfree(vbuf *vb);
+static void   pst_vbclear(vbuf *vb);        // ditch the data, keep the buffer
+static void   pst_vbresize(vbuf *vb, size_t len);
+static size_t pst_vbavail(vbuf *vb);
+static void   pst_vbdump(vbuf *vb);
+static void   pst_vbskipws(vbuf *vb);
+static void   pst_vbskip(vbuf *vb, size_t skip);
+static void   pst_vboverwrite(vbuf *vbdest, vbuf *vbsrc);
+
+// vstr functions
+static vstr  *pst_vsalloc(size_t len);
+static char  *pst_vsb(vstr *vs);
+static size_t pst_vslen(vstr *vs);                      //strlen
+static void   pst_vsfree(vstr *vs);
+static void   pst_vsset(vstr *vs, char *s);             // Store string s in vb
+static void   pst_vsnset(vstr *vs, char *s, size_t n);  // Store string s in vb
+static void   pst_vsgrow(vstr *vs, size_t len);         // grow buffer by len bytes, data are preserved
+static size_t pst_vsavail(vstr *vs);
+static void   pst_vscat(vstr *vs, char *str);
+static void   pst_vsncat(vstr *vs, char *str, size_t len);
+static void   pst_vsnprepend(vstr *vs, char *str, size_t len) ;
+static void   pst_vsskip(vstr *vs, size_t len);
+static int    pst_vscmp(vstr *vs, char *str);
+static void   pst_vsskipws(vstr *vs);
+static void   pst_vs_printf(vstr *vs, char *fmt, ...);
+static void   pst_vs_printfa(vstr *vs, char *fmt, ...);
+static void   pst_vshexdump(vstr *vs, const char *b, size_t start, size_t stop, int ascii);
+static int    pst_vscatprintf(vstr *vs, char *fmt, ...);
+static void   pst_vsvprintf(vstr *vs, char *fmt, va_list ap);
+static void   pst_vstrunc(vstr *vs, size_t off);    // Drop chars [off..dlen]
+static int    pst_vslast(vstr *vs);                 // returns the last character stored in a vstr string
+static void   pst_vscharcat(vstr *vs, int ch);
+
+static void   pst_unicode_close();
+
+static int    pst_vb_skipline(vbuf *vb);   // in: vb->b == "stuff\nmore_stuff"; out: vb->b == "more_stuff"
+
+
+
 
 #define ASSERT(x,...) { if( !(x) ) DIE(( __VA_ARGS__)); }
 
 
-int pst_skip_nl(char *s)
+static int pst_skip_nl(char *s)
 {
     if (s[0] == '\n')
         return 1;
@@ -17,7 +60,7 @@ int pst_skip_nl(char *s)
 }
 
 
-int pst_find_nl(vstr * vs)
+static int pst_find_nl(vstr * vs)
 {
     char *nextr, *nextn;
 
@@ -61,7 +104,7 @@ void pst_unicode_init()
 }
 
 
-void pst_unicode_close()
+static void pst_unicode_close()
 {
     iconv_close(i16to8);
     if (target_open_from) iconv_close(i8totarget);
@@ -199,7 +242,7 @@ size_t pst_vb_8bit2utf8(vbuf *dest, const char *inbuf, int iblen, const char* ch
 
 vbuf *pst_vballoc(size_t len)
 {
-    struct varbuf *result = malloc(sizeof(struct varbuf));
+    vbuf *result = malloc(sizeof(vbuf));
     if (result) {
         result->dlen = 0;
         result->blen = 0;
@@ -211,7 +254,7 @@ vbuf *pst_vballoc(size_t len)
 }
 
 
-void pst_vbcheck(vbuf * vb)
+static void pst_vbcheck(vbuf * vb)
 {
     ASSERT(vb->b >= vb->buf, "vbcheck(): data not inside buffer");
     ASSERT((size_t)(vb->b - vb->buf) <= vb->blen, "vbcheck(): vb->b outside of buffer range.");
@@ -220,20 +263,20 @@ void pst_vbcheck(vbuf * vb)
 }
 
 
-void pst_vbfree(vbuf * vb)
+static void pst_vbfree(vbuf * vb)
 {
     free(vb->buf);
     free(vb);
 }
 
 
-void pst_vbclear(struct varbuf *vb) // ditch the data, keep the buffer
+static void pst_vbclear(vbuf *vb) // ditch the data, keep the buffer
 {
     pst_vbresize(vb, 0);
 }
 
 
-void pst_vbresize(struct varbuf *vb, size_t len)    // DESTRUCTIVELY grow or shrink buffer
+static void pst_vbresize(vbuf *vb, size_t len)    // DESTRUCTIVELY grow or shrink buffer
 {
     vb->dlen = 0;
 
@@ -248,13 +291,13 @@ void pst_vbresize(struct varbuf *vb, size_t len)    // DESTRUCTIVELY grow or shr
 }
 
 
-size_t pst_vbavail(vbuf * vb)
+static size_t pst_vbavail(vbuf * vb)
 {
     return vb->blen  - vb->dlen - (size_t)(vb->b - vb->buf);
 }
 
 
-void pst_vbgrow(struct varbuf *vb, size_t len)      // out: vbavail(vb) >= len, data are preserved
+void pst_vbgrow(vbuf *vb, size_t len)      // out: vbavail(vb) >= len, data are preserved
 {
     if (0 == len)
         return;
@@ -294,7 +337,7 @@ void pst_vbset(vbuf * vb, void *b, size_t len)      // set vbuf b size=len, resi
 }
 
 
-void pst_vsskipws(vstr * vs)
+static void pst_vsskipws(vstr * vs)
 {
     char *p = vs->b;
     while ((size_t)(p - vs->b) < vs->dlen && isspace(p[0]))
@@ -305,7 +348,7 @@ void pst_vsskipws(vstr * vs)
 
 
 // append len bytes of b to vbuf, resize if necessary
-void pst_vbappend(struct varbuf *vb, void *b, size_t len)
+void pst_vbappend(vbuf *vb, void *b, size_t len)
 {
     if (0 == vb->dlen) {
         pst_vbset(vb, b, len);
@@ -318,7 +361,7 @@ void pst_vbappend(struct varbuf *vb, void *b, size_t len)
 
 
 // dumps the first skip bytes from vbuf
-void pst_vbskip(struct varbuf *vb, size_t skip)
+static void pst_vbskip(vbuf *vb, size_t skip)
 {
     ASSERT(skip <= vb->dlen, "vbskip(): Attempt to seek past end of buffer.");
     vb->b += skip;
@@ -327,7 +370,7 @@ void pst_vbskip(struct varbuf *vb, size_t skip)
 
 
 // overwrite vbdest with vbsrc
-void pst_vboverwrite(struct varbuf *vbdest, struct varbuf *vbsrc)
+static void pst_vboverwrite(vbuf *vbdest, vbuf *vbsrc)
 {
     pst_vbresize(vbdest, vbsrc->blen);
     memcpy(vbdest->b, vbsrc->b, vbsrc->dlen);
@@ -336,7 +379,7 @@ void pst_vboverwrite(struct varbuf *vbdest, struct varbuf *vbsrc)
 }
 
 
-vstr *pst_vsalloc(size_t len)
+static vstr *pst_vsalloc(size_t len)
 {
     vstr *result = (vstr *) pst_vballoc(len + 1);
     pst_vsset(result, "");
@@ -351,19 +394,19 @@ static char *pst_vsstr(vstr * vs)
 }
 
 
-size_t pst_vslen(vstr * vs)
+static size_t pst_vslen(vstr * vs)
 {
     return strlen(pst_vsstr(vs));
 }
 
 
-void pst_vsfree(vstr * vs)
+static void pst_vsfree(vstr * vs)
 {
     pst_vbfree((vbuf *) vs);
 }
 
 
-void pst_vscharcat(vstr * vb, int ch)
+static void pst_vscharcat(vstr * vb, int ch)
 {
     pst_vbgrow((vbuf *) vb, 1);
     vb->b[vb->dlen - 1] = ch;
@@ -373,7 +416,7 @@ void pst_vscharcat(vstr * vb, int ch)
 
 
 // prependappend string str to vbuf, vbuf must already contain a valid string
-void pst_vsnprepend(vstr * vb, char *str, size_t len)
+static void pst_vsnprepend(vstr * vb, char *str, size_t len)
 {
     ASSERT(vb->b[vb->dlen - 1] == '\0', "vsncat(): attempt to append string to non-string.");
     size_t sl = strlen(str);
@@ -387,7 +430,7 @@ void pst_vsnprepend(vstr * vb, char *str, size_t len)
 
 
 // len < dlen-1 -> skip len chars, else DIE
-void pst_vsskip(vstr * vs, size_t len)
+static void pst_vsskip(vstr * vs, size_t len)
 {
     ASSERT(len < vs->dlen - 1, "Attempt to skip past end of string");
     pst_vbskip((vbuf *) vs, len);
@@ -395,7 +438,7 @@ void pst_vsskip(vstr * vs, size_t len)
 
 
 // in: vb->b == "stuff\nmore_stuff"; out: vb->b == "more_stuff"
-int pst_vsskipline(vstr * vs)
+static int pst_vsskipline(vstr * vs)
 {
     int nloff = pst_find_nl(vs);
     int nll   = pst_skip_nl(vs->b + nloff);
@@ -419,7 +462,7 @@ int pst_vsskipline(vstr * vs)
 }
 
 
-int pst_vscatprintf(vstr * vs, char *fmt, ...)
+static int pst_vscatprintf(vstr * vs, char *fmt, ...)
 {
     int size;
     va_list ap;
@@ -451,7 +494,7 @@ int pst_vscatprintf(vstr * vs, char *fmt, ...)
 
 
 //  returns the last character stored in a vstr
-int pst_vslast(vstr * vs)
+static int pst_vslast(vstr * vs)
 {
     if (vs->dlen < 1)
         return -1;
@@ -464,7 +507,7 @@ int pst_vslast(vstr * vs)
 
 
 //  print over vb
-void pst_vs_printf(vstr * vs, char *fmt, ...)
+static void pst_vs_printf(vstr * vs, char *fmt, ...)
 {
     int size;
     va_list ap;
@@ -493,7 +536,7 @@ void pst_vs_printf(vstr * vs, char *fmt, ...)
 
 
 // printf append to vs
-void pst_vs_printfa(vstr * vs, char *fmt, ...)
+static void pst_vs_printfa(vstr * vs, char *fmt, ...)
 {
     int size;
     va_list ap;
@@ -521,7 +564,7 @@ void pst_vs_printfa(vstr * vs, char *fmt, ...)
 }
 
 
-void pst_vshexdump(vstr * vs, const char *b, size_t start, size_t stop, int ascii)
+static void pst_vshexdump(vstr * vs, const char *b, size_t start, size_t stop, int ascii)
 {
     char c;
     int diff, i;
@@ -552,13 +595,13 @@ void pst_vshexdump(vstr * vs, const char *b, size_t start, size_t stop, int asci
 }
 
 
-void pst_vsset(vstr * vs, char *s)  // Store string s in vs
+static void pst_vsset(vstr * vs, char *s)  // Store string s in vs
 {
     pst_vsnset(vs, s, strlen(s));
 }
 
 
-void pst_vsnset(vstr * vs, char *s, size_t n)       // Store string s in vs
+static void pst_vsnset(vstr * vs, char *s, size_t n)       // Store string s in vs
 {
     pst_vbresize((vbuf *) vs, n + 1);
     memcpy(vs->b, s, n);
@@ -567,19 +610,19 @@ void pst_vsnset(vstr * vs, char *s, size_t n)       // Store string s in vs
 }
 
 
-void pst_vsgrow(vstr * vs, size_t len)      // grow buffer by len bytes, data are preserved
+static void pst_vsgrow(vstr * vs, size_t len)      // grow buffer by len bytes, data are preserved
 {
     pst_vbgrow((vbuf *) vs, len);
 }
 
 
-size_t pst_vsavail(vstr * vs)
+static size_t pst_vsavail(vstr * vs)
 {
     return pst_vbavail((vbuf *) vs);
 }
 
 
-void pst_vsnset16(vstr * vs, char *s, size_t len)   // Like vbstrnset, but for UTF16
+static void pst_vsnset16(vstr * vs, char *s, size_t len)   // Like vbstrnset, but for UTF16
 {
     pst_vbresize((vbuf *) vs, len + 1);
     memcpy(vs->b, s, len);
@@ -590,19 +633,19 @@ void pst_vsnset16(vstr * vs, char *s, size_t len)   // Like vbstrnset, but for U
 }
 
 
-void pst_vscat(vstr * vs, char *str)
+static void pst_vscat(vstr * vs, char *str)
 {
     pst_vsncat(vs, str, strlen(str));
 }
 
 
-int pst_vscmp(vstr * vs, char *str)
+static int pst_vscmp(vstr * vs, char *str)
 {
     return strcmp(vs->b, str);
 }
 
 
-void pst_vsncat(vstr * vs, char *str, size_t len)   // append string str to vstr, vstr must already contain a valid string
+static void pst_vsncat(vstr * vs, char *str, size_t len)   // append string str to vstr, vstr must already contain a valid string
 {
     ASSERT(vs->b[vs->dlen - 1] == '\0', "vsncat(): attempt to append string to non-string.");
     size_t sl = strlen(str);
@@ -615,7 +658,7 @@ void pst_vsncat(vstr * vs, char *str, size_t len)   // append string str to vstr
 }
 
 
-void pst_vstrunc(vstr * v, size_t off) // Drop chars [off..dlen]
+static void pst_vstrunc(vstr * v, size_t off) // Drop chars [off..dlen]
 {
     if (off >= v->dlen - 1)
         return;                 //nothing to do

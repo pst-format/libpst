@@ -1,4 +1,4 @@
-LibPST 0.6.35 (2009-xx-xx)
+LibPST 0.6.35 (2009-04-08)
 ===============================
     * fix bug where we failed to pickup the last extended attribute.
     * patch from Emmanuel Andry to fix potential security bug in
@@ -8,6 +8,8 @@ LibPST 0.6.35 (2009-xx-xx)
     * prefix all external symbols in the shared library with pst_ to
       avoid symbol clashes with other shared libraries.
     * new debianization from hggdh.
+    * build separate libpst, libpst-libs, libpst-devel rpms.
+    * remove many functions from the interface by making them static.
 
 LibPST 0.6.34 (2009-03-19)
 ===============================

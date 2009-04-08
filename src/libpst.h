@@ -612,55 +612,23 @@ typedef struct pst_subblocks {
 int            pst_open(pst_file *pf, char *name);
 int            pst_close(pst_file *pf);
 pst_desc_ll *  pst_getTopOfFolders(pst_file *pf, pst_item *root);
-size_t         pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b);
 size_t         pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp);
 size_t         pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp);
 int            pst_load_index (pst_file *pf);
 pst_desc_ll*   pst_getNextDptr(pst_desc_ll* d);
 int            pst_load_extended_attributes(pst_file *pf);
-
-int            pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
-int            pst_build_desc_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 pst_item*      pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
 pst_item*      pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head);
-pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_head);
-int            pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach);
-void           pst_free_list(pst_mapi_object *list);
 void           pst_freeItem(pst_item *item);
-void           pst_free_id2(pst_id2_ll * head);
-void           pst_free_id (pst_index_ll *head);
-void           pst_free_desc (pst_desc_ll *head);
-void           pst_free_xattrib(pst_x_attrib_ll *x);
-int            pst_getBlockOffsetPointer(pst_file *pf, pst_id2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p);
-int            pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p);
-pst_id2_ll* pst_build_id2(pst_file *pf, pst_index_ll* list);
 pst_index_ll*  pst_getID(pst_file* pf, uint64_t i_id);
-pst_id2_ll* pst_getID2(pst_id2_ll * ptr, uint64_t id);
-pst_desc_ll*   pst_getDptr(pst_file *pf, uint64_t d_id);
-size_t         pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
 int            pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type);
-uint64_t       pst_getIntAt(pst_file *pf, char *buf);
-uint64_t       pst_getIntAtPos(pst_file *pf, int64_t pos);
-size_t         pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size);
 size_t         pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, char **b);
 size_t         pst_ff_getIDblock(pst_file *pf, uint64_t id, char** b);
-size_t         pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_ll *id2_head, char** buf);
-size_t         pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h);
-size_t         pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size);
-
-int            pst_strincmp(char *a, char *b, size_t x);
-int            pst_stricmp(char *a, char *b);
 size_t         pst_fwrite(const void*ptr, size_t size, size_t nmemb, FILE*stream);
-char *         pst_wide_to_single(char *wt, size_t size);
-
 char *         pst_rfc2426_escape(char *str);
-int            pst_chr_count(char *str, char x);
 char *         pst_rfc2425_datetime_format(FILETIME *ft);
 char *         pst_rfc2445_datetime_format(FILETIME *ft);
 
-void           pst_printDptr(pst_file *pf, pst_desc_ll *ptr);
-void           pst_printIDptr(pst_file* pf);
-void           pst_printID2ptr(pst_id2_ll *ptr);
 
 const char*    pst_codepage(int cp);
 const char*    pst_default_charset(pst_item *item);

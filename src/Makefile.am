@@ -22,7 +22,7 @@ common_source = debug.c         \
                 libpst.c        \
                 libstrfunc.c    \
                 lzfu.c          \
-                timeconv.c      \
+                timeconv.c		\
                 vbuf.c
 
 

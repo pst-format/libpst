@@ -20,11 +20,13 @@ struct pst_debug_func {
 static struct pst_debug_func *func_head=NULL, *func_ptr=NULL;
 
 
-void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *ap, int size);
-void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, int col);
-void * pst_malloc(size_t size);
+static void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *ap, int size);
+static void pst_debug_write_hex(struct pst_debug_item *item, char *buf, size_t size, int col);
+static void pst_debug_write();
 
-size_t pst_debug_fwrite(const void *ptr, size_t size, size_t nitems, FILE *stream) {
+
+static size_t pst_debug_fwrite(const void *ptr, size_t size, size_t nitems, FILE *stream);
+static size_t pst_debug_fwrite(const void *ptr, size_t size, size_t nitems, FILE *stream) {
     return fwrite(ptr, size, nitems, stream);
 }
 
@@ -250,7 +252,7 @@ void pst_debug_close(void) {
 }
 
 
-void pst_debug_write() {
+static void pst_debug_write() {
     size_t size, ptr, funcname, filename, text, end;
     char *buf = NULL, rec_type;
     if (!debug_fp) return;  // no file
@@ -334,7 +336,7 @@ void pst_debug_write() {
 }
 
 
-void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *ap, int size) {
+static void pst_debug_write_msg(struct pst_debug_item *item, const char *fmt, va_list *ap, int size) {
     struct pst_debug_file_rec_l lfile_rec;
     struct pst_debug_file_rec_m mfile_rec;
     unsigned char rec_type;

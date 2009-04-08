@@ -141,20 +141,17 @@
 #endif
 
 
-void pst_debug(const char *fmt, ...);
-void pst_debug_hexdumper(FILE* out, char* buf, size_t size, int col, int delta);
-void pst_debug_hexprint(char *data, int size);
-
-void pst_debug_init(const char *fname);
-void pst_debug_msg_info (int line, const char *file, int type);
-void pst_debug_msg_text(const char* fmt, ...);
-void pst_debug_hexdump(char *x, size_t y, int cols, int delta);
-void pst_debug_func(const char *function);
-void pst_debug_func_ret();
-void pst_debug_close(void);
-void pst_debug_write();
-size_t pst_debug_fwrite(const void *ptr, size_t size, size_t nitems, FILE *stream);
-void*  pst_malloc(size_t size);
+void  pst_debug(const char *fmt, ...);
+void  pst_debug_hexdumper(FILE* out, char* buf, size_t size, int col, int delta);
+void  pst_debug_hexprint(char *data, int size);
+void  pst_debug_init(const char *fname);
+void  pst_debug_msg_info (int line, const char *file, int type);
+void  pst_debug_msg_text(const char* fmt, ...);
+void  pst_debug_hexdump(char *x, size_t y, int cols, int delta);
+void  pst_debug_func(const char *function);
+void  pst_debug_func_ret();
+void  pst_debug_close(void);
+void* pst_malloc(size_t size);
 
 #define MESSAGEPRINT(x,y) {pst_debug_msg_info(__LINE__,__FILE__,y);\
                            pst_debug_msg_text x;}

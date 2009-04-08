@@ -8,8 +8,8 @@ Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{versio
 BuildRoot:          %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 URL:                http://www.five-ten-sg.com/%{name}/
 Requires:           ImageMagick
+Requires:           %{name}-libs = %{version}-%{release}
 BuildRequires:      ImageMagick freetype-devel gd-devel libjpeg-devel zlib-devel
-
 
 %description
 The Libpst utilities include readpst which can convert email messages
@@ -19,22 +19,52 @@ which can convert email messages to the DII load file format used by
 Summation.
 
 
+%package libs
+Summary:            Shared library used by the pst utilities
+Group:              Development/Libraries
+
+%description libs
+libpst-libs contains the shared library used by the pst utilities.
+
+
+%package devel
+Summary:            Library links and header files for libpst application development
+Group:              Development/Libraries
+Requires:           pkgconfig freetype-devel gd-devel libjpeg-devel zlib-devel
+Requires:           %{name}-libs = %{version}-%{release}
+
+%description devel
+libpst-devel contains the library links and header fles you'll
+need to develop applications using the libpst shared library.
+You do not need to install it if you just want to use the libpst
+utilities.
+
+
+
 %prep
 %setup -q
 
 
 %build
-%configure
+%configure --enable-libpst-shared
 make %{?_smp_mflags}
 
 
 %install
 rm -rf $RPM_BUILD_ROOT
 make DESTDIR=$RPM_BUILD_ROOT install
+rm $RPM_BUILD_ROOT%{_libdir}/libpst.la
+rm $RPM_BUILD_ROOT%{_libdir}/libpst.a
 
 
 %clean
 rm -rf $RPM_BUILD_ROOT
+
+
+%post libs -p /sbin/ldconfig
+
+
+%postun libs -p /sbin/ldconfig
 
 
 %files
@@ -46,7 +76,22 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/doc/%{name}-%{version}
 
 
+%files libs
+%{_libdir}/libpst.so.*
+
+
+%files devel
+%{_libdir}/libpst.so
+%dir %{_includedir}/%{name}-@LIBPST_SO_MAJOR@
+%{_includedir}/%{name}-@LIBPST_SO_MAJOR@/*
+%{_libdir}/pkgconfig/libpst.pc
+
+
 %changelog
+* Wed Apr 08 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.35-1
+- properly add trailing mime boundary in all modes.
+- build separate libpst, libpst-libs, libpst-devel rpms.
+
 * Thu Mar 19 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.34-1
 - avoid putting mixed item types into the same output folder.
 
