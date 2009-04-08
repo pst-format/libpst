@@ -1,0 +1,25 @@
+diff -r -u libpst-alioth-2008-01-19/trunk/ChangeLog libpst-0.5.3/ChangeLog
+--- libpst-alioth-2008-01-19/trunk/ChangeLog	2008-01-19 10:50:42.000000000 -0800
++++ libpst-0.5.3/ChangeLog	2008-06-30 20:31:14.000000000 -0700
+@@ -1,4 +1,4 @@
+-LibPST svn snapshot
++LibPST 0.5.3 (30 June 2008)
+ ===============================
+ 
+     * Add new fields to appointment for recurring events
+@@ -15,7 +15,7 @@
+ 	  * Fix crash when email subject is empty
+ 	* Fix memory and information leak in hex debug dump
+ 
+---
++-- Joe Nahmias <joe@nahmias.net>
+ 
+ LibPST 0.5.2 (29 December 2006)
+ ===============================
+Only in libpst-alioth-2008-01-19/trunk: .svn
+diff -r -u libpst-alioth-2008-01-19/trunk/VERSION libpst-0.5.3/VERSION
+--- libpst-alioth-2008-01-19/trunk/VERSION	2008-01-19 10:50:42.000000000 -0800
++++ libpst-0.5.3/VERSION	2008-06-30 20:31:14.000000000 -0700
+@@ -1 +1 @@
+-0.5.2+SVN_SNAPSHOT
++0.5.3
