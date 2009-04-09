@@ -8,7 +8,6 @@ Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{versio
 BuildRoot:          %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 URL:                http://www.five-ten-sg.com/%{name}/
 Requires:           ImageMagick
-Requires:           %{name}-libs = %{version}-%{release}
 BuildRequires:      ImageMagick freetype-devel gd-devel libjpeg-devel zlib-devel
 
 %description
@@ -34,7 +33,7 @@ Requires:           pkgconfig freetype-devel gd-devel libjpeg-devel zlib-devel
 Requires:           %{name}-libs = %{version}-%{release}
 
 %description devel
-libpst-devel contains the library links and header fles you'll
+libpst-devel contains the library links and header files you'll
 need to develop applications using the libpst shared library.
 You do not need to install it if you just want to use the libpst
 utilities.
@@ -72,22 +71,26 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/*
 %{_mandir}/man1/*
 %{_mandir}/man5/*
-%docdir %{_datadir}/doc/%{name}-%{version}
-%{_datadir}/doc/%{name}-%{version}
+%{_datadir}/doc/%{name}-%{version}/
 
 
 %files libs
+%defattr(-,root,root,-)
 %{_libdir}/libpst.so.*
 
 
 %files devel
+%defattr(-,root,root,-)
 %{_libdir}/libpst.so
-%dir %{_includedir}/%{name}-@LIBPST_SO_MAJOR@
-%{_includedir}/%{name}-@LIBPST_SO_MAJOR@/*
+%{_includedir}/%{name}-@LIBPST_SO_MAJOR@/
 %{_libdir}/pkgconfig/libpst.pc
 
 
 %changelog
+* Thu Apr 09 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.36-1
+- remove fully versioned -libs dependency from main package.
+- other spec file cleanup
+
 * Wed Apr 08 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.35-1
 - properly add trailing mime boundary in all modes.
 - build separate libpst, libpst-libs, libpst-devel rpms.
