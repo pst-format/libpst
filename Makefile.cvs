@@ -8,7 +8,6 @@ all:
 	autoheader
 	automake
 	autoconf
-	./configure --enable-libpst-shared >/dev/null
-	#rm -rf html.internal
-	#doxygen
-	#tar cfz libpst.html.tar.gz html.internal
+	rm -rf html.internal
+	doxygen
+	tar cfz libpst.html.tar.gz html.internal

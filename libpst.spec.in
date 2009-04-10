@@ -44,7 +44,6 @@ utilities.
 %package devel-doc
 Summary:            Documentation for libpst.so for libpst application development
 Group:              Documentation
-Requires:           %{name}-doc = %{version}-%{release}
 
 %description devel-doc
 The libpst-devel-doc package contains the doxygen generated
@@ -102,7 +101,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files devel-doc
 %defattr(-,root,root,-)
-%{_datadir}/doc/%{name}-%{version}/devel
+%{_datadir}/doc/%{name}-%{version}-devel/
 
 
 %files devel
@@ -119,9 +118,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Thu Apr 09 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.36-1
-- change to >= for -libs dependency from the main package.
-- add -doc subpackage.
+* Fri Apr 10 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.36-1
+- build separate -doc and -devel-doc subpackages.
 - other spec file cleanup
 
 * Wed Apr 08 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.35-1
