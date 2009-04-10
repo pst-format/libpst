@@ -8,6 +8,7 @@ Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{versio
 BuildRoot:          %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 URL:                http://www.five-ten-sg.com/%{name}/
 Requires:           ImageMagick
+Requires:           %{name}-libs = %{version}-%{release}
 BuildRequires:      ImageMagick freetype-devel gd-devel libjpeg-devel zlib-devel
 
 %description
@@ -23,20 +24,41 @@ Summary:            Shared library used by the pst utilities
 Group:              Development/Libraries
 
 %description libs
-libpst-libs contains the shared library used by the pst utilities.
+The libpst-libs package contains the shared library used by the pst
+utilities.
 
 
 %package devel
 Summary:            Library links and header files for libpst application development
 Group:              Development/Libraries
-Requires:           pkgconfig freetype-devel gd-devel libjpeg-devel zlib-devel
+Requires:           pkgconfig
 Requires:           %{name}-libs = %{version}-%{release}
 
 %description devel
-libpst-devel contains the library links and header files you'll
-need to develop applications using the libpst shared library.
+The libpst-devel package contains the library links and header files
+you'll need to develop applications using the libpst shared library.
 You do not need to install it if you just want to use the libpst
 utilities.
+
+
+%package devel-doc
+Summary:            Documentation for libpst.so for libpst application development
+Group:              Documentation
+Requires:           %{name}-doc = %{version}-%{release}
+
+%description devel-doc
+The libpst-devel-doc package contains the doxygen generated
+documentation for the libpst.so shared library.
+
+
+%package doc
+Summary:            Documentation for the pst utilities in html format
+Group:              Documentation
+
+%description doc
+The libpst-doc package contains the html documentation for the pst
+utilities.  You do not need to install it if you just want to use the
+libpst utilities.
 
 
 
@@ -71,12 +93,16 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/*
 %{_mandir}/man1/*
 %{_mandir}/man5/*
-%{_datadir}/doc/%{name}-%{version}/
 
 
 %files libs
 %defattr(-,root,root,-)
 %{_libdir}/libpst.so.*
+
+
+%files devel-doc
+%defattr(-,root,root,-)
+%{_datadir}/doc/%{name}-%{version}/devel
 
 
 %files devel
@@ -86,9 +112,16 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/libpst.pc
 
 
+%files doc
+%defattr(-,root,root,-)
+%{_datadir}/doc/%{name}-%{version}/
+
+
+
 %changelog
 * Thu Apr 09 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.36-1
-- remove fully versioned -libs dependency from main package.
+- change to >= for -libs dependency from the main package.
+- add -doc subpackage.
 - other spec file cleanup
 
 * Wed Apr 08 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.35-1
