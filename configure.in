@@ -256,7 +256,6 @@ AC_OUTPUT(                  \
     Makefile                \
     debian/Makefile         \
     html/Makefile           \
-    info/Makefile           \
     libpst.pc               \
     libpst.spec             \
     man/Makefile            \
