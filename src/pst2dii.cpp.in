@@ -480,7 +480,7 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     if (mybcc.empty())  write_simple("BCC",  item->email->bcc_address.str);
     else                write_simple("BCC", mybcc);
     if (item->email->sent_date) {
-        time_t t = pst_fileTimeToUnixTime(item->email->sent_date, NULL);
+        time_t t = pst_fileTimeToUnixTime(item->email->sent_date);
         char c_time[C_TIME_SIZE];
         strftime(c_time, C_TIME_SIZE, "%F", gmtime(&t));
         write_simple("DATESENT", c_time);
@@ -488,7 +488,7 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
         write_simple("TIMESENT", c_time);
     }
     if (item->email->arrival_date) {
-        time_t t = pst_fileTimeToUnixTime(item->email->arrival_date, NULL);
+        time_t t = pst_fileTimeToUnixTime(item->email->arrival_date);
         char c_time[C_TIME_SIZE];
         strftime(c_time, C_TIME_SIZE, "%F", gmtime(&t));
         write_simple("DATERCVD", c_time);
@@ -540,7 +540,7 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
         }
 
         if (item->email->sent_date) {
-            time_t em_time = pst_fileTimeToUnixTime(item->email->sent_date, 0);
+            time_t em_time = pst_fileTimeToUnixTime(item->email->sent_date);
             char c_time[C_TIME_SIZE];
             strftime(c_time, C_TIME_SIZE, "%a, %d %b %Y %H:%M:%S %z", gmtime(&em_time));
             snprintf(line, sizeof(line), "Date: %s\n", c_time);

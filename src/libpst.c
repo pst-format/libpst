@@ -1673,14 +1673,10 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 if (table_rec.ref_type == (uint16_t)0x1f) {
                     // there is more to do for the type 0x1f unicode strings
                     size_t rc;
-                    static vbuf *utf16buf = NULL;
-                    static vbuf *utf8buf  = NULL;
+                    static pst_vbuf *utf16buf = NULL;
+                    static pst_vbuf *utf8buf  = NULL;
                     if (!utf16buf) utf16buf = pst_vballoc((size_t)1024);
                     if (!utf8buf)  utf8buf  = pst_vballoc((size_t)1024);
-
-                    // splint barfed on the following lines
-                    //VBUF_STATIC(utf16buf, 1024);
-                    //VBUF_STATIC(utf8buf, 1024);
 
                     //need UTF-16 zero-termination
                     pst_vbset(utf16buf, mo_ptr->elements[x]->data, mo_ptr->elements[x]->size);
@@ -3934,44 +3930,6 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t
 }
 
 
-#ifdef _WIN32
-char * pst_fileTimeToAscii(const FILETIME* filetime) {
-    time_t t;
-    DEBUG_ENT("pst_fileTimeToAscii");
-    t = pst_fileTimeToUnixTime(filetime, 0);
-    if (t == -1)
-        DEBUG_WARN(("ERROR time_t varible that was produced, is -1\n"));
-    DEBUG_RET();
-    return ctime(&t);
-}
-
-
-time_t pst_fileTimeToUnixTime(const FILETIME* filetime, DWORD *x) {
-    SYSTEMTIME s;
-    struct tm t;
-    DEBUG_ENT("pst_fileTimeToUnixTime");
-    memset (&t, 0, sizeof(struct tm));
-    FileTimeToSystemTime(filetime, &s);
-    t.tm_year = s.wYear-1900; // this is what is required
-    t.tm_mon = s.wMonth-1; // also required! It made me a bit confused
-    t.tm_mday = s.wDay;
-    t.tm_hour = s.wHour;
-    t.tm_min = s.wMinute;
-    t.tm_sec = s.wSecond;
-    DEBUG_RET();
-    return mktime(&t);
-}
-
-
-struct tm * pst_fileTimeToStructTM (const FILETIME *filetime) {
-    time_t t1;
-    t1 = pst_fileTimeToUnixTime(filetime, 0);
-    return gmtime(&t1);
-}
-
-
-#endif //_WIN32
-
 static int pst_stricmp(char *a, char *b) {
     // compare strings case-insensitive.
     // returns -1 if a < b, 0 if a==b, 1 if a > b
@@ -4215,7 +4173,7 @@ void pst_convert_utf8(pst_item *item, pst_string *str)
     const char *charset = pst_default_charset(item);
     if (!strcasecmp("utf-8", charset)) return;  // already utf8
     DEBUG_ENT("pst_convert_utf8");
-    vbuf *newer = pst_vballoc(2);
+    pst_vbuf *newer = pst_vballoc(2);
     size_t rc = pst_vb_8bit2utf8(newer, str->str, strlen(str->str) + 1, charset);
     if (rc == (size_t)-1) {
         free(newer->b);

@@ -1,6 +1,6 @@
 
-#ifndef __COMMON_H
-#define __COMMON_H
+#ifndef __PST_COMMON_H
+#define __PST_COMMON_H
 
 
 #include <stdlib.h>
@@ -24,13 +24,9 @@
 
 
 #ifndef _WIN32
-    typedef uint32_t  DWORD;
-    typedef uint16_t   WORD;
-    typedef uint8_t    BYTE;
-    typedef uint32_t UINT32;
-    typedef struct {    // copied from wine
-        DWORD  dwLowDateTime;
-        DWORD  dwHighDateTime;
+    typedef struct {
+        uint32_t  dwLowDateTime;
+        uint32_t  dwHighDateTime;
     } FILETIME;
     // According to Jan Wolter, sys/param.h is the most portable source of endian
     // information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html

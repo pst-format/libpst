@@ -7,8 +7,8 @@
 // LibPST - Library for Accessing Outlook .pst files
 // Dave Smith - davesmith@users.sourceforge.net
 
-#ifndef LIBPST_H
-#define LIBPST_H
+#ifndef __PST_LIBPST_H
+#define __PST_LIBPST_H
 
 #include "common.h"
 
@@ -647,4 +647,4 @@ void           pst_convert_utf8(pst_item *item, pst_string *str);
 
 
 
-#endif // defined LIBPST_H
+#endif

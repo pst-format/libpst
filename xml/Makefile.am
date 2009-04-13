@@ -1,3 +1,5 @@
+EXTRA_DIST = Doxyfile $(wildcard *.pdf)
+
 all: libpst
 	cat header.xml	libpst >libpst.xml
 	cat header.sgml libpst >libpst.sgml
@@ -7,6 +9,9 @@ all: libpst
 	xmlto		 -o ../man	man	  libpst.xml
 	xmlto		 -o ../html xhtml libpst.xml
 	xmlto		 -o ../html pdf	  libpst.xml
-	docbook2texi -o ../info		  libpst.sgml
 	rm -f libpst.xml libpst.sgml
+	mkdir tmp
+	mkdir tmp/libpst
+	cp ../src/common.h ../src/libpst.h ../src/libstrfunc.h ../src/timeconv.h ../src/vbuf.h tmp/libpst
 	doxygen
+	rm -rf tmp

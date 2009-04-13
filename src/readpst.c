@@ -1054,7 +1054,7 @@ void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset
         // and is now in utf-8.
         size_t rc;
         DEBUG_EMAIL(("Convert %s utf-8 to %s\n", mime, charset));
-        vbuf *newer = pst_vballoc(2);
+        pst_vbuf *newer = pst_vballoc(2);
         rc = pst_vb_utf8to8bit(newer, body->str, strlen(body->str), charset);
         if (rc == (size_t)-1) {
             // unable to convert, change the charset to utf8
@@ -1130,7 +1130,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     // convert the sent date if it exists, or set it to a fixed date
     if (item->email->sent_date) {
-        em_time = pst_fileTimeToUnixTime(item->email->sent_date, 0);
+        em_time = pst_fileTimeToUnixTime(item->email->sent_date);
         c_time = ctime(&em_time);
         if (c_time)
             c_time[strlen(c_time)-1] = '\0'; //remove end \n

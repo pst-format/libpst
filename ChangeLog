@@ -1,8 +1,9 @@
-LibPST 0.6.36 (2009-04-10)
+LibPST 0.6.36 (2009-04-13)
 ===============================
     * spec file cleanup with multiple sub packages.
     * add doxygen devel-doc documentation for the shared library.
     * switch back to fully versioned subpackage dependencies.
+    * more cleanup on external names in the shared object file.
 
 LibPST 0.6.35 (2009-04-08)
 ===============================

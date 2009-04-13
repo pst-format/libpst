@@ -481,15 +481,6 @@
             </para>
         </refsect1>
 
-        <refsect1 id='readpstlog.todo.1'>
-            <title>TODO</title>
-            <para>
-                The binary debug log file is generally much larger than the .pst file,
-                so we need to switch to ftello/fseeko there also to handle files
-                larger than 2GB.
-            </para>
-        </refsect1>
-
         <refsect1 id='readpstlog.copyright.1'>
             <title>Copyright</title>
             <para>
