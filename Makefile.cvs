@@ -8,6 +8,7 @@ all:
 	autoheader
 	automake
 	autoconf
+	./configure >/dev/null
 	rm -rf html.internal
 	doxygen
 	tar cfz libpst.html.tar.gz html.internal
