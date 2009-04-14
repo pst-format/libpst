@@ -32,10 +32,6 @@
 #define PST_TYPE_OTHER      13
 #define PST_TYPE_REPORT     14
 
-// defines whether decryption is done on this bit of data
-#define PST_NO_ENC 0
-#define PST_ENC    1
-
 // defines types of possible encryption
 #define PST_NO_ENCRYPT   0
 #define PST_COMP_ENCRYPT 1

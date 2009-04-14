@@ -55,16 +55,9 @@ int main(int argc, char* const* argv)
     outname = (char *) pst_malloc(OUT_BUF);
     printf("Saving blocks\n");
     while (ptr != NULL) {
-        /*    if (pstfile.encryption == PST_ENC) {
-           c = pst_ff_getIDblock_dec(&pstfile, ptr->i_id, buf);
-           } else { */
-        if ((ptr->i_id & 0x02) == 0 && pstfile.encryption == PST_ENC) {
-            c = pst_ff_getIDblock_dec(&pstfile, ptr->i_id, &buf);
-        } else {
-            c = pst_ff_getIDblock(&pstfile, ptr->i_id, &buf);
-        }
-
-        if (c > 0) {
+        size_t c;
+        c = pst_ff_getIDblock_dec(&pstfile, ptr->i_id, &buf);
+        if (c) {
             snprintf(outname, OUT_BUF, "%#"PRIx64, ptr->i_id);
             if ((fp = fopen(outname, "wb")) == NULL) {
                 printf("Failed to open file %s\n", outname);

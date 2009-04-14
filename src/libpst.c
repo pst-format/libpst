@@ -172,7 +172,7 @@ static int              pst_build_desc_ptr(pst_file *pf, int64_t offset, int32_t
 static pst_id2_tree*      pst_build_id2(pst_file *pf, pst_index_ll* list);
 static int              pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 static int              pst_chr_count(char *str, char x);
-static size_t           pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size);
+static size_t           pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size_t size);
 static size_t           pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_tree *id2_head, char** buf);
 static size_t           pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h);
 static void             pst_free_attach(pst_item_attach *attach);
@@ -3599,7 +3599,7 @@ static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, cha
 }
 
 
-int pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type) {
+int pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type) {
     size_t x = 0;
     unsigned char y;
     DEBUG_ENT("pst_decrypt");
@@ -3619,7 +3619,7 @@ int pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type) {
     } else if (type == PST_ENCRYPT) {
         // The following code was based on the information at
         // http://www.passcape.com/outlook_passwords.htm
-        uint16_t salt = (uint16_t) (((id & 0x00000000ffff0000) >> 16) ^ (id & 0x000000000000ffff));
+        uint16_t salt = (uint16_t) (((i_id & 0x00000000ffff0000) >> 16) ^ (i_id & 0x000000000000ffff));
         x = 0;
         while (x < size) {
             uint8_t losalt = (salt & 0x00ff);
@@ -3726,19 +3726,19 @@ static size_t pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size) {
  * Get an ID block from file using _pst_ff_getIDblock and decrypt if necessary
  *
  * @param pf   PST file structure
- * @param id   ID of block to retrieve
- * @param buf  Reference to pointer that will be set to new block. Any memory
-               pointed to by buffer will be free()d beforehand
- * @return     Size of block pointed to by *b
+ * @param i_id ID of block to retrieve
+ * @param buf  reference to pointer to buffer that will contain the data block.
+ *             If this pointer is non-NULL, it will first be free()d.
+ * @return     Size of block read into memory
  */
-size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, char **buf) {
+size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf) {
     size_t r;
-    int noenc = (int)(id & 2);   // disable encryption
+    int noenc = (int)(i_id & 2);   // disable encryption
     DEBUG_ENT("pst_ff_getIDblock_dec");
-    DEBUG_INDEX(("for id %#"PRIi64"\n", id));
-    r = pst_ff_getIDblock(pf, id, buf);
+    DEBUG_INDEX(("for id %#"PRIi64"\n", i_id));
+    r = pst_ff_getIDblock(pf, i_id, buf);
     if ((pf->encryption) && !(noenc)) {
-        (void)pst_decrypt(id, *buf, r, pf->encryption);
+        (void)pst_decrypt(i_id, *buf, r, pf->encryption);
     }
     DEBUG_HEXDUMPC(*buf, r, 16);
     DEBUG_RET();
@@ -3748,23 +3748,23 @@ size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, char **buf) {
 
 /**
  * Read a block of data from file into memory
- * @param pf   PST file
- * @param id   identifier of block to read
- * @param buf  reference to pointer to buffer. If this pointer
-               is non-NULL, it will first be free()d
+ * @param pf   PST file structure
+ * @param i_id ID of block to read
+ * @param buf  reference to pointer to buffer that will contain the data block.
+ *             If this pointer is non-NULL, it will first be free()d.
  * @return     size of block read into memory
  */
-size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, char** buf) {
+size_t pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf) {
     pst_index_ll *rec;
     size_t rsize;
     DEBUG_ENT("pst_ff_getIDblock");
-    rec = pst_getID(pf, id);
+    rec = pst_getID(pf, i_id);
     if (!rec) {
-        DEBUG_INDEX(("Cannot find ID %#"PRIx64"\n", id));
+        DEBUG_INDEX(("Cannot find ID %#"PRIx64"\n", i_id));
         DEBUG_RET();
         return 0;
     }
-    DEBUG_INDEX(("id = %#"PRIx64", record size = %#x, offset = %#x\n", id, rec->size, rec->offset));
+    DEBUG_INDEX(("id = %#"PRIx64", record size = %#x, offset = %#x\n", i_id, rec->size, rec->offset));
     rsize = pst_read_block_size(pf, rec->offset, rec->size, buf);
     DEBUG_RET();
     return rsize;
@@ -3821,7 +3821,7 @@ static size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) 
 }
 
 
-static size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size) {
+static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size_t size) {
     size_t z, a;
     uint16_t count, y;
     char *buf3 = NULL, *buf2 = NULL, *t;
@@ -3833,7 +3833,7 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t
     pst_table3_rec table3_rec;  //for type 3 (0x0101) blocks
 
     DEBUG_ENT("pst_ff_compile_ID");
-    a = pst_ff_getIDblock(pf, id, &buf3);
+    a = pst_ff_getIDblock(pf, i_id, &buf3);
     if (!a) {
         if (buf3) free(buf3);
         DEBUG_RET();
@@ -3848,7 +3848,7 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t
 
     if (block_hdr.index_offset != (uint16_t)0x0101) { //type 3
         DEBUG_WARN(("WARNING: not a type 0x0101 buffer, Treating as normal buffer\n"));
-        if (pf->encryption) (void)pst_decrypt(id, buf3, a, pf->encryption);
+        if (pf->encryption) (void)pst_decrypt(i_id, buf3, a, pf->encryption);
         if (h->buf)
             *(h->buf) = buf3;
         else if (h->base64 == 1 && h->fp) {
