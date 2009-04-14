@@ -26,7 +26,7 @@ struct file_ll {
     int32_t type;
 };
 
-void      process(pst_item *outeritem, pst_desc_ll *d_ptr);
+void      process(pst_item *outeritem, pst_desc_tree *d_ptr);
 void      write_email_body(FILE *f, char *body);
 void      removeCR(char *c);
 void      usage();
@@ -121,7 +121,7 @@ pst_file pstfile;
 regex_t  meta_charset_pattern;
 
 
-void process(pst_item *outeritem, pst_desc_ll *d_ptr)
+void process(pst_item *outeritem, pst_desc_tree *d_ptr)
 {
     struct file_ll ff;
     pst_item *item = NULL;
@@ -253,7 +253,7 @@ void process(pst_item *outeritem, pst_desc_ll *d_ptr)
 
 int main(int argc, char* const* argv) {
     pst_item *item = NULL;
-    pst_desc_ll *d_ptr;
+    pst_desc_tree *d_ptr;
     char * fname = NULL;
     char *d_log  = NULL;
     int c,x;
@@ -806,7 +806,7 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
     fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype.str);
     ptr = pst_getID(pf, attach->i_id);
 
-    pst_desc_ll d_ptr;
+    pst_desc_tree d_ptr;
     d_ptr.d_id        = 0;
     d_ptr.parent_d_id = 0;
     d_ptr.assoc_tree  = NULL;

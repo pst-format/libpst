@@ -599,8 +599,8 @@ static void close_enter_dir(file_ll &f)
 }
 
 
-static void process(pst_item *outeritem, file_ll *parent, pst_desc_ll *d_ptr);
-static void process(pst_item *outeritem, file_ll *parent, pst_desc_ll *d_ptr)
+static void process(pst_item *outeritem, file_ll *parent, pst_desc_tree *d_ptr);
+static void process(pst_item *outeritem, file_ll *parent, pst_desc_tree *d_ptr)
 {
     file_ll ff;
     pst_item *item = NULL;
@@ -638,7 +638,7 @@ static void process(pst_item *outeritem, file_ll *parent, pst_desc_ll *d_ptr)
 
 int main(int argc, char* const* argv)
 {
-    pst_desc_ll *d_ptr;
+    pst_desc_tree *d_ptr;
     char *fname = NULL;
     char c;
     char *d_log = NULL;

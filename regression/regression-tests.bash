@@ -80,24 +80,25 @@ if [ "$1" == "dii" ]; then
     dodii 4 big_mail.pst
 elif [ "$1" == "ldif" ]; then
     doldif   1 ams.pst
-    #doldif   2 sample_64.pst
-    #doldif   3 test.pst
-    #doldif   4 big_mail.pst
-    #doldif   5 mbmg.archive.pst
-    #doldif   6 Single2003-read.pst
-    #doldif   7 Single2003-unread.pst
-    #doldif   8 ol2k3high.pst
-    #doldif   9 ol97high.pst
-    #doldif  10 returned_message.pst
-    #doldif  11 flow.pst
-    #doldif  12 test-html.pst
-    #doldif  13 test-text.pst
-    #doldif  14 joe.romanowski.pst
-    #doldif  15 hourig1.pst
-    ##doldif  16 hourig2.pst
-    ##doldif  17 hourig3.pst
-    #doldif  18 test-mac.pst
+    doldif   2 sample_64.pst
+    doldif   3 test.pst
+    doldif   4 big_mail.pst
+    doldif   5 mbmg.archive.pst
+    doldif   6 Single2003-read.pst
+    doldif   7 Single2003-unread.pst
+    doldif   8 ol2k3high.pst
+    doldif   9 ol97high.pst
+    doldif  10 returned_message.pst
+    doldif  11 flow.pst
+    doldif  12 test-html.pst
+    doldif  13 test-text.pst
+    doldif  14 joe.romanowski.pst
+    doldif  15 hourig1.pst
+    #doldif  16 hourig2.pst
+    #doldif  17 hourig3.pst
+    doldif  18 test-mac.pst
     #doldif  19 harris.pst
+    doldif  20 spam.pst
 else
     dopst   1 ams.pst
     dopst   2 sample_64.pst
@@ -117,7 +118,7 @@ else
     #dopst  16 hourig2.pst
     #dopst  17 hourig3.pst
     dopst  18 test-mac.pst
-    dopst  19 harris.pst
+    #dopst  19 harris.pst
     dopst  20 spam.pst
 fi
 

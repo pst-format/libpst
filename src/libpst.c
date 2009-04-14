@@ -169,29 +169,29 @@ static unsigned char comp_high2 [] = {
 };
 
 static int              pst_build_desc_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
-static pst_id2_ll*      pst_build_id2(pst_file *pf, pst_index_ll* list);
+static pst_id2_tree*      pst_build_id2(pst_file *pf, pst_index_ll* list);
 static int              pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 static int              pst_chr_count(char *str, char x);
 static size_t           pst_ff_compile_ID(pst_file *pf, uint64_t id, pst_holder *h, size_t size);
-static size_t           pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_ll *id2_head, char** buf);
+static size_t           pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_tree *id2_head, char** buf);
 static size_t           pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h);
 static void             pst_free_attach(pst_item_attach *attach);
-static void             pst_free_desc (pst_desc_ll *head);
-static void             pst_free_id2(pst_id2_ll * head);
+static void             pst_free_desc (pst_desc_tree *head);
+static void             pst_free_id2(pst_id2_tree * head);
 static void             pst_free_id (pst_index_ll *head);
 static void             pst_free_list(pst_mapi_object *list);
 static void             pst_free_xattrib(pst_x_attrib_ll *x);
 static size_t           pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size);
-static int              pst_getBlockOffsetPointer(pst_file *pf, pst_id2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p);
+static int              pst_getBlockOffsetPointer(pst_file *pf, pst_id2_tree *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p);
 static int              pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p);
-static pst_id2_ll*      pst_getID2(pst_id2_ll * ptr, uint64_t id);
-static pst_desc_ll*     pst_getDptr(pst_file *pf, uint64_t d_id);
+static pst_id2_tree*      pst_getID2(pst_id2_tree * ptr, uint64_t id);
+static pst_desc_tree*     pst_getDptr(pst_file *pf, uint64_t d_id);
 static uint64_t         pst_getIntAt(pst_file *pf, char *buf);
 static uint64_t         pst_getIntAtPos(pst_file *pf, int64_t pos);
-static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_head);
-static void             pst_printDptr(pst_file *pf, pst_desc_ll *ptr);
+static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_tree *i2_head);
+static void             pst_printDptr(pst_file *pf, pst_desc_tree *ptr);
 static void             pst_printIDptr(pst_file* pf);
-static void             pst_printID2ptr(pst_id2_ll *ptr);
+static void             pst_printID2ptr(pst_id2_tree *ptr);
 static int              pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach);
 static size_t           pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
 static int              pst_stricmp(char *a, char *b);
@@ -301,8 +301,8 @@ int pst_close(pst_file *pf) {
  * @param head  pointer to the list head pointer
  * @param tail  pointer to the list tail pointer
  */
-static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_desc_ll **tail);
-static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_desc_ll **tail)
+static void add_descriptor_to_list(pst_desc_tree *node, pst_desc_tree **head, pst_desc_tree **tail);
+static void add_descriptor_to_list(pst_desc_tree *node, pst_desc_tree **head, pst_desc_tree **tail)
 {
     DEBUG_ENT("add_descriptor_to_list");
     //DEBUG_INDEX(("Added node %#"PRIx64" parent %#"PRIx64" real parent %#"PRIx64" prev %#"PRIx64" next %#"PRIx64"\n",
@@ -325,8 +325,8 @@ static void add_descriptor_to_list(pst_desc_ll *node, pst_desc_ll **head, pst_de
  * @param pf   global pst file pointer
  * @param node pointer to the new node to be added to the tree
  */
-static void record_descriptor(pst_file *pf, pst_desc_ll *node);
-static void record_descriptor(pst_file *pf, pst_desc_ll *node)
+static void record_descriptor(pst_file *pf, pst_desc_tree *node);
+static void record_descriptor(pst_file *pf, pst_desc_tree *node)
 {
     DEBUG_ENT("record_descriptor");
     // finish node initialization
@@ -336,13 +336,13 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
     node->no_child   = 0;
 
     // find any orphan children of this node, and collect them
-    pst_desc_ll *n = pf->d_head;
+    pst_desc_tree *n = pf->d_head;
     while (n) {
         if (n->parent_d_id == node->d_id) {
             // found a child of this node
             DEBUG_INDEX(("Found orphan child %#"PRIx64" of parent %#"PRIx64"\n", n->d_id, node->d_id));
-            pst_desc_ll *nn = n->next;
-            pst_desc_ll *pp = n->prev;
+            pst_desc_tree *nn = n->next;
+            pst_desc_tree *pp = n->prev;
             node->no_child++;
             n->parent = node;
             add_descriptor_to_list(n, &node->child, &node->child_tail);
@@ -367,7 +367,7 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
         add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
     } else {
         //DEBUG_INDEX(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_d_id, node->d_id));
-        pst_desc_ll *parent = pst_getDptr(pf, node->parent_d_id);
+        pst_desc_tree *parent = pst_getDptr(pf, node->parent_d_id);
         if (parent) {
             //DEBUG_INDEX(("Found parent %#"PRIx64"\n", node->parent_d_id));
             parent->no_child++;
@@ -390,11 +390,11 @@ static void record_descriptor(pst_file *pf, pst_desc_ll *node)
  * @param   head  pointer to the subtree to be copied
  * @return        pointer to the new copy of the subtree
  */
-static pst_id2_ll* deep_copy(pst_id2_ll *head);
-static pst_id2_ll* deep_copy(pst_id2_ll *head)
+static pst_id2_tree* deep_copy(pst_id2_tree *head);
+static pst_id2_tree* deep_copy(pst_id2_tree *head)
 {
     if (!head) return NULL;
-    pst_id2_ll* me = (pst_id2_ll*) pst_malloc(sizeof(pst_id2_ll));
+    pst_id2_tree* me = (pst_id2_tree*) pst_malloc(sizeof(pst_id2_tree));
     me->id2 = head->id2;
     me->id  = head->id;
     me->child = deep_copy(head->child);
@@ -403,8 +403,8 @@ static pst_id2_ll* deep_copy(pst_id2_ll *head)
 }
 
 
-pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
-    pst_desc_ll *topnode;
+pst_desc_tree* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
+    pst_desc_tree *topnode;
     uint32_t topid;
     DEBUG_ENT("pst_getTopOfFolders");
     if (!root || !root->message_store) {
@@ -423,7 +423,7 @@ pst_desc_ll* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
     topnode = pst_getDptr(pf, (uint64_t)topid);
     if (!topnode) {
         // add dummy top record to pickup orphan children
-        topnode              = (pst_desc_ll*) pst_malloc(sizeof(pst_desc_ll));
+        topnode              = (pst_desc_tree*) pst_malloc(sizeof(pst_desc_tree));
         topnode->d_id        = topid;
         topnode->parent_d_id = 0;
         topnode->assoc_tree  = NULL;
@@ -506,8 +506,8 @@ int pst_load_index (pst_file *pf) {
 }
 
 
-pst_desc_ll* pst_getNextDptr(pst_desc_ll* d) {
-    pst_desc_ll* r = NULL;
+pst_desc_tree* pst_getNextDptr(pst_desc_tree* d) {
+    pst_desc_tree* r = NULL;
     DEBUG_ENT("pst_getNextDptr");
     if (d) {
         if ((r = d->child) == NULL) {
@@ -532,9 +532,9 @@ typedef struct pst_x_attrib {
  */
 int pst_load_extended_attributes(pst_file *pf) {
     // for PST files this will load up d_id 0x61 and check it's "assoc_tree" attribute.
-    pst_desc_ll *p;
+    pst_desc_tree *p;
     pst_mapi_object *list;
-    pst_id2_ll *id2_head = NULL;
+    pst_id2_tree *id2_head = NULL;
     char *buffer=NULL, *headerbuffer=NULL;
     size_t bsize=0, hsize=0, bptr=0;
     pst_x_attrib xattrib;
@@ -689,19 +689,19 @@ int pst_load_extended_attributes(pst_file *pf) {
 #define DESC_COUNT_MAX          (int32_t)((pf->do_read64) ? DESC_COUNT_MAX64         : DESC_COUNT_MAX32)
 
 
-static size_t pst_decode_desc(pst_file *pf, pst_descn *desc, char *buf);
-static size_t pst_decode_desc(pst_file *pf, pst_descn *desc, char *buf) {
+static size_t pst_decode_desc(pst_file *pf, pst_desc *desc, char *buf);
+static size_t pst_decode_desc(pst_file *pf, pst_desc *desc, char *buf) {
     size_t r;
     if (pf->do_read64) {
         DEBUG_INDEX(("Decoding desc64\n"));
-        DEBUG_HEXDUMPC(buf, sizeof(pst_descn), 0x10);
-        memcpy(desc, buf, sizeof(pst_descn));
+        DEBUG_HEXDUMPC(buf, sizeof(pst_desc), 0x10);
+        memcpy(desc, buf, sizeof(pst_desc));
         LE64_CPU(desc->d_id);
         LE64_CPU(desc->desc_id);
         LE64_CPU(desc->tree_id);
         LE32_CPU(desc->parent_d_id);
         LE32_CPU(desc->u1);
-        r = sizeof(pst_descn);
+        r = sizeof(pst_desc);
     }
     else {
         pst_desc32 d32;
@@ -959,7 +959,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
  */
 static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_structn table, table2;
-    pst_descn desc_rec;
+    pst_desc desc_rec;
     int32_t item_count;
     uint64_t old = start_val;
     int x;
@@ -1020,7 +1020,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
             }
             DEBUG_INDEX(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_d_id));
             {
-                pst_desc_ll *d_ptr = (pst_desc_ll*) pst_malloc(sizeof(pst_desc_ll));
+                pst_desc_tree *d_ptr = (pst_desc_tree*) pst_malloc(sizeof(pst_desc_tree));
                 d_ptr->d_id        = desc_rec.d_id;
                 d_ptr->parent_d_id = desc_rec.parent_d_id;
                 d_ptr->assoc_tree  = pst_getID(pf, desc_rec.tree_id);
@@ -1074,10 +1074,10 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
 
 /** Process a high level object from the pst file.
  */
-pst_item* pst_parse_item(pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head) {
+pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_head) {
     pst_mapi_object * list;
-    pst_id2_ll *id2_head = m_head;
-    pst_id2_ll *id2_ptr  = NULL;
+    pst_id2_tree *id2_head = m_head;
+    pst_id2_tree *id2_ptr  = NULL;
     pst_item *item = NULL;
     pst_item_attach *attach = NULL;
     int32_t x;
@@ -1261,7 +1261,7 @@ static void freeall(pst_subblocks *subs, pst_block_offset_pointer *p1,
  *
  *  @return list of MAPI objects
  */
-static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_ll *i2_head) {
+static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_tree *i2_head) {
     pst_mapi_object *mo_head = NULL;
     char  *buf       = NULL;
     size_t read_size = 0;
@@ -3020,8 +3020,8 @@ static void pst_free_list(pst_mapi_object *list) {
 }
 
 
-static void pst_free_id2(pst_id2_ll * head) {
-    pst_id2_ll *t;
+static void pst_free_id2(pst_id2_tree * head) {
+    pst_id2_tree *t;
     DEBUG_ENT("pst_free_id2");
     while (head) {
         if (head->child) pst_free_id2(head->child);
@@ -3045,8 +3045,8 @@ static void pst_free_id (pst_index_ll *head) {
 }
 
 
-static void pst_free_desc (pst_desc_ll *head) {
-    pst_desc_ll *t;
+static void pst_free_desc (pst_desc_tree *head) {
+    pst_desc_tree *t;
     DEBUG_ENT("pst_free_desc");
     while (head) {
         while (head->child) {
@@ -3082,15 +3082,15 @@ static void pst_free_xattrib(pst_x_attrib_ll *x) {
 }
 
 
-static pst_id2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
+static pst_id2_tree * pst_build_id2(pst_file *pf, pst_index_ll* list) {
     pst_block_header block_head;
-    pst_id2_ll *head = NULL, *tail = NULL;
+    pst_id2_tree *head = NULL, *tail = NULL;
     uint16_t x = 0;
     char *b_ptr = NULL;
     char *buf = NULL;
     pst_id2_assoc id2_rec;
     pst_index_ll *i_ptr = NULL;
-    pst_id2_ll *i2_ptr = NULL;
+    pst_id2_tree *i2_ptr = NULL;
     DEBUG_ENT("pst_build_id2");
 
     if (pst_read_block_size(pf, list->offset, list->size, &buf) < list->size) {
@@ -3126,7 +3126,7 @@ static pst_id2_ll * pst_build_id2(pst_file *pf, pst_index_ll* list) {
             DEBUG_INDEX(("%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
                          i_ptr->i_id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
             // add it to the tree
-            i2_ptr = (pst_id2_ll*) pst_malloc(sizeof(pst_id2_ll));
+            i2_ptr = (pst_id2_tree*) pst_malloc(sizeof(pst_id2_tree));
             i2_ptr->id2   = id2_rec.id2;
             i2_ptr->id    = i_ptr;
             i2_ptr->child = NULL;
@@ -3377,7 +3377,7 @@ void pst_freeItem(pst_item *item) {
   * Otherwise, the high order 16 bits of offset is the index into the subblocks, and
   * the (low order 16 bits of offset)>>4 is an index into the table of offsets in the subblock.
 */
-static int pst_getBlockOffsetPointer(pst_file *pf, pst_id2_ll *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p) {
+static int pst_getBlockOffsetPointer(pst_file *pf, pst_id2_tree *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p) {
     size_t size;
     pst_block_offset block_offset;
     DEBUG_ENT("pst_getBlockOffsetPointer");
@@ -3472,14 +3472,14 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t i_id) {
 }
 
 
-static pst_id2_ll *pst_getID2(pst_id2_ll *head, uint64_t id2) {
+static pst_id2_tree *pst_getID2(pst_id2_tree *head, uint64_t id2) {
     DEBUG_ENT("pst_getID2");
     DEBUG_INDEX(("looking for id2 = %#"PRIx64"\n", id2));
-    pst_id2_ll *ptr = head;
+    pst_id2_tree *ptr = head;
     while (ptr) {
         if (ptr->id2 == id2) break;
         if (ptr->child) {
-            pst_id2_ll *rc = pst_getID2(ptr->child, id2);
+            pst_id2_tree *rc = pst_getID2(ptr->child, id2);
             if (rc) {
                 DEBUG_RET();
                 return rc;
@@ -3504,10 +3504,10 @@ static pst_id2_ll *pst_getID2(pst_id2_ll *head, uint64_t id2) {
  * @param pf    global pst file pointer
  * @param d_id  the id we are looking for
  *
- * @return pointer to the pst_desc_ll node in the descriptor tree
+ * @return pointer to the pst_desc_tree node in the descriptor tree
 */
-static pst_desc_ll* pst_getDptr(pst_file *pf, uint64_t d_id) {
-    pst_desc_ll *ptr = pf->d_head;
+static pst_desc_tree* pst_getDptr(pst_file *pf, uint64_t d_id) {
+    pst_desc_tree *ptr = pf->d_head;
     DEBUG_ENT("pst_getDptr");
     while (ptr && (ptr->d_id != d_id)) {
         //DEBUG_INDEX(("Looking for %#"PRIx64" at node %#"PRIx64" with parent %#"PRIx64"\n", id, ptr->d_id, ptr->parent_d_id));
@@ -3525,7 +3525,7 @@ static pst_desc_ll* pst_getDptr(pst_file *pf, uint64_t d_id) {
 }
 
 
-static void pst_printDptr(pst_file *pf, pst_desc_ll *ptr) {
+static void pst_printDptr(pst_file *pf, pst_desc_tree *ptr) {
     DEBUG_ENT("pst_printDptr");
     while (ptr) {
         DEBUG_INDEX(("%#"PRIx64" [%i] desc=%#"PRIx64", assoc tree=%#"PRIx64"\n", ptr->d_id, ptr->no_child,
@@ -3551,7 +3551,7 @@ static void pst_printIDptr(pst_file* pf) {
 }
 
 
-static void pst_printID2ptr(pst_id2_ll *ptr) {
+static void pst_printID2ptr(pst_id2_tree *ptr) {
     DEBUG_ENT("pst_printID2ptr");
     while (ptr) {
         DEBUG_INDEX(("%#"PRIx64" id=%#"PRIx64"\n", ptr->id2, (ptr->id ? ptr->id->i_id : (uint64_t)0)));
@@ -3771,9 +3771,9 @@ size_t pst_ff_getIDblock(pst_file *pf, uint64_t id, char** buf) {
 }
 
 
-static size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_ll *id2_head, char** buf) {
+static size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_tree *id2_head, char** buf) {
     size_t ret;
-    pst_id2_ll* ptr;
+    pst_id2_tree* ptr;
     pst_holder h = {buf, NULL, 0};
     DEBUG_ENT("pst_ff_getID2block");
     ptr = pst_getID2(id2_head, id2);

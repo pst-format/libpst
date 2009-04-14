@@ -75,7 +75,7 @@
 #define PST_APP_RECUR_YEARLY      4
 
 
-typedef struct pst_misc_6_struct {
+typedef struct pst_misc_6 {
     int32_t i1;
     int32_t i2;
     int32_t i3;
@@ -85,14 +85,14 @@ typedef struct pst_misc_6_struct {
 } pst_misc_6;
 
 
-typedef struct pst_entryid_struct {
+typedef struct pst_entryid {
     int32_t u1;
     char entryid[16];
     uint32_t id;
 } pst_entryid;
 
 
-typedef struct pst_desc_struct32 {
+typedef struct pst_desc32 {
     uint32_t d_id;
     uint32_t desc_id;
     uint32_t tree_id;
@@ -100,16 +100,16 @@ typedef struct pst_desc_struct32 {
 } pst_desc32;
 
 
-typedef struct pst_desc_structn {
+typedef struct pst_desc {
     uint64_t d_id;
     uint64_t desc_id;
     uint64_t tree_id;
     uint32_t parent_d_id;   // not 64 bit ??
     uint32_t u1;            // padding
-} pst_descn;
+} pst_desc;
 
 
-typedef struct pst_index_struct32 {
+typedef struct pst_index32 {
     uint32_t id;
     uint32_t offset;
     uint16_t size;
@@ -117,7 +117,7 @@ typedef struct pst_index_struct32 {
 } pst_index32;
 
 
-typedef struct pst_index_struct {
+typedef struct pst_index {
     uint64_t id;
     uint64_t offset;
     uint16_t size;
@@ -126,30 +126,21 @@ typedef struct pst_index_struct {
 } pst_index;
 
 
-typedef struct pst_index_tree32 {
-    uint32_t i_id;
-    uint32_t offset;
-    uint32_t size;
-    int32_t  u1;
-    struct pst_index_tree * next;
-} pst_index_ll32;
-
-
-typedef struct pst_index_tree {
+typedef struct pst_index_ll {
     uint64_t i_id;
     uint64_t offset;
     uint64_t size;
     int64_t  u1;
-    struct pst_index_tree *next;
+    struct pst_index_ll *next;
 } pst_index_ll;
 
 
 typedef struct pst_id2_tree {
-    uint64_t id2;
-    pst_index_ll *id;
+    uint64_t            id2;
+    pst_index_ll        *id;
     struct pst_id2_tree *child;
     struct pst_id2_tree *next;
-} pst_id2_ll;
+} pst_id2_tree;
 
 
 typedef struct pst_desc_tree {
@@ -163,7 +154,7 @@ typedef struct pst_desc_tree {
     struct pst_desc_tree *parent;
     struct pst_desc_tree *child;
     struct pst_desc_tree *child_tail;
-} pst_desc_ll;
+} pst_desc_tree;
 
 
 typedef struct pst_string {
@@ -401,19 +392,19 @@ typedef struct pst_item_contact {
 
 
 typedef struct pst_item_attach {
-    pst_string  filename1;
-    pst_string  filename2;
-    pst_string  mimetype;
-    pst_binary  data;
-    uint64_t    id2_val;
+    pst_string      filename1;
+    pst_string      filename2;
+    pst_string      mimetype;
+    pst_binary      data;
+    uint64_t        id2_val;
     /** calculated from id2_val during creation of record */
-    uint64_t    i_id;
+    uint64_t        i_id;
     /** deep copy from child */
-    pst_id2_ll *id2_head;
+    pst_id2_tree    *id2_head;
     /** 0=no attachment, 1=attach by value, 2=attach by reference, 3=attach by reference resolve, 4=attach by reference only, 5=embedded message, 6=OLE */
-    int32_t     method;
-    int32_t     position;
-    int32_t     sequence;
+    int32_t         method;
+    int32_t         position;
+    int32_t         sequence;
     struct pst_item_attach *next;
 } pst_item_attach;
 
@@ -474,14 +465,14 @@ typedef struct pst_item_appointment {
 
 
 typedef struct pst_item {
-    struct pst_item_email         *email;           // data referring to email
-    struct pst_item_folder        *folder;          // data referring to folder
-    struct pst_item_contact       *contact;         // data referring to contact
-    struct pst_item_attach        *attach;          // linked list of attachments
-    struct pst_item_message_store *message_store;   // data referring to the message store
-    struct pst_item_extra_field   *extra_fields;    // linked list of extra headers and such
-    struct pst_item_journal       *journal;         // data referring to a journal entry
-    struct pst_item_appointment   *appointment;     // data referring to a calendar entry
+    pst_item_email         *email;           // data referring to email
+    pst_item_folder        *folder;          // data referring to folder
+    pst_item_contact       *contact;         // data referring to contact
+    pst_item_attach        *attach;          // linked list of attachments
+    pst_item_message_store *message_store;   // data referring to the message store
+    pst_item_extra_field   *extra_fields;    // linked list of extra headers and such
+    pst_item_journal       *journal;         // data referring to a journal entry
+    pst_item_appointment   *appointment;     // data referring to a calendar entry
     int         type;
     char       *ascii_type;
     /** @li 0x01 - Read
@@ -538,7 +529,7 @@ typedef struct pst_block_recorder {
 
 typedef struct pst_file {
     pst_index_ll *i_head, *i_tail;
-    pst_desc_ll  *d_head, *d_tail;
+    pst_desc_tree  *d_head, *d_tail;
     pst_x_attrib_ll *x_head;
     pst_block_recorder *block_head;
 
@@ -611,14 +602,14 @@ typedef struct pst_subblocks {
 // prototypes
 int            pst_open(pst_file *pf, char *name);
 int            pst_close(pst_file *pf);
-pst_desc_ll *  pst_getTopOfFolders(pst_file *pf, pst_item *root);
+pst_desc_tree *  pst_getTopOfFolders(pst_file *pf, pst_item *root);
 size_t         pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp);
 size_t         pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp);
 int            pst_load_index (pst_file *pf);
-pst_desc_ll*   pst_getNextDptr(pst_desc_ll* d);
+pst_desc_tree*   pst_getNextDptr(pst_desc_tree* d);
 int            pst_load_extended_attributes(pst_file *pf);
-pst_item*      pst_getItem(pst_file *pf, pst_desc_ll *d_ptr);
-pst_item*      pst_parse_item (pst_file *pf, pst_desc_ll *d_ptr, pst_id2_ll *m_head);
+pst_item*      pst_getItem(pst_file *pf, pst_desc_tree *d_ptr);
+pst_item*      pst_parse_item (pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_head);
 void           pst_freeItem(pst_item *item);
 pst_index_ll*  pst_getID(pst_file* pf, uint64_t i_id);
 int            pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type);

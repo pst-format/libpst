@@ -22,7 +22,7 @@ void dumper(uint64_t i_id)
 {
     char *buf = NULL;
     size_t readSize;
-    pst_desc_ll *ptr;
+    pst_desc_tree *ptr;
 
     DEBUG_MAIN(("\n\n\nLooking at block index1 id %#"PRIx64"\n", i_id));
 
@@ -52,8 +52,8 @@ void dumper(uint64_t i_id)
             ptr = pst_getNextDptr(ptr);
         }
         if (!ptr) {
-            ptr = (pst_desc_ll *) pst_malloc(sizeof(pst_desc_ll));
-            memset(ptr, 0, sizeof(pst_desc_ll));
+            ptr = (pst_desc_tree *) pst_malloc(sizeof(pst_desc_tree));
+            memset(ptr, 0, sizeof(pst_desc_tree));
             ptr->desc = pst_getID(&pstfile, i_id);
         }
         pst_item *item = pst_parse_item(&pstfile, ptr, NULL);
@@ -62,8 +62,8 @@ void dumper(uint64_t i_id)
 }
 
 
-void dump_desc(pst_desc_ll *ptr);
-void dump_desc(pst_desc_ll *ptr)
+void dump_desc(pst_desc_tree *ptr);
+void dump_desc(pst_desc_tree *ptr)
 {
     while (ptr) {
         DEBUG_MAIN(("\n\n\nLooking at block desc id %#"PRIx64"\n", ptr->d_id));

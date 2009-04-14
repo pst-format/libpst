@@ -106,8 +106,8 @@ static const char* unique_string(const char *name) {
 }
 
 
-static void process(pst_desc_ll *d_ptr);
-static void process(pst_desc_ll *d_ptr) {
+static void process(pst_desc_tree *d_ptr);
+static void process(pst_desc_tree *d_ptr) {
     DEBUG_ENT("process");
     pst_item *item = NULL;
     while (d_ptr) {
@@ -576,7 +576,7 @@ void build_cn(char *cn, size_t len, int nvalues, pst_string value, ...)
 
 
 int main(int argc, char* const* argv) {
-    pst_desc_ll *d_ptr;
+    pst_desc_tree *d_ptr;
     char *fname = NULL;
     int c;
     char *d_log = NULL;

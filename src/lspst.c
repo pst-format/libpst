@@ -43,7 +43,7 @@ void close_enter_dir(struct file_ll *f)
 }
 
 
-void process(pst_item *outeritem, pst_desc_ll *d_ptr)
+void process(pst_item *outeritem, pst_desc_tree *d_ptr)
 {
     struct file_ll ff;
     pst_item *item = NULL;
@@ -169,7 +169,7 @@ void version() {
 
 int main(int argc, char* const* argv) {
     pst_item *item = NULL;
-    pst_desc_ll *d_ptr;
+    pst_desc_tree *d_ptr;
     char *temp  = NULL; //temporary char pointer
     int  c;
     char *d_log = NULL;
