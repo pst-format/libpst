@@ -51,17 +51,17 @@
 #define PST_FREEBUSY_OUT_OF_OFFICE 3
 
 // defines labels for appointment->label
-#define PST_APP_LABEL_NONE        0 // None
-#define PST_APP_LABEL_IMPORTANT   1 // Important
-#define PST_APP_LABEL_BUSINESS    2 // Business
-#define PST_APP_LABEL_PERSONAL    3 // Personal
-#define PST_APP_LABEL_VACATION    4 // Vacation
-#define PST_APP_LABEL_MUST_ATTEND 5 // Must Attend
-#define PST_APP_LABEL_TRAVEL_REQ  6 // Travel Required
-#define PST_APP_LABEL_NEEDS_PREP  7 // Needs Preparation
-#define PST_APP_LABEL_BIRTHDAY    8 // Birthday
-#define PST_APP_LABEL_ANNIVERSARY 9 // Anniversary
-#define PST_APP_LABEL_PHONE_CALL  10// Phone Call
+#define PST_APP_LABEL_NONE        0
+#define PST_APP_LABEL_IMPORTANT   1
+#define PST_APP_LABEL_BUSINESS    2
+#define PST_APP_LABEL_PERSONAL    3
+#define PST_APP_LABEL_VACATION    4
+#define PST_APP_LABEL_MUST_ATTEND 5
+#define PST_APP_LABEL_TRAVEL_REQ  6
+#define PST_APP_LABEL_NEEDS_PREP  7
+#define PST_APP_LABEL_BIRTHDAY    8
+#define PST_APP_LABEL_ANNIVERSARY 9
+#define PST_APP_LABEL_PHONE_CALL  10
 
 // define type of reccuring event
 #define PST_APP_RECUR_NONE        0
@@ -71,55 +71,11 @@
 #define PST_APP_RECUR_YEARLY      4
 
 
-typedef struct pst_misc_6 {
-    int32_t i1;
-    int32_t i2;
-    int32_t i3;
-    int32_t i4;
-    int32_t i5;
-    int32_t i6;
-} pst_misc_6;
-
-
 typedef struct pst_entryid {
     int32_t u1;
     char entryid[16];
     uint32_t id;
 } pst_entryid;
-
-
-typedef struct pst_desc32 {
-    uint32_t d_id;
-    uint32_t desc_id;
-    uint32_t tree_id;
-    uint32_t parent_d_id;
-} pst_desc32;
-
-
-typedef struct pst_desc {
-    uint64_t d_id;
-    uint64_t desc_id;
-    uint64_t tree_id;
-    uint32_t parent_d_id;   // not 64 bit ??
-    uint32_t u1;            // padding
-} pst_desc;
-
-
-typedef struct pst_index32 {
-    uint32_t id;
-    uint32_t offset;
-    uint16_t size;
-    int16_t  u1;
-} pst_index32;
-
-
-typedef struct pst_index {
-    uint64_t id;
-    uint64_t offset;
-    uint16_t size;
-    int16_t  u0;
-    int32_t  u1;
-} pst_index;
 
 
 typedef struct pst_index_ll {
@@ -153,258 +109,497 @@ typedef struct pst_desc_tree {
 } pst_desc_tree;
 
 
+/** The string is either utf8 encoded, or it is in the code page
+ *  specified by the containing mapi object. It can be forced into
+ *  utf8 by calling pst_convert_utf8() or pst_convert_utf8_null().
+ */
 typedef struct pst_string {
-    int     is_utf8;    // 1 = true, 0 = false
-    char   *str;        // either utf8 or some sbcs
+    /** @li 1 true
+     *  @li 0 false */
+    int     is_utf8;
+    char   *str;
 } pst_string;
 
 
+/** a simple wrapper for binary blobs */
 typedef struct pst_binary {
     size_t  size;
     char   *data;
 } pst_binary;
 
 
-/** This struct defines an email message
+/** This contains the email related mapi elements
  */
 typedef struct pst_item_email {
+    /** mapi element 0x0e06 PR_MESSAGE_DELIVERY_TIME */
     FILETIME   *arrival_date;
-    /** 1 = true, 0 = not set, -1 = false */
+    /** mapi element 0x0002 PR_ALTERNATE_RECIPIENT_ALLOWED
+     *  @li 1 true
+     *  @li 0 not set
+     *  @li -1 false */
     int         autoforward;
+    /** mapi element 0x0e03 PR_DISPLAY_CC */
     pst_string  cc_address;
+    /** mapi element 0x0e02 PR_DISPLAY_BCC */
     pst_string  bcc_address;
+    /** mapi element 0x0071 PR_CONVERSATION_INDEX */
     pst_binary  conversation_index;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x3a03 PR_CONVERSION_PROHIBITED
+     *  @li 1 true
+     *  @li 0 false */
     int         conversion_prohibited;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x0e01 PR_DELETE_AFTER_SUBMIT
+     *  @li 1 true
+     *  @li 0 false */
     int         delete_after_submit;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x0023 PR_ORIGINATOR_DELIVERY_REPORT_REQUESTED
+     *  @li 1 true
+     *  @li 0 false */
     int         delivery_report;
+    /** mapi element 0x6f04 */
     pst_binary  encrypted_body;
+    /** mapi element 0x6f02 */
     pst_binary  encrypted_htmlbody;
+    /** mapi element 0x007d PR_TRANSPORT_MESSAGE_HEADERS */
     pst_string  header;
+    /** mapi element 0x1013 */
     pst_string  htmlbody;
-    /** 0=low, 1=normal, 2=high */
+    /** mapi element 0x0017 PR_IMPORTANCE
+     *  @li 0 low
+     *  @li 1 normal
+     *  @li 2 high */
     int32_t     importance;
+    /** mapi element 0x1042 */
     pst_string  in_reply_to;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x0058 PR_MESSAGE_CC_ME, this user is listed explicitly in the CC address
+     *  @li 1 true
+     *  @li 0 false */
     int         message_cc_me;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x0059 PR_MESSAGE_RECIP_ME, this user appears in TO, CC or BCC address list
+     *  @li 1 true
+     *  @li 0 false */
     int         message_recip_me;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x0057 PR_MESSAGE_TO_ME, this user is listed explicitly in the TO address
+     *  @li 1 true
+     *  @li 0 false */
     int         message_to_me;
+    /** mapi element 0x1035 */
     pst_string  messageid;
-    /** 0=none, 1=personal, 2=private, 3=company confidential */
+    /** mapi element 0x002e PR_ORIGINAL_SENSITIVITY
+     *  @li 0=none
+     *  @li 1=personal
+     *  @li 2=private
+     *  @li 3=company confidential */
     int32_t     original_sensitivity;
+    /** mapi element 0x0072 PR_ORIGINAL_DISPLAY_BCC */
     pst_string  original_bcc;
+    /** mapi element 0x0073 PR_ORIGINAL_DISPLAY_CC */
     pst_string  original_cc;
+    /** mapi element 0x0074 PR_ORIGINAL_DISPLAY_TO */
     pst_string  original_to;
+    /** mapi element 0x0051 PR_RECEIVED_BY_SEARCH_KEY */
     pst_string  outlook_recipient;
+    /** mapi element 0x0044 PR_RCVD_REPRESENTING_NAME */
     pst_string  outlook_recipient_name;
+    /** mapi element 0x0052 PR_RCVD_REPRESENTING_SEARCH_KEY */
     pst_string  outlook_recipient2;
+    /** mapi element 0x003b PR_SENT_REPRESENTING_SEARCH_KEY */
     pst_string  outlook_sender;
+    /** mapi element 0x0042 PR_SENT_REPRESENTING_NAME */
     pst_string  outlook_sender_name;
+    /** mapi element 0x0c1d PR_SENDER_SEARCH_KEY */
     pst_string  outlook_sender2;
-    /** 0=nonurgent, 1=normal, 2=urgent */
+    /** mapi element 0x0026 PR_PRIORITY
+     *  @li 0 nonurgent
+     *  @li 1 normal
+     *  @li 2 urgent */
+    /** mapi element  */
     int32_t     priority;
+    /** mapi element 0x0070 PR_CONVERSATION_TOPIC */
     pst_string  processed_subject;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x0029 PR_READ_RECEIPT_REQUESTED
+     *  @li 1 true
+     *  @li 0 false */
     int         read_receipt;
+    /** mapi element 0x0075 PR_RECEIVED_BY_ADDRTYPE */
     pst_string  recip_access;
+    /** mapi element 0x0076 PR_RECEIVED_BY_EMAIL_ADDRESS */
     pst_string  recip_address;
+    /** mapi element 0x0077 PR_RCVD_REPRESENTING_ADDRTYPE */
     pst_string  recip2_access;
+    /** mapi element 0x0078 PR_RCVD_REPRESENTING_EMAIL_ADDRESS */
     pst_string  recip2_address;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x0c17 PR_REPLY_REQUESTED
+     *  @li 1 true
+     *  @li 0 false */
     int         reply_requested;
+    /** mapi element 0x0050 PR_REPLY_RECIPIENT_NAMES */
     pst_string  reply_to;
+    /** mapi element 0x1046, this seems to be the message-id of the rfc822 mail that is being returned */
     pst_string  return_path_address;
+    /** mapi element 0x1007 PR_RTF_SYNC_BODY_COUNT,
+     *  a count of the *significant* charcters in the rtf body. Doesn't count
+     *  whitespace and other ignorable characters. */
     int32_t     rtf_body_char_count;
+    /** mapi element 0x1006 PR_RTF_SYNC_BODY_CRC */
     int32_t     rtf_body_crc;
+    /** mapi element 0x1008 PR_RTF_SYNC_BODY_TAG,
+     *  the first couple of lines of RTF body so that after modification, then beginning can
+     *  once again be found. */
     pst_string  rtf_body_tag;
+    /** mapi element 0x1009 PR_RTF_COMPRESSED */
     pst_binary  rtf_compressed;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x0e1f PR_RTF_IN_SYNC,
+     *  True means that the rtf version is same as text body.
+     *  False means rtf version is more up-to-date than text body.
+     *  If this value doesn't exist, text body is more up-to-date than rtf and
+     *  cannot update to the rtf.
+     *  @li 1 true
+     *  @li 0 false */
     int         rtf_in_sync;
+    /** mapi element 0x1010 PR_RTF_SYNC_PREFIX_COUNT,
+     *  a count of the ignored characters before the first significant character */
     int32_t     rtf_ws_prefix_count;
+    /** mapi element 0x1011 PR_RTF_SYNC_TRAILING_COUNT,
+     *  a count of the ignored characters after the last significant character */
     int32_t     rtf_ws_trailing_count;
+    /** mapi element 0x0064 PR_SENT_REPRESENTING_ADDRTYPE */
     pst_string  sender_access;
+    /** mapi element 0x0065 PR_SENT_REPRESENTING_EMAIL_ADDRESS */
     pst_string  sender_address;
+    /** mapi element 0x0c1e PR_SENDER_ADDRTYPE */
     pst_string  sender2_access;
+    /** mapi element 0x0c1f PR_SENDER_EMAIL_ADDRESS */
     pst_string  sender2_address;
-    /** 0=none, 1=personal, 2=private, 3=company confidential */
+    /** mapi element 0x0036 PR_SENSITIVITY
+     *  @li 0=none
+     *  @li 1=personal
+     *  @li 2=private
+     *  @li 3=company confidential */
     int32_t     sensitivity;
+    /** mapi element 0x0039 PR_CLIENT_SUBMIT_TIME */
     FILETIME    *sent_date;
+    /** mapi element 0x0e0a PR_SENTMAIL_ENTRYID */
     pst_entryid *sentmail_folder;
+    /** mapi element 0x0e04 PR_DISPLAY_TO */
     pst_string  sentto_address;
-    // delivery report fields
+    /** mapi element 0x1001 PR_REPORT_TEXT, delivery report dsn body */
     pst_string  report_text;
+    /** mapi element 0x0032 PR_REPORT_TIME, delivery report time */
     FILETIME   *report_time;
+    /** mapi element 0x0c04 PR_NDR_REASON_CODE */
     int32_t     ndr_reason_code;
+    /** mapi element 0x0c05 PR_NDR_DIAG_CODE */
     int32_t     ndr_diag_code;
+    /** mapi element 0x0c1b PR_SUPPLEMENTARY_INFO */
     pst_string  supplementary_info;
+    /** mapi element 0x0c20 PR_NDR_STATUS_CODE */
     int32_t     ndr_status_code;
 } pst_item_email;
 
 
+/** This contains the folder related mapi elements
+ */
 typedef struct pst_item_folder {
+    /** mapi element 0x3602 PR_CONTENT_COUNT */
     int32_t  item_count;
+    /** mapi element 0x3603 PR_CONTENT_UNREAD */
     int32_t  unseen_item_count;
+    /** mapi element 0x3617 PR_ASSOC_CONTENT_COUNT
+        Associated content are items that are attached to this folder, but are hidden from users.
+    */
     int32_t  assoc_count;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x360a PR_SUBFOLDERS
+     *  @li 1 true
+     *  @li 0 false */
+    /** mapi element  */
     int      subfolder;
 } pst_item_folder;
 
 
+/** This contains the message store related mapi elements
+ */
 typedef struct pst_item_message_store {
-    pst_entryid *top_of_personal_folder;        // 0x35e0
-    pst_entryid *default_outbox_folder;         // 0x35e2
-    pst_entryid *deleted_items_folder;          // 0x35e3
-    pst_entryid *sent_items_folder;             // 0x35e4
-    pst_entryid *user_views_folder;             // 0x35e5
-    pst_entryid *common_view_folder;            // 0x35e6
-    pst_entryid *search_root_folder;            // 0x35e7
-    pst_entryid *top_of_folder;                 // 0x7c07
-    /** what folders the message store contains
-        @li FOLDER_IPM_SUBTREE_VALID  0x1
-        @li FOLDER_IPM_INBOX_VALID    0x2
-        @li FOLDER_IPM_OUTBOX_VALID   0x4
-        @li FOLDER_IPM_WASTEBOX_VALID 0x8
-        @li FOLDER_IPM_SENTMAIL_VALID 0x10
-        @li FOLDER_VIEWS_VALID        0x20
-        @li FOLDER_COMMON_VIEWS_VALID 0x40
-        @li FOLDER_FINDER_VALID       0x80
-     */
-    int32_t valid_mask;                         // 0x35df
-    int32_t pwd_chksum;                         // 0x76ff
+    /** mapi element 0x35e0 */
+    pst_entryid *top_of_personal_folder;
+    /** mapi element 0x35e2 */
+    pst_entryid *default_outbox_folder;
+    /** mapi element 0x35e3 */
+    pst_entryid *deleted_items_folder;
+    /** mapi element 0x35e4 */
+    pst_entryid *sent_items_folder;
+    /** mapi element 0x35e5 */
+    pst_entryid *user_views_folder;
+    /** mapi element 0x35e6 */
+    pst_entryid *common_view_folder;
+    /** mapi element 0x35e7 */
+    pst_entryid *search_root_folder;
+    /** mapi element 0x7c07 */
+    pst_entryid *top_of_folder;
+    /** mapi element 0x35df,
+     *  bit mask of folders in this message store
+     *  @li  0x1 FOLDER_IPM_SUBTREE_VALID
+     *  @li  0x2 FOLDER_IPM_INBOX_VALID
+     *  @li  0x4 FOLDER_IPM_OUTBOX_VALID
+     *  @li  0x8 FOLDER_IPM_WASTEBOX_VALID
+     *  @li 0x10 FOLDER_IPM_SENTMAIL_VALID
+     *  @li 0x20 FOLDER_VIEWS_VALID
+     *  @li 0x40 FOLDER_COMMON_VIEWS_VALID
+     *  @li 0x80 FOLDER_FINDER_VALID */
+    int32_t valid_mask;
+    /** mapi element 0x76ff */
+    int32_t pwd_chksum;
 } pst_item_message_store;
 
 
-/** This struct defines a contact
+/** This contains the contact related mapi elements
  */
 typedef struct pst_item_contact {
+    /** Unused - need to find the proper mapi element number for this  */
     pst_string  access_method;
+    /** mapi element 0x3a00 PR_ACCOUNT */
     pst_string  account_name;
+    /** mapi element 0x3003 PR_EMAIL_ADDRESS, or 0x8083 */
     pst_string  address1;
+    /** mapi element 0x8085 */
     pst_string  address1a;
+    /** mapi element 0x8084 */
     pst_string  address1_desc;
+    /** mapi element 0x3002 PR_ADDRTYPE, or 0x8082 */
     pst_string  address1_transport;
+    /** mapi element 0x8093 */
     pst_string  address2;
+    /** mapi element 0x8095 */
     pst_string  address2a;
+    /** mapi element 0x8094 */
     pst_string  address2_desc;
+    /** mapi element 0x8092 */
     pst_string  address2_transport;
+    /** mapi element 0x80a3 */
     pst_string  address3;
+    /** mapi element 0x80a5 */
     pst_string  address3a;
+    /** mapi element 0x80a4 */
     pst_string  address3_desc;
+    /** mapi element 0x80a2 */
     pst_string  address3_transport;
+    /** mapi element 0x3a30 PR_ASSISTANT */
     pst_string  assistant_name;
+    /** mapi element 0x3a2e PR_ASSISTANT_TELEPHONE_NUMBER */
     pst_string  assistant_phone;
+    /** mapi element 0x8535 */
     pst_string  billing_information;
+    /** mapi element 0x3a42 PR_BIRTHDAY */
     FILETIME   *birthday;
-    pst_string  business_address;               // 0x801b
+    /** mapi element 0x801b */
+    pst_string  business_address;
+    /** mapi element 0x3a27 PR_BUSINESS_ADDRESS_CITY */
     pst_string  business_city;
+    /** mapi element 0x3a26 PR_BUSINESS_ADDRESS_COUNTRY */
     pst_string  business_country;
+    /** mapi element 0x3a24 PR_BUSINESS_FAX_NUMBER */
     pst_string  business_fax;
+    /** mapi element 0x3a51 PR_BUSINESS_HOME_PAGE */
     pst_string  business_homepage;
+    /** mapi element 0x3a08 PR_BUSINESS_TELEPHONE_NUMBER */
     pst_string  business_phone;
+    /** mapi element 0x3a1b PR_BUSINESS2_TELEPHONE_NUMBER */
     pst_string  business_phone2;
+    /** mapi element 0x3a2b PR_BUSINESS_PO_BOX */
     pst_string  business_po_box;
+    /** mapi element 0x3a2a PR_BUSINESS_POSTAL_CODE */
     pst_string  business_postal_code;
+    /** mapi element 0x3a28 PR_BUSINESS_ADDRESS_STATE_OR_PROVINCE */
     pst_string  business_state;
+    /** mapi element 0x3a29 PR_BUSINESS_ADDRESS_STREET */
     pst_string  business_street;
+    /** mapi element 0x3a02 PR_CALLBACK_TELEPHONE_NUMBER */
     pst_string  callback_phone;
+    /** mapi element 0x3a1e PR_CAR_TELEPHONE_NUMBER */
     pst_string  car_phone;
+    /** mapi element 0x3a57 PR_COMPANY_MAIN_PHONE_NUMBER */
     pst_string  company_main_phone;
+    /** mapi element 0x3a16 PR_COMPANY_NAME */
     pst_string  company_name;
+    /** mapi element 0x3a49 PR_COMPUTER_NETWORK_NAME */
     pst_string  computer_name;
+    /** mapi element 0x3a4a PR_CUSTOMER_ID */
     pst_string  customer_id;
+    /** mapi element 0x3a15 PR_POSTAL_ADDRESS */
     pst_string  def_postal_address;
+    /** mapi element 0x3a18 PR_DEPARTMENT_NAME */
     pst_string  department;
+    /** mapi element 0x3a45 PR_DISPLAY_NAME_PREFIX */
     pst_string  display_name_prefix;
+    /** mapi element 0x3a06 PR_GIVEN_NAME */
     pst_string  first_name;
+    /** mapi element 0x8530 */
     pst_string  followup;
+    /** mapi element 0x80d8 */
     pst_string  free_busy_address;
+    /** mapi element 0x3a4c PR_FTP_SITE */
     pst_string  ftp_site;
+    /** mapi element 0x8005 */
     pst_string  fullname;
-    /** 0=unspecified, 1=female, 2=male */
+    /** mapi element 0x3a4d PR_GENDER
+     *  @li 0 unspecified
+     *  @li 1 female
+     *  @li 2 male */
     int16_t     gender;
+    /** mapi element 0x3a07 PR_GOVERNMENT_ID_NUMBER */
     pst_string  gov_id;
+    /** mapi element 0x3a43 PR_HOBBIES */
     pst_string  hobbies;
-    pst_string  home_address;                   // 0x801a
+    /** mapi element 0x801a */
+    pst_string  home_address;
+    /** mapi element 0x3a59 PR_HOME_ADDRESS_CITY */
     pst_string  home_city;
+    /** mapi element 0x3a5a PR_HOME_ADDRESS_COUNTRY */
     pst_string  home_country;
+    /** mapi element 0x3a25 PR_HOME_FAX_NUMBER */
     pst_string  home_fax;
+    /** mapi element 0x3a09 PR_HOME_TELEPHONE_NUMBER */
     pst_string  home_phone;
+    /** mapi element 0x3a2f PR_HOME2_TELEPHONE_NUMBER */
     pst_string  home_phone2;
+    /** mapi element 0x3a5e PR_HOME_ADDRESS_POST_OFFICE_BOX */
     pst_string  home_po_box;
+    /** mapi element 0x3a5b PR_HOME_ADDRESS_POSTAL_CODE */
     pst_string  home_postal_code;
+    /** mapi element 0x3a5c PR_HOME_ADDRESS_STATE_OR_PROVINCE */
     pst_string  home_state;
+    /** mapi element 0x3a5d PR_HOME_ADDRESS_STREET */
     pst_string  home_street;
+    /** mapi element 0x3a0a PR_INITIALS */
     pst_string  initials;
+    /** mapi element 0x3a2d PR_ISDN_NUMBER */
     pst_string  isdn_phone;
+    /** mapi element 0x3a17 PR_TITLE */
     pst_string  job_title;
+    /** mapi element 0x3a0b PR_KEYWORD */
     pst_string  keyword;
+    /** mapi element 0x3a0c PR_LANGUAGE */
     pst_string  language;
+    /** mapi element 0x3a0d PR_LOCATION */
     pst_string  location;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x3a0e PR_MAIL_PERMISSION
+     *  @li 1 true
+     *  @li 0 false */
     int         mail_permission;
+    /** mapi element 0x3a4e PR_MANAGER_NAME */
     pst_string  manager_name;
+    /** mapi element 0x3a44 PR_MIDDLE_NAME */
     pst_string  middle_name;
+    /** mapi element 0x8534 */
     pst_string  mileage;
+    /** mapi element 0x3a1c PR_MOBILE_TELEPHONE_NUMBER */
     pst_string  mobile_phone;
+    /** mapi element 0x3a4f PR_NICKNAME */
     pst_string  nickname;
+    /** mapi element 0x3a19 PR_OFFICE_LOCATION */
     pst_string  office_loc;
+    /** mapi element 0x3a0f PR_MHS_COMMON_NAME */
     pst_string  common_name;
+    /** mapi element 0x3a10 PR_ORGANIZATIONAL_ID_NUMBER */
     pst_string  org_id;
-    pst_string  other_address;                  // 0x801c
+    /** mapi element 0x801c */
+    pst_string  other_address;
+    /** mapi element 0x3a5f PR_OTHER_ADDRESS_CITY */
     pst_string  other_city;
+    /** mapi element 0x3a60 PR_OTHER_ADDRESS_COUNTRY */
     pst_string  other_country;
+    /** mapi element 0x3a1f PR_OTHER_TELEPHONE_NUMBER */
     pst_string  other_phone;
+    /** mapi element 0x3a64 PR_OTHER_ADDRESS_POST_OFFICE_BOX */
     pst_string  other_po_box;
+    /** mapi element 0x3a61 PR_OTHER_ADDRESS_POSTAL_CODE */
     pst_string  other_postal_code;
+    /** mapi element 0x3a62 PR_OTHER_ADDRESS_STATE_OR_PROVINCE */
     pst_string  other_state;
+    /** mapi element 0x3a63 PR_OTHER_ADDRESS_STREET */
     pst_string  other_street;
+    /** mapi element 0x3a21 PR_PAGER_TELEPHONE_NUMBER */
     pst_string  pager_phone;
+    /** mapi element 0x3a50 PR_PERSONAL_HOME_PAGE */
     pst_string  personal_homepage;
+    /** mapi element 0x3a47 PR_PREFERRED_BY_NAME */
     pst_string  pref_name;
+    /** mapi element 0x3a23 PR_PRIMARY_FAX_NUMBER */
     pst_string  primary_fax;
+    /** mapi element 0x3a1a PR_PRIMARY_TELEPHONE_NUMBER */
     pst_string  primary_phone;
+    /** mapi element 0x3a46 PR_PROFESSION */
     pst_string  profession;
+    /** mapi element 0x3a1d PR_RADIO_TELEPHONE_NUMBER */
     pst_string  radio_phone;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x3a40 PR_SEND_RICH_INFO
+     *  @li 1 true
+     *  @li 0 false */
     int         rich_text;
+    /** mapi element 0x3a48 PR_SPOUSE_NAME */
     pst_string  spouse_name;
+    /** mapi element 0x3a05 PR_GENERATION (Jr., Sr., III, etc) */
     pst_string  suffix;
+    /** mapi element 0x3a11 PR_SURNAME */
     pst_string  surname;
+    /** mapi element 0x3a2c PR_TELEX_NUMBER */
     pst_string  telex;
+    /** mapi element 0x3a20 PR_TRANSMITTABLE_DISPLAY_NAME */
     pst_string  transmittable_display_name;
+    /** mapi element 0x3a4b PR_TTYTDD_PHONE_NUMBER */
     pst_string  ttytdd_phone;
+    /** mapi element 0x3a41 PR_WEDDING_ANNIVERSARY */
     FILETIME   *wedding_anniversary;
-    pst_string  work_address_street;            // 0x8045
-    pst_string  work_address_city;              // 0x8046
-    pst_string  work_address_state;             // 0x8047
-    pst_string  work_address_postalcode;        // 0x8048
-    pst_string  work_address_country;           // 0x8049
-    pst_string  work_address_postofficebox;     // 0x804a
+    /** mapi element 0x8045 */
+    pst_string  work_address_street;
+    /** mapi element 0x8046 */
+    pst_string  work_address_city;
+    /** mapi element 0x8047 */
+    pst_string  work_address_state;
+    /** mapi element 0x8048 */
+    pst_string  work_address_postalcode;
+    /** mapi element 0x8049 */
+    pst_string  work_address_country;
+    /** mapi element 0x804a */
+    pst_string  work_address_postofficebox;
 } pst_item_contact;
 
 
+/** This contains the attachment related mapi elements
+ */
 typedef struct pst_item_attach {
+    /** mapi element 0x3704 PR_ATTACH_FILENAME */
     pst_string      filename1;
+    /** mapi element 0x3707 PR_ATTACH_LONG_FILENAME */
     pst_string      filename2;
+    /** mapi element 0x370e PR_ATTACH_MIME_TAG */
     pst_string      mimetype;
+    /** mapi element 0x3701 PR_ATTACH_DATA_OBJ */
     pst_binary      data;
+    /** only used if the attachment is by reference, in which case this is the id2 reference */
     uint64_t        id2_val;
     /** calculated from id2_val during creation of record */
     uint64_t        i_id;
-    /** deep copy from child */
+    /** id2 tree needed to resolve attachments by reference */
     pst_id2_tree    *id2_head;
-    /** 0=no attachment, 1=attach by value, 2=attach by reference, 3=attach by reference resolve, 4=attach by reference only, 5=embedded message, 6=OLE */
+    /** mapi element 0x3705 PR_ATTACH_METHOD
+     *  @li 0 no attachment
+     *  @li 1 attach by value
+     *  @li 2 attach by reference
+     *  @li 3 attach by reference resolve
+     *  @li 4 attach by reference only
+     *  @li 5 embedded message
+     *  @li 6 OLE */
     int32_t         method;
+    /** mapi element 0x370b PR_RENDERING_POSITION */
     int32_t         position;
+    /** mapi element 0x3710 PR_ATTACH_MIME_SEQUENCE */
     int32_t         sequence;
     struct pst_item_attach *next;
 } pst_item_attach;
 
 
+/** linked list of extra header fields */
 typedef struct pst_item_extra_field {
     char   *field_name;
     char   *value;
@@ -412,100 +607,160 @@ typedef struct pst_item_extra_field {
 } pst_item_extra_field;
 
 
-/** This struct defines a journal entry
+/** This contains the journal related mapi elements
  */
 typedef struct pst_item_journal {
+    /** mapi element 0x8708 */
     FILETIME   *end;
+    /** mapi element 0x8706 */
     FILETIME   *start;
+    /** mapi element 0x8700 */
     pst_string  type;
+    /** mapi element 0x8712 */
     pst_string  description;
 } pst_item_journal;
 
 
-/** This struct defines an appointment
+/** This contains the appointment related mapi elements
  */
 typedef struct pst_item_appointment {
+    /** mapi element 0x820e PR_OUTLOOK_EVENT_START_END */
     FILETIME   *end;
+    /** mapi element 0x8208 PR_OUTLOOK_EVENT_LOCATION */
     pst_string  location;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x8503 PR_OUTLOOK_COMMON_REMINDER_SET
+     *  @li 1 true
+     *  @li 0 false */
     int         alarm;
+    /** mapi element 0x8560 */
     FILETIME   *reminder;
+    /** mapi element 0x8501 PR_OUTLOOK_COMMON_REMINDER_MINUTES_BEFORE */
     int32_t     alarm_minutes;
+    /** mapi element 0x851f */
     pst_string  alarm_filename;
+    /** mapi element 0x820d PR_OUTLOOK_EVENT_START_DATE */
     FILETIME   *start;
+    /** mapi element 0x8234 */
     pst_string  timezonestring;
-    /** 0=free, 1=tentative, 2=busy, 3=out of office*/
+    /** mapi element 0x8205 PR_OUTLOOK_EVENT_SHOW_TIME_AS
+     *  @li 0 free
+     *  @li 1 tentative
+     *  @li 2 busy
+     *  @li 3 out of office*/
     int32_t     showas;
-    /** @li 0=None
-        @li 1=Important
-        @li 2=Business
-        @li 3=Personal
-        @li 4=Vacation
-        @li 5=Must Attend
-        @li 6=Travel Required
-        @li 7=Needs Preparation
-        @li 8=Birthday
-        @li 9=Anniversary
-       @li 10=Phone Call
-    */
+    /** mapi element 0x8214
+     *  @li 0 None
+     *  @li 1 Important
+     *  @li 2 Business
+     *  @li 3 Personal
+     *  @li 4 Vacation
+     *  @li 5 Must Attend
+     *  @li 6 Travel Required
+     *  @li 7 Needs Preparation
+     *  @li 8 Birthday
+     *  @li 9 Anniversary
+     *  @li 10 Phone Call */
     int32_t     label;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x8215 PR_OUTLOOK_EVENT_ALL_DAY
+     *  @li 1 true
+     *  @li 0 false */
     int         all_day;
-    /** recurrence description */
+    /** mapi element 0x8232 recurrence description */
     pst_string  recurrence;
-    /** 0=none, 1=daily, 2=weekly, 3=monthly, 4=yearly */
+    /** mapi element 0x8231
+     *  @li 0 none
+     *  @li 1 daily
+     *  @li 2 weekly
+     *  @li 3 monthly
+     *  @li 4 yearly */
     int32_t     recurrence_type;
+    /** mapi element 0x8235 PR_OUTLOOK_EVENT_RECURRENCE_START */
     FILETIME   *recurrence_start;
+    /** mapi element 0x8236 PR_OUTLOOK_EVENT_RECURRENCE_END  */
     FILETIME   *recurrence_end;
 } pst_item_appointment;
 
 
+/** This contains the common mapi elements, and pointers to structures for each major mapi item type */
 typedef struct pst_item {
-    pst_item_email         *email;           // data referring to email
-    pst_item_folder        *folder;          // data referring to folder
-    pst_item_contact       *contact;         // data referring to contact
-    pst_item_attach        *attach;          // linked list of attachments
-    pst_item_message_store *message_store;   // data referring to the message store
-    pst_item_extra_field   *extra_fields;    // linked list of extra headers and such
-    pst_item_journal       *journal;         // data referring to a journal entry
-    pst_item_appointment   *appointment;     // data referring to a calendar entry
+    /** email mapi elements */
+    pst_item_email         *email;
+    /** folder mapi elements */
+    pst_item_folder        *folder;
+    /** contact mapi elements */
+    pst_item_contact       *contact;
+    /** linked list of attachments */
+    pst_item_attach        *attach;
+    /** message store mapi elements */
+    pst_item_message_store *message_store;
+    /** linked list of extra headers and such */
+    pst_item_extra_field   *extra_fields;
+    /** journal mapi elements */
+    pst_item_journal       *journal;
+    /** calendar mapi elements */
+    pst_item_appointment   *appointment;
+    /** derived from mapi elements 0x001a PR_MESSAGE_CLASS or 0x3613 PR_CONTAINER_CLASS
+     *  @li  1 PST_TYPE_NOTE
+     *  @li  8 PST_TYPE_APPOINTMENT
+     *  @li  9 PST_TYPE_CONTACT
+     *  @li 10 PST_TYPE_JOURNAL
+     *  @li 11 PST_TYPE_STICKYNOTE
+     *  @li 12 PST_TYPE_TASK
+     *  @li 13 PST_TYPE_OTHER
+     *  @li 14 PST_TYPE_REPORT */
     int         type;
+    /** mapi element 0x001a PR_MESSAGE_CLASS or 0x3613 PR_CONTAINER_CLASS */
     char       *ascii_type;
-    /** @li 0x01 - Read
-        @li 0x02 - Unmodified
-        @li 0x04 - Submit
-        @li 0x08 - Unsent
-        @li 0x10 - Has Attachments
-        @li 0x20 - From Me
-        @li 0x40 - Associated
-        @li 0x80 - Resend
-        @li 0x100 - RN Pending
-        @li 0x200 - NRN Pending
-     */
+    /** mapi element 0x0e07 PR_MESSAGE_FLAGS
+     *  @li 0x01 Read
+     *  @li 0x02 Unmodified
+     *  @li 0x04 Submit
+     *  @li 0x08 Unsent
+     *  @li 0x10 Has Attachments
+     *  @li 0x20 From Me
+     *  @li 0x40 Associated
+     *  @li 0x80 Resend
+     *  @li 0x100 RN Pending
+     *  @li 0x200 NRN Pending */
     int32_t     flags;
+    /** mapi element 0x3001 PR_DISPLAY_NAME */
     pst_string  file_as;
+    /** mapi element 0x3004 PR_COMMENT */
     pst_string  comment;
-    /** null if not specified */
+    /** derived from extra_fields["content-type"] if it contains a charset= subfield  */
     pst_string  body_charset;
-    /** used by email and journal types */
+    /** mapi element 0x1000 PR_BODY */
     pst_string  body;
-    /** used by email and journal types */
+    /** mapi element 0x0037 PR_SUBJECT */
     pst_string  subject;
+    /** mapi element 0x3fde PR_INTERNET_CPID */
     int32_t     internet_cpid;
+    /** mapi element 0x3ffd PR_MESSAGE_CODEPAGE */
     int32_t     message_codepage;
+    /** mapi element 0x0e08 PR_MESSAGE_SIZE */
     int32_t     message_size;
+    /** mapi element 0x8554 PR_OUTLOOK_VERSION */
     pst_string  outlook_version;
+    /** mapi element 0x0ff9 PR_RECORD_KEY */
     pst_binary  record_key;
-    pst_binary  predecessor_change;     // was formerly stored in record_key
-    /** 1 = true, 0 = false */
+    /** mapi element 0x65e3 PR_PREDECESSOR_CHANGE_LIST */
+    pst_binary  predecessor_change;
+    /** mapi element 0x0063 PR_RESPONSE_REQUESTED
+     *  @li 1 true
+     *  @li 0 false */
     int         response_requested;
+    /** mapi element 0x3007 PR_CREATION_TIME */
     FILETIME   *create_date;
+    /** mapi element 0x3008 PR_LAST_MODIFICATION_TIME */
     FILETIME   *modify_date;
-    /** 1 = true, 0 = false */
+    /** mapi element 0x002b PR_RECIPIENT_REASSIGNMENT_PROHIBITED
+     *  @li 1 true
+     *  @li 0 false */
     int         private_member;
 } pst_item;
 
 
+/** linked list of extended attributes */
 typedef struct pst_x_attrib_ll {
     uint32_t type;
     uint32_t mytype;
@@ -515,6 +770,7 @@ typedef struct pst_x_attrib_ll {
 } pst_x_attrib_ll;
 
 
+/** this is only used for internal debugging */
 typedef struct pst_block_recorder {
     struct pst_block_recorder  *next;
     int64_t                     offset;
@@ -524,85 +780,52 @@ typedef struct pst_block_recorder {
 
 
 typedef struct pst_file {
+    /** the head and tail of the linked list of index structures */
     pst_index_ll *i_head, *i_tail;
+    /** the head and tail of the top level of the descriptor tree */
     pst_desc_tree  *d_head, *d_tail;
+    /** the head of the extended attributes linked list */
     pst_x_attrib_ll *x_head;
+    /** the head of the block recorder, a debug artifact
+     *  used to detect cases where we might read the same
+     *  block multiple times while processing a pst file. */
     pst_block_recorder *block_head;
 
-    /** 0 is 32-bit pst file, pre Outlook 2003;
-     *  1 is 64-bit pst file, Outlook 2003 and later
-     */
+    /** @li 0 is 32-bit pst file, pre Outlook 2003;
+     *  @li 1 is 64-bit pst file, Outlook 2003 or later */
     int do_read64;
+    /** file offset of the first b-tree node in the index tree */
     uint64_t index1;
+    /** back pointer value in the first b-tree node in the index tree */
     uint64_t index1_back;
+    /** file offset of the first b-tree node in the descriptor tree*/
     uint64_t index2;
+    /** back pointer value in the first b-tree node in the descriptor tree */
     uint64_t index2_back;
-    FILE * fp;                  // file pointer to opened PST file
-    uint64_t size;              // pst file size
-    unsigned char encryption;   // pst encryption setting
-    unsigned char ind_type;     // pst index type
+    /** file pointer to opened PST file */
+    FILE * fp;
+    /** size of the pst file */
+    uint64_t size;
+    /** @li 0 PST_NO_ENCRYPT, none
+     *  @li 1 PST_COMP_ENCRYPT, simple byte substitution cipher with fixed key
+     *  @li 2 PST_ENCRYPT, german enigma 3 rotor cipher with fixed key */
+    unsigned char encryption;
+    /** index type or file type
+     *  @li 0x0e 32 bit pre Outlook 2003
+     *  @li 0x0f 32 bit pre Outlook 2003
+     *  @li 0x15 64 bit Outlook 2003 or later
+     *  @li 0x17 64 bit Outlook 2003 or later */
+    unsigned char ind_type;
 } pst_file;
 
 
-typedef struct pst_block_offset {
-    int16_t from;
-    int16_t to;
-} pst_block_offset;
-
-
-typedef struct pst_block_offset_pointer {
-    char *from;
-    char *to;
-    int   needfree;
-} pst_block_offset_pointer;
-
-
-typedef struct pst_mapi_element {
-    uint32_t   mapi_id;
-    char      *data;
-    uint32_t   type;
-    size_t     size;
-    char      *extra;
-} pst_mapi_element;
-
-
-typedef struct pst_mapi_object {
-    int32_t count_elements;     // count of active elements
-    int32_t orig_count;         // originally allocated elements
-    int32_t count_objects;      // number of mapi objects in the list
-    struct pst_mapi_element **elements;
-    struct pst_mapi_object *next;
-} pst_mapi_object;
-
-
-typedef struct pst_holder {
-    char  **buf;
-    FILE   *fp;
-    int     base64;
-} pst_holder;
-
-
-typedef struct pst_subblock {
-    char    *buf;
-    size_t   read_size;
-    size_t   i_offset;
-} pst_subblock;
-
-
-typedef struct pst_subblocks {
-    size_t          subblock_count;
-    pst_subblock   *subs;
-} pst_subblocks;
-
-
-// prototypes
 int            pst_open(pst_file *pf, char *name);
 int            pst_close(pst_file *pf);
-pst_desc_tree *  pst_getTopOfFolders(pst_file *pf, pst_item *root);
+pst_desc_tree* pst_getTopOfFolders(pst_file *pf, pst_item *root);
 size_t         pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp);
 size_t         pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp);
 int            pst_load_index (pst_file *pf);
-pst_desc_tree*   pst_getNextDptr(pst_desc_tree* d);
+pst_desc_tree* pst_getNextDptr(pst_desc_tree* d);
 int            pst_load_extended_attributes(pst_file *pf);
 pst_item*      pst_getItem(pst_file *pf, pst_desc_tree *d_ptr);
 pst_item*      pst_parse_item (pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_head);
@@ -617,9 +840,36 @@ char *         pst_rfc2425_datetime_format(FILETIME *ft);
 char *         pst_rfc2445_datetime_format(FILETIME *ft);
 
 
+/** Convert a code page integer into a string suitable for iconv()
+ *
+ *  @param cp the code page integer used in the pst file
+ *  @return pointer to a static buffer holding the string representation of the
+ *          equivalent iconv character set
+ */
 const char*    pst_codepage(int cp);
+
+
+/** Get the default character set for this item. This is used to find
+ *  the charset for pst_string elements that are not already in utf8 encoding.
+ *  @param  item   pointer to the mapi item of interest
+ *  @return default character set as a string useable by iconv()
+ */
 const char*    pst_default_charset(pst_item *item);
+
+
+/** Convert str to utf8 if possible; null strings are preserved.
+ *
+ *  @param item  pointer to the containing mapi item
+ *  @param str   pointer to the mapi string of interest
+ */
 void           pst_convert_utf8_null(pst_item *item, pst_string *str);
+
+
+/** Convert str to utf8 if possible; null strings are converted into empty strings.
+ *
+ *  @param item  pointer to the containing mapi item
+ *  @param str   pointer to the mapi string of interest
+ */
 void           pst_convert_utf8(pst_item *item, pst_string *str);
 
 

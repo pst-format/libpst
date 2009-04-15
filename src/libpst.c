@@ -50,6 +50,73 @@
 #define PST_SIGNATURE 0x4E444221
 
 
+typedef struct pst_block_offset {
+    int16_t from;
+    int16_t to;
+} pst_block_offset;
+
+
+typedef struct pst_block_offset_pointer {
+    char *from;
+    char *to;
+    int   needfree;
+} pst_block_offset_pointer;
+
+
+typedef struct pst_holder {
+    char  **buf;
+    FILE   *fp;
+    int     base64;
+} pst_holder;
+
+
+typedef struct pst_subblock {
+    char    *buf;
+    size_t   read_size;
+    size_t   i_offset;
+} pst_subblock;
+
+
+typedef struct pst_subblocks {
+    size_t          subblock_count;
+    pst_subblock   *subs;
+} pst_subblocks;
+
+
+typedef struct pst_mapi_element {
+    uint32_t   mapi_id;
+    char      *data;
+    uint32_t   type;
+    size_t     size;
+    char      *extra;
+} pst_mapi_element;
+
+
+typedef struct pst_mapi_object {
+    int32_t count_elements;     // count of active elements
+    int32_t orig_count;         // originally allocated elements
+    int32_t count_objects;      // number of mapi objects in the list
+    struct pst_mapi_element **elements;
+    struct pst_mapi_object *next;
+} pst_mapi_object;
+
+
+typedef struct pst_desc32 {
+    uint32_t d_id;
+    uint32_t desc_id;
+    uint32_t tree_id;
+    uint32_t parent_d_id;
+} pst_desc32;
+
+
+typedef struct pst_index32 {
+    uint32_t id;
+    uint32_t offset;
+    uint16_t size;
+    int16_t  u1;
+} pst_index32;
+
+
 struct pst_table_ptr_struct32{
   uint32_t start;
   uint32_t u1;
@@ -57,7 +124,25 @@ struct pst_table_ptr_struct32{
 };
 
 
-struct pst_table_ptr_structn{
+typedef struct pst_desc {
+    uint64_t d_id;
+    uint64_t desc_id;
+    uint64_t tree_id;
+    uint32_t parent_d_id;   // not 64 bit
+    uint32_t u1;            // padding
+} pst_desc;
+
+
+typedef struct pst_index {
+    uint64_t id;
+    uint64_t offset;
+    uint16_t size;
+    int16_t  u0;
+    int32_t  u1;
+} pst_index;
+
+
+struct pst_table_ptr_struct{
   uint64_t start;
   uint64_t u1;
   uint64_t offset;
@@ -538,7 +623,7 @@ int pst_load_extended_attributes(pst_file *pf) {
     char *buffer=NULL, *headerbuffer=NULL;
     size_t bsize=0, hsize=0, bptr=0;
     pst_x_attrib xattrib;
-    int32_t tint, err=0, x;
+    int32_t tint, x;
     pst_x_attrib_ll *ptr, *p_head=NULL;
 
     DEBUG_ENT("pst_loadExtendedAttributes");
@@ -723,17 +808,17 @@ static size_t pst_decode_desc(pst_file *pf, pst_desc *desc, char *buf) {
 }
 
 
-static size_t pst_decode_table(pst_file *pf, struct pst_table_ptr_structn *table, char *buf);
-static size_t pst_decode_table(pst_file *pf, struct pst_table_ptr_structn *table, char *buf) {
+static size_t pst_decode_table(pst_file *pf, struct pst_table_ptr_struct *table, char *buf);
+static size_t pst_decode_table(pst_file *pf, struct pst_table_ptr_struct *table, char *buf) {
     size_t r;
     if (pf->do_read64) {
         DEBUG_INDEX(("Decoding table64\n"));
-        DEBUG_HEXDUMPC(buf, sizeof(struct pst_table_ptr_structn), 0x10);
-        memcpy(table, buf, sizeof(struct pst_table_ptr_structn));
+        DEBUG_HEXDUMPC(buf, sizeof(struct pst_table_ptr_struct), 0x10);
+        memcpy(table, buf, sizeof(struct pst_table_ptr_struct));
         LE64_CPU(table->start);
         LE64_CPU(table->u1);
         LE64_CPU(table->offset);
-        r =sizeof(struct pst_table_ptr_structn);
+        r =sizeof(struct pst_table_ptr_struct);
     }
     else {
         struct pst_table_ptr_struct32 t32;
@@ -841,7 +926,7 @@ static size_t pst_decode_type3(pst_file *pf, pst_table3_rec *table3_rec, char *b
  *  blocks, etc) in the pst file.
  */
 static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
-    struct pst_table_ptr_structn table, table2;
+    struct pst_table_ptr_struct table, table2;
     pst_index_ll *i_ptr=NULL;
     pst_index index;
     int32_t x, item_count;
@@ -958,7 +1043,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
  *  higher level objects (email, contact, etc) in the pst file.
  */
 static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
-    struct pst_table_ptr_structn table, table2;
+    struct pst_table_ptr_struct table, table2;
     pst_desc desc_rec;
     int32_t item_count;
     uint64_t old = start_val;
@@ -2267,7 +2352,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     // True means that the rtf version is same as text body
                     // False means rtf version is more up-to-date than text body
                     // if this value doesn't exist, text body is more up-to-date than rtf and
-                    //   cannot update to the rtf
+                    // cannot update to the rtf
                     LIST_COPY_EMAIL_BOOL("Compressed RTF in Sync", item->email->rtf_in_sync);
                     break;
                 case 0x0E20: // PR_ATTACH_SIZE binary Attachment data in record
@@ -2790,17 +2875,17 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                 case 0x80D8: // Internet Free/Busy
                     LIST_COPY_CONTACT_STR("Internet Free/Busy", item->contact->free_busy_address);
                     break;
-                case 0x8205: // Show on Free/Busy as
+                case 0x8205: // PR_OUTLOOK_EVENT_SHOW_TIME_AS
                     LIST_COPY_APPT_ENUM("Appointment shows as", item->appointment->showas, 0, 4,
                         "Free", "Tentative", "Busy", "Out Of Office");
                     break;
-                case 0x8208: // Location of an appointment
+                case 0x8208: // PR_OUTLOOK_EVENT_LOCATION
                     LIST_COPY_APPT_STR("Appointment Location", item->appointment->location);
                     break;
-                case 0x820d: // Appointment start
+                case 0x820d: // PR_OUTLOOK_EVENT_START_DATE
                     LIST_COPY_APPT_TIME("Appointment Date Start", item->appointment->start);
                     break;
-                case 0x820e: // Appointment end
+                case 0x820e: // PR_OUTLOOK_EVENT_START_END
                     LIST_COPY_APPT_TIME("Appointment Date End", item->appointment->end);
                     break;
                 case 0x8214: // Label for an appointment
@@ -2817,7 +2902,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                         "Anniversary",
                         "Phone Call");
                     break;
-                case 0x8215: // All day appointment flag
+                case 0x8215: // PR_OUTLOOK_EVENT_ALL_DAY
                     LIST_COPY_APPT_BOOL("All day flag", item->appointment->all_day);
                     break;
                 case 0x8231: // Recurrence type
@@ -2834,16 +2919,16 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                 case 0x8234: // TimeZone as String
                     LIST_COPY_APPT_STR("TimeZone of times", item->appointment->timezonestring);
                     break;
-                case 0x8235: // Recurrence start date
+                case 0x8235: // PR_OUTLOOK_EVENT_RECURRENCE_START
                     LIST_COPY_APPT_TIME("Recurrence Start Date", item->appointment->recurrence_start);
                     break;
-                case 0x8236: // Recurrence end date
+                case 0x8236: // PR_OUTLOOK_EVENT_RECURRENCE_END
                     LIST_COPY_APPT_TIME("Recurrence End Date", item->appointment->recurrence_end);
                     break;
-                case 0x8501: // Reminder minutes before appointment start
+                case 0x8501: // PR_OUTLOOK_COMMON_REMINDER_MINUTES_BEFORE
                     LIST_COPY_APPT_INT32("Alarm minutes", item->appointment->alarm_minutes);
                     break;
-                case 0x8503: // Reminder alarm
+                case 0x8503: // PR_OUTLOOK_COMMON_REMINDER_SET
                     LIST_COPY_APPT_BOOL("Reminder alarm", item->appointment->alarm);
                     break;
                 case 0x8516: // Common start
@@ -2864,7 +2949,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                 case 0x8535: // Billing Information
                     LIST_COPY_CONTACT_STR("Billing Information", item->contact->billing_information);
                     break;
-                case 0x8554: // Outlook Version
+                case 0x8554: // PR_OUTLOOK_VERSION
                     LIST_COPY_STR("Outlook Version", item->outlook_version);
                     break;
                 case 0x8560: // Appointment Reminder Time
@@ -4088,7 +4173,7 @@ char *pst_rfc2445_datetime_format(FILETIME *ft) {
 }
 
 
-/** Convert a code page integer into a string suitable for iconv
+/** Convert a code page integer into a string suitable for iconv()
  *
  *  @param cp the code page integer used in the pst file
  *  @return pointer to a static buffer holding the string representation of the
@@ -4133,9 +4218,10 @@ const char* codepage(int cp) {
 }
 
 
-/** get the default character set for this item
- *  @param item   pointer to the mapi item of interest
- *  @return default character set
+/** Get the default character set for this item. This is used to find
+ *  the charset for pst_string elements that are not already in utf8 encoding.
+ *  @param  item   pointer to the mapi item of interest
+ *  @return default character set as a string useable by iconv()
  */
 const char*    pst_default_charset(pst_item *item)
 {
@@ -4148,7 +4234,7 @@ const char*    pst_default_charset(pst_item *item)
 
 /** Convert str to utf8 if possible; null strings are preserved.
  *
- *  @param item  pointer to the mapi item of interest
+ *  @param item  pointer to the containing mapi item
  *  @param str   pointer to the mapi string of interest
  */
 void pst_convert_utf8_null(pst_item *item, pst_string *str)
@@ -4160,7 +4246,7 @@ void pst_convert_utf8_null(pst_item *item, pst_string *str)
 
 /** Convert str to utf8 if possible; null strings are converted into empty strings.
  *
- *  @param item  pointer to the mapi item of interest
+ *  @param item  pointer to the containing mapi item
  *  @param str   pointer to the mapi string of interest
  */
 void pst_convert_utf8(pst_item *item, pst_string *str)
