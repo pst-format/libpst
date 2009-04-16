@@ -1,4 +1,4 @@
-LibPST 0.6.37 (2009-04-15)
+LibPST 0.6.37 (2009-04-16)
 ===============================
     * add pst_attach_to_mem() back into the shared library interface.
     * improve developer documentation.
