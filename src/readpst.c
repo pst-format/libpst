@@ -1100,7 +1100,6 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     char sender[60];
     int  sender_known = 0;
     char *temp = NULL;
-    int attach_num;
     time_t em_time;
     char *c_time;
     char *headers = NULL;
@@ -1347,7 +1346,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     // other attachments
     {
         pst_item_attach* attach;
-        attach_num = 0;
+        int attach_num = 0;
         for (attach = item->attach; attach; attach = attach->next) {
             pst_convert_utf8_null(item, &attach->filename1);
             pst_convert_utf8_null(item, &attach->filename2);

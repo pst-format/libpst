@@ -681,7 +681,9 @@ typedef struct pst_item_appointment {
 } pst_item_appointment;
 
 
-/** This contains the common mapi elements, and pointers to structures for each major mapi item type */
+/** This contains the common mapi elements, and pointers to structures for
+ *  each major mapi item type. It represents a complete mapi object.
+ */
 typedef struct pst_item {
     /** email mapi elements */
     pst_item_email         *email;
@@ -760,12 +762,26 @@ typedef struct pst_item {
 } pst_item;
 
 
-/** linked list of extended attributes */
+/** Linked list of extended attributes.
+ *  This is used to convert mapi_id values in the pst file into
+ *  cannonical mapi_id values to be used in this code. This list
+ *  is kept in sorted order, where the key is the 'map' field.
+ *  Some mapi_id values are converted to cannonical mapi_id values
+ *  (PST_MAP_ATTRIB), and others are converted to a string
+ *  (PST_ATTRIB_HEADER).
+ */
 typedef struct pst_x_attrib_ll {
+    /** obsolete field, this is now unused */
     uint32_t type;
+    /** @li 1 PST_MAP_ATTRIB map->int attribute
+        @li 2 PST_MAP_HEADER map->string header
+     */
     uint32_t mytype;
+    /** key for the mapping */
     uint32_t map;
-    void *data;
+    /** data target of the mapping, either uint32_t or string */
+    void     *data;
+    /** link to next item in the list */
     struct pst_x_attrib_ll *next;
 } pst_x_attrib_ll;
 
@@ -819,30 +835,171 @@ typedef struct pst_file {
 } pst_file;
 
 
+/** Open a pst file.
+ * @param pf   pointer to uninitialized pst_file structure. This structure
+ *             will be filled in by this function.
+ * @param name name of the file, suitable for fopen().
+ * @return 0 if ok, -1 if error
+ */
 int            pst_open(pst_file *pf, char *name);
-int            pst_close(pst_file *pf);
-pst_desc_tree* pst_getTopOfFolders(pst_file *pf, pst_item *root);
-size_t         pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp);
-size_t         pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp);
+
+
+/** Load the index entries from the pst file. This loads both the
+ *  i_id linked list, and the d_id tree, and should normally be the
+ *  first call after pst_open().
+ * @param pf pointer to the pst_file structure setup by pst_open().
+ */
 int            pst_load_index (pst_file *pf);
-pst_desc_tree* pst_getNextDptr(pst_desc_tree* d);
+
+
+/** Load the extended attribute mapping table from the pst file. This
+ *  should normally be the second call after pst_open().
+ * @param pf pointer to the pst_file structure setup by pst_open().
+ */
 int            pst_load_extended_attributes(pst_file *pf);
-pst_item*      pst_getItem(pst_file *pf, pst_desc_tree *d_ptr);
+
+
+/** Close a pst file.
+ * @param pf pointer to the pst_file structure setup by pst_open().
+ */
+int            pst_close(pst_file *pf);
+
+
+/** Get the top of folders descriptor tree. This is the main descriptor tree
+ *  that needs to be walked to look at every item in the pst file.
+ * @param pf   pointer to the pst_file structure setup by pst_open().
+ * @param root root item, which can be obtained by pst_parse_item(pf, pf->d.head, NULL).
+ */
+pst_desc_tree* pst_getTopOfFolders(pst_file *pf, pst_item *root);
+
+
+/** Assemble the binary attachment into a single buffer.
+ * @param pf     pointer to the pst_file structure setup by pst_open().
+ * @param attach pointer to the attachment record
+ * @param b      pointer to location to store the buffer pointer. The
+ *               caller must free this buffer.
+ * @return       size of the buffer, and return the buffer pointer in *b
+ */
+size_t         pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b);
+
+
+/** Write a binary attachment to a file.
+ * @param pf     pointer to the pst_file structure setup by pst_open().
+ * @param attach pointer to the attachment record
+ * @param fp     pointer to an open FILE.
+ */
+size_t         pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp);
+
+
+/** Write a binary attachment base64 encoded to a file.
+ * @param pf     pointer to the pst_file structure setup by pst_open().
+ * @param attach pointer to the attachment record
+ * @param fp     pointer to an open FILE.
+ */
+size_t         pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp);
+
+
+/** Walk the descriptor tree.
+ * @param d pointer to the current item in the descriptor tree.
+ * @return  pointer to the next item in the descriptor tree.
+ */
+pst_desc_tree* pst_getNextDptr(pst_desc_tree* d);
+
+
+/** Assemble a mapi object from a descriptor pointer.
+ * @param pf     pointer to the pst_file structure setup by pst_open().
+ * @param d_ptr  pointer to an item in the descriptor tree.
+ * @param m_head normally NULL. This is only used when processing embedded
+ *               attached rfc822 messages, in which case it is attach->id2_head.
+ * @return pointer to the mapi object. Must be free'd by pst_freeItem().
+ */
 pst_item*      pst_parse_item (pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_head);
+
+
+/** Free the item returned by pst_parse_item().
+ * @param item  pointer to item returned from pst_parse_item().
+ */
 void           pst_freeItem(pst_item *item);
+
+
+/** Lookup the i_id in the index linked list, and return a pointer to the element.
+ * @param pf     pointer to the pst_file structure setup by pst_open().
+ * @param i_id   key for the index linked list
+ * @return pointer to the element, or NULL if not found.
+ */
 pst_index_ll*  pst_getID(pst_file* pf, uint64_t i_id);
-int            pst_decrypt(uint64_t id, char *buf, size_t size, unsigned char type);
-size_t         pst_ff_getIDblock_dec(pst_file *pf, uint64_t id, char **b);
-size_t         pst_ff_getIDblock(pst_file *pf, uint64_t id, char** b);
-size_t         pst_fwrite(const void*ptr, size_t size, size_t nmemb, FILE*stream);
+
+
+/** Decrypt a block of data from the pst file.
+ * @param i_id identifier of this block, needed as part of the key for the enigma cipher
+ * @param buf  pointer to the buffer to be decrypted
+ * @param size size of the buffer
+ * @param type
+    @li 0 PST_NO_ENCRYPT, none
+    @li 1 PST_COMP_ENCRYPT, simple byte substitution cipher with fixed key
+    @li 2 PST_ENCRYPT, german enigma 3 rotor cipher with fixed key
+ * @return 0 if ok, -1 if error (NULL buffer or unknown encryption type)
+ */
+int            pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
+
+
+/** Get an ID block from the file using pst_ff_getIDblock() and decrypt if necessary.
+ * @param pf   pointer to the pst_file structure setup by pst_open().
+ * @param i_id ID of block to retrieve
+ * @param buf  reference to pointer to buffer that will contain the data block.
+ *             If this pointer is non-NULL, it will first be free()d.
+ * @return     Size of block read into memory
+ */
+size_t         pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf);
+
+
+/** Read a block of data from the file into memory.
+ * @param pf   pointer to the pst_file structure setup by pst_open().
+ * @param i_id ID of block to read
+ * @param buf  reference to pointer to buffer that will contain the data block.
+ *             If this pointer is non-NULL, it will first be free()d.
+ * @return     size of block read into memory
+ */
+size_t         pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf);
+
+
+/** fwrite with checking for null pointer.
+ * @param ptr pointer to the buffer
+ * @param size  size of each item
+ * @param nmemb number of items
+ * @param stream output file
+ * @return number of bytes written, zero if ptr==NULL
+ */
+size_t         pst_fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream);
+
+
+/** Add any necessary escape characters for rfc2426 vcard format
+ * @param str pointer to input string
+ * @return    pointer to output string, either the input pointer if
+ *            there are no characters that need escapes, or a pointer
+ *            to a different buffer containing the escaped string. In
+ *            either case, you don't need to free this returned pointer.
+ */
 char *         pst_rfc2426_escape(char *str);
+
+
+/** Convert a FILETIME into rfc2425 date/time format 1953-10-15T23:10:00Z
+ *  which is the same as one of the forms in the ISO3601 standard
+ * @param ft time to be converted
+ * @return   time in rfc2425 format
+ */
 char *         pst_rfc2425_datetime_format(FILETIME *ft);
+
+
+/** Convert a FILETIME into rfc2445 date/time format 19531015T231000Z
+ * @param ft time to be converted
+ * @return   time in rfc2445 format
+ */
 char *         pst_rfc2445_datetime_format(FILETIME *ft);
 
 
 /** Convert a code page integer into a string suitable for iconv()
- *
- *  @param cp the code page integer used in the pst file
+ *  @param  cp the code page integer used in the pst file
  *  @return pointer to a static buffer holding the string representation of the
  *          equivalent iconv character set
  */
@@ -858,7 +1015,6 @@ const char*    pst_default_charset(pst_item *item);
 
 
 /** Convert str to utf8 if possible; null strings are preserved.
- *
  *  @param item  pointer to the containing mapi item
  *  @param str   pointer to the mapi string of interest
  */
@@ -866,7 +1022,6 @@ void           pst_convert_utf8_null(pst_item *item, pst_string *str);
 
 
 /** Convert str to utf8 if possible; null strings are converted into empty strings.
- *
  *  @param item  pointer to the containing mapi item
  *  @param str   pointer to the mapi string of interest
  */

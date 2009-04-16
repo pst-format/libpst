@@ -125,6 +125,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Apr 15 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.37-1
+- add pst_attach_to_mem() back into the shared library interface.
+- fix memory leak caught by valgrind.
+
 * Tue Apr 14 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.36-1
 - build separate -doc and -devel-doc subpackages.
 - other spec file cleanup

@@ -17,7 +17,6 @@
     #pragma pack(1)
 #endif
 
-
 #define ASSERT(x) { if(!(x)) raise( SIGSEGV ); }
 
 #define INDEX_TYPE32            0x0E
@@ -448,7 +447,7 @@ static void record_descriptor(pst_file *pf, pst_desc_tree *node)
     }
     else if (node->parent_d_id == node->d_id) {
         // add top level node to the descriptor tree
-        DEBUG_INDEX(("%#"PRIx64" is its own parent. What is this world coming to?\n"));
+        DEBUG_INDEX(("%#"PRIx64" is its own parent. What is this world coming to?\n", node->d_id));
         add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
     } else {
         //DEBUG_INDEX(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_d_id, node->d_id));
@@ -520,6 +519,28 @@ pst_desc_tree* pst_getTopOfFolders(pst_file *pf, pst_item *root) {
 }
 
 
+size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b) {
+    pst_index_ll *ptr;
+    pst_holder h = {b, NULL, 0};
+    size_t size = 0;
+    DEBUG_ENT("pst_attach_to_mem");
+    if (attach->i_id != (uint64_t)-1) {
+        ptr = pst_getID(pf, attach->i_id);
+        if (ptr) {
+            size = pst_ff_getID2data(pf, ptr, &h);
+        } else {
+            DEBUG_WARN(("Couldn't find ID pointer. Cannot handle attachment\n"));
+        }
+        attach->data.size = size;
+    } else {
+        size = attach->data.size;
+        *b   = attach->data.data;
+    }
+    DEBUG_RET();
+    return size;
+}
+
+
 size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     pst_index_ll *ptr;
     pst_holder h = {NULL, fp, 0};
@@ -558,12 +579,12 @@ size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp
         attach->data.size = size;
     } else {
         // encode the attachment to the file
-        char *c = pst_base64_encode(attach->data.data, attach->data.size);
+        size = attach->data.size;
+        char *c = pst_base64_encode(attach->data.data, size);
         if (c) {
             (void)pst_fwrite(c, (size_t)1, strlen(c), fp);
             free(c);    // caught by valgrind
         }
-        size = attach->data.size;
     }
     DEBUG_RET();
     return size;
@@ -686,7 +707,6 @@ int pst_load_extended_attributes(pst_file *pf) {
         xattrib.map     = PST_LE_GET_UINT16(buffer+bptr), bptr += 2;
         ptr = (pst_x_attrib_ll*) pst_malloc(sizeof(*ptr));
         memset(ptr, 0, sizeof(*ptr));
-        ptr->type = xattrib.type;
         ptr->map  = xattrib.map+0x8000;
         ptr->next = NULL;
         DEBUG_INDEX(("xattrib: ext = %#"PRIx32", type = %#"PRIx16", map = %#"PRIx16"\n",
@@ -1262,20 +1282,18 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
         pst_free_list(list);
 
         // now we will have initial information of each attachment stored in item->attach...
-        // we must now read the secondary record for each based on the id2 val associated with
+        // we must now read the secondary record for each based on the id2_val associated with
         // each attachment
-        attach = item->attach;
-        while (attach) {
+        for (attach = item->attach; attach; attach = attach->next) {
             DEBUG_WARN(("initial attachment id2 %#"PRIx64"\n", attach->id2_val));
             if ((id2_ptr = pst_getID2(id2_head, attach->id2_val))) {
                 DEBUG_WARN(("initial attachment id2 found id %#"PRIx64"\n", id2_ptr->id->i_id));
-                // id_ptr is a record describing the attachment
+                // id2_ptr is a record describing the attachment
                 // we pass NULL instead of id2_head cause we don't want it to
                 // load all the extra stuff here.
                 list = pst_parse_block(pf, id2_ptr->id->i_id, NULL);
                 if (!list) {
                     DEBUG_WARN(("ERROR error processing an attachment record\n"));
-                    attach = attach->next;
                     continue;
                 }
                 if (list->count_objects > 1) {
@@ -1284,7 +1302,6 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                 if (pst_process(list, item, attach)) {
                     DEBUG_WARN(("ERROR pst_process() failed with an attachment\n"));
                     pst_free_list(list);
-                    attach = attach->next;
                     continue;
                 }
                 pst_free_list(list);
@@ -1302,7 +1319,6 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                 DEBUG_WARN(("ERROR cannot locate id2 value %#"PRIx64"\n", attach->id2_val));
                 attach->id2_val = 0;    // suppress this missing attachment
             }
-            attach = attach->next;
         }
     }
 
@@ -2080,10 +2096,10 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     if (list->elements[x]->extra) {
                         pst_item_extra_field *ef = (pst_item_extra_field*) pst_malloc(sizeof(pst_item_extra_field));
                         memset(ef, 0, sizeof(pst_item_extra_field));
-                        ef->field_name = strdup(list->elements[x]->extra);
                         LIST_COPY_CSTR(ef->value);
                         if (ef->value) {
-                            ef->next = item->extra_fields;
+                            ef->field_name = strdup(list->elements[x]->extra);
+                            ef->next       = item->extra_fields;
                             item->extra_fields = ef;
                             DEBUG_EMAIL(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
                             if (strcmp(ef->field_name, "content-type") == 0) {
@@ -2106,6 +2122,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                         else {
                             DEBUG_EMAIL(("What does this mean? Internet header %s value\n", list->elements[x]->extra));
                             DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
+                            free(ef);   // caught by valgrind
                         }
                     }
                     break;
@@ -3808,8 +3825,7 @@ static size_t pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size) {
 
 
 /**
- * Get an ID block from file using _pst_ff_getIDblock and decrypt if necessary
- *
+ * Get an ID block from file using pst_ff_getIDblock() and decrypt if necessary
  * @param pf   PST file structure
  * @param i_id ID of block to retrieve
  * @param buf  reference to pointer to buffer that will contain the data block.
@@ -4085,52 +4101,48 @@ char *pst_rfc2426_escape(char *str) {
     char *ret, *a, *b;
     size_t x = 0;
     int y, z;
+    if (!str) return NULL;
     DEBUG_ENT("rfc2426_escape");
-    if (!str)
+    // calculate space required to escape all the following characters
+    y = pst_chr_count(str, ',')
+      + pst_chr_count(str, '\\')
+      + pst_chr_count(str, ';')
+      + pst_chr_count(str, '\n');
+    z = pst_chr_count(str, '\r');
+    if (y == 0 && z == 0)
+        // there isn't any extra space required
         ret = str;
     else {
-
-        // calculate space required to escape all the following characters
-        y = pst_chr_count(str, ',')
-          + pst_chr_count(str, '\\')
-          + pst_chr_count(str, ';')
-          + pst_chr_count(str, '\n');
-        z = pst_chr_count(str, '\r');
-        if (y == 0 && z == 0)
-            // there isn't any extra space required
-            ret = str;
-        else {
-            x = strlen(str) + y - z + 1; // don't forget room for the NUL
-            if (x > buflen) {
-                buf = (char*) realloc(buf, x);
-                buflen = x;
-            }
-            a = str;
-            b = buf;
-            while (*a != '\0') {
-                switch (*a) {
-                case ',' :
-                case '\\':
-                case ';' :
-                    *(b++) = '\\';
-                    *b = *a;
-                    break;
-                case '\n':  // newlines are encoded as "\n"
-                    *(b++) = '\\';
-                    *b = 'n';
-                    break;
-                case '\r':  // skip cr
-                    b--;
-                    break;
-                default:
-                    *b=*a;
-                }
-                b++;
-                a++;
-            }
-            *b = '\0'; // NUL-terminate the string (buf)
-            ret = buf;
+        x = strlen(str) + y - z + 1; // don't forget room for the NUL
+        if (x > buflen) {
+            buf = (char*) realloc(buf, x);
+            buflen = x;
         }
+        a = str;
+        b = buf;
+        while (*a != '\0') {
+            switch (*a) {
+            case ',' :
+            case '\\':
+            case ';' :
+                *(b++) = '\\';
+                *b = *a;
+                break;
+            case '\n':  // newlines are encoded as "\n"
+                *(b++) = '\\';
+                *b = 'n';
+                break;
+            case '\r':  // skip cr
+                b--;
+                break;
+            default:
+                *b=*a;
+            }
+            b++;
+            a++;
+        }
+        *b = '\0'; // NUL-terminate the string (buf)
+        ret = buf;
     }
     DEBUG_RET();
     return ret;

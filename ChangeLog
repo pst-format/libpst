@@ -1,3 +1,9 @@
+LibPST 0.6.37 (2009-04-15)
+===============================
+    * add pst_attach_to_mem() back into the shared library interface.
+    * improve developer documentation.
+    * fix memory leak caught by valgrind.
+
 LibPST 0.6.36 (2009-04-14)
 ===============================
     * spec file cleanup with multiple sub packages.

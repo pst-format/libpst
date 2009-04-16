@@ -7,6 +7,8 @@
         url="http://www.five-ten-sg.com/@PACKAGE@/packages/">http://www.five-ten-sg.com/@PACKAGE@/packages/</ulink>.
         The most recent documentation is available at <ulink
         url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/</ulink>.
+        The most recent developer documentation for the shared library is available at <ulink
+        url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/devel/</ulink>.
         </para>
 
         <para>A <ulink
@@ -33,7 +35,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2009-03-11</date>
+            <date>2009-04-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -233,7 +235,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2009-03-11</date>
+            <date>2009-04-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -336,7 +338,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2009-03-11</date>
+            <date>2009-04-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -511,7 +513,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2009-03-11</date>
+            <date>2009-04-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -680,7 +682,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2009-03-11</date>
+            <date>2009-04-15</date>
         </refentryinfo>
 
         <refmeta>
@@ -814,7 +816,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2009-03-11</date>
+            <date>2009-04-15</date>
         </refentryinfo>
 
         <refmeta>
