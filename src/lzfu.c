@@ -43,7 +43,7 @@ char* pst_lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
 	unsigned char flag_mask;        // look at one flag bit each time thru the loop
 	uint32_t i;
 	char    *out_buf;
-	uint32_t out_ptr  = 0;
+	uint32_t out_ptr = 0;
 	uint32_t out_size;
 	uint32_t in_ptr;
 	uint32_t in_size;

@@ -22,7 +22,7 @@ common_source = debug.c         \
                 libpst.c        \
                 libstrfunc.c    \
                 lzfu.c          \
-                timeconv.c		\
+                timeconv.c      \
                 vbuf.c
 
 
@@ -72,6 +72,7 @@ else
         common.h    \
         libpst.h    \
         libstrfunc.h\
+        lzfu.h      \
         timeconv.h  \
         vbuf.h
     libpst_la_LDFLAGS     = $(NO_UNDEFINED) -version-info @LIBPST_VERSION_INFO@

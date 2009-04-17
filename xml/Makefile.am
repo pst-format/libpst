@@ -12,6 +12,6 @@ all: libpst
 	rm -f libpst.xml libpst.sgml
 	mkdir tmp
 	mkdir tmp/libpst
-	cp ../src/common.h ../src/libpst.h ../src/libstrfunc.h ../src/timeconv.h ../src/vbuf.h tmp/libpst
+	cp ../src/common.h ../src/libpst.h ../src/libstrfunc.h ../src/lzfu.h ../src/timeconv.h ../src/vbuf.h tmp/libpst
 	doxygen
 	rm -rf tmp

@@ -247,7 +247,9 @@ typedef struct pst_item_email {
      *  the first couple of lines of RTF body so that after modification, then beginning can
      *  once again be found. */
     pst_string  rtf_body_tag;
-    /** mapi element 0x1009 PR_RTF_COMPRESSED */
+    /** mapi element 0x1009 PR_RTF_COMPRESSED,
+     *  the compressed rtf body data.
+     *  Use pst_lzfu_decompress() to retrieve the actual rtf body data. */
     pst_binary  rtf_compressed;
     /** mapi element 0x0e1f PR_RTF_IN_SYNC,
      *  True means that the rtf version is same as text body.
@@ -996,14 +998,6 @@ char *         pst_rfc2425_datetime_format(FILETIME *ft);
  * @return   time in rfc2445 format
  */
 char *         pst_rfc2445_datetime_format(FILETIME *ft);
-
-
-/** Convert a code page integer into a string suitable for iconv()
- *  @param  cp the code page integer used in the pst file
- *  @return pointer to a static buffer holding the string representation of the
- *          equivalent iconv character set
- */
-const char*    pst_codepage(int cp);
 
 
 /** Get the default character set for this item. This is used to find

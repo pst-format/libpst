@@ -1,4 +1,4 @@
-0.6.37  2009-04-16 add pst_attach_to_mem() back into the shared library interface.
+0.6.37  2009-04-17 add pst_attach_to_mem() back into the shared library interface.
 0.6.36  2009-04-14 build separate -doc and -devel-doc subpackages
 0.6.35  2009-04-08 properly add trailing mime boundary in all modes, build separate rpms with libpst.so shared.
 0.6.34  2009-03-19 avoid putting mixed item types into the same output folder

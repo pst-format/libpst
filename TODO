@@ -4,6 +4,9 @@ calls.
 
 pst2diii needs header and mime type updates from readpst.
 
-Change more c symbols to reflect mapi_element and mapi_object.  A
-mapi_object (email etc.) is composed of a list of mapi_elements
-(subject, charset, etc.).
+At the next soname bump (to libpst.so.3) we should
+    remove contact->access_method (or find the proper mapi element id for it)
+    remove pst_x_attrib_ll->type (unused)
+    reorder appointment fields to collect related fields
+    remove readpstlog, and produce directly ascii debug log files
+

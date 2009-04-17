@@ -4191,7 +4191,8 @@ char *pst_rfc2445_datetime_format(FILETIME *ft) {
  *  @return pointer to a static buffer holding the string representation of the
  *          equivalent iconv character set
  */
-const char* codepage(int cp) {
+static const char* codepage(int cp);
+static const char* codepage(int cp) {
     static char buffer[20];
     switch (cp) {
         case   932 : return "iso-2022-jp";
@@ -4235,8 +4236,7 @@ const char* codepage(int cp) {
  *  @param  item   pointer to the mapi item of interest
  *  @return default character set as a string useable by iconv()
  */
-const char*    pst_default_charset(pst_item *item)
-{
+const char*    pst_default_charset(pst_item *item) {
     return (item->body_charset.str) ? item->body_charset.str :
            (item->message_codepage) ? codepage(item->message_codepage) :
            (item->internet_cpid)    ? codepage(item->internet_cpid) :
@@ -4249,8 +4249,7 @@ const char*    pst_default_charset(pst_item *item)
  *  @param item  pointer to the containing mapi item
  *  @param str   pointer to the mapi string of interest
  */
-void pst_convert_utf8_null(pst_item *item, pst_string *str)
-{
+void pst_convert_utf8_null(pst_item *item, pst_string *str) {
     if (!str->str) return;
     pst_convert_utf8(item, str);
 }
@@ -4261,8 +4260,7 @@ void pst_convert_utf8_null(pst_item *item, pst_string *str)
  *  @param item  pointer to the containing mapi item
  *  @param str   pointer to the mapi string of interest
  */
-void pst_convert_utf8(pst_item *item, pst_string *str)
-{
+void pst_convert_utf8(pst_item *item, pst_string *str) {
     if (str->is_utf8) return;
     if (!str->str) {
         str->str = strdup("");
