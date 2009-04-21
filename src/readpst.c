@@ -786,11 +786,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
     if (!(fp = fopen(temp, "w"))) {
         WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
-        if (attach->data.data)
-            pst_fwrite(attach->data.data, (size_t)1, attach->data.size, fp);
-        else {
-            (void)pst_attach_to_file(pst, attach, fp);
-        }
+        (void)pst_attach_to_file(pst, attach, fp);
         fclose(fp);
     }
     if (temp) free(temp);
@@ -829,18 +825,10 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
 void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst)
 {
     char *attach_filename;
-    char *enc = NULL; // base64 encoded attachment
     DEBUG_ENT("write_inline_attachment");
     DEBUG_EMAIL(("Attachment Size is %"PRIu64", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->i_id));
-    if (attach->data.data) {
-        enc = pst_base64_encode (attach->data.data, attach->data.size);
-        if (!enc) {
-            DEBUG_EMAIL(("ERROR base64_encode returned NULL. Must have failed\n"));
-            DEBUG_RET();
-            return;
-        }
-    }
-    else {
+
+    if (!attach->data.data) {
         // make sure we can fetch data from the id
         pst_index_ll *ptr = pst_getID(pst, attach->i_id);
         if (!ptr) {
@@ -867,13 +855,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
         fprintf(f_output, "Content-Disposition: attachment; filename=\"%s\"\n\n", attach_filename);
     }
 
-    if (attach->data.data) {
-        pst_fwrite(enc, 1, strlen(enc), f_output);
-        DEBUG_EMAIL(("Attachment Size after encoding is %i\n", strlen(enc)));
-        free(enc);  // caught by valgrind
-    } else {
-        (void)pst_attach_to_file_base64(pst, attach, f_output);
-    }
+    (void)pst_attach_to_file_base64(pst, attach, f_output);
     fprintf(f_output, "\n\n");
     DEBUG_RET();
 }

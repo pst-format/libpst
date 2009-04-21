@@ -204,11 +204,7 @@ static string write_separate_attachment(string fname, pst_item_attach* current_a
     if (!(fp = fopen(temp, "wb"))) {
         WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
-        if (current_attach->data.data)
-            pst_fwrite(current_attach->data.data, 1, current_attach->data.size, fp);
-        else {
-            (void)pst_attach_to_file(pst, current_attach, fp);
-        }
+        (void)pst_attach_to_file(pst, current_attach, fp);
         fclose(fp);
     }
     string rc(temp);

@@ -234,11 +234,9 @@ int main(int argc, char* const* argv) {
         item->file_as.str = strdup(temp);
         item->file_as.is_utf8 = 1;
     }
-    WARN(("item->file_as = '%s'.\n", item->file_as.str));
 
     d_ptr = pst_getTopOfFolders(&pstfile, item);
     if (!d_ptr) DIE(("Top of folders record not found. Cannot continue\n"));
-    DEBUG_MAIN(("d_ptr(TOF) = %p.\n", d_ptr));
 
     process(item, d_ptr->child);    // do the childred of TOPF
     pst_freeItem(item);

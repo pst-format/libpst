@@ -9,4 +9,4 @@ At the next soname bump (to libpst.so.3) we should
     remove pst_x_attrib_ll->type (unused)
     reorder appointment fields to collect related fields
     remove readpstlog, and produce directly ascii debug log files
-
+    change pst_attach_to_mem to return pst_binary

@@ -843,7 +843,7 @@ typedef struct pst_file {
  * @param name name of the file, suitable for fopen().
  * @return 0 if ok, -1 if error
  */
-int            pst_open(pst_file *pf, char *name);
+int            pst_open(pst_file *pf, const char *name);
 
 
 /** Load the index entries from the pst file. This loads both the
@@ -872,7 +872,7 @@ int            pst_close(pst_file *pf);
  * @param pf   pointer to the pst_file structure setup by pst_open().
  * @param root root item, which can be obtained by pst_parse_item(pf, pf->d.head, NULL).
  */
-pst_desc_tree* pst_getTopOfFolders(pst_file *pf, pst_item *root);
+pst_desc_tree* pst_getTopOfFolders(pst_file *pf, const pst_item *root);
 
 
 /** Assemble the binary attachment into a single buffer.
@@ -934,7 +934,7 @@ pst_index_ll*  pst_getID(pst_file* pf, uint64_t i_id);
 
 /** Decrypt a block of data from the pst file.
  * @param i_id identifier of this block, needed as part of the key for the enigma cipher
- * @param buf  pointer to the buffer to be decrypted
+ * @param buf  pointer to the buffer to be decrypted in place
  * @param size size of the buffer
  * @param type
     @li 0 PST_NO_ENCRYPT, none
@@ -990,14 +990,14 @@ char *         pst_rfc2426_escape(char *str);
  * @param ft time to be converted
  * @return   time in rfc2425 format
  */
-char *         pst_rfc2425_datetime_format(FILETIME *ft);
+char *         pst_rfc2425_datetime_format(const FILETIME *ft);
 
 
 /** Convert a FILETIME into rfc2445 date/time format 19531015T231000Z
  * @param ft time to be converted
  * @return   time in rfc2445 format
  */
-char *         pst_rfc2445_datetime_format(FILETIME *ft);
+char *         pst_rfc2445_datetime_format(const FILETIME *ft);
 
 
 /** Get the default character set for this item. This is used to find

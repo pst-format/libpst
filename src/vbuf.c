@@ -51,12 +51,12 @@ static void open_targets(const char* charset)
         i8totarget = iconv_open(target_charset, "utf-8");
         if (i8totarget == (iconv_t)-1) {
             target_open_from = 0;
-            WARN(("Couldn't open iconv descriptor for utf-8 to %s.\n", target_charset));
+            DEBUG_WARN(("Couldn't open iconv descriptor for utf-8 to %s.\n", target_charset));
         }
         target2i8 = iconv_open("utf-8", target_charset);
         if (target2i8 == (iconv_t)-1) {
             target_open_to = 0;
-            WARN(("Couldn't open iconv descriptor for %s to utf-8.\n", target_charset));
+            DEBUG_WARN(("Couldn't open iconv descriptor for %s to utf-8.\n", target_charset));
         }
     }
 }
@@ -201,8 +201,7 @@ void pst_unicode_init()
     if (unicode_up) pst_unicode_close();
     i16to8 = iconv_open("utf-8", "utf-16le");
     if (i16to8 == (iconv_t)-1) {
-        WARN(("Couldn't open iconv descriptor for utf-16le to utf-8.\n"));
-        exit(1);
+        DEBUG_WARN(("Couldn't open iconv descriptor for utf-16le to utf-8.\n"));
     }
     unicode_up = 1;
 }
@@ -216,7 +215,7 @@ size_t pst_vb_utf16to8(pst_vbuf *dest, const char *inbuf, int iblen)
     char *outbuf        = NULL;
     int   myerrno;
 
-    ASSERT(unicode_up, "vb_utf16to8() called before unicode started.");
+    if (!unicode_up) return (size_t)-1;   // failure to open iconv
     pst_vbresize(dest, iblen);
 
     //Bad Things can happen if a non-zero-terminated utf16 string comes through here
