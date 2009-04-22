@@ -24,21 +24,21 @@ AC_SUBST(LIBPST_VERSION_INFO, [$libpst_version_info])
 libpst_so_major='2'
 AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
 
-python_libpst_version_info='1:0:0'
-AC_SUBST(PYTHON_LIBPST_VERSION_INFO, [$python_libpst_version_info])
-python_libpst_so_major='2'
-AC_SUBST(PYTHON_LIBPST_SO_MAJOR, [$python_libpst_so_major])
-
 # libpst
-# version   soname          so library name     python          python library name
+# version   soname          so library name
 # 0.6.35    libpst.so.2     libpst.so.2.0.0
 # 0.6.37    libpst.so.2     libpst.so.2.1.0
-# 0.6.38    libpst.so.2     libpst.so.2.1.0     _libpst.so.1    _libpst.so.1.0.0
+# 0.6.38    libpst.so.2     libpst.so.2.1.0
 
 
 # check for boost
 AX_PYTHON
 AX_BOOST_PYTHON
+if test "$ax_python_bin" = "no"; then
+    AC_MSG_ERROR(python binary not found)
+fi
+
+AC_SUBST(PYTHON_VERSION, [$ax_python_bin])
 
 
 # Check for win32

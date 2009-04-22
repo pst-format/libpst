@@ -4,7 +4,8 @@
 
 #include <iostream>
 #include <boost/python.hpp>
-#include <iostream>
+// #include <boost/python/docstring_options.hpp>
+// #include <iostream>
 
 extern "C" {
     #include "libpst.h"
@@ -45,6 +46,11 @@ public:
     string         pst_default_charset(pst_item *item);
     void           pst_convert_utf8_null(pst_item *item, pst_string *str);
     void           pst_convert_utf8(pst_item *item, pst_string *str);
+
+    /** helper for python access to fopen() */
+    FILE*          ppst_open_file(string filename, string mode);
+    /** helper for python access to fclose() */
+    int            ppst_close_file(FILE* fp);
 
 private:
     bool            is_open;
@@ -143,6 +149,14 @@ void           pst::pst_convert_utf8(pst_item *item, pst_string *str) {
     ::pst_convert_utf8(item, str);
 }
 
+FILE*          pst::ppst_open_file(string filename, string mode) {
+    return ::fopen(filename.c_str(), mode.c_str());
+}
+
+int            pst::ppst_close_file(FILE* fp) {
+    return ::fclose(fp);
+}
+
 struct make_python_string {
     /* we make no distinction between empty and null strings */
     static PyObject* convert(char* const &s) {
@@ -203,8 +217,17 @@ struct make_python_pst_index_ll {
     }
 };
 
+struct make_python_FILE {
+    static PyObject* convert(FILE* const &s) {
+        if (s) return to_python_indirect<FILE*, detail::make_reference_holder>()(s);
+        return NULL;
+    }
+};
+
 BOOST_PYTHON_MODULE(_libpst)
 {
+    //boost::python::docstring_options doc_options();
+
     to_python_converter<pst_binary,       make_python_pst_binary>();
     to_python_converter<ppst_binary,      make_python_ppst_binary>();
     to_python_converter<char*,            make_python_string>();
@@ -212,10 +235,14 @@ BOOST_PYTHON_MODULE(_libpst)
     to_python_converter<pst_item_attach*, make_python_pst_item_attach>();
     to_python_converter<pst_desc_tree*,   make_python_pst_desc_tree>();
     to_python_converter<pst_index_ll*,    make_python_pst_index_ll>();
+    to_python_converter<FILE*,            make_python_FILE>();
+
+    class_<FILE>("FILE")
+        ;
 
     class_<FILETIME>("FILETIME")
-        .def_readonly("dwLowDateTime",  &FILETIME::dwLowDateTime)
-        .def_readonly("dwHighDateTime", &FILETIME::dwHighDateTime)
+        .def_readwrite("dwLowDateTime",  &FILETIME::dwLowDateTime)
+        .def_readwrite("dwHighDateTime", &FILETIME::dwHighDateTime)
         ;
 
     class_<pst_entryid>("pst_entryid")
@@ -258,40 +285,188 @@ BOOST_PYTHON_MODULE(_libpst)
         ;
 
     class_<pst_item_email>("pst_item_email")
-        .add_property("arrival_date", make_getter(&pst_item_email::arrival_date, return_value_policy<reference_existing_object>()))
-        .def_readonly("autoforward",              &pst_item_email::autoforward)
-        .def_readonly("cc_address",               &pst_item_email::cc_address)
-        .def_readonly("bcc_address",              &pst_item_email::bcc_address)
-        .def_readonly("conversation_index",       &pst_item_email::conversation_index)
-        .def_readonly("conversion_prohibited",    &pst_item_email::conversion_prohibited)
-        .def_readonly("delete_after_submit",      &pst_item_email::delete_after_submit)
-        .def_readonly("delivery_report",          &pst_item_email::delivery_report)
-        .def_readonly("encrypted_body",           &pst_item_email::encrypted_body)
-        .def_readonly("encrypted_htmlbody",       &pst_item_email::encrypted_htmlbody)
-        .def_readonly("header",                   &pst_item_email::header)
-        .def_readonly("htmlbody",                 &pst_item_email::htmlbody)
-        .def_readonly("importance",               &pst_item_email::importance)
-        .def_readonly("in_reply_to",              &pst_item_email::in_reply_to)
-        .def_readonly("message_cc_me",            &pst_item_email::message_cc_me)
-        .def_readonly("message_recip_me",         &pst_item_email::message_recip_me)
-        .def_readonly("message_to_me",            &pst_item_email::message_to_me)
-        .def_readonly("messageid",                &pst_item_email::messageid)
-        .def_readonly("original_sensitivity",     &pst_item_email::original_sensitivity)
-        .def_readonly("original_bcc",             &pst_item_email::original_bcc)
-        .def_readonly("original_cc",              &pst_item_email::original_cc)
-        .def_readonly("original_to",              &pst_item_email::original_to)
+        .add_property("arrival_date",    make_getter(&pst_item_email::arrival_date, return_value_policy<reference_existing_object>()))
+        .def_readonly("autoforward",                 &pst_item_email::autoforward)
+        .def_readonly("cc_address",                  &pst_item_email::cc_address)
+        .def_readonly("bcc_address",                 &pst_item_email::bcc_address)
+        .def_readonly("conversation_index",          &pst_item_email::conversation_index)
+        .def_readonly("conversion_prohibited",       &pst_item_email::conversion_prohibited)
+        .def_readonly("delete_after_submit",         &pst_item_email::delete_after_submit)
+        .def_readonly("delivery_report",             &pst_item_email::delivery_report)
+        .def_readonly("encrypted_body",              &pst_item_email::encrypted_body)
+        .def_readonly("encrypted_htmlbody",          &pst_item_email::encrypted_htmlbody)
+        .def_readonly("header",                      &pst_item_email::header)
+        .def_readonly("htmlbody",                    &pst_item_email::htmlbody)
+        .def_readonly("importance",                  &pst_item_email::importance)
+        .def_readonly("in_reply_to",                 &pst_item_email::in_reply_to)
+        .def_readonly("message_cc_me",               &pst_item_email::message_cc_me)
+        .def_readonly("message_recip_me",            &pst_item_email::message_recip_me)
+        .def_readonly("message_to_me",               &pst_item_email::message_to_me)
+        .def_readonly("messageid",                   &pst_item_email::messageid)
+        .def_readonly("original_sensitivity",        &pst_item_email::original_sensitivity)
+        .def_readonly("original_bcc",                &pst_item_email::original_bcc)
+        .def_readonly("original_cc",                 &pst_item_email::original_cc)
+        .def_readonly("original_to",                 &pst_item_email::original_to)
+        .def_readonly("outlook_recipient",           &pst_item_email::outlook_recipient)
+        .def_readonly("outlook_recipient_name",      &pst_item_email::outlook_recipient_name)
+        .def_readonly("outlook_recipient2",          &pst_item_email::outlook_recipient2)
+        .def_readonly("outlook_sender",              &pst_item_email::outlook_sender)
+        .def_readonly("outlook_sender_name",         &pst_item_email::outlook_sender_name)
+        .def_readonly("outlook_sender2",             &pst_item_email::outlook_sender2)
+        .def_readonly("priority",                    &pst_item_email::priority)
+        .def_readonly("processed_subject",           &pst_item_email::processed_subject)
+        .def_readonly("read_receipt",                &pst_item_email::read_receipt)
+        .def_readonly("recip_access",                &pst_item_email::recip_access)
+        .def_readonly("recip_address",               &pst_item_email::recip_address)
+        .def_readonly("recip2_access",               &pst_item_email::recip2_access)
+        .def_readonly("recip2_address",              &pst_item_email::recip2_address)
+        .def_readonly("reply_requested",             &pst_item_email::reply_requested)
+        .def_readonly("reply_to",                    &pst_item_email::reply_to)
+        .def_readonly("return_path_address",         &pst_item_email::return_path_address)
+        .def_readonly("rtf_body_char_count",         &pst_item_email::rtf_body_char_count)
+        .def_readonly("rtf_body_crc",                &pst_item_email::rtf_body_crc)
+        .def_readonly("rtf_body_tag",                &pst_item_email::rtf_body_tag)
+        .def_readonly("rtf_compressed",              &pst_item_email::rtf_compressed)
+        .def_readonly("rtf_in_sync",                 &pst_item_email::rtf_in_sync)
+        .def_readonly("rtf_ws_prefix_count",         &pst_item_email::rtf_ws_prefix_count)
+        .def_readonly("rtf_ws_trailing_count",       &pst_item_email::rtf_ws_trailing_count)
+        .def_readonly("sender_access",               &pst_item_email::sender_access)
+        .def_readonly("sender_address",              &pst_item_email::sender_address)
+        .def_readonly("sender2_access",              &pst_item_email::sender2_access)
+        .def_readonly("sender2_address",             &pst_item_email::sender2_address)
+        .def_readonly("sensitivity",                 &pst_item_email::sensitivity)
+        .add_property("sent_date",       make_getter(&pst_item_email::sent_date, return_value_policy<reference_existing_object>()))
+        .add_property("sentmail_folder", make_getter(&pst_item_email::sentmail_folder, return_value_policy<reference_existing_object>()))
+        .def_readonly("sentto_address",              &pst_item_email::sentto_address)
+        .def_readonly("report_text",                 &pst_item_email::report_text)
+        .add_property("report_time",     make_getter(&pst_item_email::report_time, return_value_policy<reference_existing_object>()))
+        .def_readonly("ndr_reason_code",             &pst_item_email::ndr_reason_code)
+        .def_readonly("ndr_diag_code",               &pst_item_email::ndr_diag_code)
+        .def_readonly("supplementary_info",          &pst_item_email::supplementary_info)
+        .def_readonly("ndr_status_code",             &pst_item_email::ndr_status_code)
         ;
 
     class_<pst_item_folder>("pst_item_folder")
-        .def_readonly("item_count", &pst_item_folder::item_count)
+        .def_readonly("item_count",        &pst_item_folder::item_count)
+        .def_readonly("unseen_item_count", &pst_item_folder::unseen_item_count)
+        .def_readonly("assoc_count",       &pst_item_folder::assoc_count)
+        .def_readonly("subfolder",         &pst_item_folder::subfolder)
         ;
 
     class_<pst_item_message_store>("pst_item_message_store")
         .add_property("top_of_personal_folder", make_getter(&pst_item_message_store::top_of_personal_folder, return_value_policy<reference_existing_object>()))
+        .add_property("default_outbox_folder",  make_getter(&pst_item_message_store::default_outbox_folder, return_value_policy<reference_existing_object>()))
+        .add_property("deleted_items_folder",   make_getter(&pst_item_message_store::deleted_items_folder, return_value_policy<reference_existing_object>()))
+        .add_property("sent_items_folder",      make_getter(&pst_item_message_store::sent_items_folder, return_value_policy<reference_existing_object>()))
+        .add_property("user_views_folder",      make_getter(&pst_item_message_store::user_views_folder, return_value_policy<reference_existing_object>()))
+        .add_property("common_view_folder",     make_getter(&pst_item_message_store::common_view_folder, return_value_policy<reference_existing_object>()))
+        .add_property("search_root_folder",     make_getter(&pst_item_message_store::search_root_folder, return_value_policy<reference_existing_object>()))
+        .add_property("top_of_folder",          make_getter(&pst_item_message_store::top_of_folder, return_value_policy<reference_existing_object>()))
+        .def_readonly("valid_mask",                         &pst_item_message_store::valid_mask)
+        .def_readonly("pwd_chksum",                         &pst_item_message_store::pwd_chksum)
         ;
 
     class_<pst_item_contact>("pst_item_contact")
-        .def_readonly("account_name", &pst_item_contact::account_name)
+        .def_readonly("access_method",                   &pst_item_contact::access_method)
+        .def_readonly("account_name",                    &pst_item_contact::account_name)
+        .def_readonly("address1",                        &pst_item_contact::address1)
+        .def_readonly("address1a",                       &pst_item_contact::address1a)
+        .def_readonly("address1_desc",                   &pst_item_contact::address1_desc)
+        .def_readonly("address1_transport",              &pst_item_contact::address1_transport)
+        .def_readonly("address2",                        &pst_item_contact::address2)
+        .def_readonly("address2a",                       &pst_item_contact::address2a)
+        .def_readonly("address2_desc",                   &pst_item_contact::address2_desc)
+        .def_readonly("address2_transport",              &pst_item_contact::address2_transport)
+        .def_readonly("address3",                        &pst_item_contact::address3)
+        .def_readonly("address3a",                       &pst_item_contact::address3a)
+        .def_readonly("address3_desc",                   &pst_item_contact::address3_desc)
+        .def_readonly("address3_transport",              &pst_item_contact::address3_transport)
+        .def_readonly("assistant_name",                  &pst_item_contact::assistant_name)
+        .def_readonly("assistant_phone",                 &pst_item_contact::assistant_phone)
+        .def_readonly("billing_information",             &pst_item_contact::billing_information)
+        .add_property("birthday",            make_getter(&pst_item_contact::birthday, return_value_policy<reference_existing_object>()))
+        .def_readonly("business_address",                &pst_item_contact::business_address)
+        .def_readonly("business_city",                   &pst_item_contact::business_city)
+        .def_readonly("business_country",                &pst_item_contact::business_country)
+        .def_readonly("business_fax",                    &pst_item_contact::business_fax)
+        .def_readonly("business_homepage",               &pst_item_contact::business_homepage)
+        .def_readonly("business_phone",                  &pst_item_contact::business_phone)
+        .def_readonly("business_phone2",                 &pst_item_contact::business_phone2)
+        .def_readonly("business_po_box",                 &pst_item_contact::business_po_box)
+        .def_readonly("business_postal_code",            &pst_item_contact::business_postal_code)
+        .def_readonly("business_state",                  &pst_item_contact::business_state)
+        .def_readonly("business_street",                 &pst_item_contact::business_street)
+        .def_readonly("callback_phone",                  &pst_item_contact::callback_phone)
+        .def_readonly("car_phone",                       &pst_item_contact::car_phone)
+        .def_readonly("company_main_phone",              &pst_item_contact::company_main_phone)
+        .def_readonly("company_name",                    &pst_item_contact::company_name)
+        .def_readonly("computer_name",                   &pst_item_contact::computer_name)
+        .def_readonly("customer_id",                     &pst_item_contact::customer_id)
+        .def_readonly("def_postal_address",              &pst_item_contact::def_postal_address)
+        .def_readonly("department",                      &pst_item_contact::department)
+        .def_readonly("display_name_prefix",             &pst_item_contact::display_name_prefix)
+        .def_readonly("first_name",                      &pst_item_contact::first_name)
+        .def_readonly("followup",                        &pst_item_contact::followup)
+        .def_readonly("free_busy_address",               &pst_item_contact::free_busy_address)
+        .def_readonly("ftp_site",                        &pst_item_contact::ftp_site)
+        .def_readonly("fullname",                        &pst_item_contact::fullname)
+        .def_readonly("gender",                          &pst_item_contact::gender)
+        .def_readonly("gov_id",                          &pst_item_contact::gov_id)
+        .def_readonly("hobbies",                         &pst_item_contact::hobbies)
+        .def_readonly("home_address",                    &pst_item_contact::home_address)
+        .def_readonly("home_city",                       &pst_item_contact::home_city)
+        .def_readonly("home_country",                    &pst_item_contact::home_country)
+        .def_readonly("home_fax",                        &pst_item_contact::home_fax)
+        .def_readonly("home_phone",                      &pst_item_contact::home_phone)
+        .def_readonly("home_phone2",                     &pst_item_contact::home_phone2)
+        .def_readonly("home_po_box",                     &pst_item_contact::home_po_box)
+        .def_readonly("home_postal_code",                &pst_item_contact::home_postal_code)
+        .def_readonly("home_state",                      &pst_item_contact::home_state)
+        .def_readonly("home_street",                     &pst_item_contact::home_street)
+        .def_readonly("initials",                        &pst_item_contact::initials)
+        .def_readonly("isdn_phone",                      &pst_item_contact::isdn_phone)
+        .def_readonly("job_title",                       &pst_item_contact::job_title)
+        .def_readonly("keyword",                         &pst_item_contact::keyword)
+        .def_readonly("language",                        &pst_item_contact::language)
+        .def_readonly("location",                        &pst_item_contact::location)
+        .def_readonly("mail_permission",                 &pst_item_contact::mail_permission)
+        .def_readonly("manager_name",                    &pst_item_contact::manager_name)
+        .def_readonly("middle_name",                     &pst_item_contact::middle_name)
+        .def_readonly("mileage",                         &pst_item_contact::mileage)
+        .def_readonly("mobile_phone",                    &pst_item_contact::mobile_phone)
+        .def_readonly("nickname",                        &pst_item_contact::nickname)
+        .def_readonly("office_loc",                      &pst_item_contact::office_loc)
+        .def_readonly("common_name",                     &pst_item_contact::common_name)
+        .def_readonly("org_id",                          &pst_item_contact::org_id)
+        .def_readonly("other_address",                   &pst_item_contact::other_address)
+        .def_readonly("other_city",                      &pst_item_contact::other_city)
+        .def_readonly("other_country",                   &pst_item_contact::other_country)
+        .def_readonly("other_phone",                     &pst_item_contact::other_phone)
+        .def_readonly("other_po_box",                    &pst_item_contact::other_po_box)
+        .def_readonly("other_postal_code",               &pst_item_contact::other_postal_code)
+        .def_readonly("other_state",                     &pst_item_contact::other_state)
+        .def_readonly("other_street",                    &pst_item_contact::other_street)
+        .def_readonly("pager_phone",                     &pst_item_contact::pager_phone)
+        .def_readonly("personal_homepage",               &pst_item_contact::personal_homepage)
+        .def_readonly("pref_name",                       &pst_item_contact::pref_name)
+        .def_readonly("primary_fax",                     &pst_item_contact::primary_fax)
+        .def_readonly("primary_phone",                   &pst_item_contact::primary_phone)
+        .def_readonly("profession",                      &pst_item_contact::profession)
+        .def_readonly("radio_phone",                     &pst_item_contact::radio_phone)
+        .def_readonly("rich_text",                       &pst_item_contact::rich_text)
+        .def_readonly("spouse_name",                     &pst_item_contact::spouse_name)
+        .def_readonly("suffix",                          &pst_item_contact::suffix)
+        .def_readonly("surname",                         &pst_item_contact::surname)
+        .def_readonly("telex",                           &pst_item_contact::telex)
+        .def_readonly("transmittable_display_name",      &pst_item_contact::transmittable_display_name)
+        .def_readonly("ttytdd_phone",                    &pst_item_contact::ttytdd_phone)
+        .add_property("wedding_anniversary", make_getter(&pst_item_contact::wedding_anniversary, return_value_policy<reference_existing_object>()))
+        .def_readonly("work_address_street",             &pst_item_contact::work_address_street)
+        .def_readonly("work_address_city",               &pst_item_contact::work_address_city)
+        .def_readonly("work_address_state",              &pst_item_contact::work_address_state)
+        .def_readonly("work_address_postalcode",         &pst_item_contact::work_address_postalcode)
+        .def_readonly("work_address_country",            &pst_item_contact::work_address_country)
+        .def_readonly("work_address_postofficebox",      &pst_item_contact::work_address_postofficebox)
         ;
 
     class_<pst_item_attach>("pst_item_attach")
@@ -309,16 +484,33 @@ BOOST_PYTHON_MODULE(_libpst)
         ;
 
     class_<pst_item_extra_field>("pst_item_extra_field")
-        .def_readonly("field_name", &pst_item_extra_field::field_name)
+        .def_readonly("field_name",       &pst_item_extra_field::field_name)
+        .def_readonly("value",            &pst_item_extra_field::value)
+        .add_property("next", make_getter(&pst_item_extra_field::next, return_value_policy<reference_existing_object>()))
         ;
 
     class_<pst_item_journal>("pst_item_journal")
-        .def_readonly("description", &pst_item_journal::description)
+        .add_property("end",   make_getter(&pst_item_journal::end, return_value_policy<reference_existing_object>()))
+        .add_property("start", make_getter(&pst_item_journal::start, return_value_policy<reference_existing_object>()))
+        .def_readonly("type",              &pst_item_journal::type)
+        .def_readonly("description",       &pst_item_journal::description)
         ;
 
     class_<pst_item_appointment>("pst_item_appointment")
-        .add_property("end",   make_getter(&pst_item_appointment::end, return_value_policy<reference_existing_object>()))
-        .def_readonly("label", &pst_item_appointment::label)
+        .add_property("end",              make_getter(&pst_item_appointment::end, return_value_policy<reference_existing_object>()))
+        .def_readonly("location",                     &pst_item_appointment::location)
+        .add_property("reminder",         make_getter(&pst_item_appointment::reminder, return_value_policy<reference_existing_object>()))
+        .def_readonly("alarm_minutes",                &pst_item_appointment::alarm_minutes)
+        .def_readonly("alarm_filename",               &pst_item_appointment::alarm_filename)
+        .add_property("start",            make_getter(&pst_item_appointment::start, return_value_policy<reference_existing_object>()))
+        .def_readonly("timezonestring",               &pst_item_appointment::timezonestring)
+        .def_readonly("showas",                       &pst_item_appointment::showas)
+        .def_readonly("label",                        &pst_item_appointment::label)
+        .def_readonly("all_day",                      &pst_item_appointment::all_day)
+        .def_readonly("recurrence",                   &pst_item_appointment::recurrence)
+        .def_readonly("recurrence_type",              &pst_item_appointment::recurrence_type)
+        .add_property("recurrence_start", make_getter(&pst_item_appointment::recurrence_start, return_value_policy<reference_existing_object>()))
+        .add_property("recurrence_end",   make_getter(&pst_item_appointment::recurrence_end, return_value_policy<reference_existing_object>()))
         ;
 
     class_<pst_item>("pst_item")
@@ -351,10 +543,10 @@ BOOST_PYTHON_MODULE(_libpst)
         ;
 
     class_<pst_x_attrib_ll>("pst_x_attrib_ll")
-        .def_readonly("mytype", &pst_x_attrib_ll::mytype)
-        .def_readonly("map",    &pst_x_attrib_ll::map)
-        .def_readonly("data",   &pst_x_attrib_ll::data)
-        .def_readonly("next",   &pst_x_attrib_ll::next)
+        .def_readonly("mytype",            &pst_x_attrib_ll::mytype)
+        .def_readonly("map",               &pst_x_attrib_ll::map)
+        .def_readonly("data",              &pst_x_attrib_ll::data)
+        .add_property("next",  make_getter(&pst_x_attrib_ll::next, return_value_policy<reference_existing_object>()))
         ;
 
     class_<pst_file>("pst_file")
@@ -362,6 +554,7 @@ BOOST_PYTHON_MODULE(_libpst)
         .add_property("i_tail",      make_getter(&pst_file::i_tail, return_value_policy<reference_existing_object>()))
         .add_property("d_head",      make_getter(&pst_file::d_head, return_value_policy<reference_existing_object>()))
         .add_property("d_tail",      make_getter(&pst_file::d_tail, return_value_policy<reference_existing_object>()))
+        .add_property("x_head",      make_getter(&pst_file::x_head, return_value_policy<reference_existing_object>()))
         .def_readonly("do_read64",   &pst_file::do_read64)
         .def_readonly("index1",      &pst_file::index1)
         .def_readonly("index1_back", &pst_file::index1_back)
@@ -390,6 +583,8 @@ BOOST_PYTHON_MODULE(_libpst)
         .def("pst_default_charset",         &pst::pst_default_charset)
         .def("pst_convert_utf8_null",       &pst::pst_convert_utf8_null)
         .def("pst_convert_utf8",            &pst::pst_convert_utf8)
+        .def("ppst_open_file",              &pst::ppst_open_file,      return_value_policy<reference_existing_object>())
+        .def("ppst_close_file",             &pst::ppst_close_file)
         ;
 }
 
