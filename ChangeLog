@@ -4,6 +4,7 @@ LibPST 0.6.38 (2009-xx-xx)
     * the shared library must never write to stdout or stderr.
     * fix pst_attach_to_mem so the caller does not need to initialize
       the buffer pointer.
+    * remove readpst -C switch, obsolete debugging code.
 
 LibPST 0.6.37 (2009-04-17)
 ===============================

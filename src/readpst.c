@@ -80,9 +80,6 @@ char*  kmail_chdir = NULL;
 // saved as email_no-filename (e.g. 1-samplefile.doc or 000001-Attachment2.zip)
 #define MODE_SEPARATE 3
 
-// Decrypt the whole file (even the parts that aren't encrypted) and ralph it to stdout
-#define MODE_DECSPEW 4
-
 
 // Output Normal just prints the standard information about what is going on
 #define OUTPUT_NORMAL 0
@@ -269,13 +266,10 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "bCc:Dd:hko:qrSMVw"))!= -1) {
+    while ((c = getopt(argc, argv, "bc:Dd:hko:qrSMVw"))!= -1) {
         switch (c) {
         case 'b':
             save_rtf_body = 0;
-            break;
-        case 'C':
-            mode = MODE_DECSPEW;
             break;
         case 'c':
             if (optarg && optarg[0]=='v') {
@@ -349,30 +343,6 @@ int main(int argc, char* const* argv) {
     DEBUG_INIT(d_log);
     DEBUG_REGISTER_CLOSE();
     DEBUG_ENT("main");
-
-    if (mode == MODE_DECSPEW) {
-        FILE  *fp;
-        char   buf[1024];
-        size_t l = 0;
-        if (NULL == (fp = fopen(fname, "rb"))) {
-            WARN(("Couldn't open file %s\n", fname));
-            DEBUG_RET();
-            return 1;
-        }
-
-        while (0 != (l = fread(buf, 1, 1024, fp))) {
-            if (0 != pst_decrypt(0, buf, l, PST_COMP_ENCRYPT))
-                WARN(("pst_decrypt() failed (I'll try to continue)\n"));
-
-            if (l != pst_fwrite(buf, 1, l, stdout)) {
-                WARN(("Couldn't output to stdout?\n"));
-                DEBUG_RET();
-                return 1;
-            }
-        }
-        DEBUG_RET();
-        return 0;
-    }
 
     if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");
 

@@ -53,7 +53,6 @@
             <title>Synopsis</title>
             <cmdsynopsis>
                 <command>readpst</command>
-                <arg><option>-C</option></arg>
                 <arg><option>-D</option></arg>
                 <arg><option>-M</option></arg>
                 <arg><option>-S</option></arg>
@@ -82,12 +81,6 @@
         <refsect1 id='readpst.options.1'>
             <title>Options</title>
             <variablelist>
-                <varlistentry>
-                    <term>-C</term>
-                    <listitem><para>
-                        Decrypt the entire pst file and dump it to stdout.
-                    </para></listitem>
-                </varlistentry>
                 <varlistentry>
                     <term>-D</term>
                     <listitem><para>
