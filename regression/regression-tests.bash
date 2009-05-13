@@ -121,9 +121,10 @@ else
     #dopst  18 test-mac.pst
     ##dopst  19 harris.pst
     #dopst  20 spam.pst
-    dopst  21 rendgen.pst       # single email appointment
+    #dopst  21 rendgen.pst       # single email appointment
     dopst  22 rendgen2.pst      # email appointment with no termination date
-    dopst  23 rendgen3.pst      # mime signed email
+    #dopst  23 rendgen3.pst      # mime signed email
+    dopst  24 rendgen4.pst      # appointment test cases
 fi
 
 grep 'lost:' *err | grep -v 'lost: 0 '

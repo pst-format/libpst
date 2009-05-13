@@ -57,8 +57,7 @@ void      write_schedule_part(FILE* f_output, pst_item* item, const char* sender
 void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers);
 void      write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char comment[]);
 void      write_journal(FILE* f_output, pst_item* item);
-int       file_time_compare(FILETIME* left, FILETIME* right);
-void      write_appointment(FILE* f_output, pst_item *item);
+void      write_appointment(FILE* f_output, pst_item *item, int event_open);
 void      create_enter_dir(struct file_ll* f, pst_item *item);
 void      close_enter_dir(struct file_ll *f);
 
@@ -220,7 +219,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             else {
                 ff.item_count++;
                 if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                write_appointment(ff.output, item);
+                write_appointment(ff.output, item, 0);
                 fprintf(ff.output, "\n");
             }
 
@@ -1042,10 +1041,11 @@ void write_schedule_part_data(FILE* f_output, pst_item* item, const char* sender
 {
     fprintf(f_output, "BEGIN:VCALENDAR\n");
     fprintf(f_output, "VERSION:2.0\n");
-    fprintf(f_output, "PRODID:LibPST\n");
+    fprintf(f_output, "PRODID:LibPST v%s\n", VERSION);
     fprintf(f_output, "METHOD:%s\n", method);
+    fprintf(f_output, "BEGIN:VEVENT\n");
     fprintf(f_output, "ORGANIZER;CN=\"%s\":MAILTO:%s\n", item->email->outlook_sender_name.str, sender);
-    write_appointment(f_output, item);
+    write_appointment(f_output, item, 1);
     fprintf(f_output, "END:VCALENDAR\n");
 }
 
@@ -1054,7 +1054,7 @@ void write_schedule_part(FILE* f_output, pst_item* item, const char* sender, con
 {
     const char* method  = "REQUEST";
     const char* charset = "utf-8";
-    char fname[20];
+    char fname[30];
     if (!item->appointment) return;
 
     // inline appointment request
@@ -1359,6 +1359,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
 void write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char comment[])
 {
+    char time_buffer[30];
     // We can only call rfc escape once per printf, since the second call
     // may free the buffer returned by the first call.
     // I had tried to place those into a single printf - Carl.
@@ -1438,7 +1439,7 @@ void write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char
     if (contact->address3.str)
         fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address3.str));
     if (contact->birthday)
-        fprintf(f_output, "BDAY:%s\n", pst_rfc2425_datetime_format(contact->birthday));
+        fprintf(f_output, "BDAY:%s\n", pst_rfc2425_datetime_format(contact->birthday, sizeof(time_buffer), time_buffer));
 
     if (contact->home_address.str) {
         //fprintf(f_output, "ADR;TYPE=home:%s;%s;%s;%s;%s;%s;%s\n",
@@ -1509,6 +1510,7 @@ void write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char
 
 void write_journal(FILE* f_output, pst_item* item)
 {
+    char time_buffer[30];
     pst_item_journal* journal = item->journal;
 
     // make everything utf8
@@ -1516,40 +1518,24 @@ void write_journal(FILE* f_output, pst_item* item)
     pst_convert_utf8_null(item, &item->body);
 
     fprintf(f_output, "BEGIN:VJOURNAL\n");
-    fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now());
+    fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now(sizeof(time_buffer), time_buffer));
     if (item->create_date)
-        fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date));
+        fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date, sizeof(time_buffer), time_buffer));
     if (item->modify_date)
-        fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(item->modify_date));
+        fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(item->modify_date, sizeof(time_buffer), time_buffer));
     if (item->subject.str)
         fprintf(f_output, "SUMMARY:%s\n",                 pst_rfc2426_escape(item->subject.str));
     if (item->body.str)
         fprintf(f_output, "DESCRIPTION:%s\n",             pst_rfc2426_escape(item->body.str));
     if (journal && journal->start)
-        fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(journal->start));
+        fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(journal->start, sizeof(time_buffer), time_buffer));
     fprintf(f_output, "END:VJOURNAL\n");
 }
 
 
-/**
- compare two FILETIME objects after converting to unix time_t. This
- allows FILETIMEs that are beyond the range of time_t representaion to
- be converted to 0, and therefore seem to be less than the right
- side. The actual recurrence end values seen in pst files are very
- large (outside the range of 32 bit time_t), but still finite. That is
- a strange way to represent an infinite recurrence.
- */
-int file_time_compare(FILETIME* left, FILETIME* right)
+void write_appointment(FILE* f_output, pst_item* item, int event_open)
 {
-    time_t delta = pst_fileTimeToUnixTime(left) - pst_fileTimeToUnixTime(right);
-    if (delta < 0) return -1;
-    if (delta > 0) return 1;
-    return 0;
-}
-
-
-void write_appointment(FILE* f_output, pst_item* item)
-{
+    char time_buffer[30];
     pst_item_appointment* appointment = item->appointment;
 
     // make everything utf8
@@ -1557,20 +1543,20 @@ void write_appointment(FILE* f_output, pst_item* item)
     pst_convert_utf8_null(item, &item->body);
     pst_convert_utf8_null(item, &appointment->location);
 
-    fprintf(f_output, "BEGIN:VEVENT\n");
-    fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now());
+    if (!event_open) fprintf(f_output, "BEGIN:VEVENT\n");
+    fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now(sizeof(time_buffer), time_buffer));
     if (item->create_date)
-        fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date));
+        fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date, sizeof(time_buffer), time_buffer));
     if (item->modify_date)
-        fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(item->modify_date));
+        fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(item->modify_date, sizeof(time_buffer), time_buffer));
     if (item->subject.str)
         fprintf(f_output, "SUMMARY:%s\n",                 pst_rfc2426_escape(item->subject.str));
     if (item->body.str)
         fprintf(f_output, "DESCRIPTION:%s\n",             pst_rfc2426_escape(item->body.str));
     if (appointment && appointment->start)
-        fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(appointment->start));
+        fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(appointment->start, sizeof(time_buffer), time_buffer));
     if (appointment && appointment->end)
-        fprintf(f_output, "DTEND;VALUE=DATE-TIME:%s\n",   pst_rfc2445_datetime_format(appointment->end));
+        fprintf(f_output, "DTEND;VALUE=DATE-TIME:%s\n",   pst_rfc2445_datetime_format(appointment->end, sizeof(time_buffer), time_buffer));
     if (appointment && appointment->location.str)
         fprintf(f_output, "LOCATION:%s\n",                pst_rfc2426_escape(appointment->location.str));
     if (appointment) {
@@ -1588,10 +1574,29 @@ void write_appointment(FILE* f_output, pst_item* item)
         }
         if (appointment->is_recurring) {
             const char* rules[] = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"};
+            const char* days[]  = {"SU", "MO", "TU", "WE", "TH", "FR", "SA"};
             pst_recurrence *rdata = pst_convert_recurrence(appointment);
             fprintf(f_output, "RRULE:FREQ=%s", rules[rdata->type]);
-            if (rdata->count)    fprintf(f_output, ";COUNT=%u", rdata->count);
-            if (rdata->interval) fprintf(f_output, ";INTERVAL=%u", rdata->interval);
+            if (rdata->count)       fprintf(f_output, ";COUNT=%u",      rdata->count);
+            if (rdata->interval)    fprintf(f_output, ";INTERVAL=%u",   rdata->interval);
+            if (rdata->dayofmonth)  fprintf(f_output, ";BYMONTHDAY=%d", rdata->dayofmonth);
+            if (rdata->monthofyear) fprintf(f_output, ";BYMONTH=%d",    rdata->monthofyear);
+            if (rdata->position)    fprintf(f_output, ";BYSETPOS=%d",   rdata->position);
+            if (rdata->bydaymask) {
+                char byday[40];
+                int  empty = 1;
+                int i=0;
+                memset(byday, 0, sizeof(byday));
+                for (i=0; i<6; i++) {
+                    int bit = 1 << i;
+                    if (bit & rdata->bydaymask) {
+                        char temp[40];
+                        snprintf(temp, sizeof(temp), "%s%s%s", byday, (empty) ? "BYDAY=" : ";", days[i]);
+                        strcpy(byday, temp);
+                        empty = 0;
+                    }
+                }
+            }
             fprintf(f_output, "\n");
             pst_free_recurrence(rdata);
         }

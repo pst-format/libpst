@@ -83,7 +83,7 @@ libpst utilities.
 
 
 %build
-%configure --enable-libpst-shared --enable-python
+%configure --enable-libpst-shared
 make %{?_smp_mflags}
 
 
@@ -150,7 +150,8 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Mon Apr 20 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.38-1
 - add python interface to the shared library.
-- bump soname to version 4.
+- bump soname to version 4 for many changes to the interface.
+- better decoding of recurrence data in appointments.
 
 * Fri Apr 17 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.37-1
 - add pst_attach_to_mem() back into the shared library interface.

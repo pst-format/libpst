@@ -108,6 +108,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                         printf("Journal\t%s\n", pst_rfc2426_escape(item->subject.str));
 
                 } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
+                    char time_buffer[30];
                     if (!ff.type) ff.type = item->type;
                     // Process Calendar Appointment item
                     DEBUG_MAIN(("main: Processing Appointment Entry\n"));
@@ -118,9 +119,9 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     if (item->subject.str)
                         printf("\tSUMMARY: %s", pst_rfc2426_escape(item->subject.str));
                     if (item->appointment->start)
-                        printf("\tSTART: %s", pst_rfc2445_datetime_format(item->appointment->start));
+                        printf("\tSTART: %s", pst_rfc2445_datetime_format(item->appointment->start, sizeof(time_buffer), time_buffer));
                     if (item->appointment->end)
-                        printf("\tEND: %s", pst_rfc2445_datetime_format(item->appointment->end));
+                        printf("\tEND: %s", pst_rfc2445_datetime_format(item->appointment->end, sizeof(time_buffer), time_buffer));
                     printf("\tALL DAY: %s", (item->appointment->all_day==1 ? "Yes" : "No"));
                     printf("\n");
 

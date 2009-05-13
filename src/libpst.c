@@ -2014,14 +2014,14 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 // malloc space and copy the item filetime
 #define LIST_COPY_TIME(label, targ) {                                       \
     if (list->elements[x]->type != 0x40) {                                  \
-        DEBUG_WARN(("src not 0x40 for filetime dst\n"));                   \
+        DEBUG_WARN(("src not 0x40 for filetime dst\n"));                    \
         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
     }                                                                       \
     targ = (FILETIME*) realloc(targ, sizeof(FILETIME));                     \
     memcpy(targ, list->elements[x]->data, list->elements[x]->size);         \
     LE32_CPU(targ->dwLowDateTime);                                          \
     LE32_CPU(targ->dwHighDateTime);                                         \
-    DEBUG_EMAIL((label" - %s", pst_fileTimeToAscii(targ)));                     \
+    DEBUG_EMAIL((label" - %s", pst_fileTimeToAscii(targ, time_buffer)));    \
 }
 
 #define LIST_COPY_EMAIL_TIME(label, targ) {                     \
@@ -2096,6 +2096,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
 
     while (list) {
         int32_t x;
+        char time_buffer[30];
         for (x=0; x<list->count_elements; x++) {
             int32_t t;
             DEBUG_EMAIL(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
@@ -2961,10 +2962,10 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_APPT_BOOL("Reminder alarm", item->appointment->alarm);
                     break;
                 case 0x8516: // Common start
-                    DEBUG_EMAIL(("Common Start Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data)));
+                    DEBUG_EMAIL(("Common Start Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data, time_buffer)));
                     break;
                 case 0x8517: // Common end
-                    DEBUG_EMAIL(("Common End Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data)));
+                    DEBUG_EMAIL(("Common End Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data, time_buffer)));
                     break;
                 case 0x851f: // Play reminder sound filename
                     LIST_COPY_APPT_STR("Appointment reminder sound filename", item->appointment->alarm_filename);
@@ -3055,7 +3056,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
 
                     } else if (list->elements[x]->type == (uint32_t)0x0040) {
                         DEBUG_WARN(("Unknown type %#x Date = \"%s\"\n", list->elements[x]->mapi_id,
-                            pst_fileTimeToAscii((FILETIME*)list->elements[x]->data)));
+                            pst_fileTimeToAscii((FILETIME*)list->elements[x]->data, time_buffer)));
 
                     } else if (list->elements[x]->type == (uint32_t)0x0048) {
                         DEBUG_WARN(("Unknown type %#x OLE GUID [size = %#x]\n", list->elements[x]->mapi_id,
@@ -4107,7 +4108,7 @@ static char* pst_wide_to_single(char *wt, size_t size) {
 }
 
 
-char *pst_rfc2426_escape(char *str) {
+char* pst_rfc2426_escape(char *str) {
     static char*  buf    = NULL;
     static size_t buflen = 0;
     char *ret, *a, *b;
@@ -4171,43 +4172,40 @@ static int pst_chr_count(char *str, char x) {
 }
 
 
-char *pst_rfc2425_datetime_format(const FILETIME *ft) {
-    static char buffer[30];
-    struct tm* stm = NULL;
+char* pst_rfc2425_datetime_format(const FILETIME* ft, int buflen, char* result) {
+    struct tm stm;
     DEBUG_ENT("rfc2425_datetime_format");
-    stm = pst_fileTimeToStructTM(ft);
-    if (strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", stm)==0) {
+    pst_fileTimeToStructTM(ft, &stm);
+    if (strftime(result, buflen, "%Y-%m-%dT%H:%M:%SZ", &stm)==0) {
         DEBUG_INFO(("Problem occured formatting date\n"));
     }
     DEBUG_RET();
-    return buffer;
+    return result;
 }
 
 
-char *pst_rfc2445_datetime_format(const FILETIME *ft) {
-    static char buffer[30];
-    struct tm* stm = NULL;
+char* pst_rfc2445_datetime_format(const FILETIME* ft, int buflen, char* result) {
+    struct tm stm;
     DEBUG_ENT("rfc2445_datetime_format");
-    stm = pst_fileTimeToStructTM(ft);
-    if (strftime(buffer, sizeof(buffer), "%Y%m%dT%H%M%SZ", stm)==0) {
+    pst_fileTimeToStructTM(ft, &stm);
+    if (strftime(result, buflen, "%Y%m%dT%H%M%SZ", &stm)==0) {
         DEBUG_INFO(("Problem occured formatting date\n"));
     }
     DEBUG_RET();
-    return buffer;
+    return result;
 }
 
 
-char *pst_rfc2445_datetime_format_now() {
-    static char buffer[30];
+char* pst_rfc2445_datetime_format_now(int buflen, char* result) {
     struct tm stm;
     time_t t = time(NULL);
     DEBUG_ENT("rfc2445_datetime_format_now");
     gmtime_r(&t, &stm);
-    if (strftime(buffer, sizeof(buffer), "%Y%m%dT%H%M%SZ", &stm)==0) {
+    if (strftime(result, buflen, "%Y%m%dT%H%M%SZ", &stm)==0) {
         DEBUG_INFO(("Problem occured formatting date\n"));
     }
     DEBUG_RET();
-    return buffer;
+    return result;
 }
 
 
@@ -4317,6 +4315,7 @@ void pst_convert_utf8(pst_item *item, pst_string *str) {
  */
 pst_recurrence* pst_convert_recurrence(pst_item_appointment* appt)
 {
+    const int bias = 30 * 24 * 60;  // minutes in 30 days
     int m[4] = {3,4,4,5};
     pst_recurrence *r = pst_malloc(sizeof(pst_recurrence));
     memset(r, 0, sizeof(pst_recurrence));
@@ -4328,7 +4327,7 @@ pst_recurrence* pst_convert_recurrence(pst_item_appointment* appt)
         if (i   <= s) { r->type             = PST_LE_GET_UINT8(p+i) - 0x0a;  i += 2; }
         if (i+4 <= s) { r->sub_type         = PST_LE_GET_UINT32(p+i);        i += 4; }
         if (r->sub_type <= 3) {
-            int n = m[r->sub_type];
+            int n = m[r->sub_type]; // number of parms for this sub_type
             int j = 0;
             for (j=0; j<n; j++) {
                 if (i+4 <= s) { *(&r->parm1 + j) = PST_LE_GET_UINT32(p+i);   i += 4; }
@@ -4338,21 +4337,44 @@ pst_recurrence* pst_convert_recurrence(pst_item_appointment* appt)
         if (i+4 <= s) { r->count            = PST_LE_GET_UINT32(p+i);        i += 4; }
         switch (r->type) {
             case 0: // daily
-                r->interval = r->parm2 / (24 * 60); // was minutes between recurrences
-                if (r->sub_type) r->interval = 0;   // !! don't handle sub-type 1 yet
+                if (r->sub_type == 0) {
+                    // simple daily
+                    r->interval = r->parm2 / (24 * 60); // was minutes between recurrences
+                }
+                else {
+                    // daily every weekday, subset of weekly
+                    r->interval  = 1;
+                    r->bydaymask = r->parm4;
+                }
                 break;
             case 1: // weekly
-                r->interval = r->parm2;
+                r->interval  = r->parm2;
+                r->bydaymask = r->parm4;
                 break;
             case 2: // monthly
                 r->interval = r->parm2;
-                // two flavors, every month on the Dth day, and every month on the Nth Tuesday
-                // those are not handled here.
+                if (r->sub_type == 2) {
+                    // monthly on day d
+                    r->dayofmonth = r->parm4;
+                }
+                else {
+                    // monthly on 2nd tuesday
+                    r->bydaymask = r->parm4;
+                    r->position  = r->parm5;
+                }
                 break;
             case 3: // yearly
-                r->interval = 0;
-                // two flavors, every year on the Dth day of the Mth month, and every year on the Nth Tuesday of the Mth month
-                // those are not handled here.
+                r->interval    = 1;
+                r->monthofyear = ((r->parm1 + bias/2) / bias) + 1;
+                if (r->sub_type == 2) {
+                    // yearly on day d of month m
+                    r->dayofmonth  = r->parm4;
+                }
+                else {
+                    // yearly on 2nd tuesday of month m
+                    r->bydaymask = r->parm4;
+                    r->position  = r->parm5;
+                }
                 break;
             default:
                 break;

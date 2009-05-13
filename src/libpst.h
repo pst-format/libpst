@@ -655,6 +655,14 @@ typedef struct pst_recurrence {
     uint32_t    termination;
     /** recurrence interval in terms of the recurrence type */
     uint32_t    interval;
+    /** bit mask of days of the week */
+    uint32_t    bydaymask;
+    /** day of month for monthly and yearly recurrences */
+    uint32_t    dayofmonth;
+    /** month of year for yearly recurrences */
+    uint32_t    monthofyear;
+    /** occurence of day for 2nd Tuesday of month, in which case position is 2 */
+    uint32_t    position;
     /** number of occurrences, even if recurrence terminates based on date */
     uint32_t    count;
     // there is more data, including the termination date,
@@ -1025,28 +1033,32 @@ size_t         pst_fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stre
  *            to a different buffer containing the escaped string. In
  *            either case, you don't need to free this returned pointer.
  */
-char *         pst_rfc2426_escape(char *str);
+char*          pst_rfc2426_escape(char *str);
 
 
 /** Convert a FILETIME into rfc2425 date/time format 1953-10-15T23:10:00Z
  *  which is the same as one of the forms in the ISO3601 standard
- * @param ft time to be converted
+ * @param[in]  ft      time to be converted
+ * @param[in]  buflen  length of the output buffer
+ * @param[out] result  pointer to output buffer, must be at least 30 bytes
  * @return   time in rfc2425 format
  */
-char *         pst_rfc2425_datetime_format(const FILETIME *ft);
+char*          pst_rfc2425_datetime_format(const FILETIME* ft, int buflen, char* result);
 
 
 /** Convert a FILETIME into rfc2445 date/time format 19531015T231000Z
- * @param ft time to be converted
+ * @param[in]  ft time to be converted
+ * @param[in]  buflen  length of the output buffer
+ * @param[out] result  pointer to output buffer, must be at least 30 bytes
  * @return   time in rfc2445 format
  */
-char *         pst_rfc2445_datetime_format(const FILETIME *ft);
+char*          pst_rfc2445_datetime_format(const FILETIME* ft, int buflen, char* result);
 
 
 /** Convert the current time rfc2445 date/time format 19531015T231000Z
  * @return   time in rfc2445 format
  */
-char *         pst_rfc2445_datetime_format_now();
+char*          pst_rfc2445_datetime_format_now(int buflen, char* result);
 
 
 /** Get the default character set for this item. This is used to find

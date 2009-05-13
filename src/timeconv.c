@@ -2,17 +2,17 @@
 
 
 
-char * pst_fileTimeToAscii(const FILETIME* filetime) {
+char* pst_fileTimeToAscii(const FILETIME* filetime, char* result) {
     time_t t;
     t = pst_fileTimeToUnixTime(filetime);
-    return ctime(&t);
+    return ctime_r(&t, result);
 }
 
 
-struct tm * pst_fileTimeToStructTM (const FILETIME *filetime) {
+void pst_fileTimeToStructTM (const FILETIME *filetime, struct tm *result) {
     time_t t1;
     t1 = pst_fileTimeToUnixTime(filetime);
-    return gmtime(&t1);
+    gmtime_r(&t1, result);
 }
 
 

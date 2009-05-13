@@ -134,11 +134,15 @@ string          pst::pst_rfc2426_escape(char *str) {
 }
 
 string          pst::pst_rfc2425_datetime_format(const FILETIME *ft) {
-    return ::pst_rfc2425_datetime_format((FILETIME *)ft);   // cast away const is ok, since libpst did not modify it anyway, and the signature will change in more recent versions
+    char buf[30];
+    ::pst_rfc2425_datetime_format(ft, sizeof(buf), buf);
+    return string(buf);
 }
 
 string          pst::pst_rfc2445_datetime_format(const FILETIME *ft) {
-    return ::pst_rfc2445_datetime_format((FILETIME *)ft);   // cast away const is ok, since libpst did not modify it anyway, and the signature will change in more recent versions
+    char buf[30];
+    ::pst_rfc2445_datetime_format(ft, sizeof(buf), buf);
+    return string(buf);
 }
 
 string          pst::pst_default_charset(pst_item *item) {
@@ -203,13 +207,6 @@ struct make_python_ppst_binary {
     }
 };
 
-struct make_python_pst_recurrence {
-    static PyObject* convert(pst_recurrence* const &s) {
-        if (s) return to_python_indirect<pst_recurrence*, detail::make_reference_holder>()(s);
-        return NULL;
-    }
-};
-
 struct make_python_pst_item_email {
     static PyObject* convert(pst_item_email* const &s) {
         if (s) return to_python_indirect<pst_item_email*, detail::make_reference_holder>()(s);
@@ -252,7 +249,6 @@ BOOST_PYTHON_MODULE(_libpst)
     to_python_converter<pst_binary,       make_python_pst_binary>();
     to_python_converter<ppst_binary,      make_python_ppst_binary>();
     to_python_converter<char*,            make_python_string>();
-    to_python_converter<pst_recurrence*,  make_python_pst_recurrence>();
     to_python_converter<pst_item_email*,  make_python_pst_item_email>();
     to_python_converter<pst_item_attach*, make_python_pst_item_attach>();
     to_python_converter<pst_desc_tree*,   make_python_pst_desc_tree>();
@@ -528,6 +524,10 @@ BOOST_PYTHON_MODULE(_libpst)
         .def_readonly("parm5",                        &pst_recurrence::parm5)
         .def_readonly("termination",                  &pst_recurrence::termination)
         .def_readonly("interval",                     &pst_recurrence::interval)
+        .def_readonly("bydaymask",                    &pst_recurrence::bydaymask)
+        .def_readonly("dayofmonth",                   &pst_recurrence::dayofmonth)
+        .def_readonly("monthofyear",                  &pst_recurrence::monthofyear)
+        .def_readonly("position",                     &pst_recurrence::position)
         .def_readonly("count",                        &pst_recurrence::count)
         ;
 
