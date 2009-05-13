@@ -5,6 +5,10 @@ LibPST 0.6.38 (2009-xx-xx)
     * fix pst_attach_to_mem so the caller does not need to initialize
       the buffer pointer.
     * remove readpst -C switch, obsolete debugging code.
+    * update version to 4:0:0 since we made many changes to the interface.
+    * removed contact->access_method since we don't have a mapi element for it.
+    * changed pst_attach_to_mem to return pst_binary structure.
+    * decode more recurrence mapi elements.
 
 LibPST 0.6.37 (2009-04-17)
 ===============================

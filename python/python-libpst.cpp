@@ -27,25 +27,27 @@ struct ppst_binary : public pst_binary
 
 class pst {
 public:
-                   pst(const string filename);
-    virtual        ~pst();
-    pst_desc_tree* pst_getTopOfFolders();
-    ppst_binary    pst_attach_to_mem(pst_item_attach *attach);
-    size_t         pst_attach_to_file(pst_item_attach *attach, FILE* fp);
-    size_t         pst_attach_to_file_base64(pst_item_attach *attach, FILE* fp);
-    pst_desc_tree* pst_getNextDptr(pst_desc_tree* d);
-    pst_item*      pst_parse_item(pst_desc_tree *d_ptr, pst_id2_tree *m_head);
-    void           pst_freeItem(pst_item *item);
-    pst_index_ll*  pst_getID(uint64_t i_id);
-    int            pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
-    size_t         pst_ff_getIDblock_dec(uint64_t i_id, char **buf);
-    size_t         pst_ff_getIDblock(uint64_t i_id, char** buf);
-    string         pst_rfc2426_escape(char *str);
-    string         pst_rfc2425_datetime_format(const FILETIME *ft);
-    string         pst_rfc2445_datetime_format(const FILETIME *ft);
-    string         pst_default_charset(pst_item *item);
-    void           pst_convert_utf8_null(pst_item *item, pst_string *str);
-    void           pst_convert_utf8(pst_item *item, pst_string *str);
+                    pst(const string filename);
+    virtual         ~pst();
+    pst_desc_tree*  pst_getTopOfFolders();
+    ppst_binary     pst_attach_to_mem(pst_item_attach *attach);
+    size_t          pst_attach_to_file(pst_item_attach *attach, FILE* fp);
+    size_t          pst_attach_to_file_base64(pst_item_attach *attach, FILE* fp);
+    pst_desc_tree*  pst_getNextDptr(pst_desc_tree* d);
+    pst_item*       pst_parse_item(pst_desc_tree *d_ptr, pst_id2_tree *m_head);
+    void            pst_freeItem(pst_item *item);
+    pst_index_ll*   pst_getID(uint64_t i_id);
+    int             pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
+    size_t          pst_ff_getIDblock_dec(uint64_t i_id, char **buf);
+    size_t          pst_ff_getIDblock(uint64_t i_id, char** buf);
+    string          pst_rfc2426_escape(char *str);
+    string          pst_rfc2425_datetime_format(const FILETIME *ft);
+    string          pst_rfc2445_datetime_format(const FILETIME *ft);
+    string          pst_default_charset(pst_item *item);
+    void            pst_convert_utf8_null(pst_item *item, pst_string *str);
+    void            pst_convert_utf8(pst_item *item, pst_string *str);
+    pst_recurrence* pst_convert_recurrence(pst_item_appointment *appt);
+    void            pst_free_recurrence(pst_recurrence* r);
 
     /** helper for python access to fopen() */
     FILE*          ppst_open_file(string filename, string mode);
@@ -79,74 +81,86 @@ pst::~pst() {
     if (is_open) ::pst_close(&pf);
 }
 
-pst_desc_tree* pst::pst_getTopOfFolders() {
+pst_desc_tree*  pst::pst_getTopOfFolders() {
     return topf;
 }
 
-ppst_binary    pst::pst_attach_to_mem(pst_item_attach *attach) {
+ppst_binary     pst::pst_attach_to_mem(pst_item_attach *attach) {
+    pst_binary r = ::pst_attach_to_mem(&pf, attach);
     ppst_binary rc;
-    rc.size = rc.size = ::pst_attach_to_mem(&pf, attach, &rc.data);
+    rc.size = r.size;
+    rc.data = r.data;
     return rc;
 }
 
-size_t         pst::pst_attach_to_file(pst_item_attach *attach, FILE* fp) {
+size_t          pst::pst_attach_to_file(pst_item_attach *attach, FILE* fp) {
     return ::pst_attach_to_file(&pf, attach, fp);
 }
 
-size_t         pst::pst_attach_to_file_base64(pst_item_attach *attach, FILE* fp) {
+size_t          pst::pst_attach_to_file_base64(pst_item_attach *attach, FILE* fp) {
     return ::pst_attach_to_file_base64(&pf, attach, fp);
 }
 
-pst_desc_tree* pst::pst_getNextDptr(pst_desc_tree* d) {
+pst_desc_tree*  pst::pst_getNextDptr(pst_desc_tree* d) {
     return ::pst_getNextDptr(d);
 }
 
-pst_item*      pst::pst_parse_item (pst_desc_tree *d_ptr, pst_id2_tree *m_head) {
+pst_item*       pst::pst_parse_item (pst_desc_tree *d_ptr, pst_id2_tree *m_head) {
     return ::pst_parse_item(&pf, d_ptr, m_head);
 }
 
-void           pst::pst_freeItem(pst_item *item) {
+void            pst::pst_freeItem(pst_item *item) {
     return ::pst_freeItem(item);
 }
 
-pst_index_ll*  pst::pst_getID(uint64_t i_id) {
+pst_index_ll*   pst::pst_getID(uint64_t i_id) {
     return ::pst_getID(&pf, i_id);
 }
 
-int            pst::pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type) {
+int             pst::pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type) {
     return ::pst_decrypt(i_id, buf, size, type);
 }
 
-size_t         pst::pst_ff_getIDblock_dec(uint64_t i_id, char **buf) {
+size_t          pst::pst_ff_getIDblock_dec(uint64_t i_id, char **buf) {
     return ::pst_ff_getIDblock_dec(&pf, i_id, buf);
 }
 
-size_t         pst::pst_ff_getIDblock(uint64_t i_id, char** buf) {
+size_t          pst::pst_ff_getIDblock(uint64_t i_id, char** buf) {
     return ::pst_ff_getIDblock(&pf, i_id, buf);
 }
 
-string         pst::pst_rfc2426_escape(char *str) {
+string          pst::pst_rfc2426_escape(char *str) {
     return ::pst_rfc2426_escape(str);
 }
 
-string         pst::pst_rfc2425_datetime_format(const FILETIME *ft) {
+string          pst::pst_rfc2425_datetime_format(const FILETIME *ft) {
     return ::pst_rfc2425_datetime_format((FILETIME *)ft);   // cast away const is ok, since libpst did not modify it anyway, and the signature will change in more recent versions
 }
 
-string         pst::pst_rfc2445_datetime_format(const FILETIME *ft) {
+string          pst::pst_rfc2445_datetime_format(const FILETIME *ft) {
     return ::pst_rfc2445_datetime_format((FILETIME *)ft);   // cast away const is ok, since libpst did not modify it anyway, and the signature will change in more recent versions
 }
 
-string         pst::pst_default_charset(pst_item *item) {
+string          pst::pst_default_charset(pst_item *item) {
     return ::pst_default_charset(item);
 }
 
-void           pst::pst_convert_utf8_null(pst_item *item, pst_string *str) {
+void            pst::pst_convert_utf8_null(pst_item *item, pst_string *str) {
     ::pst_convert_utf8_null(item, str);
 }
 
-void           pst::pst_convert_utf8(pst_item *item, pst_string *str) {
+void            pst::pst_convert_utf8(pst_item *item, pst_string *str) {
     ::pst_convert_utf8(item, str);
+}
+
+pst_recurrence* pst::pst_convert_recurrence(pst_item_appointment *appt)
+{
+    return ::pst_convert_recurrence(appt);
+}
+
+void            pst::pst_free_recurrence(pst_recurrence* r)
+{
+    ::pst_free_recurrence(r);
 }
 
 FILE*          pst::ppst_open_file(string filename, string mode) {
@@ -185,6 +199,13 @@ struct make_python_ppst_binary {
             free(s.data);
             return boost::python::incref(boost::python::object(ss).ptr());
         }
+        return NULL;
+    }
+};
+
+struct make_python_pst_recurrence {
+    static PyObject* convert(pst_recurrence* const &s) {
+        if (s) return to_python_indirect<pst_recurrence*, detail::make_reference_holder>()(s);
         return NULL;
     }
 };
@@ -231,6 +252,7 @@ BOOST_PYTHON_MODULE(_libpst)
     to_python_converter<pst_binary,       make_python_pst_binary>();
     to_python_converter<ppst_binary,      make_python_ppst_binary>();
     to_python_converter<char*,            make_python_string>();
+    to_python_converter<pst_recurrence*,  make_python_pst_recurrence>();
     to_python_converter<pst_item_email*,  make_python_pst_item_email>();
     to_python_converter<pst_item_attach*, make_python_pst_item_attach>();
     to_python_converter<pst_desc_tree*,   make_python_pst_desc_tree>();
@@ -367,7 +389,6 @@ BOOST_PYTHON_MODULE(_libpst)
         ;
 
     class_<pst_item_contact>("pst_item_contact")
-        .def_readonly("access_method",                   &pst_item_contact::access_method)
         .def_readonly("account_name",                    &pst_item_contact::account_name)
         .def_readonly("address1",                        &pst_item_contact::address1)
         .def_readonly("address1a",                       &pst_item_contact::address1a)
@@ -490,25 +511,42 @@ BOOST_PYTHON_MODULE(_libpst)
         ;
 
     class_<pst_item_journal>("pst_item_journal")
-        .add_property("end",   make_getter(&pst_item_journal::end, return_value_policy<reference_existing_object>()))
         .add_property("start", make_getter(&pst_item_journal::start, return_value_policy<reference_existing_object>()))
+        .add_property("end",   make_getter(&pst_item_journal::end, return_value_policy<reference_existing_object>()))
         .def_readonly("type",              &pst_item_journal::type)
         .def_readonly("description",       &pst_item_journal::description)
         ;
 
+    class_<pst_recurrence>("pst_recurrence")
+        .def_readonly("signature",                    &pst_recurrence::signature)
+        .def_readonly("type",                         &pst_recurrence::type)
+        .def_readonly("sub_type",                     &pst_recurrence::sub_type)
+        .def_readonly("parm1",                        &pst_recurrence::parm1)
+        .def_readonly("parm2",                        &pst_recurrence::parm2)
+        .def_readonly("parm3",                        &pst_recurrence::parm3)
+        .def_readonly("parm4",                        &pst_recurrence::parm4)
+        .def_readonly("parm5",                        &pst_recurrence::parm5)
+        .def_readonly("termination",                  &pst_recurrence::termination)
+        .def_readonly("interval",                     &pst_recurrence::interval)
+        .def_readonly("count",                        &pst_recurrence::count)
+        ;
+
     class_<pst_item_appointment>("pst_item_appointment")
+        .add_property("start",            make_getter(&pst_item_appointment::start, return_value_policy<reference_existing_object>()))
         .add_property("end",              make_getter(&pst_item_appointment::end, return_value_policy<reference_existing_object>()))
         .def_readonly("location",                     &pst_item_appointment::location)
+        .def_readonly("alarm",                        &pst_item_appointment::alarm)
         .add_property("reminder",         make_getter(&pst_item_appointment::reminder, return_value_policy<reference_existing_object>()))
         .def_readonly("alarm_minutes",                &pst_item_appointment::alarm_minutes)
         .def_readonly("alarm_filename",               &pst_item_appointment::alarm_filename)
-        .add_property("start",            make_getter(&pst_item_appointment::start, return_value_policy<reference_existing_object>()))
         .def_readonly("timezonestring",               &pst_item_appointment::timezonestring)
         .def_readonly("showas",                       &pst_item_appointment::showas)
         .def_readonly("label",                        &pst_item_appointment::label)
         .def_readonly("all_day",                      &pst_item_appointment::all_day)
-        .def_readonly("recurrence",                   &pst_item_appointment::recurrence)
+        .def_readonly("is_recurring",                 &pst_item_appointment::is_recurring)
         .def_readonly("recurrence_type",              &pst_item_appointment::recurrence_type)
+        .def_readonly("recurrence_description",       &pst_item_appointment::recurrence_description)
+        .def_readonly("recurrence_data",              &pst_item_appointment::recurrence_data)
         .add_property("recurrence_start", make_getter(&pst_item_appointment::recurrence_start, return_value_policy<reference_existing_object>()))
         .add_property("recurrence_end",   make_getter(&pst_item_appointment::recurrence_end, return_value_policy<reference_existing_object>()))
         ;

@@ -75,6 +75,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     process(item, d_ptr->child);
 
                 } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
+                    if (!ff.type) ff.type = item->type;
                     // Process Contact item
                     if (ff.type != PST_TYPE_CONTACT) {
                         DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. Processing anyway\n"));
@@ -84,9 +85,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                         printf("\t%s", pst_rfc2426_escape(item->contact->fullname.str));
                     printf("\n");
 
-                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+                } else if (item->email && ((item->type == PST_TYPE_NOTE) || (item->type == PST_TYPE_SCHEDULE) || (item->type == PST_TYPE_REPORT))) {
+                    if (!ff.type) ff.type = item->type;
                     // Process Email item
-                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT)) {
+                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_SCHEDULE) && (ff.type != PST_TYPE_REPORT)) {
                         DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
                     printf("Email");
@@ -97,6 +99,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     printf("\n");
 
                 } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
+                    if (!ff.type) ff.type = item->type;
                     // Process Journal item
                     if (ff.type != PST_TYPE_JOURNAL) {
                         DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
@@ -105,6 +108,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                         printf("Journal\t%s\n", pst_rfc2426_escape(item->subject.str));
 
                 } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
+                    if (!ff.type) ff.type = item->type;
                     // Process Calendar Appointment item
                     DEBUG_MAIN(("main: Processing Appointment Entry\n"));
                     if (ff.type != PST_TYPE_APPOINTMENT) {

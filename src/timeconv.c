@@ -18,15 +18,12 @@ struct tm * pst_fileTimeToStructTM (const FILETIME *filetime) {
 
 time_t pst_fileTimeToUnixTime(const FILETIME *filetime)
 {
-    int64_t t = filetime->dwHighDateTime;
+    uint64_t t = filetime->dwHighDateTime;
+    const uint64_t bias = 11644473600LL;
     t <<= 32;
     t += filetime->dwLowDateTime;
-    t -= 116444736000000000LL;
-    if (t < 0) {
-        return -1 - ((-t - 1) / 10000000);
-    }
-    else {
-        return t / 10000000;
-    }
+    t /= 10000000;
+    t -= bias;
+    return ((t > (uint64_t)0x000000007fffffff) && (sizeof(time_t) <= 4)) ? 0 : (time_t)t;
 }
 

@@ -19,9 +19,9 @@ AC_CANONICAL_HOST
 #  6. libtool will build libpst.so.x.y.z where the SONAME is libpst.so.x
 #     and x=current-age, y=age, z=revision
 
-libpst_version_info='3:0:1'
+libpst_version_info='4:0:0'
 AC_SUBST(LIBPST_VERSION_INFO, [$libpst_version_info])
-libpst_so_major='2'
+libpst_so_major='4'
 AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
 
 # libpst
@@ -30,15 +30,6 @@ AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
 # 0.6.37    libpst.so.2     libpst.so.2.1.0
 # 0.6.38    libpst.so.2     libpst.so.2.1.0
 
-
-# check for boost
-AX_PYTHON
-AX_BOOST_PYTHON
-if test "$ax_python_bin" = "no"; then
-    AC_MSG_ERROR(python binary not found)
-fi
-
-AC_SUBST(PYTHON_VERSION, [$ax_python_bin])
 
 
 # Check for win32
@@ -155,6 +146,7 @@ AC_STRUCT_TM
 
 # Checks for library functions.
 AC_FUNC_FSEEKO
+AC_FUNC_STAT
 AC_FUNC_LSTAT
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 if test "$cross_compiling" != "yes"; then
@@ -260,6 +252,42 @@ AM_CONDITIONAL(STATIC_TOOLS, [test "$enable_static_tools" = "yes"])
 if test "$enable_static_tools" = "yes"; then
 	enable_static="yes"
 fi
+
+
+# The following lines adds the --enable-python option to configure:
+#
+# Give the user the choice to enter one of these:
+# --enable-python
+# --enable-python=yes
+# --enable-python=no
+#
+AC_MSG_CHECKING([whether to build the libpst python interface])
+AC_ARG_ENABLE([python],
+    AC_HELP_STRING([--enable-python], [build libpst python interface]),
+    [
+        case "${enableval}" in
+          yes) ;;
+          no)  ;;
+          *)   AC_MSG_ERROR(bad value ${enableval} for --python) ;;
+        esac
+    ],
+    [
+        enable_python=no
+    ])
+AC_MSG_RESULT([$enable_python])
+AM_CONDITIONAL(PYTHON_INTERFACE, [test "$enable_python" = "yes"])
+if test "$enable_python" = "yes"; then
+	enable_shared="yes"
+    # check for boost
+    AX_PYTHON
+    AX_BOOST_PYTHON
+    if test "$ax_python_bin" = "no"; then
+        AC_MSG_ERROR(python binary not found)
+    fi
+
+    AC_SUBST(PYTHON_VERSION, [$ax_python_bin])
+fi
+
 
 
 AC_OUTPUT(                  \

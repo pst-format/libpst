@@ -52,10 +52,13 @@ int       test_base64(char *body);
 void      find_html_charset(char *html, char *charset, size_t charsetlen);
 void      find_rfc822_headers(char** extra_mime_headers);
 void      write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset, char *boundary, pst_file* pst);
+void      write_schedule_part_data(FILE* f_output, pst_item* item, const char* sender, const char* method);
+void      write_schedule_part(FILE* f_output, pst_item* item, const char* sender, const char* boundary);
 void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers);
 void      write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char comment[]);
-void      write_appointment(FILE* f_output, pst_item *item, pst_item_appointment* appointment,
-                            FILETIME* create_date, FILETIME* modify_date);
+void      write_journal(FILE* f_output, pst_item* item);
+int       file_time_compare(FILETIME* left, FILETIME* right);
+void      write_appointment(FILE* f_output, pst_item *item);
 void      create_enter_dir(struct file_ll* f, pst_item *item);
 void      close_enter_dir(struct file_ll *f);
 
@@ -179,10 +182,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 }
             }
 
-        } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT)) {
+        } else if (item->email && ((item->type == PST_TYPE_NOTE) || (item->type == PST_TYPE_SCHEDULE) || (item->type == PST_TYPE_REPORT))) {
             if (!ff.type) ff.type = item->type;
             DEBUG_MAIN(("main: Processing Email\n"));
-            if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT)) {
+            if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_SCHEDULE) && (ff.type != PST_TYPE_REPORT)) {
                 ff.skip_count++;
                 DEBUG_MAIN(("main: I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
             }
@@ -203,18 +206,8 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             else {
                 ff.item_count++;
                 if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                fprintf(ff.output, "BEGIN:VJOURNAL\n");
-                if (item->subject.str) {
-                    pst_convert_utf8(item, &item->subject);
-                    fprintf(ff.output, "SUMMARY:%s\n", pst_rfc2426_escape(item->subject.str));
-                }
-                if (item->body.str) {
-                    pst_convert_utf8(item, &item->body);
-                    fprintf(ff.output, "DESCRIPTION:%s\n", pst_rfc2426_escape(item->body.str));
-                }
-                if (item->journal->start)
-                    fprintf(ff.output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(item->journal->start));
-                fprintf(ff.output, "END:VJOURNAL\n\n");
+                write_journal(ff.output, item);
+                fprintf(ff.output, "\n");
             }
 
         } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
@@ -227,7 +220,8 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             else {
                 ff.item_count++;
                 if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                write_appointment(ff.output, item, item->appointment, item->create_date, item->modify_date);
+                write_appointment(ff.output, item);
+                fprintf(ff.output, "\n");
             }
 
         } else if (item->message_store) {
@@ -1044,6 +1038,41 @@ void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset
 }
 
 
+void write_schedule_part_data(FILE* f_output, pst_item* item, const char* sender, const char* method)
+{
+    fprintf(f_output, "BEGIN:VCALENDAR\n");
+    fprintf(f_output, "VERSION:2.0\n");
+    fprintf(f_output, "PRODID:LibPST\n");
+    fprintf(f_output, "METHOD:%s\n", method);
+    fprintf(f_output, "ORGANIZER;CN=\"%s\":MAILTO:%s\n", item->email->outlook_sender_name.str, sender);
+    write_appointment(f_output, item);
+    fprintf(f_output, "END:VCALENDAR\n");
+}
+
+
+void write_schedule_part(FILE* f_output, pst_item* item, const char* sender, const char* boundary)
+{
+    const char* method  = "REQUEST";
+    const char* charset = "utf-8";
+    char fname[20];
+    if (!item->appointment) return;
+
+    // inline appointment request
+    fprintf(f_output, "\n--%s\n", boundary);
+    fprintf(f_output, "Content-Type: %s; method=\"%s\"; charset=\"%s\"\n\n", "text/calendar", method, charset);
+    write_schedule_part_data(f_output, item, sender, method);
+    fprintf(f_output, "\n");
+
+    // attachment appointment request
+    snprintf(fname, sizeof(fname), "i%i.ics", rand());
+    fprintf(f_output, "\n--%s\n", boundary);
+    fprintf(f_output, "Content-Type: %s; charset=\"%s\"; name=\"%s\"\n", "text/calendar", "utf-8", fname);
+    fprintf(f_output, "Content-Disposition: attachment; filename=\"%s\"\n\n", fname);
+    write_schedule_part_data(f_output, item, sender, method);
+    fprintf(f_output, "\n");
+}
+
+
 void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers)
 {
     char boundary[60];
@@ -1230,7 +1259,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     }
     else if (item->attach || (item->email->rtf_compressed.data && save_rtf)
                           || item->email->encrypted_body.data
-                          || item->email->encrypted_htmlbody.data) {
+                          || item->email->encrypted_htmlbody.data
+                          || (item->type == PST_TYPE_SCHEDULE)) {
         // use multipart/mixed if we have attachments
         fprintf(f_output, "Content-Type: multipart/mixed;\n\tboundary=\"%s\"\n", boundary);
     } else {
@@ -1293,6 +1323,10 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             item->email->encrypted_htmlbody.data = NULL;
         }
         write_email_body(f_output, "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
+    }
+
+    if (item->type == PST_TYPE_SCHEDULE) {
+        write_schedule_part(f_output, item, sender, boundary);
     }
 
     // other attachments
@@ -1473,19 +1507,62 @@ void write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char
 }
 
 
-void write_appointment(FILE* f_output, pst_item *item,  pst_item_appointment* appointment,
-                       FILETIME* create_date, FILETIME* modify_date)
+void write_journal(FILE* f_output, pst_item* item)
 {
+    pst_item_journal* journal = item->journal;
+
+    // make everything utf8
+    pst_convert_utf8_null(item, &item->subject);
+    pst_convert_utf8_null(item, &item->body);
+
+    fprintf(f_output, "BEGIN:VJOURNAL\n");
+    fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now());
+    if (item->create_date)
+        fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date));
+    if (item->modify_date)
+        fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(item->modify_date));
+    if (item->subject.str)
+        fprintf(f_output, "SUMMARY:%s\n",                 pst_rfc2426_escape(item->subject.str));
+    if (item->body.str)
+        fprintf(f_output, "DESCRIPTION:%s\n",             pst_rfc2426_escape(item->body.str));
+    if (journal && journal->start)
+        fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(journal->start));
+    fprintf(f_output, "END:VJOURNAL\n");
+}
+
+
+/**
+ compare two FILETIME objects after converting to unix time_t. This
+ allows FILETIMEs that are beyond the range of time_t representaion to
+ be converted to 0, and therefore seem to be less than the right
+ side. The actual recurrence end values seen in pst files are very
+ large (outside the range of 32 bit time_t), but still finite. That is
+ a strange way to represent an infinite recurrence.
+ */
+int file_time_compare(FILETIME* left, FILETIME* right)
+{
+    time_t delta = pst_fileTimeToUnixTime(left) - pst_fileTimeToUnixTime(right);
+    if (delta < 0) return -1;
+    if (delta > 0) return 1;
+    return 0;
+}
+
+
+void write_appointment(FILE* f_output, pst_item* item)
+{
+    pst_item_appointment* appointment = item->appointment;
+
     // make everything utf8
     pst_convert_utf8_null(item, &item->subject);
     pst_convert_utf8_null(item, &item->body);
     pst_convert_utf8_null(item, &appointment->location);
 
     fprintf(f_output, "BEGIN:VEVENT\n");
-    if (create_date)
-        fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(create_date));
-    if (modify_date)
-        fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(modify_date));
+    fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now());
+    if (item->create_date)
+        fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date));
+    if (item->modify_date)
+        fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(item->modify_date));
     if (item->subject.str)
         fprintf(f_output, "SUMMARY:%s\n",                 pst_rfc2426_escape(item->subject.str));
     if (item->body.str)
@@ -1508,6 +1585,15 @@ void write_appointment(FILE* f_output, pst_item *item,  pst_item_appointment* ap
             case PST_FREEBUSY_OUT_OF_OFFICE:
                 fprintf(f_output, "STATUS:CONFIRMED\n");
                 break;
+        }
+        if (appointment->is_recurring) {
+            const char* rules[] = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"};
+            pst_recurrence *rdata = pst_convert_recurrence(appointment);
+            fprintf(f_output, "RRULE:FREQ=%s", rules[rdata->type]);
+            if (rdata->count)    fprintf(f_output, ";COUNT=%u", rdata->count);
+            if (rdata->interval) fprintf(f_output, ";INTERVAL=%u", rdata->interval);
+            fprintf(f_output, "\n");
+            pst_free_recurrence(rdata);
         }
         switch (appointment->label) {
             case PST_APP_LABEL_NONE:
@@ -1545,7 +1631,7 @@ void write_appointment(FILE* f_output, pst_item *item,  pst_item_appointment* ap
                 break;
         }
     }
-    fprintf(f_output, "END:VEVENT\n\n");
+    fprintf(f_output, "END:VEVENT\n");
 }
 
 
@@ -1617,7 +1703,15 @@ void close_enter_dir(struct file_ll *f)
                 f->dname, f->item_count, f->skip_count, f->stored_count));
     if (output_mode != OUTPUT_QUIET) printf("\t\"%s\" - %i items done, %i items skipped.\n",
                                             f->dname, f->item_count, f->skip_count);
-    if (f->output) fclose(f->output);
+    if (f->output) {
+        struct stat st;
+        fclose(f->output);
+        stat(f->name, &st);
+        if (!st.st_size) {
+            WARN(("removing empty output file %s ", f->name));
+            remove(f->name);
+        }
+    }
     free(f->name);
     free(f->dname);
 

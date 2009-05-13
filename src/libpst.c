@@ -518,28 +518,27 @@ pst_desc_tree* pst_getTopOfFolders(pst_file *pf, const pst_item *root) {
 }
 
 
-size_t pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b) {
+pst_binary pst_attach_to_mem(pst_file *pf, pst_item_attach *attach) {
     pst_index_ll *ptr;
-    pst_holder h = {b, NULL, 0};
-    size_t size = 0;
-    *b = NULL;
+    pst_binary rc;
+    pst_holder h = {&rc.data, NULL, 0};
+    rc.size = 0;
+    rc.data = NULL;
     DEBUG_ENT("pst_attach_to_mem");
     if ((!attach->data.data) && (attach->i_id != (uint64_t)-1)) {
         ptr = pst_getID(pf, attach->i_id);
         if (ptr) {
-            size = pst_ff_getID2data(pf, ptr, &h);
+            rc.size = pst_ff_getID2data(pf, ptr, &h);
         } else {
             DEBUG_WARN(("Couldn't find ID pointer. Cannot handle attachment\n"));
-            *b = NULL;
         }
     } else {
-        size = attach->data.size;
-        *b   = attach->data.data;
+        rc = attach->data;
         attach->data.data = NULL;   // prevent pst_free_item() from trying to free this
         attach->data.size = 0;      // since we have given that buffer to the caller
     }
     DEBUG_RET();
-    return size;
+    return rc;
 }
 
 
@@ -2063,6 +2062,12 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     LIST_COPY_BIN(targ);                            \
     DEBUG_EMAIL((label"\n"));                       \
 }
+#define LIST_COPY_APPT_BIN(label, targ) {           \
+    MALLOC_APPOINTMENT(item);                       \
+    LIST_COPY_BIN(targ);                            \
+    DEBUG_EMAIL((label"\n"));                       \
+    DEBUG_EMAIL_HEXPRINT(targ.data, targ.size);     \
+}
 
 #define NULL_CHECK(x) { if (!x) { DEBUG_WARN(("NULL_CHECK: Null Found\n")); break;} }
 
@@ -2163,11 +2168,8 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                             item->type = PST_TYPE_JOURNAL;
                         else if (pst_strincmp("IPM.Appointment", item->ascii_type, 15) == 0)
                             item->type = PST_TYPE_APPOINTMENT;
-                        //else if (pst_strincmp("IPM.Schedule.Meeting", item->ascii_type, 20) == 0)
-                        //    item->type = PST_TYPE_APPOINTMENT;
-                        // these seem to be appointments, but they are inside the email folder,
-                        // and unless we are in separate mode, we would dump an appointment
-                        // into the middle of a mailbox file.
+                        else if (pst_strincmp("IPM.Schedule.Meeting", item->ascii_type, 20) == 0)
+                            item->type = PST_TYPE_SCHEDULE;     // meeting requests and responses transported over email
                         else if (pst_strincmp("IPM.StickyNote", item->ascii_type, 14) == 0)
                             item->type = PST_TYPE_STICKYNOTE;
                         else if (pst_strincmp("IPM.Task", item->ascii_type, 8) == 0)
@@ -2926,8 +2928,14 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                 case 0x8215: // PR_OUTLOOK_EVENT_ALL_DAY
                     LIST_COPY_APPT_BOOL("All day flag", item->appointment->all_day);
                     break;
+                case 0x8216: // PR_OUTLOOK_EVENT_RECURRENCE_DATA
+                    LIST_COPY_APPT_BIN("Appointment recurrence data", item->appointment->recurrence_data);
+                    break;
+                case 0x8223: // PR_OUTLOOK_EVENT_IS_RECURRING
+                    LIST_COPY_APPT_BOOL("Is recurring", item->appointment->is_recurring);
+                    break;
                 case 0x8231: // Recurrence type
-                    LIST_COPY_APPT_ENUM("Appointment reccurence", item->appointment->recurrence_type, 0, 5,
+                    LIST_COPY_APPT_ENUM("Appointment recurrence type ", item->appointment->recurrence_type, 0, 5,
                         "None",
                         "Daily",
                         "Weekly",
@@ -2935,7 +2943,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                         "Yearly");
                     break;
                 case 0x8232: // Recurrence description
-                    LIST_COPY_APPT_STR("Appointment recurrence description", item->appointment->recurrence);
+                    LIST_COPY_APPT_STR("Appointment recurrence description", item->appointment->recurrence_description);
                     break;
                 case 0x8234: // TimeZone as String
                     LIST_COPY_APPT_STR("TimeZone of times", item->appointment->timezonestring);
@@ -3333,7 +3341,6 @@ void pst_freeItem(pst_item *item) {
             free(item->message_store);
         }
         if (item->contact) {
-            SAFE_FREE_STR(item->contact->access_method);
             SAFE_FREE_STR(item->contact->account_name);
             SAFE_FREE_STR(item->contact->address1);
             SAFE_FREE_STR(item->contact->address1a);
@@ -3443,19 +3450,20 @@ void pst_freeItem(pst_item *item) {
             item->extra_fields = et;
         }
         if (item->journal) {
-            SAFE_FREE(item->journal->end);
             SAFE_FREE(item->journal->start);
+            SAFE_FREE(item->journal->end);
             SAFE_FREE_STR(item->journal->type);
             free(item->journal);
         }
         if (item->appointment) {
+            SAFE_FREE(item->appointment->start);
+            SAFE_FREE(item->appointment->end);
             SAFE_FREE_STR(item->appointment->location);
             SAFE_FREE(item->appointment->reminder);
             SAFE_FREE_STR(item->appointment->alarm_filename);
-            SAFE_FREE(item->appointment->start);
-            SAFE_FREE(item->appointment->end);
             SAFE_FREE_STR(item->appointment->timezonestring);
-            SAFE_FREE_STR(item->appointment->recurrence);
+            SAFE_FREE_STR(item->appointment->recurrence_description);
+            SAFE_FREE_BIN(item->appointment->recurrence_data);
             SAFE_FREE(item->appointment->recurrence_start);
             SAFE_FREE(item->appointment->recurrence_end);
             free(item->appointment);
@@ -4165,7 +4173,7 @@ static int pst_chr_count(char *str, char x) {
 
 char *pst_rfc2425_datetime_format(const FILETIME *ft) {
     static char buffer[30];
-    struct tm *stm = NULL;
+    struct tm* stm = NULL;
     DEBUG_ENT("rfc2425_datetime_format");
     stm = pst_fileTimeToStructTM(ft);
     if (strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", stm)==0) {
@@ -4178,10 +4186,24 @@ char *pst_rfc2425_datetime_format(const FILETIME *ft) {
 
 char *pst_rfc2445_datetime_format(const FILETIME *ft) {
     static char buffer[30];
-    struct tm *stm = NULL;
+    struct tm* stm = NULL;
     DEBUG_ENT("rfc2445_datetime_format");
     stm = pst_fileTimeToStructTM(ft);
     if (strftime(buffer, sizeof(buffer), "%Y%m%dT%H%M%SZ", stm)==0) {
+        DEBUG_INFO(("Problem occured formatting date\n"));
+    }
+    DEBUG_RET();
+    return buffer;
+}
+
+
+char *pst_rfc2445_datetime_format_now() {
+    static char buffer[30];
+    struct tm stm;
+    time_t t = time(NULL);
+    DEBUG_ENT("rfc2445_datetime_format_now");
+    gmtime_r(&t, &stm);
+    if (strftime(buffer, sizeof(buffer), "%Y%m%dT%H%M%SZ", &stm)==0) {
         DEBUG_INFO(("Problem occured formatting date\n"));
     }
     DEBUG_RET();
@@ -4286,4 +4308,64 @@ void pst_convert_utf8(pst_item *item, pst_string *str) {
     }
     free(newer);
     DEBUG_RET();
+}
+
+
+/** Decode raw recurrence data into a better structure.
+ * @param appt pointer to appointment structure
+ * @return     pointer to decoded recurrence structure that must be free'd by the caller.
+ */
+pst_recurrence* pst_convert_recurrence(pst_item_appointment* appt)
+{
+    int m[4] = {3,4,4,5};
+    pst_recurrence *r = pst_malloc(sizeof(pst_recurrence));
+    memset(r, 0, sizeof(pst_recurrence));
+    size_t s = appt->recurrence_data.size;
+    size_t i = 0;
+    char*  p = appt->recurrence_data.data;
+    if (p) {
+        if (i+4 <= s) { r->signature        = PST_LE_GET_UINT32(p+i);        i += 4; }
+        if (i   <= s) { r->type             = PST_LE_GET_UINT8(p+i) - 0x0a;  i += 2; }
+        if (i+4 <= s) { r->sub_type         = PST_LE_GET_UINT32(p+i);        i += 4; }
+        if (r->sub_type <= 3) {
+            int n = m[r->sub_type];
+            int j = 0;
+            for (j=0; j<n; j++) {
+                if (i+4 <= s) { *(&r->parm1 + j) = PST_LE_GET_UINT32(p+i);   i += 4; }
+            }
+        }
+        if (i   <= s) { r->termination      = PST_LE_GET_UINT8(p+i) - 0x21;  i += 4; }
+        if (i+4 <= s) { r->count            = PST_LE_GET_UINT32(p+i);        i += 4; }
+        switch (r->type) {
+            case 0: // daily
+                r->interval = r->parm2 / (24 * 60); // was minutes between recurrences
+                if (r->sub_type) r->interval = 0;   // !! don't handle sub-type 1 yet
+                break;
+            case 1: // weekly
+                r->interval = r->parm2;
+                break;
+            case 2: // monthly
+                r->interval = r->parm2;
+                // two flavors, every month on the Dth day, and every month on the Nth Tuesday
+                // those are not handled here.
+                break;
+            case 3: // yearly
+                r->interval = 0;
+                // two flavors, every year on the Dth day of the Mth month, and every year on the Nth Tuesday of the Mth month
+                // those are not handled here.
+                break;
+            default:
+                break;
+        }
+    }
+    return r;
+}
+
+
+/** Free a recurrence structure.
+ * @param r input pointer to be freed
+ */
+void pst_free_recurrence(pst_recurrence* r)
+{
+    if (r) free(r);
 }

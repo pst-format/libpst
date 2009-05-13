@@ -24,6 +24,7 @@
 
 
 #define PST_TYPE_NOTE        1
+#define PST_TYPE_SCHEDULE    2
 #define PST_TYPE_APPOINTMENT 8
 #define PST_TYPE_CONTACT     9
 #define PST_TYPE_JOURNAL    10
@@ -31,6 +32,7 @@
 #define PST_TYPE_TASK       12
 #define PST_TYPE_OTHER      13
 #define PST_TYPE_REPORT     14
+
 
 // defines types of possible encryption
 #define PST_NO_ENCRYPT   0
@@ -63,7 +65,7 @@
 #define PST_APP_LABEL_ANNIVERSARY 9
 #define PST_APP_LABEL_PHONE_CALL  10
 
-// define type of reccuring event
+// define type of recuring event
 #define PST_APP_RECUR_NONE        0
 #define PST_APP_RECUR_DAILY       1
 #define PST_APP_RECUR_WEEKLY      2
@@ -357,8 +359,6 @@ typedef struct pst_item_message_store {
 /** This contains the contact related mapi elements
  */
 typedef struct pst_item_contact {
-    /** Unused - need to find the proper mapi element number for this  */
-    pst_string  access_method;
     /** mapi element 0x3a00 PR_ACCOUNT */
     pst_string  account_name;
     /** mapi element 0x3003 PR_EMAIL_ADDRESS, or 0x8083 */
@@ -612,10 +612,10 @@ typedef struct pst_item_extra_field {
 /** This contains the journal related mapi elements
  */
 typedef struct pst_item_journal {
-    /** mapi element 0x8708 */
-    FILETIME   *end;
     /** mapi element 0x8706 */
     FILETIME   *start;
+    /** mapi element 0x8708 */
+    FILETIME   *end;
     /** mapi element 0x8700 */
     pst_string  type;
     /** mapi element 0x8712 */
@@ -623,9 +623,50 @@ typedef struct pst_item_journal {
 } pst_item_journal;
 
 
+/** This contains the recurrence data separated into fields.
+    http://www.geocities.com/cainrandom/dev/MAPIRecurrence.html
+*/
+typedef struct pst_recurrence {
+    /** 0x30043004 */
+    uint32_t    signature;
+    /** @li 0 daily
+     *  @li 1 weekly
+     *  @li 2 monthly
+     *  @li 3 yearly */
+    uint32_t    type;
+    /** implies number of recurrence parameters
+     *  @li 0 has 3 parameters
+     *  @li 1 has 4 parameters
+     *  @li 2 has 4 parameters
+     *  @li 3 has 5 parameters
+     */
+    uint32_t    sub_type;
+    /** must be contiguous, not an array to make python interface easier */
+    uint32_t    parm1;
+    uint32_t    parm2;
+    uint32_t    parm3;
+    uint32_t    parm4;
+    uint32_t    parm5;
+    /** type of termination of the recurrence
+        @li 0 terminates on a date
+        @li 1 terminates based on integer number of occurrences
+        @li 2 never terminates
+     */
+    uint32_t    termination;
+    /** recurrence interval in terms of the recurrence type */
+    uint32_t    interval;
+    /** number of occurrences, even if recurrence terminates based on date */
+    uint32_t    count;
+    // there is more data, including the termination date,
+    // but we can get that from other mapi elements.
+} pst_recurrence;
+
+
 /** This contains the appointment related mapi elements
  */
 typedef struct pst_item_appointment {
+    /** mapi element 0x820d PR_OUTLOOK_EVENT_START_DATE */
+    FILETIME   *start;
     /** mapi element 0x820e PR_OUTLOOK_EVENT_START_END */
     FILETIME   *end;
     /** mapi element 0x8208 PR_OUTLOOK_EVENT_LOCATION */
@@ -640,8 +681,6 @@ typedef struct pst_item_appointment {
     int32_t     alarm_minutes;
     /** mapi element 0x851f */
     pst_string  alarm_filename;
-    /** mapi element 0x820d PR_OUTLOOK_EVENT_START_DATE */
-    FILETIME   *start;
     /** mapi element 0x8234 */
     pst_string  timezonestring;
     /** mapi element 0x8205 PR_OUTLOOK_EVENT_SHOW_TIME_AS
@@ -667,8 +706,10 @@ typedef struct pst_item_appointment {
      *  @li 1 true
      *  @li 0 false */
     int         all_day;
-    /** mapi element 0x8232 recurrence description */
-    pst_string  recurrence;
+    /** mapi element 0x8223 PR_OUTLOOK_EVENT_IS_RECURRING
+     *  @li 1 true
+     *  @li 0 false */
+    int         is_recurring;
     /** mapi element 0x8231
      *  @li 0 none
      *  @li 1 daily
@@ -676,6 +717,10 @@ typedef struct pst_item_appointment {
      *  @li 3 monthly
      *  @li 4 yearly */
     int32_t     recurrence_type;
+    /** mapi element 0x8232 recurrence description */
+    pst_string  recurrence_description;
+    /** mapi element 0x8216 recurrence data */
+    pst_binary  recurrence_data;
     /** mapi element 0x8235 PR_OUTLOOK_EVENT_RECURRENCE_START */
     FILETIME   *recurrence_start;
     /** mapi element 0x8236 PR_OUTLOOK_EVENT_RECURRENCE_END  */
@@ -705,6 +750,7 @@ typedef struct pst_item {
     pst_item_appointment   *appointment;
     /** derived from mapi elements 0x001a PR_MESSAGE_CLASS or 0x3613 PR_CONTAINER_CLASS
      *  @li  1 PST_TYPE_NOTE
+     *  @li  2 PST_TYPE_SCHEDULE
      *  @li  8 PST_TYPE_APPOINTMENT
      *  @li  9 PST_TYPE_CONTACT
      *  @li 10 PST_TYPE_JOURNAL
@@ -773,8 +819,6 @@ typedef struct pst_item {
  *  (PST_ATTRIB_HEADER).
  */
 typedef struct pst_x_attrib_ll {
-    /** obsolete field, this is now unused */
-    uint32_t type;
     /** @li 1 PST_MAP_ATTRIB map->int attribute
         @li 2 PST_MAP_HEADER map->string header
      */
@@ -878,11 +922,10 @@ pst_desc_tree* pst_getTopOfFolders(pst_file *pf, const pst_item *root);
 /** Assemble the binary attachment into a single buffer.
  * @param pf     pointer to the pst_file structure setup by pst_open().
  * @param attach pointer to the attachment record
- * @param b      pointer to location to store the buffer pointer. The
- *               caller must free this buffer.
- * @return       size of the buffer, and return the buffer pointer in *b
+ * @return       structure containing size of and pointer to the buffer.
+ *               the caller must free this buffer.
  */
-size_t         pst_attach_to_mem(pst_file *pf, pst_item_attach *attach, char **b);
+pst_binary     pst_attach_to_mem(pst_file *pf, pst_item_attach *attach);
 
 
 /** Write a binary attachment to a file.
@@ -1000,26 +1043,46 @@ char *         pst_rfc2425_datetime_format(const FILETIME *ft);
 char *         pst_rfc2445_datetime_format(const FILETIME *ft);
 
 
+/** Convert the current time rfc2445 date/time format 19531015T231000Z
+ * @return   time in rfc2445 format
+ */
+char *         pst_rfc2445_datetime_format_now();
+
+
 /** Get the default character set for this item. This is used to find
  *  the charset for pst_string elements that are not already in utf8 encoding.
- *  @param  item   pointer to the mapi item of interest
- *  @return default character set as a string useable by iconv()
+ * @param  item   pointer to the mapi item of interest
+ * @return default character set as a string useable by iconv()
  */
 const char*    pst_default_charset(pst_item *item);
 
 
 /** Convert str to utf8 if possible; null strings are preserved.
- *  @param item  pointer to the containing mapi item
- *  @param str   pointer to the mapi string of interest
+ * @param item  pointer to the containing mapi item
+ * @param str   pointer to the mapi string of interest
  */
 void           pst_convert_utf8_null(pst_item *item, pst_string *str);
 
 
 /** Convert str to utf8 if possible; null strings are converted into empty strings.
- *  @param item  pointer to the containing mapi item
- *  @param str   pointer to the mapi string of interest
+ * @param item  pointer to the containing mapi item
+ * @param str   pointer to the mapi string of interest
  */
 void           pst_convert_utf8(pst_item *item, pst_string *str);
+
+
+/** Decode raw recurrence data into a better structure.
+ * @param appt pointer to appointment structure
+ * @return     pointer to decoded recurrence structure that must be free'd by the caller.
+ */
+pst_recurrence* pst_convert_recurrence(pst_item_appointment* appt);
+
+
+/** Free a recurrence structure.
+ * @param r input pointer to be freed
+ */
+void pst_free_recurrence(pst_recurrence* r);
+
 
 
 // switch from maximal packing back to default packing

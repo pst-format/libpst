@@ -4,9 +4,10 @@ calls.
 
 pst2diii needs header and mime type updates from readpst.
 
-At the next soname bump (to libpst.so.3) we should
-    remove contact->access_method (or find the proper mapi element id for it)
-    remove pst_x_attrib_ll->type (unused)
-    reorder appointment fields to collect related fields
-    remove readpstlog, and produce directly ascii debug log files
-    change pst_attach_to_mem to return pst_binary
+At the next soname bump (to libpst.so.5) we should
+    remove readpstlog, and produce ascii debug log files
+    try fork() with child limit to get parallel readpst
+    move some of readpst into the shared library, in particular write_normal_email()
+    add helper function item_actual_type (mail, contact, etc)
+    change gmtime() and ctime() to _r versions for thread safe operation
+    <http://www.geocities.com/cainrandom/dev/MAPIRecurrence.html>
