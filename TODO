@@ -6,8 +6,4 @@ pst2diii needs header and mime type updates from readpst.
 
 At the next soname bump (to libpst.so.5) we should
     remove readpstlog, and produce ascii debug log files
-    try fork() with child limit to get parallel readpst
     move some of readpst into the shared library, in particular write_normal_email()
-    add helper function item_actual_type (mail, contact, etc)
-    change gmtime() and ctime() to _r versions for thread safe operation
-    <http://www.geocities.com/cainrandom/dev/MAPIRecurrence.html>

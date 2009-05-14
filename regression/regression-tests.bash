@@ -53,8 +53,9 @@ function dopst()
     mkdir output$n
     #    ../src/readpst -cv -o output$n $fn >$ba.err 2>&1
     #           readpst -cv -o output$n -d dumper $fn >$ba.err 2>&1
-    $val ../src/readpst -r -D -cv -o output$n -d dumper $fn >$ba.err 2>&1
-         ../src/readpstlog -f I dumper >$ba.log
+    $val ../src/readpst -r -D -cv -o output$n  $fn
+    #$val ../src/readpst -r -D -cv -o output$n -d dumper $fn >$ba.err 2>&1
+    #     ../src/readpstlog -f I dumper >$ba.log
 
     #../src/getidblock -d -p $fn 0 >$ba.fulldump
     #../src/readpstlog -f I getidblock.log >$ba.fulldump.log
@@ -117,7 +118,7 @@ else
     #dopst  14 joe.romanowski.pst
     #dopst  15 hourig1.pst
     ##dopst  16 hourig2.pst
-    ##dopst  17 hourig3.pst
+    dopst  17 hourig3.pst
     #dopst  18 test-mac.pst
     ##dopst  19 harris.pst
     #dopst  20 spam.pst

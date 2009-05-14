@@ -136,8 +136,16 @@
     #include <sys/types.h>
 #endif
 
+#ifdef HAVE_SYS_WAIT_H
+    #include <sys/wait.h>
+#endif
+
 #ifdef HAVE_DIRENT_H
     #include <dirent.h>
+#endif
+
+#ifdef HAVE_SEMAPHORE_H
+    #include <semaphore.h>
 #endif
 
 
@@ -158,14 +166,16 @@ void* pst_malloc(size_t size);
 
 #define LOGSTOP() {MESSAGESTOP();DEBUGSTOP();}
 
-#define DIE(x) {\
- MESSAGEPRINT(x, 0);\
- printf x;\
- exit(EXIT_FAILURE);\
+#define DIE(x) {            \
+    MESSAGEPRINT(x, 0);     \
+    printf x;               \
+    fflush(stdout);         \
+    exit(EXIT_FAILURE);     \
 }
-#define WARN(x) {\
- MESSAGEPRINT(x, 0);\
- printf x;\
+#define WARN(x) {           \
+    MESSAGEPRINT(x, 0);     \
+    printf x;               \
+    fflush(stdout);         \
 }
 
 #ifdef DEBUGPRINT
