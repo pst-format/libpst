@@ -35,7 +35,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2009-04-15</date>
+            <date>2009-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -61,6 +61,7 @@
                 <arg><option>-c <replaceable class="parameter">format</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
                 <arg><option>-h</option></arg>
+                <arg><option>-j <replaceable class="parameter">jobs</replaceable</option></arg>
                 <arg><option>-k</option></arg>
                 <arg><option>-o <replaceable class="parameter">output-directory</replaceable></option></arg>
                 <arg><option>-q</option></arg>
@@ -137,6 +138,13 @@
                     <term>-h</term>
                     <listitem><para>
                         Show summary of options and exit.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-j <replaceable class="parameter">jobs</replaceable></term>
+                    <listitem><para>
+                        Specifies the maximum number of parallel jobs. Specify 0 to suppress
+                        running parallel jobs.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -228,7 +236,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2009-04-15</date>
+            <date>2009-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -331,7 +339,7 @@
 
     <refentry id="readpstlog.1">
         <refentryinfo>
-            <date>2009-04-15</date>
+            <date>2009-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -506,7 +514,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2009-04-15</date>
+            <date>2009-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -675,7 +683,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2009-04-15</date>
+            <date>2009-05-16</date>
         </refentryinfo>
 
         <refmeta>
@@ -809,7 +817,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2009-04-15</date>
+            <date>2009-05-16</date>
         </refentryinfo>
 
         <refmeta>

@@ -850,6 +850,12 @@ typedef struct pst_block_recorder {
 
 
 typedef struct pst_file {
+    /** file pointer to opened PST file */
+    FILE*   fp;
+    /** original cwd when the file was opened */
+    char*   cwd;
+    /** original file name when the file was opened */
+    char*   fname;
     /** the head and tail of the linked list of index structures */
     pst_index_ll *i_head, *i_tail;
     /** the head and tail of the top level of the descriptor tree */
@@ -872,8 +878,6 @@ typedef struct pst_file {
     uint64_t index2;
     /** back pointer value in the first b-tree node in the descriptor tree */
     uint64_t index2_back;
-    /** file pointer to opened PST file */
-    FILE * fp;
     /** size of the pst file */
     uint64_t size;
     /** @li 0 PST_NO_ENCRYPT, none
@@ -895,7 +899,14 @@ typedef struct pst_file {
  * @param name name of the file, suitable for fopen().
  * @return 0 if ok, -1 if error
  */
-int            pst_open(pst_file *pf, const char *name);
+int             pst_open(pst_file *pf, const char *name);
+
+
+/** Reopen the pst file after a fork
+ * @param pf   pointer to the pst_file structure setup by pst_open().
+ * @return 0 if ok, -1 if error
+ */
+int             pst_reopen(pst_file *pf);
 
 
 /** Load the index entries from the pst file. This loads both the
@@ -903,20 +914,20 @@ int            pst_open(pst_file *pf, const char *name);
  *  first call after pst_open().
  * @param pf pointer to the pst_file structure setup by pst_open().
  */
-int            pst_load_index (pst_file *pf);
+int             pst_load_index (pst_file *pf);
 
 
 /** Load the extended attribute mapping table from the pst file. This
  *  should normally be the second call after pst_open().
  * @param pf pointer to the pst_file structure setup by pst_open().
  */
-int            pst_load_extended_attributes(pst_file *pf);
+int             pst_load_extended_attributes(pst_file *pf);
 
 
 /** Close a pst file.
  * @param pf pointer to the pst_file structure setup by pst_open().
  */
-int            pst_close(pst_file *pf);
+int             pst_close(pst_file *pf);
 
 
 /** Get the top of folders descriptor tree. This is the main descriptor tree
@@ -924,7 +935,7 @@ int            pst_close(pst_file *pf);
  * @param pf   pointer to the pst_file structure setup by pst_open().
  * @param root root item, which can be obtained by pst_parse_item(pf, pf->d.head, NULL).
  */
-pst_desc_tree* pst_getTopOfFolders(pst_file *pf, const pst_item *root);
+pst_desc_tree*  pst_getTopOfFolders(pst_file *pf, const pst_item *root);
 
 
 /** Assemble the binary attachment into a single buffer.
@@ -933,7 +944,7 @@ pst_desc_tree* pst_getTopOfFolders(pst_file *pf, const pst_item *root);
  * @return       structure containing size of and pointer to the buffer.
  *               the caller must free this buffer.
  */
-pst_binary     pst_attach_to_mem(pst_file *pf, pst_item_attach *attach);
+pst_binary      pst_attach_to_mem(pst_file *pf, pst_item_attach *attach);
 
 
 /** Write a binary attachment to a file.
@@ -941,7 +952,7 @@ pst_binary     pst_attach_to_mem(pst_file *pf, pst_item_attach *attach);
  * @param attach pointer to the attachment record
  * @param fp     pointer to an open FILE.
  */
-size_t         pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp);
+size_t          pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp);
 
 
 /** Write a binary attachment base64 encoded to a file.
@@ -949,14 +960,14 @@ size_t         pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* f
  * @param attach pointer to the attachment record
  * @param fp     pointer to an open FILE.
  */
-size_t         pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp);
+size_t          pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp);
 
 
 /** Walk the descriptor tree.
  * @param d pointer to the current item in the descriptor tree.
  * @return  pointer to the next item in the descriptor tree.
  */
-pst_desc_tree* pst_getNextDptr(pst_desc_tree* d);
+pst_desc_tree*  pst_getNextDptr(pst_desc_tree* d);
 
 
 /** Assemble a mapi object from a descriptor pointer.
@@ -966,13 +977,13 @@ pst_desc_tree* pst_getNextDptr(pst_desc_tree* d);
  *               attached rfc822 messages, in which case it is attach->id2_head.
  * @return pointer to the mapi object. Must be free'd by pst_freeItem().
  */
-pst_item*      pst_parse_item (pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_head);
+pst_item*       pst_parse_item (pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_head);
 
 
 /** Free the item returned by pst_parse_item().
  * @param item  pointer to item returned from pst_parse_item().
  */
-void           pst_freeItem(pst_item *item);
+void            pst_freeItem(pst_item *item);
 
 
 /** Lookup the i_id in the index linked list, and return a pointer to the element.
@@ -980,7 +991,7 @@ void           pst_freeItem(pst_item *item);
  * @param i_id   key for the index linked list
  * @return pointer to the element, or NULL if not found.
  */
-pst_index_ll*  pst_getID(pst_file* pf, uint64_t i_id);
+pst_index_ll*   pst_getID(pst_file* pf, uint64_t i_id);
 
 
 /** Decrypt a block of data from the pst file.
@@ -993,7 +1004,7 @@ pst_index_ll*  pst_getID(pst_file* pf, uint64_t i_id);
     @li 2 PST_ENCRYPT, german enigma 3 rotor cipher with fixed key
  * @return 0 if ok, -1 if error (NULL buffer or unknown encryption type)
  */
-int            pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
+int             pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
 
 
 /** Get an ID block from the file using pst_ff_getIDblock() and decrypt if necessary.
@@ -1003,7 +1014,7 @@ int            pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char 
  *             If this pointer is non-NULL, it will first be free()d.
  * @return     Size of block read into memory
  */
-size_t         pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf);
+size_t          pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf);
 
 
 /** Read a block of data from the file into memory.
@@ -1013,7 +1024,7 @@ size_t         pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf);
  *             If this pointer is non-NULL, it will first be free()d.
  * @return     size of block read into memory
  */
-size_t         pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf);
+size_t          pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf);
 
 
 /** fwrite with checking for null pointer.
@@ -1023,7 +1034,7 @@ size_t         pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf);
  * @param stream output file
  * @return number of bytes written, zero if ptr==NULL
  */
-size_t         pst_fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream);
+size_t          pst_fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream);
 
 
 /** Add any necessary escape characters for rfc2426 vcard format
@@ -1033,7 +1044,7 @@ size_t         pst_fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stre
  *            to a different buffer containing the escaped string. In
  *            either case, you don't need to free this returned pointer.
  */
-char*          pst_rfc2426_escape(char *str);
+char*           pst_rfc2426_escape(char *str);
 
 
 /** Convert a FILETIME into rfc2425 date/time format 1953-10-15T23:10:00Z
@@ -1043,7 +1054,7 @@ char*          pst_rfc2426_escape(char *str);
  * @param[out] result  pointer to output buffer, must be at least 30 bytes
  * @return   time in rfc2425 format
  */
-char*          pst_rfc2425_datetime_format(const FILETIME* ft, int buflen, char* result);
+char*           pst_rfc2425_datetime_format(const FILETIME* ft, int buflen, char* result);
 
 
 /** Convert a FILETIME into rfc2445 date/time format 19531015T231000Z
@@ -1052,13 +1063,13 @@ char*          pst_rfc2425_datetime_format(const FILETIME* ft, int buflen, char*
  * @param[out] result  pointer to output buffer, must be at least 30 bytes
  * @return   time in rfc2445 format
  */
-char*          pst_rfc2445_datetime_format(const FILETIME* ft, int buflen, char* result);
+char*           pst_rfc2445_datetime_format(const FILETIME* ft, int buflen, char* result);
 
 
 /** Convert the current time rfc2445 date/time format 19531015T231000Z
  * @return   time in rfc2445 format
  */
-char*          pst_rfc2445_datetime_format_now(int buflen, char* result);
+char*           pst_rfc2445_datetime_format_now(int buflen, char* result);
 
 
 /** Get the default character set for this item. This is used to find
@@ -1066,21 +1077,21 @@ char*          pst_rfc2445_datetime_format_now(int buflen, char* result);
  * @param  item   pointer to the mapi item of interest
  * @return default character set as a string useable by iconv()
  */
-const char*    pst_default_charset(pst_item *item);
+const char*     pst_default_charset(pst_item *item);
 
 
 /** Convert str to utf8 if possible; null strings are preserved.
  * @param item  pointer to the containing mapi item
  * @param str   pointer to the mapi string of interest
  */
-void           pst_convert_utf8_null(pst_item *item, pst_string *str);
+void            pst_convert_utf8_null(pst_item *item, pst_string *str);
 
 
 /** Convert str to utf8 if possible; null strings are converted into empty strings.
  * @param item  pointer to the containing mapi item
  * @param str   pointer to the mapi string of interest
  */
-void           pst_convert_utf8(pst_item *item, pst_string *str);
+void            pst_convert_utf8(pst_item *item, pst_string *str);
 
 
 /** Decode raw recurrence data into a better structure.
@@ -1093,7 +1104,7 @@ pst_recurrence* pst_convert_recurrence(pst_item_appointment* appt);
 /** Free a recurrence structure.
  * @param r input pointer to be freed
  */
-void pst_free_recurrence(pst_recurrence* r);
+void            pst_free_recurrence(pst_recurrence* r);
 
 
 

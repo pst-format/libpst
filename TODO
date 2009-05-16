@@ -5,5 +5,8 @@ calls.
 pst2diii needs header and mime type updates from readpst.
 
 At the next soname bump (to libpst.so.5) we should
-    remove readpstlog, and produce ascii debug log files
     move some of readpst into the shared library, in particular write_normal_email()
+    remove readpstlog, and produce ascii debug log files
+    add debug FILE* into the pst_file structure, so all debug printing
+        will be passed the pst_file struct. Also add a semaphore in there
+        to synchronize debug printing.

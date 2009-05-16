@@ -136,6 +136,10 @@
     #include <sys/types.h>
 #endif
 
+#ifdef HAVE_SYS_SHM_H
+    #include <sys/shm.h>
+#endif
+
 #ifdef HAVE_SYS_WAIT_H
     #include <sys/wait.h>
 #endif

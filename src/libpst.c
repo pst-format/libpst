@@ -253,7 +253,7 @@ static unsigned char comp_high2 [] = {
 };
 
 static int              pst_build_desc_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
-static pst_id2_tree*      pst_build_id2(pst_file *pf, pst_index_ll* list);
+static pst_id2_tree*    pst_build_id2(pst_file *pf, pst_index_ll* list);
 static int              pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 static int              pst_chr_count(char *str, char x);
 static size_t           pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size_t size);
@@ -268,8 +268,8 @@ static void             pst_free_xattrib(pst_x_attrib_ll *x);
 static size_t           pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size);
 static int              pst_getBlockOffsetPointer(pst_file *pf, pst_id2_tree *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p);
 static int              pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p);
-static pst_id2_tree*      pst_getID2(pst_id2_tree * ptr, uint64_t id);
-static pst_desc_tree*     pst_getDptr(pst_file *pf, uint64_t d_id);
+static pst_id2_tree*    pst_getID2(pst_id2_tree * ptr, uint64_t id);
+static pst_desc_tree*   pst_getDptr(pst_file *pf, uint64_t d_id);
 static uint64_t         pst_getIntAt(pst_file *pf, char *buf);
 static uint64_t         pst_getIntAtPos(pst_file *pf, int64_t pos);
 static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_tree *i2_head);
@@ -353,6 +353,20 @@ int pst_open(pst_file *pf, const char *name) {
     DEBUG_INFO(("Pointer1 is %#"PRIx64", back pointer2 is %#"PRIx64"\n", pf->index1, pf->index1_back));
 
     DEBUG_RET();
+
+    pf->cwd = pst_malloc(PATH_MAX+1);
+    getcwd(pf->cwd, PATH_MAX+1);
+    pf->fname = strdup(name);
+    return 0;
+}
+
+
+int  pst_reopen(pst_file *pf) {
+    char cwd[PATH_MAX];
+    if (!getcwd(cwd, PATH_MAX))            return -1;
+    if (chdir(pf->cwd))                    return -1;
+    if (!freopen(pf->fname, "rb", pf->fp)) return -1;
+    if (chdir(cwd))                        return -1;
     return 0;
 }
 
@@ -365,13 +379,14 @@ int pst_close(pst_file *pf) {
     }
     if (fclose(pf->fp)) {
         DEBUG_WARN(("fclose returned non-zero value\n"));
-        DEBUG_RET();
-        return -1;
     }
+    // free the paths
+    free(pf->cwd);
+    free(pf->fname);
     // we must free the id linklist and the desc tree
-    pst_free_id (pf->i_head);
-    pst_free_desc (pf->d_head);
-    pst_free_xattrib (pf->x_head);
+    pst_free_id(pf->i_head);
+    pst_free_desc(pf->d_head);
+    pst_free_xattrib(pf->x_head);
     DEBUG_RET();
     return 0;
 }
@@ -2490,6 +2505,8 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_CSTR(item->ascii_type);
                     if (pst_strincmp("IPF.Note", item->ascii_type, 8) == 0)
                         item->type = PST_TYPE_NOTE;
+                    if (pst_strincmp("IPF.Imap", item->ascii_type, 8) == 0)
+                        item->type = PST_TYPE_NOTE;
                     else if (pst_stricmp("IPF", item->ascii_type) == 0)
                         item->type = PST_TYPE_NOTE;
                     else if (pst_strincmp("IPF.Contact", item->ascii_type, 11) == 0)
@@ -4335,6 +4352,7 @@ pst_recurrence* pst_convert_recurrence(pst_item_appointment* appt)
         }
         if (i   <= s) { r->termination      = PST_LE_GET_UINT8(p+i) - 0x21;  i += 4; }
         if (i+4 <= s) { r->count            = PST_LE_GET_UINT32(p+i);        i += 4; }
+        if (r->termination == 2) r->count = 0;
         switch (r->type) {
             case 0: // daily
                 if (r->sub_type == 0) {

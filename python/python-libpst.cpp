@@ -588,6 +588,8 @@ BOOST_PYTHON_MODULE(_libpst)
         ;
 
     class_<pst_file>("pst_file")
+        .def_readonly("cwd",         &pst_file::cwd)
+        .def_readonly("fname",       &pst_file::fname)
         .add_property("i_head",      make_getter(&pst_file::i_head, return_value_policy<reference_existing_object>()))
         .add_property("i_tail",      make_getter(&pst_file::i_tail, return_value_policy<reference_existing_object>()))
         .add_property("d_head",      make_getter(&pst_file::d_head, return_value_policy<reference_existing_object>()))
