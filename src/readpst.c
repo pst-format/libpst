@@ -130,6 +130,7 @@ pid_t*      child_processes;        // setup by main(), and at the start of new 
 #ifdef HAVE_SEMAPHORE_H
 int         shared_memory_id;
 sem_t*      global_children = NULL;
+sem_t*      output_mutex    = NULL;
 #endif
 
 
@@ -141,7 +142,7 @@ int grim_reaper(int waitall)
     if (global_children) {
         sem_getvalue(global_children, &available);
         //printf("grim reaper %s for pid %d (parent %d) with %d children, %d available\n", (waitall) ? "all" : "", getpid(), getppid(), active_children, available);
-        fflush(stdout);
+        //fflush(stdout);
         int i,j;
         for (i=0; i<active_children; i++) {
             pid_t child = child_processes[i];
@@ -157,7 +158,7 @@ int grim_reaper(int waitall)
         }
         sem_getvalue(global_children, &available);
         //printf("grim reaper %s for pid %d with %d children, %d available\n", (waitall) ? "all" : "", getpid(), active_children, available);
-        fflush(stdout);
+        //fflush(stdout);
     }
 #endif
 #endif
@@ -187,7 +188,7 @@ pid_t try_fork(char *folder)
             // fork worked, and we are the parent, record this child that we need to wait for
             pid_t me = getpid();
             //printf("parent %d forked child pid %d to process folder %s\n", me, child, folder);
-            fflush(stdout);
+            //fflush(stdout);
             child_processes[active_children++] = child;
         }
         return child;
@@ -211,31 +212,35 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
     create_enter_dir(&ff, outeritem);
 
     for (; d_ptr; d_ptr = d_ptr->next) {
-        DEBUG_MAIN(("main: New item record\n"));
+        DEBUG_INFO(("New item record\n"));
         if (!d_ptr->desc) {
             ff.skip_count++;
-            DEBUG_WARN(("main: ERROR item's desc record is NULL\n"));
+            DEBUG_WARN(("ERROR item's desc record is NULL\n"));
             continue;
         }
-        DEBUG_MAIN(("main: Desc Email ID %#"PRIx64" [d_ptr->d_id = %#"PRIx64"]\n", d_ptr->desc->i_id, d_ptr->d_id));
+        DEBUG_INFO(("Desc Email ID %#"PRIx64" [d_ptr->d_id = %#"PRIx64"]\n", d_ptr->desc->i_id, d_ptr->d_id));
 
         item = pst_parse_item(&pstfile, d_ptr, NULL);
-        DEBUG_MAIN(("main: About to process item\n"));
+        DEBUG_INFO(("About to process item\n"));
 
         if (!item) {
             ff.skip_count++;
-            DEBUG_MAIN(("main: A NULL item was seen\n"));
+            DEBUG_INFO(("A NULL item was seen\n"));
             continue;
         }
 
         if (item->subject.str) {
-            DEBUG_EMAIL(("item->subject = %s\n", item->subject.str));
+            DEBUG_INFO(("item->subject = %s\n", item->subject.str));
         }
 
         if (item->folder && item->file_as.str) {
-            DEBUG_MAIN(("Processing Folder \"%s\"\n", item->file_as.str));
-            if (output_mode != OUTPUT_QUIET) printf("Processing Folder \"%s\"\n", item->file_as.str);
-            fflush(stdout);
+            DEBUG_INFO(("Processing Folder \"%s\"\n", item->file_as.str));
+            if (output_mode != OUTPUT_QUIET) {
+                pst_debug_lock();
+                    printf("Processing Folder \"%s\"\n", item->file_as.str);
+                    fflush(stdout);
+                pst_debug_unlock();
+            }
             ff.item_count++;
             if (d_ptr->child && (deleted_mode == DMODE_INCLUDE || strcasecmp(item->file_as.str, "Deleted Items"))) {
                 //if this is a non-empty folder other than deleted items, we want to recurse into it
@@ -262,10 +267,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
 
         } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
             if (!ff.type) ff.type = item->type;
-            DEBUG_MAIN(("main: Processing Contact\n"));
+            DEBUG_INFO(("Processing Contact\n"));
             if (ff.type != PST_TYPE_CONTACT) {
                 ff.skip_count++;
-                DEBUG_MAIN(("main: I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Skipping it\n", ff.type));
+                DEBUG_INFO(("I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Skipping it\n", ff.type));
             }
             else {
                 ff.item_count++;
@@ -283,10 +288,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
 
         } else if (item->email && ((item->type == PST_TYPE_NOTE) || (item->type == PST_TYPE_SCHEDULE) || (item->type == PST_TYPE_REPORT))) {
             if (!ff.type) ff.type = item->type;
-            DEBUG_MAIN(("main: Processing Email\n"));
+            DEBUG_INFO(("Processing Email\n"));
             if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_SCHEDULE) && (ff.type != PST_TYPE_REPORT)) {
                 ff.skip_count++;
-                DEBUG_MAIN(("main: I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
+                DEBUG_INFO(("I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
             }
             else {
                 char *extra_mime_headers = NULL;
@@ -297,10 +302,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
 
         } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
             if (!ff.type) ff.type = item->type;
-            DEBUG_MAIN(("main: Processing Journal Entry\n"));
+            DEBUG_INFO(("Processing Journal Entry\n"));
             if (ff.type != PST_TYPE_JOURNAL) {
                 ff.skip_count++;
-                DEBUG_MAIN(("main: I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Skipping it\n", ff.type));
+                DEBUG_INFO(("I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Skipping it\n", ff.type));
             }
             else {
                 ff.item_count++;
@@ -311,10 +316,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
 
         } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
             if (!ff.type) ff.type = item->type;
-            DEBUG_MAIN(("main: Processing Appointment Entry\n"));
+            DEBUG_INFO(("Processing Appointment Entry\n"));
             if (ff.type != PST_TYPE_APPOINTMENT) {
                 ff.skip_count++;
-                DEBUG_MAIN(("main: I have an appointment, but the folder type %"PRIi32" isn't an appointment folder. Skipping it\n", ff.type));
+                DEBUG_INFO(("I have an appointment, but the folder type %"PRIi32" isn't an appointment folder. Skipping it\n", ff.type));
             }
             else {
                 ff.item_count++;
@@ -326,11 +331,11 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
         } else if (item->message_store) {
             // there should only be one message_store, and we have already done it
             ff.skip_count++;
-            DEBUG_MAIN(("item with message store content, type %i %s folder type %i, skipping it\n", item->type, item->ascii_type, ff.type));
+            DEBUG_INFO(("item with message store content, type %i %s folder type %i, skipping it\n", item->type, item->ascii_type, ff.type));
 
         } else {
             ff.skip_count++;
-            DEBUG_MAIN(("main: Unknown item type %i (%s) name (%s)\n",
+            DEBUG_INFO(("Unknown item type %i (%s) name (%s)\n",
                         item->type, item->ascii_type, item->file_as.str));
         }
         pst_freeItem(item);
@@ -433,12 +438,35 @@ int main(int argc, char* const* argv) {
         exit(2);
     }
 
+#ifdef _SC_NPROCESSORS_ONLN
+    number_processors =  sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+    max_children    = (max_child_specified) ? max_children : number_processors * 4;
+    active_children = 0;
+    child_processes = (pid_t *)pst_malloc(sizeof(pid_t) * max_children);
+    memset(child_processes, 0, sizeof(pid_t) * max_children);
+
+#ifdef HAVE_SEMAPHORE_H
+    if (max_children) {
+        shared_memory_id = shmget(IPC_PRIVATE, sizeof(sem_t)*2, 0777);
+        if (shared_memory_id >= 0) {
+            global_children = (sem_t *)shmat(shared_memory_id, NULL, 0);
+            if (global_children == (sem_t *)-1) global_children = NULL;
+            if (global_children) {
+                output_mutex = &(global_children[1]);
+                sem_init(global_children, 1, max_children);
+                sem_init(output_mutex, 1, 1);
+            }
+            shmctl(shared_memory_id, IPC_RMID, NULL);
+        }
+    }
+#endif
+
     #ifdef DEBUG_ALL
         // force a log file
         if (!d_log) d_log = "readpst.log";
     #endif // defined DEBUG_ALL
-    DEBUG_INIT(d_log);
-    DEBUG_REGISTER_CLOSE();
+    DEBUG_INIT(d_log, output_mutex);
     DEBUG_ENT("main");
 
     if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");
@@ -452,14 +480,14 @@ int main(int argc, char* const* argv) {
         x = errno;
         pst_close(&pstfile);
         DEBUG_RET();
-        DIE(("main: Cannot change to output dir %s: %s\n", output_dir, strerror(x)));
+        DIE(("Cannot change to output dir %s: %s\n", output_dir, strerror(x)));
     }
 
     d_ptr = pstfile.d_head; // first record is main record
     item  = pst_parse_item(&pstfile, d_ptr, NULL);
     if (!item || !item->message_store) {
         DEBUG_RET();
-        DIE(("main: Could not get root record\n"));
+        DIE(("Could not get root record\n"));
     }
 
     // default the file_as to the same as the main filename if it doesn't exist
@@ -474,9 +502,9 @@ int main(int argc, char* const* argv) {
         item->file_as.str = (char*)pst_malloc(strlen(temp)+1);
         strcpy(item->file_as.str, temp);
         item->file_as.is_utf8 = 1;
-        DEBUG_MAIN(("file_as was blank, so am using %s\n", item->file_as.str));
+        DEBUG_INFO(("file_as was blank, so am using %s\n", item->file_as.str));
     }
-    DEBUG_MAIN(("main: Root Folder Name: %s\n", item->file_as.str));
+    DEBUG_INFO(("Root Folder Name: %s\n", item->file_as.str));
 
     d_ptr = pst_getTopOfFolders(&pstfile, item);
     if (!d_ptr) {
@@ -484,41 +512,21 @@ int main(int argc, char* const* argv) {
         DIE(("Top of folders record not found. Cannot continue\n"));
     }
 
-#ifdef _SC_NPROCESSORS_ONLN
-    number_processors =  sysconf(_SC_NPROCESSORS_ONLN);
-#endif
-    max_children    = (d_log) ? 0 : (!max_child_specified) ? number_processors * 4 : max_children;
-    active_children = 0;
-    child_processes = (pid_t *)pst_malloc(sizeof(pid_t) * max_children);
-    memset(child_processes, 0, sizeof(pid_t) * max_children);
-
-#ifdef HAVE_SEMAPHORE_H
-    if (max_children) {
-        shared_memory_id = shmget(IPC_PRIVATE, sizeof(sem_t), 0777);
-        //printf("shared memory id %d\n", shared_memory_id);
-        if (shared_memory_id >= 0) {
-            global_children = (sem_t *)shmat(shared_memory_id, NULL, 0);
-            //printf("shared memory pointer %p\n", (void*)global_children);
-            if (global_children == (sem_t *)-1) global_children = NULL;
-            if (global_children) sem_init(global_children, 1, max_children);
-            shmctl(shared_memory_id, IPC_RMID, NULL);
-        }
-    }
-#endif
-
     process(item, d_ptr->child);    // do the children of TOPF
     grim_reaper(1); // wait for all child processes
-
-#ifdef HAVE_SEMAPHORE_H
-    if (global_children) {
-        sem_destroy(global_children);
-        shmdt(global_children);
-    }
-#endif
 
     pst_freeItem(item);
     pst_close(&pstfile);
     DEBUG_RET();
+
+#ifdef HAVE_SEMAPHORE_H
+    if (global_children) {
+        sem_destroy(global_children);
+        sem_destroy(output_mutex);
+        shmdt(global_children);
+    }
+#endif
+
     regfree(&meta_charset_pattern);
     return 0;
 }
@@ -527,7 +535,6 @@ int main(int argc, char* const* argv) {
 void write_email_body(FILE *f, char *body) {
     char *n = body;
     DEBUG_ENT("write_email_body");
-    DEBUG_INFO(("buffer pointer %p\n", body));
     while (n) {
         if (strncmp(body, "From ", 5) == 0)
             fprintf(f, ">");
@@ -615,8 +622,7 @@ char *mk_kmail_dir(char *fname) {
     sprintf(dir, OUTPUT_KMAIL_DIR_TEMPLATE, fname);
     check_filename(dir);
     if (D_MKDIR(dir)) {
-        //error occured
-        if (errno != EEXIST) {
+        if (errno != EEXIST) {  // not an error because it exists
             x = errno;
             DIE(("mk_kmail_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
         }
@@ -656,16 +662,15 @@ int close_kmail_dir() {
 }
 
 
-// this will create a directory by that name, then make an mbox file inside
-// that dir.  any subsequent dirs will be created by name, and they will
-// contain mbox files
+// this will create a directory by that name,
+// then make an mbox file inside that directory.
 char *mk_recurse_dir(char *dir, int32_t folder_type) {
     int x;
     char *out_name;
     DEBUG_ENT("mk_recurse_dir");
     check_filename(dir);
     if (D_MKDIR (dir)) {
-        if (errno != EEXIST) { // not an error because it exists
+        if (errno != EEXIST) {  // not an error because it exists
             x = errno;
             DIE(("mk_recurse_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
         }
@@ -723,7 +728,7 @@ char *mk_separate_dir(char *dir) {
             snprintf(dir_name, dirsize, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y); // enough for 9 digits allocated above
 
         check_filename(dir_name);
-        DEBUG_MAIN(("about to try creating %s\n", dir_name));
+        DEBUG_INFO(("about to try creating %s\n", dir_name));
         if (D_MKDIR(dir_name)) {
             if (errno != EEXIST) { // if there is an error, and it doesn't already exist
                 x = errno;
@@ -783,7 +788,7 @@ int close_separate_dir() {
 int mk_separate_file(struct file_ll *f) {
     const int name_offset = 1;
     DEBUG_ENT("mk_separate_file");
-    DEBUG_MAIN(("opening next file to save email\n"));
+    DEBUG_INFO(("opening next file to save email\n"));
     if (f->item_count > 999999999) { // bigger than nine 9's
         DIE(("mk_separate_file: The number of emails in this folder has become too high to handle\n"));
     }
@@ -880,7 +885,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
             DIE(("error finding attachment name. exhausted possibilities to %s\n", temp));
         }
     }
-    DEBUG_EMAIL(("Saving attachment to %s\n", temp));
+    DEBUG_INFO(("Saving attachment to %s\n", temp));
     if (!(fp = fopen(temp, "w"))) {
         DEBUG_WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
@@ -924,7 +929,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
 {
     char *attach_filename;
     DEBUG_ENT("write_inline_attachment");
-    DEBUG_EMAIL(("Attachment Size is %"PRIu64", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->i_id));
+    DEBUG_INFO(("Attachment Size is %"PRIu64", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->i_id));
 
     if (!attach->data.data) {
         // make sure we can fetch data from the id
@@ -963,7 +968,7 @@ void header_has_field(char *header, char *field, int *flag)
 {
     DEBUG_ENT("header_has_field");
     if (my_stristr(header, field) || (strncasecmp(header, field+1, strlen(field)-1) == 0)) {
-        DEBUG_EMAIL(("header block has %s header\n", field+1));
+        DEBUG_INFO(("header block has %s header\n", field+1));
         *flag = 1;
     }
     DEBUG_RET();
@@ -996,7 +1001,7 @@ void header_get_subfield(char *field, const char *subfield, char *body_subfield,
         *e = '\0';
             snprintf(body_subfield, size_subfield, "%s", s);  // copy the subfield to our buffer
         *e = save;
-        DEBUG_EMAIL(("body %s %s from headers\n", subfield, body_subfield));
+        DEBUG_INFO(("body %s %s from headers\n", subfield, body_subfield));
     }
     DEBUG_RET();
 }
@@ -1050,7 +1055,7 @@ int  test_base64(char *body)
     DEBUG_ENT("test_base64");
     while (*b != 0) {
         if ((*b < 32) && (*b != 9) && (*b != 10)) {
-            DEBUG_EMAIL(("found base64 byte %d\n", (int)*b));
+            DEBUG_INFO(("found base64 byte %d\n", (int)*b));
             DEBUG_HEXDUMPC(body, strlen(body), 0x10);
             b64 = 1;
             break;
@@ -1077,15 +1082,15 @@ void find_html_charset(char *html, char *charset, size_t charsetlen)
             html[e] = '\0';
                 snprintf(charset, charsetlen, "%s", html+s);    // copy the html charset
             html[e] = save;
-            DEBUG_EMAIL(("charset %s from html text\n", charset));
+            DEBUG_INFO(("charset %s from html text\n", charset));
         }
         else {
-            DEBUG_EMAIL(("matching %d %d %d %d", match[0].rm_so, match[0].rm_eo, match[1].rm_so, match[1].rm_eo));
+            DEBUG_INFO(("matching %d %d %d %d", match[0].rm_so, match[0].rm_eo, match[1].rm_so, match[1].rm_eo));
             DEBUG_HEXDUMPC(html, strlen(html), 0x10);
         }
     }
     else {
-        DEBUG_EMAIL(("regexec returns %d\n", rc));
+        DEBUG_INFO(("regexec returns %d\n", rc));
     }
     DEBUG_RET();
 }
@@ -1102,7 +1107,7 @@ void find_rfc822_headers(char** extra_mime_headers)
             t = header_get_field(headers, "\nContent-Type: ");
             if (t) {
                 t++;
-                DEBUG_EMAIL(("found content type header\n"));
+                DEBUG_INFO(("found content type header\n"));
                 char *n = strchr(t, '\n');
                 char *s = strstr(t, ": ");
                 char *e = strchr(t, ';');
@@ -1111,12 +1116,12 @@ void find_rfc822_headers(char** extra_mime_headers)
                     s += 2;
                     if (!strncasecmp(s, RFC822, e-s)) {
                         headers = temp+2;   // found rfc822 header
-                        DEBUG_EMAIL(("found 822 headers\n%s\n", headers));
+                        DEBUG_INFO(("found 822 headers\n%s\n", headers));
                         break;
                     }
                 }
             }
-            //DEBUG_EMAIL(("skipping to next block after\n%s\n", headers));
+            //DEBUG_INFO(("skipping to next block after\n%s\n", headers));
             headers = temp+2;   // skip to next chunk of headers
         }
         *extra_mime_headers = headers;
@@ -1133,13 +1138,13 @@ void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset
         // is not utf-8, and the data came from a unicode (utf16) field
         // and is now in utf-8.
         size_t rc;
-        DEBUG_EMAIL(("Convert %s utf-8 to %s\n", mime, charset));
+        DEBUG_INFO(("Convert %s utf-8 to %s\n", mime, charset));
         pst_vbuf *newer = pst_vballoc(2);
         rc = pst_vb_utf8to8bit(newer, body->str, strlen(body->str), charset);
         if (rc == (size_t)-1) {
             // unable to convert, change the charset to utf8
             free(newer->b);
-            DEBUG_EMAIL(("Failed to convert %s utf-8 to %s\n", mime, charset));
+            DEBUG_INFO(("Failed to convert %s utf-8 to %s\n", mime, charset));
             charset = "utf-8";
         }
         else {
@@ -1269,7 +1274,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             // pointer to all the embedded MIME headers.
             // we use these to find the actual rfc822 headers for embedded message/rfc822 mime parts
             *extra_mime_headers = temp+2;
-            DEBUG_EMAIL(("Found extra mime headers\n%s\n", temp+2));
+            DEBUG_INFO(("Found extra mime headers\n%s\n", temp+2));
         }
 
         // Check if the headers have all the necessary fields
@@ -1314,11 +1319,11 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         header_strip_field(headers, "\nX-From_: ");
     }
 
-    DEBUG_EMAIL(("About to print Header\n"));
+    DEBUG_INFO(("About to print Header\n"));
 
     if (item && item->subject.str) {
         pst_convert_utf8(item, &item->subject);
-        DEBUG_EMAIL(("item->subject = %s\n", item->subject.str));
+        DEBUG_INFO(("item->subject = %s\n", item->subject.str));
     }
 
     if (mode != MODE_SEPARATE) {
@@ -1423,7 +1428,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     if (item->email->rtf_compressed.data && save_rtf) {
         pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
-        DEBUG_EMAIL(("Adding RTF body as attachment\n"));
+        DEBUG_INFO(("Adding RTF body as attachment\n"));
         memset(attach, 0, sizeof(pst_item_attach));
         attach->next = item->attach;
         item->attach = attach;
@@ -1438,7 +1443,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         // if either the body or htmlbody is encrypted, add them as attachments
         if (item->email->encrypted_body.data) {
             pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
-            DEBUG_EMAIL(("Adding Encrypted Body as attachment\n"));
+            DEBUG_INFO(("Adding Encrypted Body as attachment\n"));
             attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
@@ -1450,7 +1455,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
         if (item->email->encrypted_htmlbody.data) {
             pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
-            DEBUG_EMAIL(("Adding encrypted HTML body as attachment\n"));
+            DEBUG_INFO(("Adding encrypted HTML body as attachment\n"));
             attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
             memset(attach, 0, sizeof(pst_item_attach));
             attach->next = item->attach;
@@ -1474,9 +1479,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             pst_convert_utf8_null(item, &attach->filename1);
             pst_convert_utf8_null(item, &attach->filename2);
             pst_convert_utf8_null(item, &attach->mimetype);
-            DEBUG_EMAIL(("Attempting Attachment encoding\n"));
+            DEBUG_INFO(("Attempting Attachment encoding\n"));
             if (!attach->data.data && attach->mimetype.str && !strcmp(attach->mimetype.str, RFC822)) {
-                DEBUG_EMAIL(("seem to have special embedded message attachment\n"));
+                DEBUG_INFO(("seem to have special embedded message attachment\n"));
                 find_rfc822_headers(extra_mime_headers);
                 write_embedded_message(f_output, attach, boundary, pst, extra_mime_headers);
             }
@@ -1812,11 +1817,11 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
         sprintf(temp, "%s", f->name);
         check_filename(temp);
         while ((f->output = fopen(temp, "r"))) {
-            DEBUG_MAIN(("need to increase filename because one already exists with that name\n"));
-            DEBUG_MAIN(("- increasing it to %s%d\n", f->name, x));
+            DEBUG_INFO(("need to increase filename because one already exists with that name\n"));
+            DEBUG_INFO(("- increasing it to %s%d\n", f->name, x));
             x++;
             sprintf(temp, "%s%08d", f->name, x);
-            DEBUG_MAIN(("- trying \"%s\"\n", f->name));
+            DEBUG_INFO(("- trying \"%s\"\n", f->name));
             if (x == 99999999) {
                 DIE(("create_enter_dir: Why can I not create a folder %s? I have tried %i extensions...\n", f->name, x));
             }
@@ -1830,7 +1835,7 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
         }
     }
 
-    DEBUG_MAIN(("f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as.str));
+    DEBUG_INFO(("f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as.str));
     if (mode != MODE_SEPARATE) {
         check_filename(f->name);
         if (!(f->output = fopen(f->name, "w"))) {
@@ -1843,10 +1848,14 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
 
 void close_enter_dir(struct file_ll *f)
 {
-    DEBUG_MAIN(("main: processed item count for folder %s is %i, skipped %i, total %i \n",
+    DEBUG_INFO(("processed item count for folder %s is %i, skipped %i, total %i \n",
                 f->dname, f->item_count, f->skip_count, f->stored_count));
-    if (output_mode != OUTPUT_QUIET) printf("\t\"%s\" - %i items done, %i items skipped.\n",
-                                            f->dname, f->item_count, f->skip_count);
+    if (output_mode != OUTPUT_QUIET) {
+        pst_debug_lock();
+            printf("\t\"%s\" - %i items done, %i items skipped.\n", f->dname, f->item_count, f->skip_count);
+            fflush(stdout);
+        pst_debug_unlock();
+    }
     if (f->output) {
         struct stat st;
         fclose(f->output);

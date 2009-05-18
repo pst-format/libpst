@@ -180,7 +180,7 @@ static string write_separate_attachment(string fname, pst_item_attach* current_a
     DEBUG_ENT("write_separate_attachment");
     check_filename(fname);
     const char* f_name = fname.c_str();
-    DEBUG_EMAIL(("dirname=%s, pathname=%s, filename=%s\n", output_directory, f_name, attach_filename));
+    DEBUG_INFO(("dirname=%s, pathname=%s, filename=%s\n", output_directory, f_name, attach_filename));
     int len = strlen(output_directory) + 1 + strlen(f_name) + 15;
     if (!attach_filename) {
         // generate our own (dummy) filename for the attachement
@@ -200,7 +200,7 @@ static string write_separate_attachment(string fname, pst_item_attach* current_a
             DIE(("error finding attachment name. exhausted possibilities to %s\n", temp));
         }
     }
-    DEBUG_EMAIL(("Saving attachment to %s\n", temp));
+    DEBUG_INFO(("Saving attachment to %s\n", temp));
     if (!(fp = fopen(temp, "wb"))) {
         WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
@@ -448,7 +448,7 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
         removeCR(item->email->header.str);
         char *temp = strstr(item->email->header.str, "\n\n");
         if (temp) {
-            DEBUG_EMAIL(("Found body text in header\n"));
+            DEBUG_INFO(("Found body text in header\n"));
             temp[1] = '\0'; // stop after first \n
         }
         soh = skip_header_prologue(item->email->header.str);
@@ -497,11 +497,11 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     write_simple("MSGID", item->email->messageid.str);
     write_simple("READ", (item->flags & 1) ? "Y" : "N");
 
-    DEBUG_EMAIL(("About to print Header\n"));
+    DEBUG_INFO(("About to print Header\n"));
     fprintf(dii_file, "@HEADER\n");
 
     if (item && item->subject.str) {
-        DEBUG_EMAIL(("item->subject = %s\n", item->subject.str));
+        DEBUG_INFO(("item->subject = %s\n", item->subject.str));
     }
 
     if (soh) {
@@ -547,7 +547,7 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     print_pdf_only(line, black);
     fprintf(dii_file, "@HEADER-END\n");
 
-    DEBUG_EMAIL(("About to print Body\n"));
+    DEBUG_INFO(("About to print Body\n"));
     fprintf(dii_file, "@EMAIL-BODY\n");
     if (item->body.str) {
         removeCR(item->body.str);
@@ -564,9 +564,9 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
 
     int attach_num = 0;
     for (pst_item_attach* current_attach = item->attach; current_attach; current_attach = current_attach->next) {
-        DEBUG_EMAIL(("Attempting Attachment encoding\n"));
+        DEBUG_INFO(("Attempting Attachment encoding\n"));
         if (!current_attach->data.data) {
-            DEBUG_EMAIL(("Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->data.size));
+            DEBUG_WARN(("Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->data.size));
         }
         string an = write_separate_attachment(f.name, current_attach, ++attach_num, pst);
         fprintf(dii_file, "@EATTACH %s\n", an.c_str());
@@ -613,16 +613,16 @@ static void process(pst_item *outeritem, file_ll *parent, pst_desc_tree *d_ptr)
                     process(item, &ff, d_ptr->child);
                 } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT || item->type == PST_TYPE_OTHER)) {
                     ff.email_count++;
-                    DEBUG_MAIN(("main: Processing Email\n"));
+                    DEBUG_INFO(("Processing Email\n"));
                     if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT) && (ff.type != PST_TYPE_OTHER)) {
-                        DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
+                        DEBUG_INFO(("I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
                     write_normal_email(ff, item, &pstfile);
                 }
                 pst_freeItem(item);
             } else {
                 ff.skip_count++;
-                DEBUG_MAIN(("main: A NULL item was seen\n"));
+                DEBUG_INFO(("A NULL item was seen\n"));
             }
         }
         d_ptr = d_ptr->next;
@@ -691,8 +691,7 @@ int main(int argc, char* const* argv)
         // force a log file
         if (!d_log) d_log = "pst2dii.log";
     #endif
-    DEBUG_INIT(d_log);
-    DEBUG_REGISTER_CLOSE();
+    DEBUG_INIT(d_log, NULL);
     DEBUG_ENT("main");
     RET_DERROR(pst_open(&pstfile, fname), 1, ("Error opening File\n"));
     RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
@@ -703,7 +702,7 @@ int main(int argc, char* const* argv)
     item  = (pst_item*)pst_parse_item(&pstfile, d_ptr, NULL);
     if (!item || !item->message_store) {
         DEBUG_RET();
-        DIE(("main: Could not get root record\n"));
+        DIE(("Could not get root record\n"));
     }
 
     d_ptr = pst_getTopOfFolders(&pstfile, item);

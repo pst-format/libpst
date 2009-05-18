@@ -32,13 +32,12 @@ if NEED_XGETOPT
 endif
 
 noinst_PROGRAMS     = deltasearch dumpblocks getidblock
-bin_PROGRAMS        = lspst readpst readpstlog pst2ldif
+bin_PROGRAMS        = lspst readpst pst2ldif
 if BUILD_DII
     bin_PROGRAMS   += pst2dii
 endif
 lspst_SOURCES       = lspst.c          $(common_header)
 readpst_SOURCES     = readpst.c        $(common_header)
-readpstlog_SOURCES  = readpstlog.c     $(common_header)
 pst2ldif_SOURCES    = pst2ldif.cpp     $(common_header)
 pst2dii_SOURCES     = pst2dii.cpp      $(common_header)
 deltasearch_SOURCES = deltasearch.cpp  $(common_header)
@@ -47,7 +46,6 @@ getidblock_SOURCES  = getidblock.c     $(common_header)
 
 lspst_CFLAGS        = $(AM_CFLAGS)
 readpst_CFLAGS      = $(AM_CFLAGS)
-readpstlog_CFLAGS   = $(AM_CFLAGS)
 pst2ldif_CFLAGS     = $(AM_CFLAGS)
 pst2dii_CFLAGS      = $(AM_CFLAGS)
 deltasearch_CFLAGS  = $(AM_CFLAGS)
@@ -56,7 +54,6 @@ getidblock_CFLAGS   = $(AM_CFLAGS)
 
 lspst_DEPENDENCIES        = libpst.la
 readpst_DEPENDENCIES      = libpst.la
-readpstlog_DEPENDENCIES   = libpst.la
 pst2ldif_DEPENDENCIES     = libpst.la
 pst2dii_DEPENDENCIES      = libpst.la
 deltasearch_DEPENDENCIES  = libpst.la
@@ -81,8 +78,7 @@ endif
 libpst_la_SOURCES     = $(common_source) $(common_header)
 libpst_la_LIBADD      = $(LTLIBICONV)
 
-
-EXTRA_DIST = testdebug.c
+EXTRA_DIST =
 if !NEED_XGETOPT
     EXTRA_DIST += XGetopt.c XGetopt.h
 endif
@@ -93,7 +89,6 @@ INCLUDES= -I$(srcdir)/.. $(all_includes)
 # the library search path.
 lspst_LDADD       = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 readpst_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) $(REGEXLIB)
-readpstlog_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) -lgd
 dumpblocks_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV)

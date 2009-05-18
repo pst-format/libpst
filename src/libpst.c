@@ -403,7 +403,7 @@ static void add_descriptor_to_list(pst_desc_tree *node, pst_desc_tree **head, ps
 static void add_descriptor_to_list(pst_desc_tree *node, pst_desc_tree **head, pst_desc_tree **tail)
 {
     DEBUG_ENT("add_descriptor_to_list");
-    //DEBUG_INDEX(("Added node %#"PRIx64" parent %#"PRIx64" real parent %#"PRIx64" prev %#"PRIx64" next %#"PRIx64"\n",
+    //DEBUG_INFO(("Added node %#"PRIx64" parent %#"PRIx64" real parent %#"PRIx64" prev %#"PRIx64" next %#"PRIx64"\n",
     //             node->id, node->parent_d_id,
     //             (node->parent ? node->parent->id : (uint64_t)0),
     //             (node->prev   ? node->prev->id   : (uint64_t)0),
@@ -438,7 +438,7 @@ static void record_descriptor(pst_file *pf, pst_desc_tree *node)
     while (n) {
         if (n->parent_d_id == node->d_id) {
             // found a child of this node
-            DEBUG_INDEX(("Found orphan child %#"PRIx64" of parent %#"PRIx64"\n", n->d_id, node->d_id));
+            DEBUG_INFO(("Found orphan child %#"PRIx64" of parent %#"PRIx64"\n", n->d_id, node->d_id));
             pst_desc_tree *nn = n->next;
             pst_desc_tree *pp = n->prev;
             node->no_child++;
@@ -456,24 +456,24 @@ static void record_descriptor(pst_file *pf, pst_desc_tree *node)
     // now hook this node into the global tree
     if (node->parent_d_id == 0) {
         // add top level node to the descriptor tree
-        //DEBUG_INDEX(("Null parent\n"));
+        //DEBUG_INFO(("Null parent\n"));
         add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
     }
     else if (node->parent_d_id == node->d_id) {
         // add top level node to the descriptor tree
-        DEBUG_INDEX(("%#"PRIx64" is its own parent. What is this world coming to?\n", node->d_id));
+        DEBUG_INFO(("%#"PRIx64" is its own parent. What is this world coming to?\n", node->d_id));
         add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
     } else {
-        //DEBUG_INDEX(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_d_id, node->d_id));
+        //DEBUG_INFO(("Searching for parent %#"PRIx64" of %#"PRIx64"\n", node->parent_d_id, node->d_id));
         pst_desc_tree *parent = pst_getDptr(pf, node->parent_d_id);
         if (parent) {
-            //DEBUG_INDEX(("Found parent %#"PRIx64"\n", node->parent_d_id));
+            //DEBUG_INFO(("Found parent %#"PRIx64"\n", node->parent_d_id));
             parent->no_child++;
             node->parent = parent;
             add_descriptor_to_list(node, &parent->child, &parent->child_tail);
         }
         else {
-            DEBUG_INDEX(("No parent %#"PRIx64", have an orphan child %#"PRIx64"\n", node->parent_d_id, node->d_id));
+            DEBUG_INFO(("No parent %#"PRIx64", have an orphan child %#"PRIx64"\n", node->parent_d_id, node->d_id));
             add_descriptor_to_list(node, &pf->d_head, &pf->d_tail);
         }
     }
@@ -506,7 +506,7 @@ pst_desc_tree* pst_getTopOfFolders(pst_file *pf, const pst_item *root) {
     uint32_t topid;
     DEBUG_ENT("pst_getTopOfFolders");
     if (!root || !root->message_store) {
-        DEBUG_INDEX(("There isn't a top of folder record here.\n"));
+        DEBUG_INFO(("There isn't a top of folder record here.\n"));
         DEBUG_RET();
         return NULL;
     }
@@ -517,7 +517,7 @@ pst_desc_tree* pst_getTopOfFolders(pst_file *pf, const pst_item *root) {
     } else {
         topid = root->message_store->top_of_personal_folder->id;
     }
-    DEBUG_INDEX(("looking for top of folder descriptor %#"PRIx32"\n", topid));
+    DEBUG_INFO(("looking for top of folder descriptor %#"PRIx32"\n", topid));
     topnode = pst_getDptr(pf, (uint64_t)topid);
     if (!topnode) {
         // add dummy top record to pickup orphan children
@@ -619,12 +619,13 @@ int pst_load_index (pst_file *pf) {
     }
 
     x = pst_build_id_ptr(pf, pf->index1, 0, pf->index1_back, 0, UINT64_MAX);
-    DEBUG_INDEX(("build id ptr returns %i\n", x));
+    DEBUG_INFO(("build id ptr returns %i\n", x));
 
     x = pst_build_desc_ptr(pf, pf->index2, 0, pf->index2_back, (uint64_t)0x21, UINT64_MAX);
-    DEBUG_INDEX(("build desc ptr returns %i\n", x));
+    DEBUG_INFO(("build desc ptr returns %i\n", x));
 
-    DEBUG_CODE((void)pst_printDptr(pf, pf->d_head););
+    pst_printDptr(pf, pf->d_head);
+
     DEBUG_RET();
     return 0;
 }
@@ -694,9 +695,9 @@ int pst_load_extended_attributes(pst_file *pf) {
         return 0;
     }
 
-    DEBUG_EMAIL(("look thru d_id 0x61 list of mapi objects\n"));
+    DEBUG_INFO(("look thru d_id 0x61 list of mapi objects\n"));
     for (x=0; x < list->count_elements; x++) {
-        DEBUG_EMAIL(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
+        DEBUG_INFO(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
         if (list->elements[x]->data) {
             DEBUG_HEXDUMPC(list->elements[x]->data, list->elements[x]->size, 0x10);
         }
@@ -727,7 +728,7 @@ int pst_load_extended_attributes(pst_file *pf) {
         memset(ptr, 0, sizeof(*ptr));
         ptr->map  = xattrib.map+0x8000;
         ptr->next = NULL;
-        DEBUG_INDEX(("xattrib: ext = %#"PRIx32", type = %#"PRIx16", map = %#"PRIx16"\n",
+        DEBUG_INFO(("xattrib: ext = %#"PRIx32", type = %#"PRIx16", map = %#"PRIx16"\n",
              xattrib.extended, xattrib.type, xattrib.map));
         if (xattrib.type & 0x0001) { // if the Bit 1 is set
             // pointer to Unicode field in buffer
@@ -741,9 +742,9 @@ int pst_load_extended_attributes(pst_file *pf) {
                 memcpy(wt, &(headerbuffer[xattrib.extended+sizeof(tint)]), (size_t)tint);
                 ptr->data = pst_wide_to_single(wt, (size_t)tint);
                 free(wt);
-                DEBUG_INDEX(("Mapped attribute %#"PRIx32" to %s\n", ptr->map, ptr->data));
+                DEBUG_INFO(("Mapped attribute %#"PRIx32" to %s\n", ptr->map, ptr->data));
             } else {
-                DEBUG_INDEX(("Cannot read outside of buffer [%i !< %i]\n", xattrib.extended, hsize));
+                DEBUG_INFO(("Cannot read outside of buffer [%i !< %i]\n", xattrib.extended, hsize));
                 err = 1;
             }
             ptr->mytype = PST_MAP_HEADER;
@@ -753,7 +754,7 @@ int pst_load_extended_attributes(pst_file *pf) {
             memset(ptr->data, 0, sizeof(uint32_t));
             *((uint32_t*)ptr->data) = xattrib.extended;
             ptr->mytype = PST_MAP_ATTRIB;
-            DEBUG_INDEX(("Mapped attribute %#"PRIx32" to %#"PRIx32"\n", ptr->map, *((uint32_t*)ptr->data)));
+            DEBUG_INFO(("Mapped attribute %#"PRIx32" to %#"PRIx32"\n", ptr->map, *((uint32_t*)ptr->data)));
         }
 
         if (!err) {
@@ -816,7 +817,7 @@ static size_t pst_decode_desc(pst_file *pf, pst_desc *desc, char *buf);
 static size_t pst_decode_desc(pst_file *pf, pst_desc *desc, char *buf) {
     size_t r;
     if (pf->do_read64) {
-        DEBUG_INDEX(("Decoding desc64\n"));
+        DEBUG_INFO(("Decoding desc64\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_desc), 0x10);
         memcpy(desc, buf, sizeof(pst_desc));
         LE64_CPU(desc->d_id);
@@ -828,7 +829,7 @@ static size_t pst_decode_desc(pst_file *pf, pst_desc *desc, char *buf) {
     }
     else {
         pst_desc32 d32;
-        DEBUG_INDEX(("Decoding desc32\n"));
+        DEBUG_INFO(("Decoding desc32\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_desc32), 0x10);
         memcpy(&d32, buf, sizeof(pst_desc32));
         LE32_CPU(d32.d_id);
@@ -850,7 +851,7 @@ static size_t pst_decode_table(pst_file *pf, struct pst_table_ptr_struct *table,
 static size_t pst_decode_table(pst_file *pf, struct pst_table_ptr_struct *table, char *buf) {
     size_t r;
     if (pf->do_read64) {
-        DEBUG_INDEX(("Decoding table64\n"));
+        DEBUG_INFO(("Decoding table64\n"));
         DEBUG_HEXDUMPC(buf, sizeof(struct pst_table_ptr_struct), 0x10);
         memcpy(table, buf, sizeof(struct pst_table_ptr_struct));
         LE64_CPU(table->start);
@@ -860,7 +861,7 @@ static size_t pst_decode_table(pst_file *pf, struct pst_table_ptr_struct *table,
     }
     else {
         struct pst_table_ptr_struct32 t32;
-        DEBUG_INDEX(("Decoding table32\n"));
+        DEBUG_INFO(("Decoding table32\n"));
         DEBUG_HEXDUMPC(buf, sizeof( struct pst_table_ptr_struct32), 0x10);
         memcpy(&t32, buf, sizeof(struct pst_table_ptr_struct32));
         LE32_CPU(t32.start);
@@ -879,7 +880,7 @@ static size_t pst_decode_index(pst_file *pf, pst_index *index, char *buf);
 static size_t pst_decode_index(pst_file *pf, pst_index *index, char *buf) {
     size_t r;
     if (pf->do_read64) {
-        DEBUG_INDEX(("Decoding index64\n"));
+        DEBUG_INFO(("Decoding index64\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_index), 0x10);
         memcpy(index, buf, sizeof(pst_index));
         LE64_CPU(index->id);
@@ -890,7 +891,7 @@ static size_t pst_decode_index(pst_file *pf, pst_index *index, char *buf) {
         r = sizeof(pst_index);
     } else {
         pst_index32 index32;
-        DEBUG_INDEX(("Decoding index32\n"));
+        DEBUG_INFO(("Decoding index32\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_index32), 0x10);
         memcpy(&index32, buf, sizeof(pst_index32));
         LE32_CPU(index32.id);
@@ -912,7 +913,7 @@ static size_t pst_decode_assoc(pst_file *pf, pst_id2_assoc *assoc, char *buf);
 static size_t pst_decode_assoc(pst_file *pf, pst_id2_assoc *assoc, char *buf) {
     size_t r;
     if (pf->do_read64) {
-        DEBUG_INDEX(("Decoding assoc64\n"));
+        DEBUG_INFO(("Decoding assoc64\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_id2_assoc), 0x10);
         memcpy(assoc, buf, sizeof(pst_id2_assoc));
         LE32_CPU(assoc->id2);
@@ -921,7 +922,7 @@ static size_t pst_decode_assoc(pst_file *pf, pst_id2_assoc *assoc, char *buf) {
         r = sizeof(pst_id2_assoc);
     } else {
         pst_id2_assoc32 assoc32;
-        DEBUG_INDEX(("Decoding assoc32\n"));
+        DEBUG_INFO(("Decoding assoc32\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_id2_assoc32), 0x10);
         memcpy(&assoc32, buf, sizeof(pst_id2_assoc32));
         LE32_CPU(assoc32.id2);
@@ -940,14 +941,14 @@ static size_t pst_decode_type3(pst_file *pf, pst_table3_rec *table3_rec, char *b
 static size_t pst_decode_type3(pst_file *pf, pst_table3_rec *table3_rec, char *buf) {
     size_t r;
     if (pf->do_read64) {
-        DEBUG_INDEX(("Decoding table3 64\n"));
+        DEBUG_INFO(("Decoding table3 64\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_table3_rec), 0x10);
         memcpy(table3_rec, buf, sizeof(pst_table3_rec));
         LE64_CPU(table3_rec->id);
         r = sizeof(pst_table3_rec);
     } else {
         pst_table3_rec32 table3_rec32;
-        DEBUG_INDEX(("Decoding table3 32\n"));
+        DEBUG_INFO(("Decoding table3 32\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_table3_rec32), 0x10);
         memcpy(&table3_rec32, buf, sizeof(pst_table3_rec32));
         LE32_CPU(table3_rec32.id);
@@ -972,13 +973,13 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
     char *buf = NULL, *bptr;
 
     DEBUG_ENT("pst_build_id_ptr");
-    DEBUG_INDEX(("offset %#"PRIx64" depth %i linku1 %#"PRIx64" start %#"PRIx64" end %#"PRIx64"\n", offset, depth, linku1, start_val, end_val));
+    DEBUG_INFO(("offset %#"PRIx64" depth %i linku1 %#"PRIx64" start %#"PRIx64" end %#"PRIx64"\n", offset, depth, linku1, start_val, end_val));
     if (end_val <= start_val) {
         DEBUG_WARN(("The end value is BEFORE the start value. This function will quit. Soz. [start:%#"PRIx64", end:%#"PRIx64"]\n", start_val, end_val));
         DEBUG_RET();
         return -1;
     }
-    DEBUG_INDEX(("Reading index block\n"));
+    DEBUG_INFO(("Reading index block\n"));
     if (pst_read_block_size(pf, offset, BLOCK_SIZE, &buf) < BLOCK_SIZE) {
         DEBUG_WARN(("Failed to read %i bytes\n", BLOCK_SIZE));
         if (buf) free(buf);
@@ -1009,9 +1010,9 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
             bptr += pst_decode_index(pf, &index, bptr);
             x++;
             if (index.id == 0) break;
-            DEBUG_INDEX(("[%i]%i Item [id = %#"PRIx64", offset = %#"PRIx64", u1 = %#x, size = %i(%#x)]\n",
+            DEBUG_INFO(("[%i]%i Item [id = %#"PRIx64", offset = %#"PRIx64", u1 = %#x, size = %i(%#x)]\n",
                         depth, x, index.id, index.offset, index.u1, index.size, index.size));
-            // if (index.id & 0x02) DEBUG_INDEX(("two-bit set!!\n"));
+            // if (index.id & 0x02) DEBUG_INFO(("two-bit set!!\n"));
             if ((index.id >= end_val) || (index.id < old)) {
                 DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
                 if (buf) free(buf);
@@ -1050,7 +1051,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
             else {
                 table2.start = end_val;
             }
-            DEBUG_INDEX(("[%i] %i Index Table [start id = %#"PRIx64", u1 = %#"PRIx64", offset = %#"PRIx64", end id = %#"PRIx64"]\n",
+            DEBUG_INFO(("[%i] %i Index Table [start id = %#"PRIx64", u1 = %#"PRIx64", offset = %#"PRIx64", end id = %#"PRIx64"]\n",
                         depth, x, table.start, table.u1, table.offset, table2.start));
             if ((table.start >= end_val) || (table.start < old)) {
                 DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
@@ -1089,13 +1090,13 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
     char *buf = NULL, *bptr;
 
     DEBUG_ENT("pst_build_desc_ptr");
-    DEBUG_INDEX(("offset %#"PRIx64" depth %i linku1 %#"PRIx64" start %#"PRIx64" end %#"PRIx64"\n", offset, depth, linku1, start_val, end_val));
+    DEBUG_INFO(("offset %#"PRIx64" depth %i linku1 %#"PRIx64" start %#"PRIx64" end %#"PRIx64"\n", offset, depth, linku1, start_val, end_val));
     if (end_val <= start_val) {
         DEBUG_WARN(("The end value is BEFORE the start value. This function will quit. Soz. [start:%#"PRIx64", end:%#"PRIx64"]\n", start_val, end_val));
         DEBUG_RET();
         return -1;
     }
-    DEBUG_INDEX(("Reading desc block\n"));
+    DEBUG_INFO(("Reading desc block\n"));
     if (pst_read_block_size(pf, offset, DESC_BLOCK_SIZE, &buf) < DESC_BLOCK_SIZE) {
         DEBUG_WARN(("Failed to read %i bytes\n", DESC_BLOCK_SIZE));
         if (buf) free(buf);
@@ -1123,7 +1124,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
         }
         for (x=0; x<item_count; x++) {
             bptr += pst_decode_desc(pf, &desc_rec, bptr);
-            DEBUG_INDEX(("[%i] Item(%#x) = [d_id = %#"PRIx64", desc_id = %#"PRIx64", tree_id = %#"PRIx64", parent_d_id = %#x]\n",
+            DEBUG_INFO(("[%i] Item(%#x) = [d_id = %#"PRIx64", desc_id = %#"PRIx64", tree_id = %#"PRIx64", parent_d_id = %#x]\n",
                         depth, x, desc_rec.d_id, desc_rec.desc_id, desc_rec.tree_id, desc_rec.parent_d_id));
             if ((desc_rec.d_id >= end_val) || (desc_rec.d_id < old)) {
                 DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
@@ -1141,7 +1142,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
                     return -1;
                 }
             }
-            DEBUG_INDEX(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_d_id));
+            DEBUG_INFO(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_d_id));
             {
                 pst_desc_tree *d_ptr = (pst_desc_tree*) pst_malloc(sizeof(pst_desc_tree));
                 d_ptr->d_id        = desc_rec.d_id;
@@ -1169,7 +1170,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
             else {
                 table2.start = end_val;
             }
-            DEBUG_INDEX(("[%i] %i Descriptor Table [start id = %#"PRIx64", u1 = %#"PRIx64", offset = %#"PRIx64", end id = %#"PRIx64"]\n",
+            DEBUG_INFO(("[%i] %i Descriptor Table [start id = %#"PRIx64", u1 = %#"PRIx64", offset = %#"PRIx64", end id = %#"PRIx64"]\n",
                         depth, x, table.start, table.u1, table.offset, table2.start));
             if ((table.start >= end_val) || (table.start < old)) {
                 DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
@@ -1249,7 +1250,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
 
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x692))) {
         // DSN/MDN reports?
-        DEBUG_EMAIL(("DSN/MDN processing\n"));
+        DEBUG_INFO(("DSN/MDN processing\n"));
         list = pst_parse_block(pf, id2_ptr->id->i_id, id2_head);
         if (!list) {
             DEBUG_WARN(("ERROR error processing main DSN/MDN record\n"));
@@ -1275,7 +1276,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
     }
 
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x671))) {
-        DEBUG_EMAIL(("ATTACHMENT processing attachment\n"));
+        DEBUG_INFO(("ATTACHMENT processing attachment\n"));
         list = pst_parse_block(pf, id2_ptr->id->i_id, id2_head);
         if (!list) {
             DEBUG_WARN(("ERROR error processing main attachment record\n"));
@@ -1461,7 +1462,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     LE16_CPU(block_hdr.index_offset);
     LE16_CPU(block_hdr.type);
     LE32_CPU(block_hdr.offset);
-    DEBUG_EMAIL(("block header (index_offset=%#hx, type=%#hx, offset=%#hx)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
+    DEBUG_INFO(("block header (index_offset=%#hx, type=%#hx, offset=%#hx)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
 
     if (block_hdr.index_offset == (uint16_t)0x0101) { //type 3
         size_t i;
@@ -1487,7 +1488,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         LE16_CPU(block_hdr.index_offset);
         LE16_CPU(block_hdr.type);
         LE32_CPU(block_hdr.offset);
-        DEBUG_EMAIL(("block header (index_offset=%#hx, type=%#hx, offset=%#hx)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
+        DEBUG_INFO(("block header (index_offset=%#hx, type=%#hx, offset=%#hx)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
     }
     else {
         // setup the subblock descriptors, but we only have one block
@@ -1511,7 +1512,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         LE16_CPU(table_rec.type);
         LE16_CPU(table_rec.ref_type);
         LE32_CPU(table_rec.value);
-        DEBUG_EMAIL(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
+        DEBUG_INFO(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
 
         if ((table_rec.type != (uint16_t)0x02B5) || (table_rec.ref_type != 6)) {
             DEBUG_WARN(("Unknown second block constant - %#hx %#hx for id %#"PRIx64"\n", table_rec.type, table_rec.ref_type, block_id));
@@ -1574,7 +1575,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         LE16_CPU(table_rec.type);
         LE16_CPU(table_rec.ref_type);
         LE32_CPU(table_rec.value);
-        DEBUG_EMAIL(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
+        DEBUG_INFO(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
 
         if (table_rec.type != (uint16_t)0x04B5) { // different constant than a type 1 record
             DEBUG_WARN(("Unknown second block constant - %#hx for id %#"PRIx64"\n", table_rec.type, block_id));
@@ -1609,7 +1610,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         return NULL;
     }
 
-    DEBUG_EMAIL(("Mallocing number of records %i\n", num_recs));
+    DEBUG_INFO(("Mallocing number of records %i\n", num_recs));
     for (count_rec=0; count_rec<num_recs; count_rec++) {
         mo_ptr = (pst_mapi_object*) pst_malloc(sizeof(pst_mapi_object));
         memset(mo_ptr, 0, sizeof(pst_mapi_object));
@@ -1623,7 +1624,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         for (x=0; x<num_list; x++) mo_ptr->elements[x] = NULL;
         x = 0;
 
-        DEBUG_EMAIL(("going to read %i (%#x) items\n", mo_ptr->count_elements, mo_ptr->count_elements));
+        DEBUG_INFO(("going to read %i (%#x) items\n", mo_ptr->count_elements, mo_ptr->count_elements));
 
         fr_ptr = list_start; // initialize fr_ptr to the start of the list.
         for (cur_list=0; cur_list<num_list; cur_list++) { //we will increase fr_ptr as we progress through index
@@ -1670,7 +1671,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 DEBUG_RET();
                 return NULL;
             }
-            DEBUG_EMAIL(("reading block %i (type=%#x, ref_type=%#x, value=%#x)\n",
+            DEBUG_INFO(("reading block %i (type=%#x, ref_type=%#x, value=%#x)\n",
                 x, table_rec.type, table_rec.ref_type, table_rec.value));
 
             if (!mo_ptr->elements[x]) {
@@ -1684,9 +1685,9 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
             if (mapptr && (mapptr->map == table_rec.type)) {
                 if (mapptr->mytype == PST_MAP_ATTRIB) {
                     mo_ptr->elements[x]->mapi_id = *((uint32_t*)mapptr->data);
-                    DEBUG_EMAIL(("Mapped attrib %#x to %#x\n", table_rec.type, mo_ptr->elements[x]->mapi_id));
+                    DEBUG_INFO(("Mapped attrib %#x to %#x\n", table_rec.type, mo_ptr->elements[x]->mapi_id));
                 } else if (mapptr->mytype == PST_MAP_HEADER) {
-                    DEBUG_EMAIL(("Internet Header mapping found %#"PRIx32" to %s\n", table_rec.type, mapptr->data));
+                    DEBUG_INFO(("Internet Header mapping found %#"PRIx32" to %s\n", table_rec.type, mapptr->data));
                     mo_ptr->elements[x]->mapi_id = (uint32_t)PST_ATTRIB_HEADER;
                     mo_ptr->elements[x]->extra   = mapptr->data;
                 }
@@ -1800,7 +1801,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                     //need UTF-16 zero-termination
                     pst_vbset(utf16buf, mo_ptr->elements[x]->data, mo_ptr->elements[x]->size);
                     pst_vbappend(utf16buf, "\0\0", (size_t)2);
-                    DEBUG_INDEX(("Iconv in:\n"));
+                    DEBUG_INFO(("Iconv in:\n"));
                     DEBUG_HEXDUMPC(utf16buf->b, utf16buf->dlen, 0x10);
                     rc = pst_vb_utf16to8(utf8buf, utf16buf->b, utf16buf->dlen);
                     if (rc == (size_t)-1) {
@@ -1812,7 +1813,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                         mo_ptr->elements[x]->data = pst_malloc(utf8buf->dlen);
                         memcpy(mo_ptr->elements[x]->data, utf8buf->b, utf8buf->dlen);
                     }
-                    DEBUG_INDEX(("Iconv out:\n"));
+                    DEBUG_INFO(("Iconv out:\n"));
                     DEBUG_HEXDUMPC(mo_ptr->elements[x]->data, mo_ptr->elements[x]->size, 0x10);
                 }
                 if (mo_ptr->elements[x]->type == 0) mo_ptr->elements[x]->type = table_rec.ref_type;
@@ -1825,7 +1826,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
             }
             x++;
         }
-        DEBUG_EMAIL(("increasing ind2_ptr by %i [%#x] bytes. Was %#x, Now %#x\n", rec_size, rec_size, ind2_ptr, ind2_ptr+rec_size));
+        DEBUG_INFO(("increasing ind2_ptr by %i [%#x] bytes. Was %#x, Now %#x\n", rec_size, rec_size, ind2_ptr, ind2_ptr+rec_size));
         ind2_ptr += rec_size;
     }
     freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
@@ -1874,10 +1875,10 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
     }                                                                       \
     if (*(int16_t*)list->elements[x]->data) {                               \
-        DEBUG_EMAIL((label" - True\n"));                                    \
+        DEBUG_INFO((label" - True\n"));                                    \
         targ = 1;                                                           \
     } else {                                                                \
-        DEBUG_EMAIL((label" - False\n"));                                   \
+        DEBUG_INFO((label" - False\n"));                                   \
         targ = 0;                                                           \
     }                                                                       \
 }
@@ -1908,7 +1909,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
 #define LIST_COPY_INT16(label, targ) {                          \
     LIST_COPY_INT16_N(targ);                                    \
-    DEBUG_EMAIL((label" - %i %#x\n", (int)targ, (int)targ));    \
+    DEBUG_INFO((label" - %i %#x\n", (int)targ, (int)targ));    \
 }
 
 #define LIST_COPY_INT32_N(targ) {                                           \
@@ -1922,7 +1923,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
 #define LIST_COPY_INT32(label, targ) {                          \
     LIST_COPY_INT32_N(targ);                                    \
-    DEBUG_EMAIL((label" - %i %#x\n", (int)targ, (int)targ));    \
+    DEBUG_INFO((label" - %i %#x\n", (int)targ, (int)targ));    \
 }
 
 #define LIST_COPY_EMAIL_INT32(label, targ) {                    \
@@ -1949,7 +1950,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     char *tlabels[] = {__VA_ARGS__};                            \
     LIST_COPY_INT32_N(targ);                                    \
     targ += delta;                                              \
-    DEBUG_EMAIL((label" - %s [%i]\n",                           \
+    DEBUG_INFO((label" - %s [%i]\n",                           \
         (((int)targ < 0) || ((int)targ >= count))               \
             ? "**invalid"                                       \
             : tlabels[(int)targ], (int)targ));                  \
@@ -1969,7 +1970,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     char *tlabels[] = {__VA_ARGS__};                            \
     LIST_COPY_INT16_N(targ);                                    \
     targ += delta;                                              \
-    DEBUG_EMAIL((label" - %s [%i]\n",                           \
+    DEBUG_INFO((label" - %s [%i]\n",                           \
         (((int)targ < 0) || ((int)targ >= count))               \
             ? "**invalid"                                       \
             : tlabels[(int)targ], (int)targ));                  \
@@ -1984,7 +1985,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     LIST_COPY(targ, (pst_entryid*));                            \
     LE32_CPU(targ->u1);                                         \
     LE32_CPU(targ->id);                                         \
-    DEBUG_EMAIL((label" u1=%#x, id=%#x\n", targ->u1, targ->id));\
+    DEBUG_INFO((label" u1=%#x, id=%#x\n", targ->u1, targ->id));\
 }
 
 #define LIST_COPY_EMAIL_ENTRYID(label, targ) {                  \
@@ -2003,7 +2004,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 #define LIST_COPY_STR(label, targ) {                                    \
     LIST_COPY_CSTR(targ.str);                                           \
     targ.is_utf8 = (list->elements[x]->type == 0x1f) ? 1 : 0;           \
-    DEBUG_EMAIL((label" - unicode %d - %s\n", targ.is_utf8, targ.str)); \
+    DEBUG_INFO((label" - unicode %d - %s\n", targ.is_utf8, targ.str)); \
 }
 
 #define LIST_COPY_EMAIL_STR(label, targ) {                      \
@@ -2036,7 +2037,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     memcpy(targ, list->elements[x]->data, list->elements[x]->size);         \
     LE32_CPU(targ->dwLowDateTime);                                          \
     LE32_CPU(targ->dwHighDateTime);                                         \
-    DEBUG_EMAIL((label" - %s", pst_fileTimeToAscii(targ, time_buffer)));    \
+    DEBUG_INFO((label" - %s", pst_fileTimeToAscii(targ, time_buffer)));    \
 }
 
 #define LIST_COPY_EMAIL_TIME(label, targ) {                     \
@@ -2075,13 +2076,13 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 #define LIST_COPY_EMAIL_BIN(label, targ) {          \
     MALLOC_EMAIL(item);                             \
     LIST_COPY_BIN(targ);                            \
-    DEBUG_EMAIL((label"\n"));                       \
+    DEBUG_INFO((label"\n"));                       \
 }
 #define LIST_COPY_APPT_BIN(label, targ) {           \
     MALLOC_APPOINTMENT(item);                       \
     LIST_COPY_BIN(targ);                            \
-    DEBUG_EMAIL((label"\n"));                       \
-    DEBUG_EMAIL_HEXPRINT(targ.data, targ.size);     \
+    DEBUG_INFO((label"\n"));                       \
+    DEBUG_HEXDUMP(targ.data, targ.size);            \
 }
 
 #define NULL_CHECK(x) { if (!x) { DEBUG_WARN(("NULL_CHECK: Null Found\n")); break;} }
@@ -2104,7 +2105,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) {
     DEBUG_ENT("pst_process");
     if (!item) {
-        DEBUG_EMAIL(("item cannot be NULL.\n"));
+        DEBUG_WARN(("item cannot be NULL.\n"));
         DEBUG_RET();
         return -1;
     }
@@ -2114,7 +2115,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
         char time_buffer[30];
         for (x=0; x<list->count_elements; x++) {
             int32_t t;
-            DEBUG_EMAIL(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
+            DEBUG_INFO(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
 
             switch (list->elements[x]->mapi_id) {
                 case PST_ATTRIB_HEADER: // CUSTOM attribute for saying the Extra Headers
@@ -2126,7 +2127,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                             ef->field_name = strdup(list->elements[x]->extra);
                             ef->next       = item->extra_fields;
                             item->extra_fields = ef;
-                            DEBUG_EMAIL(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
+                            DEBUG_INFO(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
                             if (strcmp(ef->field_name, "content-type") == 0) {
                                 char *p = strstr(ef->value, "charset=\"");
                                 if (p) {
@@ -2139,7 +2140,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                                         if (item->body_charset.str) free(item->body_charset.str);
                                         item->body_charset.str     = set;
                                         item->body_charset.is_utf8 = 1;
-                                        DEBUG_EMAIL(("body charset %s from content-type extra field\n", set));
+                                        DEBUG_INFO(("body charset %s from content-type extra field\n", set));
                                     }
                                 }
                             }
@@ -2162,7 +2163,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     }
                     break;
                 case 0x0003: // Extended Attributes table
-                    DEBUG_EMAIL(("Extended Attributes Table - NOT PROCESSED\n"));
+                    DEBUG_INFO(("Extended Attributes Table - NOT PROCESSED\n"));
                     break;
                 case 0x0017: // PR_IMPORTANCE - How important the sender deems it to be
                     LIST_COPY_EMAIL_ENUM("Importance Level", item->email->importance, 0, 3, "Low", "Normal", "High");
@@ -2192,7 +2193,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                             item->type = PST_TYPE_TASK;
                         else
                             item->type = PST_TYPE_OTHER;
-                        DEBUG_EMAIL(("Message class %s [%"PRIi32"] \n", item->ascii_type, item->type));
+                        DEBUG_INFO(("Message class %s [%"PRIi32"] \n", item->ascii_type, item->type));
                     }
                     else {
                         DEBUG_WARN(("What does this mean?\n"));
@@ -2249,25 +2250,25 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_EMAIL_STR("Sent on behalf of address 1", item->email->outlook_sender);
                     break;
                 case 0x003F: // PR_RECEIVED_BY_ENTRYID Structure containing Recipient
-                    DEBUG_EMAIL(("Recipient Structure 1 -- NOT PROCESSED\n"));
+                    DEBUG_INFO(("Recipient Structure 1 -- NOT PROCESSED\n"));
                     break;
                 case 0x0040: // PR_RECEIVED_BY_NAME Name of Recipient Structure
-                    DEBUG_EMAIL(("Received By Name 1 -- NOT PROCESSED\n"));
+                    DEBUG_INFO(("Received By Name 1 -- NOT PROCESSED\n"));
                     break;
                 case 0x0041: // PR_SENT_REPRESENTING_ENTRYID Structure containing Sender
-                    DEBUG_EMAIL(("Sent on behalf of Structure 1 -- NOT PROCESSED\n"));
+                    DEBUG_INFO(("Sent on behalf of Structure 1 -- NOT PROCESSED\n"));
                     break;
                 case 0x0042: // PR_SENT_REPRESENTING_NAME
                     LIST_COPY_EMAIL_STR("Sent on behalf of", item->email->outlook_sender_name);
                     break;
                 case 0x0043: // PR_RCVD_REPRESENTING_ENTRYID Recipient Structure 2
-                    DEBUG_EMAIL(("Received on behalf of Structure -- NOT PROCESSED\n"));
+                    DEBUG_INFO(("Received on behalf of Structure -- NOT PROCESSED\n"));
                     break;
                 case 0x0044: // PR_RCVD_REPRESENTING_NAME
                     LIST_COPY_EMAIL_STR("Received on behalf of", item->email->outlook_recipient_name);
                     break;
                 case 0x004F: // PR_REPLY_RECIPIENT_ENTRIES Reply-To Structure
-                    DEBUG_EMAIL(("Reply-To Structure -- NOT PROCESSED\n"));
+                    DEBUG_INFO(("Reply-To Structure -- NOT PROCESSED\n"));
                     break;
                 case 0x0050: // PR_REPLY_RECIPIENT_NAMES Name of Reply-To Structure
                     LIST_COPY_EMAIL_STR("Reply-To", item->email->reply_to);
@@ -2336,16 +2337,16 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_EMAIL_INT32("NDR diag code", item->email->ndr_diag_code);
                     break;
                 case 0x0C06: // PR_NON_RECEIPT_NOTIFICATION_REQUESTED
-                    DEBUG_EMAIL(("Non-Receipt Notification Requested -- NOT PROCESSED\n"));
+                    DEBUG_INFO(("Non-Receipt Notification Requested -- NOT PROCESSED\n"));
                     break;
                 case 0x0C17: // PR_REPLY_REQUESTED
                     LIST_COPY_EMAIL_BOOL("Reply Requested", item->email->reply_requested);
                     break;
                 case 0x0C19: // PR_SENDER_ENTRYID Sender Structure 2
-                    DEBUG_EMAIL(("Sender Structure 2 -- NOT PROCESSED\n"));
+                    DEBUG_INFO(("Sender Structure 2 -- NOT PROCESSED\n"));
                     break;
                 case 0x0C1A: // PR_SENDER_NAME Name of Sender Structure 2
-                    DEBUG_EMAIL(("Name of Sender Structure 2 -- NOT PROCESSED\n"));
+                    DEBUG_INFO(("Name of Sender Structure 2 -- NOT PROCESSED\n"));
                     break;
                 case 0x0C1B: // PR_SUPPLEMENTARY_INFO
                     LIST_COPY_EMAIL_STR("Supplementary info", item->email->supplementary_info);
@@ -2401,8 +2402,8 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     break;
                 case 0x0FF9: // PR_RECORD_KEY Record Header 1
                     LIST_COPY_BIN(item->record_key);
-                    DEBUG_EMAIL(("Record Key\n"));
-                    DEBUG_EMAIL_HEXPRINT(item->record_key.data, item->record_key.size);
+                    DEBUG_INFO(("Record Key\n"));
+                    DEBUG_HEXDUMP(item->record_key.data, item->record_key.size);
                     break;
                 case 0x1000: // PR_BODY
                     LIST_COPY_STR("Plain Text body", item->body);
@@ -2465,7 +2466,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_TIME("Date 5 (Modify Date)", item->modify_date);
                     break;
                 case 0x300B: // PR_SEARCH_KEY Record Header 2
-                    DEBUG_EMAIL(("Record Search 2 -- NOT PROCESSED\n"));
+                    DEBUG_INFO(("Record Search 2 -- NOT PROCESSED\n"));
                     break;
                 case 0x35DF: // PR_VALID_FOLDER_MASK
                     LIST_COPY_STORE_INT32("Valid Folder Mask", item->message_store->valid_mask);
@@ -2505,7 +2506,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_CSTR(item->ascii_type);
                     if (pst_strincmp("IPF.Note", item->ascii_type, 8) == 0)
                         item->type = PST_TYPE_NOTE;
-                    if (pst_strincmp("IPF.Imap", item->ascii_type, 8) == 0)
+                    else if (pst_strincmp("IPF.Imap", item->ascii_type, 8) == 0)
                         item->type = PST_TYPE_NOTE;
                     else if (pst_stricmp("IPF", item->ascii_type) == 0)
                         item->type = PST_TYPE_NOTE;
@@ -2522,7 +2523,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     else
                         item->type = PST_TYPE_OTHER;
 
-                    DEBUG_EMAIL(("Container class %s [%"PRIi32"]\n", item->ascii_type, item->type));
+                    DEBUG_INFO(("Container class %s [%"PRIi32"]\n", item->ascii_type, item->type));
                     break;
                 case 0x3617: // PR_ASSOC_CONTENT_COUNT
                     // associated content are items that are attached to this folder
@@ -2530,11 +2531,11 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_FOLDER_INT32("Associated Content count", item->folder->assoc_count);
                     break;
                 case 0x3701: // PR_ATTACH_DATA_OBJ binary data of attachment
-                    DEBUG_EMAIL(("Binary Data [Size %i] - ", list->elements[x]->size));
+                    DEBUG_INFO(("Binary Data [Size %i] - ", list->elements[x]->size));
                     NULL_CHECK(attach);
                     if (!list->elements[x]->data) { //special case
                         attach->id2_val = list->elements[x]->type;
-                        DEBUG_EMAIL(("Seen a Reference. The data hasn't been loaded yet. [%#"PRIx64"]\n", attach->id2_val));
+                        DEBUG_INFO(("Seen a Reference. The data hasn't been loaded yet. [%#"PRIx64"]\n", attach->id2_val));
                     } else {
                         LIST_COPY_BIN(attach->data);
                     }
@@ -2576,7 +2577,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_CONTACT_STR("Contact's Account name", item->contact->account_name);
                     break;
                 case 0x3A01: // PR_ALTERNATE_RECIPIENT
-                    DEBUG_EMAIL(("Contact Alternate Recipient - NOT PROCESSED\n"));
+                    DEBUG_INFO(("Contact Alternate Recipient - NOT PROCESSED\n"));
                     break;
                 case 0x3A02: // PR_CALLBACK_TELEPHONE_NUMBER
                     LIST_COPY_CONTACT_STR("Callback telephone number", item->contact->callback_phone);
@@ -2624,13 +2625,13 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_CONTACT_STR("Contacts Surname", item->contact->surname);
                     break;
                 case 0x3A12: // PR_ORIGINAL_ENTRY_ID
-                    DEBUG_EMAIL(("Original Entry ID - NOT PROCESSED\n"));
+                    DEBUG_INFO(("Original Entry ID - NOT PROCESSED\n"));
                     break;
                 case 0x3A13: // PR_ORIGINAL_DISPLAY_NAME
-                    DEBUG_EMAIL(("Original Display Name - NOT PROCESSED\n"));
+                    DEBUG_INFO(("Original Display Name - NOT PROCESSED\n"));
                     break;
                 case 0x3A14: // PR_ORIGINAL_SEARCH_KEY
-                    DEBUG_EMAIL(("Original Search Key - NOT PROCESSED\n"));
+                    DEBUG_INFO(("Original Search Key - NOT PROCESSED\n"));
                     break;
                 case 0x3A15: // PR_POSTAL_ADDRESS
                     LIST_COPY_CONTACT_STR("Default Postal Address", item->contact->def_postal_address);
@@ -2672,7 +2673,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_CONTACT_STR("Pager Phone Number", item->contact->pager_phone);
                     break;
                 case 0x3A22: // PR_USER_CERTIFICATE
-                    DEBUG_EMAIL(("User Certificate - NOT PROCESSED\n"));
+                    DEBUG_INFO(("User Certificate - NOT PROCESSED\n"));
                     break;
                 case 0x3A23: // PR_PRIMARY_FAX_NUMBER
                     LIST_COPY_CONTACT_STR("Primary Fax Number", item->contact->primary_fax);
@@ -2774,7 +2775,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_CONTACT_STR("Company Main Phone", item->contact->company_main_phone);
                     break;
                 case 0x3A58: // PR_CHILDRENS_NAMES
-                    DEBUG_EMAIL(("Children's Names - NOT PROCESSED\n"));
+                    DEBUG_INFO(("Children's Names - NOT PROCESSED\n"));
                     break;
                 case 0x3A59: // PR_HOME_ADDRESS_CITY
                     LIST_COPY_CONTACT_STR("Home Address City", item->contact->home_city);
@@ -2820,17 +2821,17 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     break;
                 case 0x65E3: // PR_PREDECESSOR_CHANGE_LIST
                     LIST_COPY_BIN(item->predecessor_change);
-                    DEBUG_EMAIL(("Predecessor Change\n"));
-                    DEBUG_EMAIL_HEXPRINT(item->predecessor_change.data, item->predecessor_change.size);
+                    DEBUG_INFO(("Predecessor Change\n"));
+                    DEBUG_HEXDUMP(item->predecessor_change.data, item->predecessor_change.size);
                     break;
                 case 0x67F2: // ID2 value of the attachments proper record
-                    DEBUG_EMAIL(("Attachment ID2 value - "));
+                    DEBUG_INFO(("Attachment ID2 value - "));
                     if (attach) {
                         uint32_t tempid;
                         memcpy(&(tempid), list->elements[x]->data, sizeof(tempid));
                         LE32_CPU(tempid);
                         attach->id2_val = tempid;
-                        DEBUG_EMAIL(("%#"PRIx64"\n", attach->id2_val));
+                        DEBUG_INFO(("%#"PRIx64"\n", attach->id2_val));
                     } else {
                         DEBUG_WARN(("NOT AN ATTACHMENT: %#x\n", list->elements[x]->mapi_id));
                     }
@@ -2979,10 +2980,10 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_APPT_BOOL("Reminder alarm", item->appointment->alarm);
                     break;
                 case 0x8516: // Common start
-                    DEBUG_EMAIL(("Common Start Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data, time_buffer)));
+                    DEBUG_INFO(("Common Start Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data, time_buffer)));
                     break;
                 case 0x8517: // Common end
-                    DEBUG_EMAIL(("Common End Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data, time_buffer)));
+                    DEBUG_INFO(("Common End Date - %s\n", pst_fileTimeToAscii((FILETIME*)list->elements[x]->data, time_buffer)));
                     break;
                 case 0x851f: // Play reminder sound filename
                     LIST_COPY_APPT_STR("Appointment reminder sound filename", item->appointment->alarm_filename);
@@ -3245,17 +3246,17 @@ static pst_id2_tree * pst_build_id2(pst_file *pf, pst_index_ll* list) {
         return NULL;
     }
 
-    DEBUG_INDEX(("ID %#"PRIx64" is likely to be a description record. Count is %i (offset %#"PRIx64")\n",
+    DEBUG_INFO(("ID %#"PRIx64" is likely to be a description record. Count is %i (offset %#"PRIx64")\n",
             list->i_id, block_head.count, list->offset));
     x = 0;
     b_ptr = buf + ((pf->do_read64) ? 0x08 : 0x04);
     while (x < block_head.count) {
         b_ptr += pst_decode_assoc(pf, &id2_rec, b_ptr);
-        DEBUG_INDEX(("id2 = %#x, id = %#"PRIx64", child id = %#"PRIx64"\n", id2_rec.id2, id2_rec.id, id2_rec.child_id));
+        DEBUG_INFO(("id2 = %#x, id = %#"PRIx64", child id = %#"PRIx64"\n", id2_rec.id2, id2_rec.id, id2_rec.child_id));
         if ((i_ptr = pst_getID(pf, id2_rec.id)) == NULL) {
             DEBUG_WARN(("%#"PRIx64" - Not Found\n", id2_rec.id));
         } else {
-            DEBUG_INDEX(("%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
+            DEBUG_INFO(("%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
                          i_ptr->i_id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
             // add it to the tree
             i2_ptr = (pst_id2_tree*) pst_malloc(sizeof(pst_id2_tree));
@@ -3588,17 +3589,17 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t i_id) {
         return NULL;
     }
 
-    //if (i_id & 1) DEBUG_INDEX(("have odd id bit %#"PRIx64"\n", i_id));
-    //if (i_id & 2) DEBUG_INDEX(("have two id bit %#"PRIx64"\n", i_id));
+    //if (i_id & 1) DEBUG_INFO(("have odd id bit %#"PRIx64"\n", i_id));
+    //if (i_id & 2) DEBUG_INFO(("have two id bit %#"PRIx64"\n", i_id));
     i_id -= (i_id & 1);
 
-    DEBUG_INDEX(("Trying to find %#"PRIx64"\n", i_id));
+    DEBUG_INFO(("Trying to find %#"PRIx64"\n", i_id));
     ptr = pf->i_head;
     while (ptr && (ptr->i_id != i_id)) {
         ptr = ptr->next;
     }
-    if (ptr) {DEBUG_INDEX(("Found Value %#"PRIx64"\n", i_id));            }
-    else     {DEBUG_INDEX(("ERROR: Value %#"PRIx64" not found\n", i_id)); }
+    if (ptr) {DEBUG_INFO(("Found Value %#"PRIx64"\n", i_id));            }
+    else     {DEBUG_INFO(("ERROR: Value %#"PRIx64" not found\n", i_id)); }
     DEBUG_RET();
     return ptr;
 }
@@ -3606,7 +3607,7 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t i_id) {
 
 static pst_id2_tree *pst_getID2(pst_id2_tree *head, uint64_t id2) {
     DEBUG_ENT("pst_getID2");
-    DEBUG_INDEX(("looking for id2 = %#"PRIx64"\n", id2));
+    DEBUG_INFO(("looking for id2 = %#"PRIx64"\n", id2));
     pst_id2_tree *ptr = head;
     while (ptr) {
         if (ptr->id2 == id2) break;
@@ -3620,11 +3621,11 @@ static pst_id2_tree *pst_getID2(pst_id2_tree *head, uint64_t id2) {
         ptr = ptr->next;
     }
     if (ptr && ptr->id) {
-        DEBUG_INDEX(("Found value %#"PRIx64"\n", ptr->id->i_id));
+        DEBUG_INFO(("Found value %#"PRIx64"\n", ptr->id->i_id));
         DEBUG_RET();
         return ptr;
     }
-    DEBUG_INDEX(("ERROR Not Found\n"));
+    DEBUG_INFO(("ERROR Not Found\n"));
     DEBUG_RET();
     return NULL;
 }
@@ -3642,7 +3643,7 @@ static pst_desc_tree* pst_getDptr(pst_file *pf, uint64_t d_id) {
     pst_desc_tree *ptr = pf->d_head;
     DEBUG_ENT("pst_getDptr");
     while (ptr && (ptr->d_id != d_id)) {
-        //DEBUG_INDEX(("Looking for %#"PRIx64" at node %#"PRIx64" with parent %#"PRIx64"\n", id, ptr->d_id, ptr->parent_d_id));
+        //DEBUG_INFO(("Looking for %#"PRIx64" at node %#"PRIx64" with parent %#"PRIx64"\n", id, ptr->d_id, ptr->parent_d_id));
         if (ptr->child) {
             ptr = ptr->child;
             continue;
@@ -3660,7 +3661,7 @@ static pst_desc_tree* pst_getDptr(pst_file *pf, uint64_t d_id) {
 static void pst_printDptr(pst_file *pf, pst_desc_tree *ptr) {
     DEBUG_ENT("pst_printDptr");
     while (ptr) {
-        DEBUG_INDEX(("%#"PRIx64" [%i] desc=%#"PRIx64", assoc tree=%#"PRIx64"\n", ptr->d_id, ptr->no_child,
+        DEBUG_INFO(("%#"PRIx64" [%i] desc=%#"PRIx64", assoc tree=%#"PRIx64"\n", ptr->d_id, ptr->no_child,
                     (ptr->desc       ? ptr->desc->i_id       : (uint64_t)0),
                     (ptr->assoc_tree ? ptr->assoc_tree->i_id : (uint64_t)0)));
         if (ptr->child) {
@@ -3676,7 +3677,7 @@ static void pst_printIDptr(pst_file* pf) {
     pst_index_ll *ptr = pf->i_head;
     DEBUG_ENT("pst_printIDptr");
     while (ptr) {
-        DEBUG_INDEX(("%#"PRIx64" offset=%#"PRIx64" size=%#"PRIx64"\n", ptr->i_id, ptr->offset, ptr->size));
+        DEBUG_INFO(("%#"PRIx64" offset=%#"PRIx64" size=%#"PRIx64"\n", ptr->i_id, ptr->offset, ptr->size));
         ptr = ptr->next;
     }
     DEBUG_RET();
@@ -3686,7 +3687,7 @@ static void pst_printIDptr(pst_file* pf) {
 static void pst_printID2ptr(pst_id2_tree *ptr) {
     DEBUG_ENT("pst_printID2ptr");
     while (ptr) {
-        DEBUG_INDEX(("%#"PRIx64" id=%#"PRIx64"\n", ptr->id2, (ptr->id ? ptr->id->i_id : (uint64_t)0)));
+        DEBUG_INFO(("%#"PRIx64" id=%#"PRIx64"\n", ptr->id2, (ptr->id ? ptr->id->i_id : (uint64_t)0)));
         if (ptr->child) pst_printID2ptr(ptr->child);
         ptr = ptr->next;
     }
@@ -3706,10 +3707,10 @@ static void pst_printID2ptr(pst_id2_tree *ptr) {
 static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf) {
     size_t rsize;
     DEBUG_ENT("pst_read_block_size");
-    DEBUG_READ(("Reading block from %#"PRIx64", %x bytes\n", offset, size));
+    DEBUG_INFO(("Reading block from %#"PRIx64", %x bytes\n", offset, size));
 
     if (*buf) {
-        DEBUG_READ(("Freeing old memory\n"));
+        DEBUG_INFO(("Freeing old memory\n"));
         free(*buf);
     }
     *buf = (char*) pst_malloc(size);
@@ -3841,7 +3842,7 @@ static size_t pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size) {
 //      p->size      = size;
 //      p->readcount = 1;
 //  }
-//  DEBUG_MAIN(("pst file old offset %#"PRIx64" old size %#x read count %i offset %#"PRIx64" size %#x\n",
+//  DEBUG_INFO(("pst file old offset %#"PRIx64" old size %#x read count %i offset %#"PRIx64" size %#x\n",
 //              p->offset, p->size, p->readcount, pos, size));
 
     if (fseeko(pf->fp, pos, SEEK_SET) == -1) {
@@ -3866,7 +3867,7 @@ size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf) {
     size_t r;
     int noenc = (int)(i_id & 2);   // disable encryption
     DEBUG_ENT("pst_ff_getIDblock_dec");
-    DEBUG_INDEX(("for id %#"PRIi64"\n", i_id));
+    DEBUG_INFO(("for id %#"PRIi64"\n", i_id));
     r = pst_ff_getIDblock(pf, i_id, buf);
     if ((pf->encryption) && !(noenc)) {
         (void)pst_decrypt(i_id, *buf, r, pf->encryption);
@@ -3891,11 +3892,11 @@ size_t pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf) {
     DEBUG_ENT("pst_ff_getIDblock");
     rec = pst_getID(pf, i_id);
     if (!rec) {
-        DEBUG_INDEX(("Cannot find ID %#"PRIx64"\n", i_id));
+        DEBUG_INFO(("Cannot find ID %#"PRIx64"\n", i_id));
         DEBUG_RET();
         return 0;
     }
-    DEBUG_INDEX(("id = %#"PRIx64", record size = %#x, offset = %#x\n", i_id, rec->size, rec->offset));
+    DEBUG_INFO(("id = %#"PRIx64", record size = %#x, offset = %#x\n", i_id, rec->size, rec->offset));
     rsize = pst_read_block_size(pf, rec->offset, rec->size, buf);
     DEBUG_RET();
     return rsize;
@@ -3910,7 +3911,7 @@ static size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_tree *id2_h
     ptr = pst_getID2(id2_head, id2);
 
     if (!ptr) {
-        DEBUG_INDEX(("Cannot find id2 value %#"PRIi64"\n", id2));
+        DEBUG_WARN(("Cannot find id2 value %#"PRIi64"\n", id2));
         DEBUG_RET();
         return 0;
     }
@@ -3944,7 +3945,7 @@ static size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) 
 
     } else {
         // here we will assume it is a block that points to others
-        DEBUG_READ(("Assuming it is a multi-block record because of it's id\n"));
+        DEBUG_INFO(("Assuming it is a multi-block record because of it's id\n"));
         ret = pst_ff_compile_ID(pf, ptr->i_id, h, (size_t)0);
     }
     DEBUG_RET();
@@ -3975,7 +3976,7 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size
     LE16_CPU(block_hdr.index_offset);
     LE16_CPU(block_hdr.type);
     LE32_CPU(block_hdr.offset);
-    DEBUG_EMAIL(("block header (index_offset=%#hx, type=%#hx, offset=%#x)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
+    DEBUG_INFO(("block header (index_offset=%#hx, type=%#hx, offset=%#x)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
 
     if (block_hdr.index_offset != (uint16_t)0x0101) { //type 3
         DEBUG_WARN(("WARNING: not a type 0x0101 buffer, Treating as normal buffer\n"));
@@ -4013,7 +4014,7 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size
         }
         if (h->buf) {
             *(h->buf) = realloc(*(h->buf), size+z+1);
-            DEBUG_READ(("appending read data of size %i onto main buffer from pos %i\n", z, size));
+            DEBUG_INFO(("appending read data of size %i onto main buffer from pos %i\n", z, size));
             memcpy(&((*(h->buf))[size]), buf2, z);
         } else if ((h->base64 == 1) && h->fp) {
             if (base64_extra) {
@@ -4034,12 +4035,12 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size
             // encode this chunk
             t = pst_base64_encode_multiple(buf2, z, &line_count);
             if (t) {
-                DEBUG_READ(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
+                DEBUG_INFO(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
                 (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
                 free(t);    // caught by valgrind
             }
         } else if (h->fp) {
-            DEBUG_READ(("writing %i bytes to file. Currently %i\n", z, size));
+            DEBUG_INFO(("writing %i bytes to file. Currently %i\n", z, size));
             (void)pst_fwrite(buf2, (size_t)1, z, h->fp);
         } else {
             // h-> does not specify any output
@@ -4095,14 +4096,14 @@ static int pst_strincmp(char *a, char *b, size_t x) {
 
 size_t pst_fwrite(const void* ptr, size_t size, size_t nmemb, FILE *stream) {
     size_t r;
-    DEBUG_ENT("pst_fwrite");
     if (ptr)
         r = fwrite(ptr, size, nmemb, stream);
     else {
         r = 0;
+        DEBUG_ENT("pst_fwrite");
         DEBUG_WARN(("An attempt to write a NULL Pointer was made\n"));
+        DEBUG_RET();
     }
-    DEBUG_RET();
     return r;
 }
 

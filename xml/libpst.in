@@ -129,9 +129,8 @@
                 <varlistentry>
                     <term>-d <replaceable class="parameter">debug-file</replaceable></term>
                     <listitem><para>
-                        Specify name of debug log file. The
-                        log file is not an ascii file, it is a binary file readable
-                        by <command>readpstlog</command>.
+                        Specify name of debug log file. The log file is now an ascii file,
+                        instead of the binary file used in previous versions.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -186,13 +185,6 @@
                     </para></listitem>
                 </varlistentry>
             </variablelist>
-        </refsect1>
-
-        <refsect1 id='readpst.also.1'>
-            <title>See Also</title>
-            <para>
-                <citerefentry><refentrytitle>readpstlog</refentrytitle> <manvolnum>1</manvolnum> </citerefentry>
-            </para>
         </refsect1>
 
         <refsect1 id='readpst.author.1'>
@@ -273,9 +265,8 @@
                 <varlistentry>
                     <term>-d <replaceable class="parameter">debug-file</replaceable></term>
                     <listitem><para>
-                        Specify name of debug log file. The
-                        log file is not an ascii file, it is a binary file readable
-                        by <command>readpstlog</command>.
+                        Specify name of debug log file. The log file is now an ascii file,
+                        instead of the binary file used in previous versions.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -292,13 +283,6 @@
             <para><command>lspst</command> is a program that can read an Outlook
                 PST (Personal Folders) file and produce a simple listing of the
                 data (contacts, email subjects, etc).
-            </para>
-        </refsect1>
-
-        <refsect1 id='lspst.also.1'>
-            <title>See Also</title>
-            <para>
-                <citerefentry><refentrytitle>readpstlog</refentrytitle> <manvolnum>1</manvolnum> </citerefentry>
             </para>
         </refsect1>
 
@@ -329,181 +313,6 @@
         </refsect1>
 
         <refsect1 id='lspst.version.1'>
-            <title>Version</title>
-            <para>
-                @VERSION@
-            </para>
-        </refsect1>
-    </refentry>
-
-
-    <refentry id="readpstlog.1">
-        <refentryinfo>
-            <date>2009-05-16</date>
-        </refentryinfo>
-
-        <refmeta>
-            <refentrytitle>readpstlog</refentrytitle>
-            <manvolnum>1</manvolnum>
-            <refmiscinfo>readpstlog @VERSION@</refmiscinfo>
-        </refmeta>
-
-        <refnamediv id='readpstlog.name.1'>
-            <refname>readpstlog</refname>
-            <refpurpose>convert a <command>readpst</command> logfile to text format</refpurpose>
-        </refnamediv>
-
-        <refsynopsisdiv id='readpstlog.synopsis.1'>
-            <title>Synopsis</title>
-            <cmdsynopsis>
-                <command>readpstlog</command>
-                <arg><option>-f <replaceable class="parameter">format</replaceable></option></arg>
-                <arg><option>-t <replaceable class="parameter">include-types</replaceable></option></arg>
-                <arg><option>-x <replaceable class="parameter">exclude-types</replaceable></option></arg>
-                <arg choice='plain'>logfile</arg>
-            </cmdsynopsis>
-        </refsynopsisdiv>
-
-        <refsect1 id='readpstlog.description.1'>
-            <title>Description</title>
-            <para><command>readpstlog</command>
-                is a program that converts the binary logfile generated
-                by <command>readpst</command> to a more desirable text format.
-            </para>
-        </refsect1>
-
-        <refsect1 id='readpstlog.options.1'>
-            <title>Options</title>
-            <variablelist>
-                <varlistentry>
-                    <term>-f <replaceable class="parameter">format</replaceable></term>
-                    <listitem><para>
-                        Sets the format of the text log output.  Currently, the only valid output
-                        formats are T, for single line text, D for the default default multi line
-                        format, and I for an indented style with single line text.
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>-t <replaceable class="parameter">include-types</replaceable></term>
-                    <listitem><para>
-                        Print only the specified types of log messages.
-                        Types are specified in a comma-delimited list (e.g. 3,10,5,6).
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>-x <replaceable class="parameter">exclude-types</replaceable></term>
-                    <listitem><para>
-                        Exclude the specified types of log messages.
-                        Types are specified in a comma-delimited list (e.g. 3,10,5,6).
-                    </para></listitem>
-                </varlistentry>
-            </variablelist>
-        </refsect1>
-
-        <refsect1 id='readpstlog.message.types.1'>
-            <title>Message Types</title>
-            <para><command>readpstlog</command> understands the following types of log
-                messages:
-            </para>
-            <variablelist>
-                <varlistentry>
-                    <term>1</term>
-                    <listitem><para>
-                        File accesses
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>2</term>
-                    <listitem><para>
-                        Index accesses
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>3</term>
-                    <listitem><para>
-                        New email found
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>4</term>
-                    <listitem><para>
-                        Warnings
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>5</term>
-                    <listitem><para>
-                        Read accesses
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>6</term>
-                    <listitem><para>
-                        Informational messages
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>7</term>
-                    <listitem><para>
-                        Main function calls
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>8</term>
-                    <listitem><para>
-                        Decrypting calls
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>9</term>
-                    <listitem><para>
-                        Function entries
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>10</term>
-                    <listitem><para>
-                        Function exits
-                    </para></listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>11</term>
-                    <listitem><para>
-                        HexDump calls
-                    </para></listitem>
-                </varlistentry>
-            </variablelist>
-        </refsect1>
-
-        <refsect1 id='readpstlog.author.1'>
-            <title>Author</title>
-            <para>
-                This manual page was written by Joe Nahmias &lt;joe@nahmias.net&gt;
-                for the Debian GNU/Linux system (but may be used by others). It was
-                converted to xml format by Carl Byington &lt;carl@five-ten-sg.com&gt;.
-            </para>
-        </refsect1>
-
-        <refsect1 id='readpstlog.copyright.1'>
-            <title>Copyright</title>
-            <para>
-                Copyright (C) 2002 by David Smith &lt;dave.s@earthcorp.com&gt;.
-                XML version Copyright (C) 2008 by 510 Software Group &lt;carl@five-ten-sg.com&gt;.
-            </para>
-            <para>
-                This program is free software; you can redistribute it and/or modify it
-                under the terms of the GNU General Public License as published by the
-                Free Software Foundation; either version 2, or (at your option) any
-                later version.
-            </para>
-            <para>
-                You should have received a copy of the GNU General Public License along
-                with this program; see the file COPYING.  If not, please write to the
-                Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-            </para>
-        </refsect1>
-
-        <refsect1 id='readpstlog.version.1'>
             <title>Version</title>
             <para>
                 @VERSION@

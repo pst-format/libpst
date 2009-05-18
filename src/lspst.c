@@ -54,18 +54,18 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
 
     while (d_ptr) {
         if (!d_ptr->desc) {
-            DEBUG_WARN(("main: ERROR item's desc record is NULL\n"));
+            DEBUG_WARN(("ERROR item's desc record is NULL\n"));
             ff.skip_count++;
         }
         else {
-            DEBUG_MAIN(("main: Desc Email ID %"PRIx64" [d_ptr->d_id = %"PRIx64"]\n", d_ptr->desc->i_id, d_ptr->d_id));
+            DEBUG_INFO(("Desc Email ID %"PRIx64" [d_ptr->d_id = %"PRIx64"]\n", d_ptr->desc->i_id, d_ptr->d_id));
 
             item = pst_parse_item(&pstfile, d_ptr, NULL);
-            DEBUG_MAIN(("main: About to process item @ %p.\n", item));
+            DEBUG_INFO(("About to process item @ %p.\n", item));
             if (item) {
                 if (item->message_store) {
                     // there should only be one message_store, and we have already done it
-                    DIE(("main: A second message_store has been found. Sorry, this must be an error.\n"));
+                    DIE(("A second message_store has been found. Sorry, this must be an error.\n"));
                 }
 
                 if (item->folder && d_ptr->child) {
@@ -78,7 +78,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     if (!ff.type) ff.type = item->type;
                     // Process Contact item
                     if (ff.type != PST_TYPE_CONTACT) {
-                        DEBUG_MAIN(("main: I have a contact, but the folder isn't a contacts folder. Processing anyway\n"));
+                        DEBUG_INFO(("I have a contact, but the folder isn't a contacts folder. Processing anyway\n"));
                     }
                     printf("Contact");
                     if (item->contact->fullname.str)
@@ -89,7 +89,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     if (!ff.type) ff.type = item->type;
                     // Process Email item
                     if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_SCHEDULE) && (ff.type != PST_TYPE_REPORT)) {
-                        DEBUG_MAIN(("main: I have an email, but the folder isn't an email folder. Processing anyway\n"));
+                        DEBUG_INFO(("I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
                     printf("Email");
                     if (item->email->outlook_sender_name.str)
@@ -102,7 +102,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     if (!ff.type) ff.type = item->type;
                     // Process Journal item
                     if (ff.type != PST_TYPE_JOURNAL) {
-                        DEBUG_MAIN(("main: I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
+                        DEBUG_INFO(("I have a journal entry, but folder isn't specified as a journal type. Processing...\n"));
                     }
                     if (item->subject.str)
                         printf("Journal\t%s\n", pst_rfc2426_escape(item->subject.str));
@@ -111,9 +111,9 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     char time_buffer[30];
                     if (!ff.type) ff.type = item->type;
                     // Process Calendar Appointment item
-                    DEBUG_MAIN(("main: Processing Appointment Entry\n"));
+                    DEBUG_INFO(("Processing Appointment Entry\n"));
                     if (ff.type != PST_TYPE_APPOINTMENT) {
-                        DEBUG_MAIN(("main: I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
+                        DEBUG_INFO(("I have an appointment, but folder isn't specified as an appointment type. Processing...\n"));
                     }
                     printf("Appointment");
                     if (item->subject.str)
@@ -127,13 +127,13 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
 
                 } else {
                     ff.skip_count++;
-                    DEBUG_MAIN(("main: Unknown item type. %i. Ascii1=\"%s\"\n",
+                    DEBUG_INFO(("Unknown item type. %i. Ascii1=\"%s\"\n",
                                       item->type, item->ascii_type));
                 }
                 pst_freeItem(item);
             } else {
                 ff.skip_count++;
-                DEBUG_MAIN(("main: A NULL item was seen\n"));
+                DEBUG_INFO(("A NULL item was seen\n"));
             }
             d_ptr = d_ptr->next;
         }
@@ -203,8 +203,7 @@ int main(int argc, char* const* argv) {
         // force a log file
         if (!d_log) d_log = "lspst.log";
     #endif // defined DEBUG_ALL
-    DEBUG_INIT(d_log);
-    DEBUG_REGISTER_CLOSE();
+    DEBUG_INIT(d_log, NULL);
     DEBUG_ENT("main");
 
 	if (argc <= optind) {
@@ -224,7 +223,7 @@ int main(int argc, char* const* argv) {
     item  = pst_parse_item(&pstfile, d_ptr, NULL);
     if (!item || !item->message_store) {
         DEBUG_RET();
-        DIE(("main: Could not get root record\n"));
+        DIE(("Could not get root record\n"));
     }
 
     // default the file_as to the same as the main filename if it doesn't exist

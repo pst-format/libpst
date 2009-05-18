@@ -29,8 +29,7 @@ int main(int argc, char* const* argv)
         printf("\t-o target\tSpecify the output directory\n");
         exit(1);
     }
-    DEBUG_INIT("dumpblocks.log");
-    DEBUG_REGISTER_CLOSE();
+    DEBUG_INIT("dumpblocks.log", NULL);
     DEBUG_ENT("main");
 
     printf("Opening file %s\n", file);

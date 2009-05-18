@@ -13,6 +13,7 @@ void usage()
     printf("\tid - ID of the block to fetch (0 to fetch all) - can begin with 0x for hex\n");
     printf("\toptions\n");
     printf("\t\t-p\tProcess the block before finishing.\n");
+    printf("\t\t-b\tDump the blocks in binary to stdout.\n");
     printf("\t\t\tView the debug log for information\n");
 }
 
@@ -24,13 +25,13 @@ void dumper(uint64_t i_id)
     size_t readSize;
     pst_desc_tree *ptr;
 
-    DEBUG_MAIN(("\n\n\nLooking at block index1 id %#"PRIx64"\n", i_id));
+    DEBUG_INFO(("\n\n\nLooking at block index1 id %#"PRIx64"\n", i_id));
 
     if ((readSize = pst_ff_getIDblock_dec(&pstfile, i_id, &buf)) <= 0 || buf == 0) {
         DIE(("Error loading block\n"));
     }
 
-    DEBUG_MAIN(("Printing block id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize));
+    DEBUG_INFO(("Printing block id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize));
     if (binary) {
         if (fwrite(buf, 1, readSize, stdout) != 0) {
             DIE(("Error occured during writing of buf to stdout\n"));
@@ -42,7 +43,7 @@ void dumper(uint64_t i_id)
     if (buf) free(buf);
 
     if (process) {
-        DEBUG_MAIN(("Parsing block id %#"PRIx64"\n", i_id));
+        DEBUG_INFO(("Parsing block id %#"PRIx64"\n", i_id));
         ptr = pstfile.d_head;
         while (ptr) {
             if (ptr->assoc_tree && ptr->assoc_tree->i_id == i_id)
@@ -66,7 +67,7 @@ void dump_desc(pst_desc_tree *ptr);
 void dump_desc(pst_desc_tree *ptr)
 {
     while (ptr) {
-        DEBUG_MAIN(("\n\n\nLooking at block desc id %#"PRIx64"\n", ptr->d_id));
+        DEBUG_INFO(("\n\n\nLooking at block desc id %#"PRIx64"\n", ptr->d_id));
         if (ptr->desc       && ptr->desc->i_id)       dumper(ptr->desc->i_id);
         if (ptr->assoc_tree && ptr->assoc_tree->i_id) dumper(ptr->assoc_tree->i_id);
         if (ptr->child) dump_desc(ptr->child);
@@ -82,11 +83,10 @@ int main(int argc, char* const* argv)
     uint64_t i_id;
     int c;
 
-    DEBUG_INIT("getidblock.log");
-    DEBUG_REGISTER_CLOSE();
+    DEBUG_INIT("getidblock.log", NULL);
     DEBUG_ENT("main");
 
-    while ((c = getopt(argc, argv, "bdp")) != -1) {
+    while ((c = getopt(argc, argv, "bp")) != -1) {
         switch (c) {
             case 'b':
                 // enable binary output
@@ -111,13 +111,13 @@ int main(int argc, char* const* argv)
     sid   = argv[optind + 1];
     i_id  = (uint64_t)strtoll(sid, NULL, 0);
 
-    DEBUG_MAIN(("Opening file\n"));
+    DEBUG_INFO(("Opening file\n"));
     memset(&pstfile, 0, sizeof(pstfile));
     if (pst_open(&pstfile, fname)) {
         DIE(("Error opening file\n"));
     }
 
-    DEBUG_MAIN(("Loading Index\n"));
+    DEBUG_INFO(("Loading Index\n"));
     if (pst_load_index(&pstfile) != 0) {
         DIE(("Error loading file index\n"));
     }

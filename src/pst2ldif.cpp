@@ -626,8 +626,7 @@ int main(int argc, char* const* argv) {
         // force a log file
         if (!d_log) d_log = "pst2ldif.log";
     #endif
-    DEBUG_INIT(d_log);
-    DEBUG_REGISTER_CLOSE();
+    DEBUG_INIT(d_log, NULL);
     DEBUG_ENT("main");
     RET_DERROR(pst_open(&pstfile, fname), 1, ("Error opening File\n"));
     RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
