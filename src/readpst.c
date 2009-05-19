@@ -1085,7 +1085,7 @@ void find_html_charset(char *html, char *charset, size_t charsetlen)
             DEBUG_INFO(("charset %s from html text\n", charset));
         }
         else {
-            DEBUG_INFO(("matching %d %d %d %d", match[0].rm_so, match[0].rm_eo, match[1].rm_so, match[1].rm_eo));
+            DEBUG_INFO(("matching %d %d %d %d\n", match[0].rm_so, match[0].rm_eo, match[1].rm_so, match[1].rm_eo));
             DEBUG_HEXDUMPC(html, strlen(html), 0x10);
         }
     }

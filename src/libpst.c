@@ -1220,7 +1220,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
 
     if (d_ptr->assoc_tree) {
         if (m_head) {
-            DEBUG_WARN(("supplied master head, but have a list that is building a new id2_head"));
+            DEBUG_WARN(("supplied master head, but have a list that is building a new id2_head\n"));
             m_head = NULL;
         }
         id2_head = pst_build_id2(pf, d_ptr->assoc_tree);
@@ -1395,10 +1395,10 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     pst_block_offset_pointer block_offset6;
     pst_block_offset_pointer block_offset7;
     int32_t  x;
-    int      num_recs;
-    int      count_rec;
-    int32_t  num_list;
-    int32_t  cur_list;
+    int32_t  num_mapi_objects;
+    int32_t  count_mapi_objects;
+    int32_t  num_mapi_elements;
+    int32_t  count_mapi_elements;
     int      block_type;
     uint32_t rec_size = 0;
     char*    list_start;
@@ -1529,8 +1529,8 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         }
         list_start = block_offset2.from;
         to_ptr     = block_offset2.to;
-        num_list = (to_ptr - list_start)/sizeof(table_rec);
-        num_recs = 1; // only going to be one object in these blocks
+        num_mapi_elements = (to_ptr - list_start)/sizeof(table_rec);
+        num_mapi_objects  = 1; // only going to be one object in these blocks
     }
     else if (block_hdr.type == (uint16_t)0x7CEC) { //type 2
         block_type = 2;
@@ -1563,7 +1563,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         }
 
         rec_size = seven_c_blk.rec_size;
-        num_list = (int32_t)(unsigned)seven_c_blk.item_count;
+        num_mapi_elements = (int32_t)(unsigned)seven_c_blk.item_count;
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, seven_c_blk.b_five_offset, &block_offset4)) {
             DEBUG_WARN(("internal error (7c.b5 offset %#x) in reading block id %#"PRIx64"\n", seven_c_blk.b_five_offset, block_id));
@@ -1592,7 +1592,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         }
 
         // this will give the number of records in this block
-        num_recs = (block_offset5.to - block_offset5.from) / (4 + table_rec.ref_type);
+        num_mapi_objects = (block_offset5.to - block_offset5.from) / (4 + table_rec.ref_type);
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, seven_c_blk.ind2_offset, &block_offset6)) {
             DEBUG_WARN(("internal error (7c.ind2 offset %#x) in reading block id %#"PRIx64"\n", seven_c_blk.ind2_offset, block_id));
@@ -1602,6 +1602,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         }
         ind2_ptr = block_offset6.from;
         ind2_end = block_offset6.to;
+        DEBUG_INFO(("7cec block index2 pointer %#x and end %#x\n", ind2_ptr, ind2_end));
     }
     else {
         DEBUG_WARN(("ERROR: Unknown block constant - %#hx for id %#"PRIx64"\n", block_hdr.type, block_id));
@@ -1610,24 +1611,25 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         return NULL;
     }
 
-    DEBUG_INFO(("Mallocing number of records %i\n", num_recs));
-    for (count_rec=0; count_rec<num_recs; count_rec++) {
+    DEBUG_INFO(("found %i mapi objects each with %i mapi elements\n", num_mapi_objects, num_mapi_elements));
+    for (count_mapi_objects=0; count_mapi_objects<num_mapi_objects; count_mapi_objects++) {
+        // put another mapi object on the linked list
         mo_ptr = (pst_mapi_object*) pst_malloc(sizeof(pst_mapi_object));
         memset(mo_ptr, 0, sizeof(pst_mapi_object));
         mo_ptr->next = mo_head;
         mo_head = mo_ptr;
-        // allocate an array of count num_recs to contain sizeof(pst_mapi_element)
-        mo_ptr->elements        = (pst_mapi_element**) pst_malloc(sizeof(pst_mapi_element)*num_list);
-        mo_ptr->count_elements  = num_list;
-        mo_ptr->orig_count      = num_list;
-        mo_ptr->count_objects   = (int32_t)num_recs; // each record will have a record of the total number of records
-        for (x=0; x<num_list; x++) mo_ptr->elements[x] = NULL;
-        x = 0;
+        // allocate the array of mapi elements
+        mo_ptr->elements        = (pst_mapi_element**) pst_malloc(sizeof(pst_mapi_element)*num_mapi_elements);
+        mo_ptr->count_elements  = num_mapi_elements;
+        mo_ptr->orig_count      = num_mapi_elements;
+        mo_ptr->count_objects   = (int32_t)num_mapi_objects; // each record will have a record of the total number of records
+        for (x=0; x<num_mapi_elements; x++) mo_ptr->elements[x] = NULL;
 
-        DEBUG_INFO(("going to read %i (%#x) items\n", mo_ptr->count_elements, mo_ptr->count_elements));
+        DEBUG_INFO(("going to read %i mapi elements for mapi object %i\n", num_mapi_elements, count_mapi_objects));
 
-        fr_ptr = list_start; // initialize fr_ptr to the start of the list.
-        for (cur_list=0; cur_list<num_list; cur_list++) { //we will increase fr_ptr as we progress through index
+        fr_ptr = list_start;    // initialize fr_ptr to the start of the list.
+        x = 0;                  // x almost tracks count_mapi_elements, but see 'continue' statement below
+        for (count_mapi_elements=0; count_mapi_elements<num_mapi_elements; count_mapi_elements++) { //we will increase fr_ptr as we progress through index
             char* value_pointer = NULL;     // needed for block type 2 with values larger than 4 bytes
             size_t value_size = 0;
             if (block_type == 1) {
@@ -1642,6 +1644,8 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 LE16_CPU(table2_rec.ref_type);
                 LE16_CPU(table2_rec.type);
                 LE16_CPU(table2_rec.ind2_off);
+                DEBUG_INFO(("reading element %i (type=%#x, ref_type=%#x, offset=%#x, size=%#x)\n",
+                    x, table2_rec.type, table2_rec.ref_type, table2_rec.ind2_off, table2_rec.size));
 
                 // table_rec and table2_rec are arranged differently, so assign the values across
                 table_rec.type     = table2_rec.type;
@@ -1671,7 +1675,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 DEBUG_RET();
                 return NULL;
             }
-            DEBUG_INFO(("reading block %i (type=%#x, ref_type=%#x, value=%#x)\n",
+            DEBUG_INFO(("reading element %i (type=%#x, ref_type=%#x, value=%#x)\n",
                 x, table_rec.type, table_rec.ref_type, table_rec.value));
 
             if (!mo_ptr->elements[x]) {
@@ -2531,7 +2535,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     LIST_COPY_FOLDER_INT32("Associated Content count", item->folder->assoc_count);
                     break;
                 case 0x3701: // PR_ATTACH_DATA_OBJ binary data of attachment
-                    DEBUG_INFO(("Binary Data [Size %i] - ", list->elements[x]->size));
+                    DEBUG_INFO(("Binary Data [Size %i]\n", list->elements[x]->size));
                     NULL_CHECK(attach);
                     if (!list->elements[x]->data) { //special case
                         attach->id2_val = list->elements[x]->type;
@@ -2825,13 +2829,12 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     DEBUG_HEXDUMP(item->predecessor_change.data, item->predecessor_change.size);
                     break;
                 case 0x67F2: // ID2 value of the attachments proper record
-                    DEBUG_INFO(("Attachment ID2 value - "));
                     if (attach) {
                         uint32_t tempid;
                         memcpy(&(tempid), list->elements[x]->data, sizeof(tempid));
                         LE32_CPU(tempid);
                         attach->id2_val = tempid;
-                        DEBUG_INFO(("%#"PRIx64"\n", attach->id2_val));
+                        DEBUG_INFO(("Attachment ID2 value - %#"PRIx64"\n", attach->id2_val));
                     } else {
                         DEBUG_WARN(("NOT AN ATTACHMENT: %#x\n", list->elements[x]->mapi_id));
                     }
@@ -3572,7 +3575,7 @@ static int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, ui
     LE16_CPU(p->to);
     DEBUG_WARN(("get block offset finds from=%i(%#x), to=%i(%#x)\n", p->from, p->from, p->to, p->to));
     if (p->from > p->to) {
-        DEBUG_WARN(("get block offset from > to"));
+        DEBUG_WARN(("get block offset from > to\n"));
         DEBUG_RET();
         return 0;
     }
