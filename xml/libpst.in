@@ -35,7 +35,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2009-05-16</date>
+            <date>2009-06-06</date>
         </refentryinfo>
 
         <refmeta>
@@ -228,7 +228,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2009-05-16</date>
+            <date>2009-06-06</date>
         </refentryinfo>
 
         <refmeta>
@@ -323,7 +323,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2009-05-16</date>
+            <date>2009-06-06</date>
         </refentryinfo>
 
         <refmeta>
@@ -380,9 +380,8 @@
                 <varlistentry>
                     <term>-d <replaceable class="parameter">debug-file</replaceable></term>
                     <listitem><para>
-                        Specify name of debug log file. The
-                        log file is not an ascii file, it is a binary file readable
-                        by <command>readpstlog</command>.
+                        Specify name of debug log file. The log file is now an ascii file,
+                        instead of the binary file used in previous versions.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -492,7 +491,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2009-05-16</date>
+            <date>2009-06-06</date>
         </refentryinfo>
 
         <refmeta>
@@ -561,9 +560,8 @@
                 <varlistentry>
                     <term>-d <replaceable class="parameter">debug-file</replaceable></term>
                     <listitem><para>
-                        Specify name of debug log file. The
-                        log file is not an ascii file, it is a binary file readable
-                        by <command>readpstlog</command>.
+                        Specify name of debug log file. The log file is now an ascii file,
+                        instead of the binary file used in previous versions.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -626,7 +624,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2009-05-16</date>
+            <date>2009-06-06</date>
         </refentryinfo>
 
         <refmeta>
