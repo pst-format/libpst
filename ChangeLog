@@ -9,10 +9,12 @@ LibPST 0.6.38 (2009-xx-xx)
     * removed contact->access_method since we don't have a mapi element for it.
     * changed pst_attach_to_mem to return pst_binary structure.
     * decode more recurrence mapi elements.
-    * change interfaces to be thread safe.
+    * change some interfaces to be thread safe.
     * readpst changes for parallel operation on multi processor machines.
     * remove readpstlog - the debug log files are now plain ascii. Add locking
       if needed so parallel jobs can produce debug logs.
+    * more cleanup of the shared library interface, but still not fully
+      thread safe.
 
 LibPST 0.6.37 (2009-04-17)
 ===============================

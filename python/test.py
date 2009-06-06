@@ -1,8 +1,5 @@
 import _libpst, sys
 
-print _libpst.__dict__
-exit
-
 ft = _libpst.FILETIME()
 ft.dwLowDateTime = 0
 ft.dwHighDateTime = 1
@@ -28,7 +25,7 @@ for i in range(1,len(sys.argv)):
                     if (ft):
                         print "message arrived at %s" % (pst.pst_rfc2425_datetime_format(ft))
                     if (em.messageid.str):
-                        print "message id is |%s|" % (em.messageid.str)
+                        print "message id is <%s>" % (em.messageid.str)
                     subj = item.subject;
                     if (subj and subj.str):
                         was = subj.is_utf8;
@@ -46,7 +43,7 @@ for i in range(1,len(sys.argv)):
                         print "attachment id %d" % (attid)
                         att1 = att.filename1
                         att2 = att.filename2
-                        print "attachment file name %s %s" % (att1.str, att2.str)
+                        print "attachment file name short '%s' long '%s'" % (att1.str, att2.str)
                         if (0):
                             attdata = pst.pst_attach_to_mem(att)
                             if (attdata):

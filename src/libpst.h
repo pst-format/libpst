@@ -994,19 +994,6 @@ void            pst_freeItem(pst_item *item);
 pst_index_ll*   pst_getID(pst_file* pf, uint64_t i_id);
 
 
-/** Decrypt a block of data from the pst file.
- * @param i_id identifier of this block, needed as part of the key for the enigma cipher
- * @param buf  pointer to the buffer to be decrypted in place
- * @param size size of the buffer
- * @param type
-    @li 0 PST_NO_ENCRYPT, none
-    @li 1 PST_COMP_ENCRYPT, simple byte substitution cipher with fixed key
-    @li 2 PST_ENCRYPT, german enigma 3 rotor cipher with fixed key
- * @return 0 if ok, -1 if error (NULL buffer or unknown encryption type)
- */
-int             pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
-
-
 /** Get an ID block from the file using pst_ff_getIDblock() and decrypt if necessary.
  * @param pf   pointer to the pst_file structure setup by pst_open().
  * @param i_id ID of block to retrieve
@@ -1015,16 +1002,6 @@ int             pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char
  * @return     Size of block read into memory
  */
 size_t          pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf);
-
-
-/** Read a block of data from the file into memory.
- * @param pf   pointer to the pst_file structure setup by pst_open().
- * @param i_id ID of block to read
- * @param buf  reference to pointer to buffer that will contain the data block.
- *             If this pointer is non-NULL, it will first be free()d.
- * @return     size of block read into memory
- */
-size_t          pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf);
 
 
 /** fwrite with checking for null pointer.

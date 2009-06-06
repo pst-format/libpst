@@ -37,9 +37,7 @@ public:
     pst_item*       pst_parse_item(pst_desc_tree *d_ptr, pst_id2_tree *m_head);
     void            pst_freeItem(pst_item *item);
     pst_index_ll*   pst_getID(uint64_t i_id);
-    int             pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
     size_t          pst_ff_getIDblock_dec(uint64_t i_id, char **buf);
-    size_t          pst_ff_getIDblock(uint64_t i_id, char** buf);
     string          pst_rfc2426_escape(char *str);
     string          pst_rfc2425_datetime_format(const FILETIME *ft);
     string          pst_rfc2445_datetime_format(const FILETIME *ft);
@@ -71,8 +69,8 @@ pst::pst(const string filename) {
     if (is_open) {
         ::pst_load_index(&pf);
         ::pst_load_extended_attributes(&pf);
-        root = ::pst_parse_item(&pf, pf.d_head, NULL);
-        topf = ::pst_getTopOfFolders(&pf, root)->child;
+        if (pf.d_head) root = ::pst_parse_item(&pf, pf.d_head, NULL);
+        if (root)      topf = ::pst_getTopOfFolders(&pf, root)->child;
     }
 }
 
@@ -117,16 +115,8 @@ pst_index_ll*   pst::pst_getID(uint64_t i_id) {
     return ::pst_getID(&pf, i_id);
 }
 
-int             pst::pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type) {
-    return ::pst_decrypt(i_id, buf, size, type);
-}
-
 size_t          pst::pst_ff_getIDblock_dec(uint64_t i_id, char **buf) {
     return ::pst_ff_getIDblock_dec(&pf, i_id, buf);
-}
-
-size_t          pst::pst_ff_getIDblock(uint64_t i_id, char** buf) {
-    return ::pst_ff_getIDblock(&pf, i_id, buf);
 }
 
 string          pst::pst_rfc2426_escape(char *str) {
@@ -614,9 +604,7 @@ BOOST_PYTHON_MODULE(_libpst)
         .def("pst_parse_item",              &pst::pst_parse_item,      return_value_policy<reference_existing_object>())
         .def("pst_freeItem",                &pst::pst_freeItem)
         .def("pst_getID",                   &pst::pst_getID,           return_value_policy<reference_existing_object>())
-        .def("pst_decrypt",                 &pst::pst_decrypt)
         .def("pst_ff_getIDblock_dec",       &pst::pst_ff_getIDblock_dec)
-        .def("pst_ff_getIDblock",           &pst::pst_ff_getIDblock)
         .def("pst_rfc2426_escape",          &pst::pst_rfc2426_escape)
         .def("pst_rfc2425_datetime_format", &pst::pst_rfc2425_datetime_format)
         .def("pst_rfc2445_datetime_format", &pst::pst_rfc2445_datetime_format)

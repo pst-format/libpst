@@ -257,6 +257,7 @@ static pst_id2_tree*    pst_build_id2(pst_file *pf, pst_index_ll* list);
 static int              pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 static int              pst_chr_count(char *str, char x);
 static size_t           pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size_t size);
+static size_t           pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf);
 static size_t           pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_tree *id2_head, char** buf);
 static size_t           pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h);
 static void             pst_free_attach(pst_item_attach *attach);
@@ -278,6 +279,7 @@ static void             pst_printIDptr(pst_file* pf);
 static void             pst_printID2ptr(pst_id2_tree *ptr);
 static int              pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach);
 static size_t           pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
+static int              pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
 static int              pst_stricmp(char *a, char *b);
 static int              pst_strincmp(char *a, char *b, size_t x);
 static char*            pst_wide_to_single(char *wt, size_t size);
@@ -3508,11 +3510,11 @@ void pst_freeItem(pst_item *item) {
 
 
 /**
-  * The offset might be zero, in which case we have no data, so return a pair of null pointers.
-  * Or, the offset might end in 0xf, so it is an id2 pointer, in which case we read the id2 block.
-  * Otherwise, the high order 16 bits of offset is the index into the subblocks, and
-  * the (low order 16 bits of offset)>>4 is an index into the table of offsets in the subblock.
-*/
+ * The offset might be zero, in which case we have no data, so return a pair of null pointers.
+ * Or, the offset might end in 0xf, so it is an id2 pointer, in which case we read the id2 block.
+ * Otherwise, the high order 16 bits of offset is the index into the subblocks, and
+ * the (low order 16 bits of offset)>>4 is an index into the table of offsets in the subblock.
+ */
 static int pst_getBlockOffsetPointer(pst_file *pf, pst_id2_tree *i2_head, pst_subblocks *subblocks, uint32_t offset, pst_block_offset_pointer *p) {
     size_t size;
     pst_block_offset block_offset;
@@ -3560,6 +3562,7 @@ static int pst_getBlockOffsetPointer(pst_file *pf, pst_id2_tree *i2_head, pst_su
 }
 
 
+/** */
 static int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, uint32_t offset, pst_block_offset *p) {
     uint32_t low = offset & 0xf;
     uint32_t of1 = offset >> 4;
@@ -3584,6 +3587,7 @@ static int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, ui
 }
 
 
+/** */
 pst_index_ll* pst_getID(pst_file* pf, uint64_t i_id) {
     pst_index_ll *ptr;
     DEBUG_ENT("pst_getID");
@@ -3735,7 +3739,17 @@ static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, cha
 }
 
 
-int pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type) {
+/** Decrypt a block of data from the pst file.
+ * @param i_id identifier of this block, needed as part of the key for the enigma cipher
+ * @param buf  pointer to the buffer to be decrypted in place
+ * @param size size of the buffer
+ * @param type
+    @li 0 PST_NO_ENCRYPT, none
+    @li 1 PST_COMP_ENCRYPT, simple byte substitution cipher with fixed key
+    @li 2 PST_ENCRYPT, german enigma 3 rotor cipher with fixed key
+ * @return 0 if ok, -1 if error (NULL buffer or unknown encryption type)
+ */
+static int pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type) {
     size_t x = 0;
     unsigned char y;
     DEBUG_ENT("pst_decrypt");
@@ -3889,7 +3903,7 @@ size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf) {
  *             If this pointer is non-NULL, it will first be free()d.
  * @return     size of block read into memory
  */
-size_t pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf) {
+static size_t pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf) {
     pst_index_ll *rec;
     size_t rsize;
     DEBUG_ENT("pst_ff_getIDblock");
