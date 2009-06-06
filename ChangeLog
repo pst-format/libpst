@@ -15,6 +15,8 @@ LibPST 0.6.38 (2009-xx-xx)
       if needed so parallel jobs can produce debug logs.
     * more cleanup of the shared library interface, but still not fully
       thread safe.
+    * make nested mime multipart/alternative to hold the text/html parts
+      so the topmost level is almost always multipart/mixed.
 
 LibPST 0.6.37 (2009-04-17)
 ===============================

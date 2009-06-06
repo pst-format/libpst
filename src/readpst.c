@@ -186,7 +186,7 @@ pid_t try_fork(char *folder)
         }
         else {
             // fork worked, and we are the parent, record this child that we need to wait for
-            pid_t me = getpid();
+            //pid_t me = getpid();
             //printf("parent %d forked child pid %d to process folder %s\n", me, child, folder);
             //fflush(stdout);
             child_processes[active_children++] = child;
@@ -1216,6 +1216,8 @@ void write_schedule_part(FILE* f_output, pst_item* item, const char* sender, con
 void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers)
 {
     char boundary[60];
+    char altboundary[66];
+    char *altboundaryp = NULL;
     char body_charset[60];
     char body_report[60];
     char sender[60];
@@ -1259,8 +1261,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     } else
         c_time= "Fri Dec 28 12:06:21 2001";
 
-    // create our MIME boundary here.
+    // create our MIME boundaries here.
     snprintf(boundary, sizeof(boundary), "--boundary-LibPST-iamunique-%i_-_-", rand());
+    snprintf(altboundary, sizeof(altboundary), "alt-%s", boundary);
 
     // we will always look at the headers to discover some stuff
     if (headers ) {
@@ -1399,31 +1402,39 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         // multipart/report for DSN/MDN reports
         fprintf(f_output, "Content-Type: multipart/report; report-type=%s;\n\tboundary=\"%s\"\n", body_report, boundary);
     }
-    else if (item->attach || (item->email->rtf_compressed.data && save_rtf)
-                          || item->email->encrypted_body.data
-                          || item->email->encrypted_htmlbody.data
-                          || (item->type == PST_TYPE_SCHEDULE)) {
-        // use multipart/mixed if we have attachments
+    else {
         fprintf(f_output, "Content-Type: multipart/mixed;\n\tboundary=\"%s\"\n", boundary);
-    } else {
-        // else use multipart/alternative
-        fprintf(f_output, "Content-Type: multipart/alternative;\n\tboundary=\"%s\"\n", boundary);
     }
     fprintf(f_output, "\n");    // end of headers, start of body
 
     // now dump the body parts
-    if (item->body.str) {
-        write_body_part(f_output, &item->body, "text/plain", body_charset, boundary, pst);
-    }
-
     if ((item->email->report_text.str) && (body_report[0] != '\0')) {
         write_body_part(f_output, &item->email->report_text, "text/plain", body_charset, boundary, pst);
         fprintf(f_output, "\n");
     }
 
+    if (item->body.str && item->email->htmlbody.str) {
+        // start the nested alternative part
+        fprintf(f_output, "\n--%s\n", boundary);
+        fprintf(f_output, "Content-Type: multipart/alternative;\n\tboundary=\"%s\"\n", altboundary);
+        altboundaryp = altboundary;
+    }
+    else {
+        altboundaryp = boundary;
+    }
+
+    if (item->body.str) {
+        write_body_part(f_output, &item->body, "text/plain", body_charset, altboundaryp, pst);
+    }
+
     if (item->email->htmlbody.str) {
         find_html_charset(item->email->htmlbody.str, body_charset, sizeof(body_charset));
-        write_body_part(f_output, &item->email->htmlbody, "text/html", body_charset, boundary, pst);
+        write_body_part(f_output, &item->email->htmlbody, "text/html", body_charset, altboundaryp, pst);
+    }
+
+    if (item->body.str && item->email->htmlbody.str) {
+        // end the nested alternative part
+        fprintf(f_output, "\n--%s--\n", altboundary);
     }
 
     if (item->email->rtf_compressed.data && save_rtf) {
@@ -1439,32 +1450,28 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         attach->mimetype.is_utf8  = 1;
     }
 
-    if (item->email->encrypted_body.data || item->email->encrypted_htmlbody.data) {
-        // if either the body or htmlbody is encrypted, add them as attachments
-        if (item->email->encrypted_body.data) {
-            pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
-            DEBUG_INFO(("Adding Encrypted Body as attachment\n"));
-            attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
-            memset(attach, 0, sizeof(pst_item_attach));
-            attach->next = item->attach;
-            item->attach = attach;
-            attach->data.data = item->email->encrypted_body.data;
-            attach->data.size = item->email->encrypted_body.size;
-            item->email->encrypted_body.data = NULL;
-        }
+    if (item->email->encrypted_body.data) {
+        pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
+        DEBUG_INFO(("Adding encrypted text body as attachment\n"));
+        attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
+        memset(attach, 0, sizeof(pst_item_attach));
+        attach->next = item->attach;
+        item->attach = attach;
+        attach->data.data = item->email->encrypted_body.data;
+        attach->data.size = item->email->encrypted_body.size;
+        item->email->encrypted_body.data = NULL;
+    }
 
-        if (item->email->encrypted_htmlbody.data) {
-            pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
-            DEBUG_INFO(("Adding encrypted HTML body as attachment\n"));
-            attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
-            memset(attach, 0, sizeof(pst_item_attach));
-            attach->next = item->attach;
-            item->attach = attach;
-            attach->data.data = item->email->encrypted_htmlbody.data;
-            attach->data.size = item->email->encrypted_htmlbody.size;
-            item->email->encrypted_htmlbody.data = NULL;
-        }
-        write_email_body(f_output, "The body of this email is encrypted. This isn't supported yet, but the body is now an attachment\n");
+    if (item->email->encrypted_htmlbody.data) {
+        pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
+        DEBUG_INFO(("Adding encrypted HTML body as attachment\n"));
+        attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
+        memset(attach, 0, sizeof(pst_item_attach));
+        attach->next = item->attach;
+        item->attach = attach;
+        attach->data.data = item->email->encrypted_htmlbody.data;
+        attach->data.size = item->email->encrypted_htmlbody.size;
+        item->email->encrypted_htmlbody.data = NULL;
     }
 
     if (item->type == PST_TYPE_SCHEDULE) {
@@ -1494,7 +1501,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         }
     }
 
-    fprintf(f_output, "\n--%s--\n\n\n", boundary);
+    fprintf(f_output, "\n--%s--\n\n", boundary);
     DEBUG_RET();
 }
 
