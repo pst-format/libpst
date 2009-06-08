@@ -466,7 +466,11 @@ int main(int argc, char* const* argv) {
         // force a log file
         if (!d_log) d_log = "readpst.log";
     #endif // defined DEBUG_ALL
-    DEBUG_INIT(d_log, output_mutex);
+    #ifdef HAVE_SEMAPHORE_H
+        DEBUG_INIT(d_log, output_mutex);
+    #else
+        DEBUG_INIT(d_log, NULL);
+    #endif
     DEBUG_ENT("main");
 
     if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");

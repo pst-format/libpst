@@ -17,6 +17,7 @@ LibPST 0.6.38 (2009-xx-xx)
     * make nested mime multipart/alternative to hold the text/html parts
       so the topmost level is almost always multipart/mixed.
     * the shared library interface should now be thread safe.
+    * patch from Fridrich Strba to build on win32.
 
 LibPST 0.6.37 (2009-04-17)
 ===============================
