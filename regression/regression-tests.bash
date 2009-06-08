@@ -20,10 +20,10 @@ function dodii()
 {
     n="$1"
     fn="$2"
+    echo $fn
     rm -rf output$n
     mkdir output$n
-    $val ../src/pst2dii -f /usr/share/fonts/bitstream-vera/VeraMono.ttf -B "bates-" -o output$n -O mydii$n -d dumper $fn >$fn.dii.err 2>&1
-         ../src/readpstlog -f I dumper >$fn.log
+    $val ../src/pst2dii -f /usr/share/fonts/bitstream-vera/VeraMono.ttf -B "bates-" -o output$n -O mydii$n -d $fn.log $fn >$fn.dii.err 2>&1
     rm -f dumper
 }
 
@@ -36,9 +36,7 @@ function doldif()
     ba=$(basename "$fn" .pst)
     rm -rf output$n
     mkdir output$n
-    #$val ../src/pst2ldif -d dumper -b 'o=ams-cc.com, c=US' -c 'newPerson' -o $fn >$ba.ldif.err 2>&1
-    $val ../src/pst2ldif -d dumper -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$ba.ldif.err 2>&1
-         ../src/readpstlog -f I dumper >$ba.ldif.log
+    $val ../src/pst2ldif -d $ba.ldif.log -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$ba.ldif.err 2>&1
     rm -f dumper
 }
 
@@ -101,6 +99,7 @@ else
     dopst   2 sample_64.pst
     dopst   3 test.pst
     dopst   4 big_mail.pst
+    exit
     dopst   5 mbmg.archive.pst
     dopst   6 Single2003-read.pst
     dopst   7 Single2003-unread.pst

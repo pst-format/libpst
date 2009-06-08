@@ -202,7 +202,7 @@ static string write_separate_attachment(string fname, pst_item_attach* current_a
     }
     DEBUG_INFO(("Saving attachment to %s\n", temp));
     if (!(fp = fopen(temp, "wb"))) {
-        WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
+        DEBUG_WARN(("write_separate_attachment: Cannot open attachment save file \"%s\"\n", temp));
     } else {
         (void)pst_attach_to_file(pst, current_attach, fp);
         fclose(fp);
@@ -563,13 +563,15 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     fprintf(dii_file, "@EMAIL-END\n");
 
     int attach_num = 0;
-    for (pst_item_attach* current_attach = item->attach; current_attach; current_attach = current_attach->next) {
+    for (pst_item_attach* attach = item->attach; attach; attach = attach->next) {
+        pst_convert_utf8_null(item, &attach->filename1);
+        pst_convert_utf8_null(item, &attach->filename2);
+        pst_convert_utf8_null(item, &attach->mimetype);
         DEBUG_INFO(("Attempting Attachment encoding\n"));
-        if (!current_attach->data.data) {
-            DEBUG_WARN(("Data of attachment is NULL!. Size is supposed to be %i\n", current_attach->data.size));
+        if (attach->data.data || attach->i_id) {
+            string an = write_separate_attachment(f.name, attach, ++attach_num, pst);
+            fprintf(dii_file, "@EATTACH %s\n", an.c_str());
         }
-        string an = write_separate_attachment(f.name, current_attach, ++attach_num, pst);
-        fprintf(dii_file, "@EATTACH %s\n", an.c_str());
     }
     close_pdf();
     fprintf(dii_file, "@BATESBEG %d\n", bates);
@@ -581,8 +583,7 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
 static void create_enter_dir(file_ll &f, file_ll *parent, pst_item *item);
 static void create_enter_dir(file_ll &f, file_ll *parent, pst_item *item)
 {
-    f.email_count  = 0;
-    f.skip_count   = 0;
+    pst_convert_utf8(item, &item->file_as);
     f.type         = item->type;
     f.stored_count = (item->folder) ? item->folder->item_count : 0;
     f.name         = ((parent) ? parent->name + "/" : "") + string(item->file_as.str);
@@ -602,22 +603,21 @@ static void process(pst_item *outeritem, file_ll *parent, pst_desc_tree *d_ptr)
     pst_item *item = NULL;
     DEBUG_ENT("process");
     create_enter_dir(ff, parent, outeritem);
-    while (d_ptr) {
+    for (; d_ptr; d_ptr = d_ptr->next) {
         if (d_ptr->desc) {
             item = pst_parse_item(&pstfile, d_ptr, NULL);
             DEBUG_INFO(("item pointer is %p\n", item));
             if (item) {
-                if (item->folder && d_ptr->child )  {
+                if (item->folder && item->file_as.str && d_ptr->child )  {
                     //if this is a non-empty folder, we want to recurse into it
                     fprintf(stderr, "entering folder %s\n", item->file_as.str);
                     process(item, &ff, d_ptr->child);
-                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_REPORT || item->type == PST_TYPE_OTHER)) {
+                } else if (item->email && (item->type == PST_TYPE_NOTE || item->type == PST_TYPE_SCHEDULE || item->type == PST_TYPE_REPORT)) {
                     ff.email_count++;
-                    DEBUG_INFO(("Processing Email\n"));
-                    if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_REPORT) && (ff.type != PST_TYPE_OTHER)) {
-                        DEBUG_INFO(("I have an email, but the folder isn't an email folder. Processing anyway\n"));
-                    }
                     write_normal_email(ff, item, &pstfile);
+                }
+                else {
+                    ff.skip_count++;    // other mapi objects
                 }
                 pst_freeItem(item);
             } else {
@@ -625,7 +625,6 @@ static void process(pst_item *outeritem, file_ll *parent, pst_desc_tree *d_ptr)
                 DEBUG_INFO(("A NULL item was seen\n"));
             }
         }
-        d_ptr = d_ptr->next;
     }
     close_enter_dir(ff);
     DEBUG_RET();

@@ -1808,8 +1808,6 @@ void write_appointment(FILE* f_output, pst_item* item, int event_open)
 void create_enter_dir(struct file_ll* f, pst_item *item)
 {
     pst_convert_utf8(item, &item->file_as);
-    f->item_count  = 0;
-    f->skip_count   = 0;
     f->type         = item->type;
     f->stored_count = (item->folder) ? item->folder->item_count : 0;
 
