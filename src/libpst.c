@@ -4143,9 +4143,9 @@ static char* pst_wide_to_single(char *wt, size_t size) {
 }
 
 
-char* pst_rfc2426_escape(char *str) {
-    static char*  buf    = NULL;
-    static size_t buflen = 0;
+char* pst_rfc2426_escape(char* str, char **buf, size_t* buflen) {
+    //static char*  buf    = NULL;
+    //static size_t buflen = 0;
     char *ret, *a, *b;
     size_t x = 0;
     int y, z;
@@ -4162,12 +4162,12 @@ char* pst_rfc2426_escape(char *str) {
         ret = str;
     else {
         x = strlen(str) + y - z + 1; // don't forget room for the NUL
-        if (x > buflen) {
-            buf = (char*) realloc(buf, x);
-            buflen = x;
+        if (x > *buflen) {
+            *buf = (char*) realloc(*buf, x);
+            *buflen = x;
         }
         a = str;
-        b = buf;
+        b = *buf;
         while (*a != '\0') {
             switch (*a) {
             case ',' :
@@ -4190,7 +4190,7 @@ char* pst_rfc2426_escape(char *str) {
             a++;
         }
         *b = '\0'; // NUL-terminate the string (buf)
-        ret = buf;
+        ret = *buf;
     }
     DEBUG_RET();
     return ret;
@@ -4247,12 +4247,13 @@ char* pst_rfc2445_datetime_format_now(int buflen, char* result) {
 /** Convert a code page integer into a string suitable for iconv()
  *
  *  @param cp the code page integer used in the pst file
+ *  @param[in]  buflen  length of the output buffer
+ *  @param[out] result  pointer to output buffer, must be at least 30 bytes
  *  @return pointer to a static buffer holding the string representation of the
  *          equivalent iconv character set
  */
-static const char* codepage(int cp);
-static const char* codepage(int cp) {
-    static char buffer[20];
+static const char* codepage(int cp, int buflen, char* result);
+static const char* codepage(int cp, int buflen, char* result) {
     switch (cp) {
         case   932 : return "iso-2022-jp";
         case   936 : return "gb2313";
@@ -4283,8 +4284,8 @@ static const char* codepage(int cp) {
         case 65000 : return "utf-7";
         case 65001 : return "utf-8";
         default :
-            snprintf(buffer, sizeof(buffer), "windows-%d", cp);
-            return buffer;
+            snprintf(result, buflen, "windows-%d", cp);
+            return result;
     }
     return NULL;
 }
@@ -4293,12 +4294,14 @@ static const char* codepage(int cp) {
 /** Get the default character set for this item. This is used to find
  *  the charset for pst_string elements that are not already in utf8 encoding.
  *  @param  item   pointer to the mapi item of interest
+ *  @param[in]  buflen  length of the output buffer
+ *  @param[out] result  pointer to output buffer, must be at least 30 bytes
  *  @return default character set as a string useable by iconv()
  */
-const char*    pst_default_charset(pst_item *item) {
+const char*    pst_default_charset(pst_item *item, int buflen, char* result) {
     return (item->body_charset.str) ? item->body_charset.str :
-           (item->message_codepage) ? codepage(item->message_codepage) :
-           (item->internet_cpid)    ? codepage(item->internet_cpid) :
+           (item->message_codepage) ? codepage(item->message_codepage, buflen, result) :
+           (item->internet_cpid)    ? codepage(item->internet_cpid, buflen, result) :
            "utf-8";
 }
 
@@ -4320,12 +4323,13 @@ void pst_convert_utf8_null(pst_item *item, pst_string *str) {
  *  @param str   pointer to the mapi string of interest
  */
 void pst_convert_utf8(pst_item *item, pst_string *str) {
+    char buffer[30];
     if (str->is_utf8) return;
     if (!str->str) {
         str->str = strdup("");
         return;
     }
-    const char *charset = pst_default_charset(item);
+    const char *charset = pst_default_charset(item, sizeof(buffer), buffer);
     if (!strcasecmp("utf-8", charset)) return;  // already utf8
     DEBUG_ENT("pst_convert_utf8");
     pst_vbuf *newer = pst_vballoc(2);

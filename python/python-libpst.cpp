@@ -120,7 +120,12 @@ size_t          pst::pst_ff_getIDblock_dec(uint64_t i_id, char **buf) {
 }
 
 string          pst::pst_rfc2426_escape(char *str) {
-    return ::pst_rfc2426_escape(str);
+    char  *result = NULL;
+    size_t resultlen = 0;
+    char  *rc = ::pst_rfc2426_escape(str, &result, &resultlen);
+    string rrc(rc);
+    if (result) free(result);
+    return rrc;
 }
 
 string          pst::pst_rfc2425_datetime_format(const FILETIME *ft) {
@@ -136,7 +141,8 @@ string          pst::pst_rfc2445_datetime_format(const FILETIME *ft) {
 }
 
 string          pst::pst_default_charset(pst_item *item) {
-    return ::pst_default_charset(item);
+    char buf[30];
+    return string(::pst_default_charset(item, sizeof(buf), buf));
 }
 
 void            pst::pst_convert_utf8_null(pst_item *item, pst_string *str) {

@@ -1015,13 +1015,14 @@ size_t          pst_fwrite(const void* ptr, size_t size, size_t nmemb, FILE* str
 
 
 /** Add any necessary escape characters for rfc2426 vcard format
- * @param str pointer to input string
+ * @param[in]     str       pointer to input string
+ * @param[in,out] result    pointer to a char* pointer that may be realloc'ed if needed
+ * @param[in,out] resultlen size of the result buffer
  * @return    pointer to output string, either the input pointer if
  *            there are no characters that need escapes, or a pointer
- *            to a different buffer containing the escaped string. In
- *            either case, you don't need to free this returned pointer.
+ *            to a possibly realloc'ed result buffer.
  */
-char*           pst_rfc2426_escape(char *str);
+char*           pst_rfc2426_escape(char* str, char** result, size_t* resultlen);
 
 
 /** Convert a FILETIME into rfc2425 date/time format 1953-10-15T23:10:00Z
@@ -1035,7 +1036,7 @@ char*           pst_rfc2425_datetime_format(const FILETIME* ft, int buflen, char
 
 
 /** Convert a FILETIME into rfc2445 date/time format 19531015T231000Z
- * @param[in]  ft time to be converted
+ * @param[in]  ft      time to be converted
  * @param[in]  buflen  length of the output buffer
  * @param[out] result  pointer to output buffer, must be at least 30 bytes
  * @return   time in rfc2445 format
@@ -1044,6 +1045,8 @@ char*           pst_rfc2445_datetime_format(const FILETIME* ft, int buflen, char
 
 
 /** Convert the current time rfc2445 date/time format 19531015T231000Z
+ * @param[in]  buflen  length of the output buffer
+ * @param[out] result  pointer to output buffer, must be at least 30 bytes
  * @return   time in rfc2445 format
  */
 char*           pst_rfc2445_datetime_format_now(int buflen, char* result);
@@ -1051,10 +1054,12 @@ char*           pst_rfc2445_datetime_format_now(int buflen, char* result);
 
 /** Get the default character set for this item. This is used to find
  *  the charset for pst_string elements that are not already in utf8 encoding.
- * @param  item   pointer to the mapi item of interest
+ * @param      item    pointer to the mapi item of interest
+ * @param[in]  buflen  length of the output buffer
+ * @param[out] result  pointer to output buffer, must be at least 30 bytes
  * @return default character set as a string useable by iconv()
  */
-const char*     pst_default_charset(pst_item *item);
+const char*     pst_default_charset(pst_item *item, int buflen, char* result);
 
 
 /** Convert str to utf8 if possible; null strings are preserved.

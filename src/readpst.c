@@ -1218,7 +1218,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     char boundary[60];
     char altboundary[66];
     char *altboundaryp = NULL;
-    char body_charset[60];
+    char body_charset[30];
+    char buffer_charset[30];
     char body_report[60];
     char sender[60];
     int  sender_known = 0;
@@ -1234,7 +1235,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     headers = (item->email->header.str) ? item->email->header.str : *extra_mime_headers;
 
     // setup default body character set and report type
-    strncpy(body_charset, pst_default_charset(item), sizeof(body_charset));
+    strncpy(body_charset, pst_default_charset(item, sizeof(buffer_charset), buffer_charset), sizeof(body_charset));
     body_charset[sizeof(body_charset)-1] = '\0';
     body_report[0] = '\0';
 
@@ -1506,9 +1507,11 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 }
 
 
-void write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char comment[])
+void write_vcard(FILE* f_output, pst_item* item, pst_item_contact* contact, char comment[])
 {
-    char time_buffer[30];
+    char*  result = NULL;
+    size_t resultlen = 0;
+    char   time_buffer[30];
     // We can only call rfc escape once per printf, since the second call
     // may free the buffer returned by the first call.
     // I had tried to place those into a single printf - Carl.
@@ -1570,96 +1573,99 @@ void write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char
 
     // the specification I am following is (hopefully) RFC2426 vCard Mime Directory Profile
     fprintf(f_output, "BEGIN:VCARD\n");
-    fprintf(f_output, "FN:%s\n", pst_rfc2426_escape(contact->fullname.str));
+    fprintf(f_output, "FN:%s\n", pst_rfc2426_escape(contact->fullname.str, &result, &resultlen));
 
     //fprintf(f_output, "N:%s;%s;%s;%s;%s\n",
-    fprintf(f_output, "N:%s;", (!contact->surname.str)             ? "" : pst_rfc2426_escape(contact->surname.str));
-    fprintf(f_output, "%s;",   (!contact->first_name.str)          ? "" : pst_rfc2426_escape(contact->first_name.str));
-    fprintf(f_output, "%s;",   (!contact->middle_name.str)         ? "" : pst_rfc2426_escape(contact->middle_name.str));
-    fprintf(f_output, "%s;",   (!contact->display_name_prefix.str) ? "" : pst_rfc2426_escape(contact->display_name_prefix.str));
-    fprintf(f_output, "%s\n",  (!contact->suffix.str)              ? "" : pst_rfc2426_escape(contact->suffix.str));
+    fprintf(f_output, "N:%s;", (!contact->surname.str)             ? "" : pst_rfc2426_escape(contact->surname.str, &result, &resultlen));
+    fprintf(f_output, "%s;",   (!contact->first_name.str)          ? "" : pst_rfc2426_escape(contact->first_name.str, &result, &resultlen));
+    fprintf(f_output, "%s;",   (!contact->middle_name.str)         ? "" : pst_rfc2426_escape(contact->middle_name.str, &result, &resultlen));
+    fprintf(f_output, "%s;",   (!contact->display_name_prefix.str) ? "" : pst_rfc2426_escape(contact->display_name_prefix.str, &result, &resultlen));
+    fprintf(f_output, "%s\n",  (!contact->suffix.str)              ? "" : pst_rfc2426_escape(contact->suffix.str, &result, &resultlen));
 
     if (contact->nickname.str)
-        fprintf(f_output, "NICKNAME:%s\n", pst_rfc2426_escape(contact->nickname.str));
+        fprintf(f_output, "NICKNAME:%s\n", pst_rfc2426_escape(contact->nickname.str, &result, &resultlen));
     if (contact->address1.str)
-        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address1.str));
+        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address1.str, &result, &resultlen));
     if (contact->address2.str)
-        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address2.str));
+        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address2.str, &result, &resultlen));
     if (contact->address3.str)
-        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address3.str));
+        fprintf(f_output, "EMAIL:%s\n", pst_rfc2426_escape(contact->address3.str, &result, &resultlen));
     if (contact->birthday)
         fprintf(f_output, "BDAY:%s\n", pst_rfc2425_datetime_format(contact->birthday, sizeof(time_buffer), time_buffer));
 
     if (contact->home_address.str) {
         //fprintf(f_output, "ADR;TYPE=home:%s;%s;%s;%s;%s;%s;%s\n",
-        fprintf(f_output, "ADR;TYPE=home:%s;",  (!contact->home_po_box.str)      ? "" : pst_rfc2426_escape(contact->home_po_box.str));
+        fprintf(f_output, "ADR;TYPE=home:%s;",  (!contact->home_po_box.str)      ? "" : pst_rfc2426_escape(contact->home_po_box.str, &result, &resultlen));
         fprintf(f_output, "%s;",                ""); // extended Address
-        fprintf(f_output, "%s;",                (!contact->home_street.str)      ? "" : pst_rfc2426_escape(contact->home_street.str));
-        fprintf(f_output, "%s;",                (!contact->home_city.str)        ? "" : pst_rfc2426_escape(contact->home_city.str));
-        fprintf(f_output, "%s;",                (!contact->home_state.str)       ? "" : pst_rfc2426_escape(contact->home_state.str));
-        fprintf(f_output, "%s;",                (!contact->home_postal_code.str) ? "" : pst_rfc2426_escape(contact->home_postal_code.str));
-        fprintf(f_output, "%s\n",               (!contact->home_country.str)     ? "" : pst_rfc2426_escape(contact->home_country.str));
-        fprintf(f_output, "LABEL;TYPE=home:%s\n", pst_rfc2426_escape(contact->home_address.str));
+        fprintf(f_output, "%s;",                (!contact->home_street.str)      ? "" : pst_rfc2426_escape(contact->home_street.str, &result, &resultlen));
+        fprintf(f_output, "%s;",                (!contact->home_city.str)        ? "" : pst_rfc2426_escape(contact->home_city.str, &result, &resultlen));
+        fprintf(f_output, "%s;",                (!contact->home_state.str)       ? "" : pst_rfc2426_escape(contact->home_state.str, &result, &resultlen));
+        fprintf(f_output, "%s;",                (!contact->home_postal_code.str) ? "" : pst_rfc2426_escape(contact->home_postal_code.str, &result, &resultlen));
+        fprintf(f_output, "%s\n",               (!contact->home_country.str)     ? "" : pst_rfc2426_escape(contact->home_country.str, &result, &resultlen));
+        fprintf(f_output, "LABEL;TYPE=home:%s\n", pst_rfc2426_escape(contact->home_address.str, &result, &resultlen));
     }
 
     if (contact->business_address.str) {
         //fprintf(f_output, "ADR;TYPE=work:%s;%s;%s;%s;%s;%s;%s\n",
-        fprintf(f_output, "ADR;TYPE=work:%s;",  (!contact->business_po_box.str)      ? "" : pst_rfc2426_escape(contact->business_po_box.str));
+        fprintf(f_output, "ADR;TYPE=work:%s;",  (!contact->business_po_box.str)      ? "" : pst_rfc2426_escape(contact->business_po_box.str, &result, &resultlen));
         fprintf(f_output, "%s;",                ""); // extended Address
-        fprintf(f_output, "%s;",                (!contact->business_street.str)      ? "" : pst_rfc2426_escape(contact->business_street.str));
-        fprintf(f_output, "%s;",                (!contact->business_city.str)        ? "" : pst_rfc2426_escape(contact->business_city.str));
-        fprintf(f_output, "%s;",                (!contact->business_state.str)       ? "" : pst_rfc2426_escape(contact->business_state.str));
-        fprintf(f_output, "%s;",                (!contact->business_postal_code.str) ? "" : pst_rfc2426_escape(contact->business_postal_code.str));
-        fprintf(f_output, "%s\n",               (!contact->business_country.str)     ? "" : pst_rfc2426_escape(contact->business_country.str));
-        fprintf(f_output, "LABEL;TYPE=work:%s\n", pst_rfc2426_escape(contact->business_address.str));
+        fprintf(f_output, "%s;",                (!contact->business_street.str)      ? "" : pst_rfc2426_escape(contact->business_street.str, &result, &resultlen));
+        fprintf(f_output, "%s;",                (!contact->business_city.str)        ? "" : pst_rfc2426_escape(contact->business_city.str, &result, &resultlen));
+        fprintf(f_output, "%s;",                (!contact->business_state.str)       ? "" : pst_rfc2426_escape(contact->business_state.str, &result, &resultlen));
+        fprintf(f_output, "%s;",                (!contact->business_postal_code.str) ? "" : pst_rfc2426_escape(contact->business_postal_code.str, &result, &resultlen));
+        fprintf(f_output, "%s\n",               (!contact->business_country.str)     ? "" : pst_rfc2426_escape(contact->business_country.str, &result, &resultlen));
+        fprintf(f_output, "LABEL;TYPE=work:%s\n", pst_rfc2426_escape(contact->business_address.str, &result, &resultlen));
     }
 
     if (contact->other_address.str) {
         //fprintf(f_output, "ADR;TYPE=postal:%s;%s;%s;%s;%s;%s;%s\n",
-        fprintf(f_output, "ADR;TYPE=postal:%s;",(!contact->other_po_box.str)       ? "" : pst_rfc2426_escape(contact->other_po_box.str));
+        fprintf(f_output, "ADR;TYPE=postal:%s;",(!contact->other_po_box.str)       ? "" : pst_rfc2426_escape(contact->other_po_box.str, &result, &resultlen));
         fprintf(f_output, "%s;",                ""); // extended Address
-        fprintf(f_output, "%s;",                (!contact->other_street.str)       ? "" : pst_rfc2426_escape(contact->other_street.str));
-        fprintf(f_output, "%s;",                (!contact->other_city.str)         ? "" : pst_rfc2426_escape(contact->other_city.str));
-        fprintf(f_output, "%s;",                (!contact->other_state.str)        ? "" : pst_rfc2426_escape(contact->other_state.str));
-        fprintf(f_output, "%s;",                (!contact->other_postal_code.str)  ? "" : pst_rfc2426_escape(contact->other_postal_code.str));
-        fprintf(f_output, "%s\n",               (!contact->other_country.str)      ? "" : pst_rfc2426_escape(contact->other_country.str));
-        fprintf(f_output, "LABEL;TYPE=postal:%s\n", pst_rfc2426_escape(contact->other_address.str));
+        fprintf(f_output, "%s;",                (!contact->other_street.str)       ? "" : pst_rfc2426_escape(contact->other_street.str, &result, &resultlen));
+        fprintf(f_output, "%s;",                (!contact->other_city.str)         ? "" : pst_rfc2426_escape(contact->other_city.str, &result, &resultlen));
+        fprintf(f_output, "%s;",                (!contact->other_state.str)        ? "" : pst_rfc2426_escape(contact->other_state.str, &result, &resultlen));
+        fprintf(f_output, "%s;",                (!contact->other_postal_code.str)  ? "" : pst_rfc2426_escape(contact->other_postal_code.str, &result, &resultlen));
+        fprintf(f_output, "%s\n",               (!contact->other_country.str)      ? "" : pst_rfc2426_escape(contact->other_country.str, &result, &resultlen));
+        fprintf(f_output, "LABEL;TYPE=postal:%s\n", pst_rfc2426_escape(contact->other_address.str, &result, &resultlen));
     }
 
-    if (contact->business_fax.str)      fprintf(f_output, "TEL;TYPE=work,fax:%s\n",         pst_rfc2426_escape(contact->business_fax.str));
-    if (contact->business_phone.str)    fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       pst_rfc2426_escape(contact->business_phone.str));
-    if (contact->business_phone2.str)   fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       pst_rfc2426_escape(contact->business_phone2.str));
-    if (contact->car_phone.str)         fprintf(f_output, "TEL;TYPE=car,voice:%s\n",        pst_rfc2426_escape(contact->car_phone.str));
-    if (contact->home_fax.str)          fprintf(f_output, "TEL;TYPE=home,fax:%s\n",         pst_rfc2426_escape(contact->home_fax.str));
-    if (contact->home_phone.str)        fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       pst_rfc2426_escape(contact->home_phone.str));
-    if (contact->home_phone2.str)       fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       pst_rfc2426_escape(contact->home_phone2.str));
-    if (contact->isdn_phone.str)        fprintf(f_output, "TEL;TYPE=isdn:%s\n",             pst_rfc2426_escape(contact->isdn_phone.str));
-    if (contact->mobile_phone.str)      fprintf(f_output, "TEL;TYPE=cell,voice:%s\n",       pst_rfc2426_escape(contact->mobile_phone.str));
-    if (contact->other_phone.str)       fprintf(f_output, "TEL;TYPE=msg:%s\n",              pst_rfc2426_escape(contact->other_phone.str));
-    if (contact->pager_phone.str)       fprintf(f_output, "TEL;TYPE=pager:%s\n",            pst_rfc2426_escape(contact->pager_phone.str));
-    if (contact->primary_fax.str)       fprintf(f_output, "TEL;TYPE=fax,pref:%s\n",         pst_rfc2426_escape(contact->primary_fax.str));
-    if (contact->primary_phone.str)     fprintf(f_output, "TEL;TYPE=phone,pref:%s\n",       pst_rfc2426_escape(contact->primary_phone.str));
-    if (contact->radio_phone.str)       fprintf(f_output, "TEL;TYPE=pcs:%s\n",              pst_rfc2426_escape(contact->radio_phone.str));
-    if (contact->telex.str)             fprintf(f_output, "TEL;TYPE=bbs:%s\n",              pst_rfc2426_escape(contact->telex.str));
-    if (contact->job_title.str)         fprintf(f_output, "TITLE:%s\n",                     pst_rfc2426_escape(contact->job_title.str));
-    if (contact->profession.str)        fprintf(f_output, "ROLE:%s\n",                      pst_rfc2426_escape(contact->profession.str));
+    if (contact->business_fax.str)      fprintf(f_output, "TEL;TYPE=work,fax:%s\n",         pst_rfc2426_escape(contact->business_fax.str, &result, &resultlen));
+    if (contact->business_phone.str)    fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       pst_rfc2426_escape(contact->business_phone.str, &result, &resultlen));
+    if (contact->business_phone2.str)   fprintf(f_output, "TEL;TYPE=work,voice:%s\n",       pst_rfc2426_escape(contact->business_phone2.str, &result, &resultlen));
+    if (contact->car_phone.str)         fprintf(f_output, "TEL;TYPE=car,voice:%s\n",        pst_rfc2426_escape(contact->car_phone.str, &result, &resultlen));
+    if (contact->home_fax.str)          fprintf(f_output, "TEL;TYPE=home,fax:%s\n",         pst_rfc2426_escape(contact->home_fax.str, &result, &resultlen));
+    if (contact->home_phone.str)        fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       pst_rfc2426_escape(contact->home_phone.str, &result, &resultlen));
+    if (contact->home_phone2.str)       fprintf(f_output, "TEL;TYPE=home,voice:%s\n",       pst_rfc2426_escape(contact->home_phone2.str, &result, &resultlen));
+    if (contact->isdn_phone.str)        fprintf(f_output, "TEL;TYPE=isdn:%s\n",             pst_rfc2426_escape(contact->isdn_phone.str, &result, &resultlen));
+    if (contact->mobile_phone.str)      fprintf(f_output, "TEL;TYPE=cell,voice:%s\n",       pst_rfc2426_escape(contact->mobile_phone.str, &result, &resultlen));
+    if (contact->other_phone.str)       fprintf(f_output, "TEL;TYPE=msg:%s\n",              pst_rfc2426_escape(contact->other_phone.str, &result, &resultlen));
+    if (contact->pager_phone.str)       fprintf(f_output, "TEL;TYPE=pager:%s\n",            pst_rfc2426_escape(contact->pager_phone.str, &result, &resultlen));
+    if (contact->primary_fax.str)       fprintf(f_output, "TEL;TYPE=fax,pref:%s\n",         pst_rfc2426_escape(contact->primary_fax.str, &result, &resultlen));
+    if (contact->primary_phone.str)     fprintf(f_output, "TEL;TYPE=phone,pref:%s\n",       pst_rfc2426_escape(contact->primary_phone.str, &result, &resultlen));
+    if (contact->radio_phone.str)       fprintf(f_output, "TEL;TYPE=pcs:%s\n",              pst_rfc2426_escape(contact->radio_phone.str, &result, &resultlen));
+    if (contact->telex.str)             fprintf(f_output, "TEL;TYPE=bbs:%s\n",              pst_rfc2426_escape(contact->telex.str, &result, &resultlen));
+    if (contact->job_title.str)         fprintf(f_output, "TITLE:%s\n",                     pst_rfc2426_escape(contact->job_title.str, &result, &resultlen));
+    if (contact->profession.str)        fprintf(f_output, "ROLE:%s\n",                      pst_rfc2426_escape(contact->profession.str, &result, &resultlen));
     if (contact->assistant_name.str || contact->assistant_phone.str) {
         fprintf(f_output, "AGENT:BEGIN:VCARD\n");
-        if (contact->assistant_name.str)    fprintf(f_output, "FN:%s\n",                    pst_rfc2426_escape(contact->assistant_name.str));
-        if (contact->assistant_phone.str)   fprintf(f_output, "TEL:%s\n",                   pst_rfc2426_escape(contact->assistant_phone.str));
+        if (contact->assistant_name.str)    fprintf(f_output, "FN:%s\n",                    pst_rfc2426_escape(contact->assistant_name.str, &result, &resultlen));
+        if (contact->assistant_phone.str)   fprintf(f_output, "TEL:%s\n",                   pst_rfc2426_escape(contact->assistant_phone.str, &result, &resultlen));
     }
-    if (contact->company_name.str)      fprintf(f_output, "ORG:%s\n",                       pst_rfc2426_escape(contact->company_name.str));
-    if (comment)                        fprintf(f_output, "NOTE:%s\n",                      pst_rfc2426_escape(comment));
+    if (contact->company_name.str)      fprintf(f_output, "ORG:%s\n",                       pst_rfc2426_escape(contact->company_name.str, &result, &resultlen));
+    if (comment)                        fprintf(f_output, "NOTE:%s\n",                      pst_rfc2426_escape(comment, &result, &resultlen));
 
     fprintf(f_output, "VERSION: 3.0\n");
     fprintf(f_output, "END:VCARD\n\n");
+    if (result) free(result);
     DEBUG_RET();
 }
 
 
 void write_journal(FILE* f_output, pst_item* item)
 {
-    char time_buffer[30];
+    char*  result = NULL;
+    size_t resultlen = 0;
+    char   time_buffer[30];
     pst_item_journal* journal = item->journal;
 
     // make everything utf8
@@ -1673,18 +1679,21 @@ void write_journal(FILE* f_output, pst_item* item)
     if (item->modify_date)
         fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(item->modify_date, sizeof(time_buffer), time_buffer));
     if (item->subject.str)
-        fprintf(f_output, "SUMMARY:%s\n",                 pst_rfc2426_escape(item->subject.str));
+        fprintf(f_output, "SUMMARY:%s\n",                 pst_rfc2426_escape(item->subject.str, &result, &resultlen));
     if (item->body.str)
-        fprintf(f_output, "DESCRIPTION:%s\n",             pst_rfc2426_escape(item->body.str));
+        fprintf(f_output, "DESCRIPTION:%s\n",             pst_rfc2426_escape(item->body.str, &result, &resultlen));
     if (journal && journal->start)
         fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(journal->start, sizeof(time_buffer), time_buffer));
     fprintf(f_output, "END:VJOURNAL\n");
+    if (result) free(result);
 }
 
 
 void write_appointment(FILE* f_output, pst_item* item, int event_open)
 {
-    char time_buffer[30];
+    char*  result = NULL;
+    size_t resultlen = 0;
+    char   time_buffer[30];
     pst_item_appointment* appointment = item->appointment;
 
     // make everything utf8
@@ -1699,15 +1708,15 @@ void write_appointment(FILE* f_output, pst_item* item, int event_open)
     if (item->modify_date)
         fprintf(f_output, "LAST-MOD:%s\n",                pst_rfc2445_datetime_format(item->modify_date, sizeof(time_buffer), time_buffer));
     if (item->subject.str)
-        fprintf(f_output, "SUMMARY:%s\n",                 pst_rfc2426_escape(item->subject.str));
+        fprintf(f_output, "SUMMARY:%s\n",                 pst_rfc2426_escape(item->subject.str, &result, &resultlen));
     if (item->body.str)
-        fprintf(f_output, "DESCRIPTION:%s\n",             pst_rfc2426_escape(item->body.str));
+        fprintf(f_output, "DESCRIPTION:%s\n",             pst_rfc2426_escape(item->body.str, &result, &resultlen));
     if (appointment && appointment->start)
         fprintf(f_output, "DTSTART;VALUE=DATE-TIME:%s\n", pst_rfc2445_datetime_format(appointment->start, sizeof(time_buffer), time_buffer));
     if (appointment && appointment->end)
         fprintf(f_output, "DTEND;VALUE=DATE-TIME:%s\n",   pst_rfc2445_datetime_format(appointment->end, sizeof(time_buffer), time_buffer));
     if (appointment && appointment->location.str)
-        fprintf(f_output, "LOCATION:%s\n",                pst_rfc2426_escape(appointment->location.str));
+        fprintf(f_output, "LOCATION:%s\n",                pst_rfc2426_escape(appointment->location.str, &result, &resultlen));
     if (appointment) {
         switch (appointment->showas) {
             case PST_FREEBUSY_TENTATIVE:
@@ -1788,6 +1797,7 @@ void write_appointment(FILE* f_output, pst_item* item, int event_open)
         }
     }
     fprintf(f_output, "END:VEVENT\n");
+    if (result) free(result);
 }
 
 
