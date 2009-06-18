@@ -515,7 +515,7 @@
                 <arg><option>-b <replaceable class="parameter">bates-number</replaceable></option></arg>
                 <arg><option>-c <replaceable class="parameter">bates-color</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
-                <arg><option>-f <replaceable class="parameter">ttf-font-file</replaceable></option></arg>
+                <arg choice='plain'>-f <replaceable class="parameter">ttf-font-file</replaceable></arg>
                 <arg><option>-h</option></arg>
                 <arg><option>-o <replaceable class="parameter">output-directory</replaceable></option></arg>
                 <arg choice='plain'>pstfilename</arg>

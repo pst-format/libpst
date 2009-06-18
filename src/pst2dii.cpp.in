@@ -98,7 +98,8 @@ static void usage();
 static void usage()
 {
     version();
-    printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
+    printf("Usage: %s -f ttf-font-file [OPTIONS] {PST FILENAME}\n", prog_name);
+    printf("\t-f ttf-font-file  \t- Set the font file\n");
     printf("OPTIONS:\n");
     printf("\t-B bates-prefix   \t- Set the bates prefix string\n");
     printf("\t-O dii-output-file\t- Set the dii load file output filename\n");
@@ -106,7 +107,6 @@ static void usage()
     printf("\t-b bates-number   \t- Set the starting bates sequence number\n");
     printf("\t-c bates-color    \t- Specify the color of the bates stamps as 6 digit hex\n");
     printf("\t-d filename       \t- Debug to file. This is a binary log. Use readpstlog to print it.\n");
-    printf("\t-f ttf-font-file  \t- Set the font file\n");
     printf("\t-h                \t- Help. This screen\n");
     printf("\t-o dirname        \t- Output directory to write files to.\n");
 }
@@ -676,6 +676,11 @@ int main(int argc, char* const* argv)
             exit(1);
             break;
         }
+    }
+
+    if (!font_file) {
+        usage();
+        exit(1);
     }
 
     if (argc > optind) {

@@ -933,7 +933,7 @@ int             pst_close(pst_file *pf);
 /** Get the top of folders descriptor tree. This is the main descriptor tree
  *  that needs to be walked to look at every item in the pst file.
  * @param pf   pointer to the pst_file structure setup by pst_open().
- * @param root root item, which can be obtained by pst_parse_item(pf, pf->d.head, NULL).
+ * @param root root item, which can be obtained by pst_parse_item(pf, pf->d_head, NULL).
  */
 pst_desc_tree*  pst_getTopOfFolders(pst_file *pf, const pst_item *root);
 
