@@ -59,7 +59,7 @@ function dopst()
 
 
 val="valgrind --leak-check=full"
-#val=''
+val=''
 
 pushd ..
 make || exit
@@ -99,7 +99,6 @@ else
     dopst   2 sample_64.pst
     dopst   3 test.pst
     dopst   4 big_mail.pst
-    exit
     dopst   5 mbmg.archive.pst
     dopst   6 Single2003-read.pst
     dopst   7 Single2003-unread.pst

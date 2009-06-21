@@ -275,7 +275,6 @@ static uint64_t         pst_getIntAt(pst_file *pf, char *buf);
 static uint64_t         pst_getIntAtPos(pst_file *pf, int64_t pos);
 static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_tree *i2_head);
 static void             pst_printDptr(pst_file *pf, pst_desc_tree *ptr);
-static void             pst_printIDptr(pst_file* pf);
 static void             pst_printID2ptr(pst_id2_tree *ptr);
 static int              pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach);
 static size_t           pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
@@ -3674,17 +3673,6 @@ static void pst_printDptr(pst_file *pf, pst_desc_tree *ptr) {
         if (ptr->child) {
             pst_printDptr(pf, ptr->child);
         }
-        ptr = ptr->next;
-    }
-    DEBUG_RET();
-}
-
-
-static void pst_printIDptr(pst_file* pf) {
-    pst_index_ll *ptr = pf->i_head;
-    DEBUG_ENT("pst_printIDptr");
-    while (ptr) {
-        DEBUG_INFO(("%#"PRIx64" offset=%#"PRIx64" size=%#"PRIx64"\n", ptr->i_id, ptr->offset, ptr->size));
         ptr = ptr->next;
     }
     DEBUG_RET();
