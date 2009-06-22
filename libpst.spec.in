@@ -12,9 +12,9 @@ Requires:           %{name}-libs = %{version}-%{release}
 
 BuildRequires:      ImageMagick freetype-devel gd-devel libjpeg-devel zlib-devel python-devel
 %if 0%{?fedora} > 10
-    BuildRequires: boost-python-devel
+BuildRequires: boost-python-devel
 %else
-    BuildRequires: boost-devel
+BuildRequires: boost-devel
 %endif
 
 
