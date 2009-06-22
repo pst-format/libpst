@@ -155,6 +155,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jun 21 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.39-1
+- fedora > 10 moved to boost-python-devel
+
 * Mon Jun 21 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.38-1
 - add python interface to the shared library.
 - bump soname to version 4 for many changes to the interface.
