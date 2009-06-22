@@ -1,3 +1,7 @@
+LibPST 0.6.39 (2009-06-21)
+===============================
+    * fedora > 10 moved to boost-python-devel
+
 LibPST 0.6.38 (2009-06-21)
 ===============================
     * add python module interface to the shared library for easy scripting.

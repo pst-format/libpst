@@ -1,3 +1,4 @@
+0.6.398 2009-06-21 fedora > 10 moved to boost-python-devel
 0.6.38  2009-06-21 many changes including shared library soname
 0.6.37  2009-04-17 add pst_attach_to_mem() back into the shared library interface.
 0.6.36  2009-04-14 build separate -doc and -devel-doc subpackages
