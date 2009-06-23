@@ -1,3 +1,8 @@
+LibPST 0.6.41 (2009-06-23)
+===============================
+    * fix ax_python detection - should not use locate command
+    * checking for fedora versions is not needed
+
 LibPST 0.6.40 (2009-06-23)
 ===============================
     * fedora 11 has python2.6

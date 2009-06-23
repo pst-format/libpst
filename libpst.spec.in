@@ -146,6 +146,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jun 23 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.41-1
+- fix ax_python detection - should not use locate command
+- checking for fedora versions is not needed
+
 * Tue Jun 23 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.40-1
 - fedora 11 has python2.6
 - remove pdf version of the man pages

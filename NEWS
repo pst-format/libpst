@@ -1,3 +1,4 @@
+0.6.41  2009-06-23 fix ax_python detection - should not use locate command
 0.6.40  2009-06-23 fedora 11 has python2.6, remove pdf version of the man pages
 0.6.39  2009-06-21 fedora > 10 moved to boost-python-devel
 0.6.39  2009-06-21 fedora > 10 moved to boost-python-devel
