@@ -283,11 +283,17 @@ AC_MSG_RESULT([$enable_python])
 AM_CONDITIONAL(PYTHON_INTERFACE, [test "$enable_python" = "yes"])
 if test "$enable_python" = "yes"; then
 	enable_shared="yes"
-    # check for boost
+    # get the version of installed python
     AX_PYTHON
     if test "$ax_python_bin" = "no"; then
         AC_MSG_ERROR(python binary not found)
     fi
+    py_ver=`echo $ax_python_bin | cut -c7-`
+    # find the flags for that version
+    AC_PYTHON_DEVEL([$py_ver])
+    PYTHON_INCLUDE_DIR=`echo $python_path | cut -c3-`
+    AC_SUBST([PYTHON_INCLUDE_DIR])
+    # do we have boost python
     AX_BOOST_PYTHON
     if test "$ac_cv_boost_python" = "no"; then
         AC_MSG_ERROR(boost python not found)

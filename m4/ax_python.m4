@@ -56,7 +56,8 @@
 #   special exception to the GPL to apply to your modified version as well.
 
 AC_DEFUN([AX_PYTHON],
-[AC_MSG_CHECKING(for python build information)
+[
+AC_MSG_CHECKING(for python build information)
 AC_MSG_RESULT([])
 for python in python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python; do
     AC_CHECK_PROGS(PYTHON_BIN, [$python])
@@ -64,7 +65,7 @@ for python in python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python
     if test x$ax_python_bin != x; then
         AC_CHECK_LIB($ax_python_bin, main, ax_python_lib=$ax_python_bin, ax_python_lib=no)
         AC_CHECK_HEADER([$ax_python_bin/Python.h],
-                        [[ax_python_header=$includedir/$ax_python_bin]],
+                        ax_python_header=yes,
                         ax_python_header=no)
         if test $ax_python_lib != no; then
             if test $ax_python_header != no; then
@@ -86,12 +87,7 @@ fi
 AC_MSG_RESULT([  results of the Python check:])
 AC_MSG_RESULT([    Binary:      $ax_python_bin])
 AC_MSG_RESULT([    Library:     $ax_python_lib])
-AC_MSG_RESULT([    Include Dir: $ax_python_header])
 
-if test x$ax_python_header != xno; then
-  PYTHON_INCLUDE_DIR=$ax_python_header
-  AC_SUBST(PYTHON_INCLUDE_DIR)
-fi
 if test x$ax_python_lib != xno; then
   PYTHON_LIB=$ax_python_lib
   AC_SUBST(PYTHON_LIB)
