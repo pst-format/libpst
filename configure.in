@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(libpst,0.6.41,carl@five-ten-sg.com)
+AC_INIT(libpst,0.6.42,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([src/libpst.c])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE

@@ -94,6 +94,11 @@
     #define gmtime_r(tp,tmp) (gmtime(tp)?(*(tmp)=*gmtime(tp),(tmp)):0)
     #define ctime_r(tp,tmp) (ctime(tp)?(strcpy((tmp),ctime((tp))),(tmp)):0) 
 #else
+    #ifdef __DJGPP__
+        #define gmtime_r(tp,tmp) (gmtime(tp)?(*(tmp)=*gmtime(tp),(tmp)):0)
+        #define ctime_r(tp,tmp) (ctime(tp)?(strcpy((tmp),ctime((tp))),(tmp)):0)
+		#define fseeko(stream, offset, whence) fseek(stream, (long)offset, whence)
+    #endif
     #ifdef HAVE_UNISTD_H
         #include <unistd.h>
     #else

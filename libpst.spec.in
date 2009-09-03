@@ -146,6 +146,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Sep 03 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.42-1
+- patch from Fridrich Strba to build with DJGPP DOS cross-compiler.
+
+* Sat Jul 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.41-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
+
 * Tue Jun 23 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.41-1
 - fix ax_python detection - should not use locate command
 - checking for fedora versions is not needed
