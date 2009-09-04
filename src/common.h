@@ -23,7 +23,6 @@
 	typedef long long          int64_t;
 #endif
 
-
 #ifndef _WIN32
     typedef struct {
         uint32_t  dwLowDateTime;
@@ -34,6 +33,15 @@
     #include <sys/param.h>
 #else
     #include <windows.h>
+#endif
+
+#if defined(_WIN32) || defined(__DJGPP__)
+    #ifndef LITTLE_ENDIAN
+        #define LITTLE_ENDIAN 1234
+    #endif
+    #ifndef BIG_ENDIAN
+        #define BIG_ENDIAN 4321
+    #endif
     #define BYTE_ORDER LITTLE_ENDIAN
 #endif
 
