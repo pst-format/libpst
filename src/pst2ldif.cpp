@@ -60,6 +60,7 @@ static string_set all_strings;
 static void free_strings(string_set &s);
 static void free_strings(string_set &s)
 {
+	if (s.empty()) return;
     for (string_set::iterator i=s.begin(); i!=s.end(); i++) {
         free((void*)*i);
     }

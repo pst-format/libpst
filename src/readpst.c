@@ -103,6 +103,12 @@ char*  kmail_chdir = NULL;
 #define DMODE_EXCLUDE 0
 #define DMODE_INCLUDE 1
 
+// Output type mode flags
+#define OTMODE_EMAIL        1
+#define OTMODE_APPOINTMENT  2
+#define OTMODE_JOURNAL      4
+#define OTMODE_CONTACT      8
+
 // output settings for RTF bodies
 // filename for the attachment
 #define RTF_ATTACH_NAME "rtf-body.rtf"
@@ -115,6 +121,7 @@ int         mode_MH      = 0;   // a submode of MODE_SEPARATE
 int         output_mode  = OUTPUT_NORMAL;
 int         contact_mode = CMODE_VCARD;
 int         deleted_mode = DMODE_EXCLUDE;
+int         output_type_mode = 0xff;    // Default to all.
 int         contact_mode_specified = 0;
 int         overwrite = 0;
 int         save_rtf_body = 1;
@@ -272,6 +279,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 ff.skip_count++;
                 DEBUG_INFO(("I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Skipping it\n", ff.type));
             }
+            else if (!(output_type_mode & OTMODE_CONTACT)) {
+                ff.skip_count++;
+                DEBUG_INFO(("skipping contact: not in output type list\n"));
+            }
             else {
                 ff.item_count++;
                 if (mode == MODE_SEPARATE) mk_separate_file(&ff);
@@ -293,6 +304,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 ff.skip_count++;
                 DEBUG_INFO(("I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
             }
+            else if (!(output_type_mode & OTMODE_EMAIL)) {
+                ff.skip_count++;
+                DEBUG_INFO(("skipping email: not in output type list\n"));
+            }
             else {
                 char *extra_mime_headers = NULL;
                 ff.item_count++;
@@ -307,6 +322,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 ff.skip_count++;
                 DEBUG_INFO(("I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Skipping it\n", ff.type));
             }
+            else if (!(output_type_mode & OTMODE_JOURNAL)) {
+                ff.skip_count++;
+                DEBUG_INFO(("skipping journal entry: not in output type list\n"));
+            }
             else {
                 ff.item_count++;
                 if (mode == MODE_SEPARATE) mk_separate_file(&ff);
@@ -320,6 +339,10 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             if (ff.type != PST_TYPE_APPOINTMENT) {
                 ff.skip_count++;
                 DEBUG_INFO(("I have an appointment, but the folder type %"PRIi32" isn't an appointment folder. Skipping it\n", ff.type));
+            }
+            else if (!(output_type_mode & OTMODE_APPOINTMENT)) {
+                ff.skip_count++;
+                DEBUG_INFO(("skipping appointment: not in output type list\n"));
             }
             else {
                 ff.item_count++;
@@ -364,7 +387,7 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "bc:Dd:hj:kMo:qrSVw"))!= -1) {
+    while ((c = getopt(argc, argv, "bc:Dd:hj:kMo:qrSt:Vw"))!= -1) {
         switch (c) {
         case 'b':
             save_rtf_body = 0;
@@ -420,6 +443,36 @@ int main(int argc, char* const* argv) {
         case 'V':
             version();
             exit(0);
+            break;
+        case 't':
+            // email, appointment, contact, other
+            if (!optarg) {
+                usage();
+                exit(0);
+            }
+            temp = optarg;
+            output_type_mode = 0;
+            while (*temp > 0) {
+              switch (temp[0]) {
+                case 'e':
+                    output_type_mode |= OTMODE_EMAIL;
+                    break;
+                case 'a':
+                    output_type_mode |= OTMODE_APPOINTMENT;
+                    break;
+                case 'j':
+                    output_type_mode |= OTMODE_JOURNAL;
+                    break;
+                case 'c':
+                    output_type_mode |= OTMODE_CONTACT;
+                    break;
+                default:
+                    usage();
+                    exit(0);
+                    break;
+              }
+              temp++;
+            }
             break;
         case 'w':
             overwrite = 1;
@@ -579,6 +632,7 @@ void usage() {
     printf("\t-S\t- Separate. Write emails in the separate format\n");
     printf("\t-b\t- Don't save RTF-Body attachments\n");
     printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
+    printf("\t-t[eajc]\t- Set the output type list. e = email, a = attachment, j = journal, c = contact\n");
     printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readpstlog to print it\n");
     printf("\t-h\t- Help. This screen\n");
     printf("\t-j <integer>\t- Number of parallel jobs to run\n");
@@ -1344,11 +1398,12 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     // print the supplied email headers
     if (headers) {
-        int len;
-        fprintf(f_output, "%s", headers);
-        // make sure the headers end with a \n
-        len = strlen(headers);
-        if (!len || (headers[len-1] != '\n')) fprintf(f_output, "\n");
+        int len = strlen(headers);
+        if (len > 0) {
+            fprintf(f_output, "%s", headers);
+            // make sure the headers end with a \n
+            if (headers[len-1] != '\n') fprintf(f_output, "\n");
+        }
     }
 
     // create required header fields that are not already written

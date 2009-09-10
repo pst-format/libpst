@@ -113,7 +113,7 @@ else
     #dopst  16 hourig2.pst
     #dopst  17 hourig3.pst
     dopst  18 test-mac.pst
-    #dopst  19 harris.pst
+    dopst  19 harris.pst
     dopst  20 spam.pst
     dopst  21 rendgen.pst       # single email appointment
     dopst  22 rendgen2.pst      # email appointment with no termination date

@@ -65,7 +65,10 @@ typedef struct pst_block_offset_pointer {
 typedef struct pst_holder {
     char  **buf;
     FILE   *fp;
-    int     base64;
+    int     base64;                 // bool, are we encoding into base64
+    int     base64_line_count;      // base64 bytes emitted on the current line
+    size_t  base64_extra;           // count of bytes held in base64_extra_chars
+    char    base64_extra_chars[2];  // up to two pending unencoded bytes
 } pst_holder;
 
 
@@ -252,6 +255,7 @@ static unsigned char comp_high2 [] = {
     0x61, 0xe0, 0xc6, 0xc1, 0x59, 0xab, 0xbb, 0x58, 0xde, 0x5f, 0xdf, 0x60, 0x79, 0x7e, 0xb2, 0x8a
 };
 
+static size_t           pst_append_holder(pst_holder *h, size_t size, char **buf, size_t z);
 static int              pst_build_desc_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
 static pst_id2_tree*    pst_build_id2(pst_file *pf, pst_index_ll* list);
 static int              pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val);
@@ -260,6 +264,7 @@ static size_t           pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holde
 static size_t           pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf);
 static size_t           pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_tree *id2_head, char** buf);
 static size_t           pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h);
+static size_t           pst_finish_cleanup_holder(pst_holder *h, size_t size);
 static void             pst_free_attach(pst_item_attach *attach);
 static void             pst_free_desc (pst_desc_tree *head);
 static void             pst_free_id2(pst_id2_tree * head);
@@ -537,7 +542,7 @@ pst_desc_tree* pst_getTopOfFolders(pst_file *pf, const pst_item *root) {
 pst_binary pst_attach_to_mem(pst_file *pf, pst_item_attach *attach) {
     pst_index_ll *ptr;
     pst_binary rc;
-    pst_holder h = {&rc.data, NULL, 0};
+    pst_holder h = {&rc.data, NULL, 0, 0, 0};
     rc.size = 0;
     rc.data = NULL;
     DEBUG_ENT("pst_attach_to_mem");
@@ -560,7 +565,7 @@ pst_binary pst_attach_to_mem(pst_file *pf, pst_item_attach *attach) {
 
 size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     pst_index_ll *ptr;
-    pst_holder h = {NULL, fp, 0};
+    pst_holder h = {NULL, fp, 0, 0, 0};
     size_t size = 0;
     DEBUG_ENT("pst_attach_to_file");
     if ((!attach->data.data) && (attach->i_id != (uint64_t)-1)) {
@@ -584,7 +589,7 @@ size_t pst_attach_to_file(pst_file *pf, pst_item_attach *attach, FILE* fp) {
 
 size_t pst_attach_to_file_base64(pst_file *pf, pst_item_attach *attach, FILE* fp) {
     pst_index_ll *ptr;
-    pst_holder h = {NULL, fp, 1};
+    pst_holder h = {NULL, fp, 1, 0, 0};
     size_t size = 0;
     DEBUG_ENT("pst_attach_to_file_base64");
     if ((!attach->data.data) && (attach->i_id != (uint64_t)-1)) {
@@ -941,6 +946,7 @@ static size_t pst_decode_assoc(pst_file *pf, pst_id2_assoc *assoc, char *buf) {
 static size_t pst_decode_type3(pst_file *pf, pst_table3_rec *table3_rec, char *buf);
 static size_t pst_decode_type3(pst_file *pf, pst_table3_rec *table3_rec, char *buf) {
     size_t r;
+    DEBUG_ENT("pst_decode_type3");
     if (pf->do_read64) {
         DEBUG_INFO(("Decoding table3 64\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_table3_rec), 0x10);
@@ -956,6 +962,7 @@ static size_t pst_decode_type3(pst_file *pf, pst_table3_rec *table3_rec, char *b
         table3_rec->id  = table3_rec32.id;
         r = sizeof(pst_table3_rec32);
     }
+    DEBUG_RET();
     return r;
 }
 
@@ -3911,7 +3918,7 @@ static size_t pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf) {
 static size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_tree *id2_head, char** buf) {
     size_t ret;
     pst_id2_tree* ptr;
-    pst_holder h = {buf, NULL, 0};
+    pst_holder h = {buf, NULL, 0, 0, 0};
     DEBUG_ENT("pst_ff_getID2block");
     ptr = pst_getID2(id2_head, id2);
 
@@ -3926,46 +3933,49 @@ static size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_tree *id2_h
 }
 
 
+/** find the actual data from an i_id and send it to the destination
+ *  specified by the pst_holder h. h must be a new empty destination.
+ *
+ *  @param pf     PST file structure
+ *  @param ptr
+ *  @param h      specifies the output destination (buffer, file, encoding)
+ *  @return       updated size of the output
+ */
 static size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) {
     size_t ret;
-    char *b = NULL, *t;
+    char *b = NULL;
     DEBUG_ENT("pst_ff_getID2data");
     if (!(ptr->i_id & 0x02)) {
         ret = pst_ff_getIDblock_dec(pf, ptr->i_id, &b);
-        if (h->buf) {
-            *(h->buf) = b;
-        } else if ((h->base64 == 1) && h->fp) {
-            t = pst_base64_encode(b, ret);
-            if (t) {
-                (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
-                free(t);    // caught by valgrind
-            }
-            free(b);
-        } else if (h->fp) {
-            (void)pst_fwrite(b, (size_t)1, ret, h->fp);
-            free(b);
-        } else {
-            // h-> does not specify any output
-        }
-
+        ret = pst_append_holder(h, (size_t)0, &b, ret);
+        free(b);
     } else {
-        // here we will assume it is a block that points to others
+        // here we will assume it is an indirection block that points to others
         DEBUG_INFO(("Assuming it is a multi-block record because of it's id\n"));
         ret = pst_ff_compile_ID(pf, ptr->i_id, h, (size_t)0);
     }
+    ret = pst_finish_cleanup_holder(h, ret);
     DEBUG_RET();
     return ret;
 }
 
 
+/** find the actual data from an indirection i_id and send it to the destination
+ *  specified by the pst_holder.
+ *
+ *  @param pf     PST file structure
+ *  @param i_id   ID of the block to read
+ *  @param h      specifies the output destination (buffer, file, encoding)
+ *  @param size   number of bytes of data already sent to h
+ *  @return       updated size of the output
+ */
 static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size_t size) {
-    size_t z, a;
-    uint16_t count, y;
-    char *buf3 = NULL, *buf2 = NULL, *t;
-    char *b_ptr;
-    int  line_count = 0;
-    char      base64_extra_chars[3];
-    uint32_t  base64_extra = 0;
+    size_t    z, a;
+    uint16_t  count, y;
+    char      *buf3 = NULL;
+    char      *buf2 = NULL;
+    char      *b_ptr;
+    int       line_count = 0;
     pst_block_hdr  block_hdr;
     pst_table3_rec table3_rec;  //for type 3 (0x0101) blocks
 
@@ -3983,30 +3993,31 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size
     LE32_CPU(block_hdr.offset);
     DEBUG_INFO(("block header (index_offset=%#hx, type=%#hx, offset=%#x)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
 
+    count = block_hdr.type;
+    b_ptr = buf3 + 8;
+
+    // For indirect lookups through a table of i_ids, just recurse back into this
+    // function, letting it concatenate all the data together, and then return the
+    // total size of the data.
+    if (block_hdr.index_offset == (uint16_t)0x0201) { // Indirect lookup (depth 2).
+        for (y=0; y<count; y++) {
+            b_ptr += pst_decode_type3(pf, &table3_rec, b_ptr);
+            size = pst_ff_compile_ID(pf, table3_rec.id, h, size);
+        }
+        free(buf3);
+        DEBUG_RET();
+        return size;
+    }
+
     if (block_hdr.index_offset != (uint16_t)0x0101) { //type 3
         DEBUG_WARN(("WARNING: not a type 0x0101 buffer, Treating as normal buffer\n"));
         if (pf->encryption) (void)pst_decrypt(i_id, buf3, a, pf->encryption);
-        if (h->buf)
-            *(h->buf) = buf3;
-        else if (h->base64 == 1 && h->fp) {
-            t = pst_base64_encode(buf3, a);
-            if (t) {
-                (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
-                free(t);    // caught by valgrind
-            }
-            free(buf3);
-        } else if (h->fp) {
-            (void)pst_fwrite(buf3, (size_t)1, a, h->fp);
-            free(buf3);
-        } else {
-            // h-> does not specify any output
-        }
+        size = pst_append_holder(h, size, &buf3, a);
+        free(buf3);
         DEBUG_RET();
-        return a;
+        return size;
     }
-    count = block_hdr.type;
-    b_ptr = buf3 + 8;
-    line_count = 0;
+
     for (y=0; y<count; y++) {
         b_ptr += pst_decode_type3(pf, &table3_rec, b_ptr);
         z = pst_ff_getIDblock_dec(pf, table3_rec.id, &buf2);
@@ -4017,51 +4028,92 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size
             DEBUG_RET();
             return z;
         }
-        if (h->buf) {
-            *(h->buf) = realloc(*(h->buf), size+z+1);
-            DEBUG_INFO(("appending read data of size %i onto main buffer from pos %i\n", z, size));
-            memcpy(&((*(h->buf))[size]), buf2, z);
-        } else if ((h->base64 == 1) && h->fp) {
-            if (base64_extra) {
-                // include any bytes left over from the last encoding
-                buf2 = (char*)realloc(buf2, z+base64_extra);
-                memmove(buf2+base64_extra, buf2, z);
-                memcpy(buf2, base64_extra_chars, base64_extra);
-                z += base64_extra;
-            }
-
-            // find out how many bytes will be left over after this encoding and save them
-            base64_extra = z % 3;
-            if (base64_extra) {
-                z -= base64_extra;
-                memcpy(base64_extra_chars, buf2+z, base64_extra);
-            }
-
-            // encode this chunk
-            t = pst_base64_encode_multiple(buf2, z, &line_count);
-            if (t) {
-                DEBUG_INFO(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
-                (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
-                free(t);    // caught by valgrind
-            }
-        } else if (h->fp) {
-            DEBUG_INFO(("writing %i bytes to file. Currently %i\n", z, size));
-            (void)pst_fwrite(buf2, (size_t)1, z, h->fp);
-        } else {
-            // h-> does not specify any output
-        }
-        size += z;
+        size = pst_append_holder(h, size, &buf2, z);
     }
-    if ((h->base64 == 1) && h->fp && base64_extra) {
+
+    free(buf3);
+    if (buf2) free(buf2);
+    DEBUG_RET();
+    return size;
+}
+
+
+/** append (buf,z) data to the output destination (h,size)
+ *
+ *  @param h      specifies the output destination (buffer, file, encoding)
+ *  @param size   number of bytes of data already sent to h
+ *  @param buf    reference to a pointer to the buffer to be appended to the destination
+ *  @param z      number of bytes in buf
+ *  @return       updated size of the output, buffer pointer possibly reallocated
+ */
+static size_t pst_append_holder(pst_holder *h, size_t size, char **buf, size_t z) {
+    char *t;
+    DEBUG_ENT("pst_append_holder");
+
+    // raw append to a buffer
+    if (h->buf) {
+        *(h->buf) = realloc(*(h->buf), size+z+1);
+        DEBUG_INFO(("appending read data of size %i onto main buffer from pos %i\n", z, size));
+        memcpy(*(h->buf)+size, *buf, z);
+
+    // base64 encoding to a file
+    } else if ((h->base64 == 1) && h->fp) {
+        //
+        if (h->base64_extra) {
+            // include any bytes left over from the last encoding
+            *buf = (char*)realloc(*buf, z+h->base64_extra);
+            memmove(*buf+h->base64_extra, *buf, z);
+            memcpy(*buf, h->base64_extra_chars, h->base64_extra);
+            z += h->base64_extra;
+        }
+
+        // find out how many bytes will be left over after this encoding and save them
+        h->base64_extra = z % 3;
+        if (h->base64_extra) {
+            z -= h->base64_extra;
+            memcpy(h->base64_extra_chars, *buf+z, h->base64_extra);
+        }
+
+        // encode this chunk
+        t = pst_base64_encode_multiple(*buf, z, &h->base64_line_count);
+        if (t) {
+            DEBUG_INFO(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
+            (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
+            free(t);    // caught by valgrind
+        }
+
+    // raw append to a file
+    } else if (h->fp) {
+        DEBUG_INFO(("writing %i bytes to file. Currently %i\n", z, size));
+        (void)pst_fwrite(*buf, (size_t)1, z, h->fp);
+
+    // null output
+    } else {
+        // h-> does not specify any output
+    }
+    DEBUG_RET();
+    return size+z;
+}
+
+
+/** finish cleanup for base64 encoding to a file with extra bytes left over
+ *
+ *  @param h      specifies the output destination (buffer, file, encoding)
+ *  @param size   number of bytes of data already sent to h
+ *  @return       updated size of the output
+ */
+static size_t pst_finish_cleanup_holder(pst_holder *h, size_t size) {
+    char *t;
+    DEBUG_ENT("pst_finish_cleanup_holder");
+    if ((h->base64 == 1) && h->fp && h->base64_extra) {
         // need to encode any bytes left over
-        t = pst_base64_encode_multiple(base64_extra_chars, (size_t)base64_extra, &line_count);
+        t = pst_base64_encode_multiple(h->base64_extra_chars, h->base64_extra, &h->base64_line_count);
         if (t) {
             (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
             free(t);    // caught by valgrind
         }
+        size += h->base64_extra;
     }
-    free(buf3);
-    if (buf2) free(buf2);
     DEBUG_RET();
     return size;
 }
@@ -4246,6 +4298,8 @@ static const char* codepage(int cp, int buflen, char* result) {
         case   932 : return "iso-2022-jp";
         case   936 : return "gb2313";
         case   950 : return "big5";
+        case  1200 : return "ucs-2le";
+        case  1201 : return "ucs-2be";
         case 20127 : return "us-ascii";
         case 20269 : return "iso-6937";
         case 20865 : return "iso-8859-15";

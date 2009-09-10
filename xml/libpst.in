@@ -66,6 +66,7 @@
                 <arg><option>-o <replaceable class="parameter">output-directory</replaceable></option></arg>
                 <arg><option>-q</option></arg>
                 <arg><option>-r</option></arg>
+                <arg><option>-t <replaceable class="parameter">output-type-codes</replaceable></option></arg>
                 <arg><option>-w</option></arg>
                 <arg choice='plain'>pstfile</arg>
             </cmdsynopsis>
@@ -174,6 +175,14 @@
                         named in the PST file, and will put all emails in a file called "mbox"
                         inside each folder. These files are then compatible with all
                         mbox-compatible email clients.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-t <replaceable class="parameter">output-type-codes</replaceable></term>
+                    <listitem><para>
+                        Specifies the item types that are processed. The argument is a sequence
+                        of single letters from (e,a,j,c) for (email, appointment, journal, contact)
+                        types. The default is to process all item types.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
