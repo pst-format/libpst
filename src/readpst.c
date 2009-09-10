@@ -118,6 +118,7 @@ char*  kmail_chdir = NULL;
 // global settings
 int         mode         = MODE_NORMAL;
 int         mode_MH      = 0;   // a submode of MODE_SEPARATE
+int         mode_thunder = 0;   // a submode of MODE_RECURSE
 int         output_mode  = OUTPUT_NORMAL;
 int         contact_mode = CMODE_VCARD;
 int         deleted_mode = DMODE_EXCLUDE;
@@ -387,7 +388,7 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "bc:Dd:hj:kMo:qrSt:Vw"))!= -1) {
+    while ((c = getopt(argc, argv, "bc:Dd:hj:kMo:qrSt:uVw"))!= -1) {
         switch (c) {
         case 'b':
             save_rtf_body = 0;
@@ -435,14 +436,11 @@ int main(int argc, char* const* argv) {
             break;
         case 'r':
             mode = MODE_RECURSE;
+            mode_thunder = 0;
             break;
         case 'S':
             mode = MODE_SEPARATE;
             mode_MH = 0;
-            break;
-        case 'V':
-            version();
-            exit(0);
             break;
         case 't':
             // email, appointment, contact, other
@@ -473,6 +471,14 @@ int main(int argc, char* const* argv) {
               }
               temp++;
             }
+            break;
+        case 'u':
+            mode = MODE_RECURSE;
+            mode_thunder = 1;
+            break;
+        case 'V':
+            version();
+            exit(0);
             break;
         case 'w':
             overwrite = 1;
@@ -632,7 +638,6 @@ void usage() {
     printf("\t-S\t- Separate. Write emails in the separate format\n");
     printf("\t-b\t- Don't save RTF-Body attachments\n");
     printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
-    printf("\t-t[eajc]\t- Set the output type list. e = email, a = attachment, j = journal, c = contact\n");
     printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readpstlog to print it\n");
     printf("\t-h\t- Help. This screen\n");
     printf("\t-j <integer>\t- Number of parallel jobs to run\n");
@@ -640,6 +645,8 @@ void usage() {
     printf("\t-o <dirname>\t- Output directory to write files to. CWD is changed *after* opening pst file\n");
     printf("\t-q\t- Quiet. Only print error messages\n");
     printf("\t-r\t- Recursive. Output in a recursive format\n");
+    printf("\t-t[eajc]\t- Set the output type list. e = email, a = attachment, j = journal, c = contact\n");
+    printf("\t-u\t- Thunderbird mode. Write two extra .size and .type files\n");
     printf("\t-w\t- Overwrite any output mbox files\n");
     printf("\n");
     printf("Only one of -k -M -r -S should be specified\n");
@@ -959,8 +966,6 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
 {
     pst_index_ll *ptr;
     DEBUG_ENT("write_embedded_message");
-    fprintf(f_output, "\n--%s\n", boundary);
-    fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype.str);
     ptr = pst_getID(pf, attach->i_id);
 
     pst_desc_tree d_ptr;
@@ -976,8 +981,20 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
     d_ptr.child_tail  = NULL;
 
     pst_item *item = pst_parse_item(pf, &d_ptr, attach->id2_head);
-    write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, 0, extra_mime_headers);
-    pst_freeItem(item);
+    // It appears that if the embedded message contains an appointment/
+    // calendar item, pst_parse_item returns NULL due to the presence of
+    // an unexpected reference type of 0x1048, which seems to represent
+    // an array of GUIDs representing a CLSID. It's likely that this is
+    // a reference to an internal Outlook COM class.
+    //      Log the skipped item and continue on.
+    if (!item) {
+        DEBUG_WARN(("write_embedded_message: pst_parse_item was unable to parse the embedded message in attachment ID %llu", attach->i_id));
+    } else {
+        fprintf(f_output, "\n--%s\n", boundary);
+        fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype.str);
+        write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, 0, extra_mime_headers);
+        pst_freeItem(item);
+    }
 
     DEBUG_RET();
 }
@@ -1869,9 +1886,14 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
     DEBUG_ENT("create_enter_dir");
     if (mode == MODE_KMAIL)
         f->name = mk_kmail_dir(item->file_as.str);
-    else if (mode == MODE_RECURSE)
+    else if (mode == MODE_RECURSE) {
         f->name = mk_recurse_dir(item->file_as.str, f->type);
-    else if (mode == MODE_SEPARATE) {
+        if (mode_thunder) {
+            FILE *type_file = fopen(".type", "w");
+            fprintf(type_file, "%d\n", item->type);
+            fclose(type_file);
+        }
+    } else if (mode == MODE_SEPARATE) {
         // do similar stuff to recurse here.
         mk_separate_dir(item->file_as.str);
         f->name = (char*) pst_malloc(10);
@@ -1944,9 +1966,14 @@ void close_enter_dir(struct file_ll *f)
 
     if (mode == MODE_KMAIL)
         close_kmail_dir();
-    else if (mode == MODE_RECURSE)
+    else if (mode == MODE_RECURSE) {
+        if (mode_thunder) {
+            FILE *type_file = fopen(".size", "w");
+            fprintf(type_file, "%i %i\n", f->item_count, f->stored_count);
+            fclose(type_file);
+        }
         close_recurse_dir();
-    else if (mode == MODE_SEPARATE)
+    } else if (mode == MODE_SEPARATE)
         close_separate_dir();
 }
 

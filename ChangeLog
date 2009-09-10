@@ -1,3 +1,15 @@
+LibPST 0.6.43 (2009-09-10)
+===============================
+    * patches from Justin Greer.
+	add code pages 1200 and 1201 to the list for iconv
+    	add support for 0x0201 indirect blocks that point to 0x0101 blocks
+	add readpst -t option to select output item types
+	fix (remove) extra new line inside headers
+    * cleanup base64 encoding to remove duplicate code.
+    * patch from Chris White to avoid segfault with embedded appointments.
+    * patch from Roberto Polli to add creation of some Thunderbird specific meta files.
+    * patch from Justin Greer to ignore b5 tables at offset zero.
+
 LibPST 0.6.42 (2009-09-03)
 ===============================
     * patch from Fridrich Strba to build with DJGPP DOS cross-compiler.

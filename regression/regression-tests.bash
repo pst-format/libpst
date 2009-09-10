@@ -47,7 +47,7 @@ function dopst()
     fn="$2"
     echo $fn
     ba=$(basename "$fn" .pst)
-    jobs=""
+    jobs="-j 0"
     [ -n "$val" ] && jobs="-j 0"
     rm -rf output$n
     mkdir output$n
@@ -67,11 +67,15 @@ popd
 
 rm -rf output* *.err *.log
 
-if [ "$1" == "dii" ]; then
+if [ "$1" == "test" ]; then
+    dopst  19 harris.pst
+
+elif [ "$1" == "dii" ]; then
     dodii 1 ams.pst
     dodii 2 sample_64.pst
     dodii 3 test.pst
     dodii 4 big_mail.pst
+
 elif [ "$1" == "ldif" ]; then
     doldif   1 ams.pst
     doldif   2 sample_64.pst

@@ -1,3 +1,4 @@
+0.6.43  2009-09-10 patches from Justin Greer, Chris White, Roberto Polli
 0.6.42  2009-09-03 patch from Fridrich Strba to build with DJGPP DOS cross-compiler
 0.6.41  2009-06-23 fix ax_python detection - should not use locate command
 0.6.40  2009-06-23 fedora 11 has python2.6, remove pdf version of the man pages

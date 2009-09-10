@@ -1260,27 +1260,28 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
         // DSN/MDN reports?
         DEBUG_INFO(("DSN/MDN processing\n"));
         list = pst_parse_block(pf, id2_ptr->id->i_id, id2_head);
-        if (!list) {
-            DEBUG_WARN(("ERROR error processing main DSN/MDN record\n"));
-            if (!m_head) pst_free_id2(id2_head);
-            DEBUG_RET();
-            return item;
-        }
-        for (x=0; x < list->count_objects; x++) {
-            attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
-            memset(attach, 0, sizeof(pst_item_attach));
-            attach->next = item->attach;
-            item->attach = attach;
-        }
-        if (pst_process(list, item, item->attach)) {
-            DEBUG_WARN(("ERROR pst_process() failed with DSN/MDN attachments\n"));
-            pst_freeItem(item);
+        if (list) {
+            for (x=0; x < list->count_objects; x++) {
+                attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
+                memset(attach, 0, sizeof(pst_item_attach));
+                attach->next = item->attach;
+                item->attach = attach;
+            }
+            if (pst_process(list, item, item->attach)) {
+                DEBUG_WARN(("ERROR pst_process() failed with DSN/MDN attachments\n"));
+                pst_freeItem(item);
+                pst_free_list(list);
+                if (!m_head) pst_free_id2(id2_head);
+                DEBUG_RET();
+                return NULL;
+            }
             pst_free_list(list);
-            if (!m_head) pst_free_id2(id2_head);
-            DEBUG_RET();
-            return NULL;
+        } else {
+            DEBUG_WARN(("ERROR error processing main DSN/MDN record\n"));
+            // if (!m_head) pst_free_id2(id2_head);
+            // DEBUG_RET();
+            // return item;
         }
-        pst_free_list(list);
     }
 
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x671))) {
@@ -1592,24 +1593,29 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
             return NULL;
         }
 
-        if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset5)) {
-            DEBUG_WARN(("internal error (7c.b5.desc offset %#x) in reading block id %#"PRIx64"\n", table_rec.value, block_id));
-            freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
-            DEBUG_RET();
-            return NULL;
-        }
+        if (table_rec.value > 0) {
+            if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset5)) {
+                DEBUG_WARN(("internal error (7c.b5.desc offset %#x) in reading block id %#"PRIx64"\n", table_rec.value, block_id));
+                freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
+                DEBUG_RET();
+                return NULL;
+            }
 
-        // this will give the number of records in this block
-        num_mapi_objects = (block_offset5.to - block_offset5.from) / (4 + table_rec.ref_type);
+            // this will give the number of records in this block
+            num_mapi_objects = (block_offset5.to - block_offset5.from) / (4 + table_rec.ref_type);
 
-        if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, seven_c_blk.ind2_offset, &block_offset6)) {
-            DEBUG_WARN(("internal error (7c.ind2 offset %#x) in reading block id %#"PRIx64"\n", seven_c_blk.ind2_offset, block_id));
-            freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
-            DEBUG_RET();
-            return NULL;
+            if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, seven_c_blk.ind2_offset, &block_offset6)) {
+                DEBUG_WARN(("internal error (7c.ind2 offset %#x) in reading block id %#"PRIx64"\n", seven_c_blk.ind2_offset, block_id));
+                freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
+                DEBUG_RET();
+                return NULL;
+            }
+            ind2_ptr = block_offset6.from;
+            ind2_end = block_offset6.to;
         }
-        ind2_ptr = block_offset6.from;
-        ind2_end = block_offset6.to;
+        else {
+            num_mapi_objects = 0;
+        }
         DEBUG_INFO(("7cec block index2 pointer %#x and end %#x\n", ind2_ptr, ind2_end));
     }
     else {

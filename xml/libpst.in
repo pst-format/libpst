@@ -67,6 +67,7 @@
                 <arg><option>-q</option></arg>
                 <arg><option>-r</option></arg>
                 <arg><option>-t <replaceable class="parameter">output-type-codes</replaceable></option></arg>
+                <arg><option>-u</option></arg>
                 <arg><option>-w</option></arg>
                 <arg choice='plain'>pstfile</arg>
             </cmdsynopsis>
@@ -183,6 +184,13 @@
                         Specifies the item types that are processed. The argument is a sequence
                         of single letters from (e,a,j,c) for (email, appointment, journal, contact)
                         types. The default is to process all item types.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-u</term>
+                    <listitem><para>
+                        Sets Thunderbird mode, a submode of recursive mode. This causes
+                        two extra .type and .size meta files to be created.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
