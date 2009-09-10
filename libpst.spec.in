@@ -146,6 +146,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Sep 10 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.43-1
+- decode more of the pst format, some minor bug fixes
+- add support for code pages 1200 and 1201.
+- add readpst -t option to select output item types
+- fix segfault with embedded appointments
+- add readpst -u option for Thunderbird mode .size and .type files
+
 * Thu Sep 03 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.42-1
 - patch from Fridrich Strba to build with DJGPP DOS cross-compiler.
 
