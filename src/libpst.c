@@ -3286,7 +3286,7 @@ static pst_id2_tree * pst_build_id2(pst_file *pf, pst_index_ll* list) {
             tail = i2_ptr;
             if (id2_rec.child_id) {
                 if ((i_ptr = pst_getID(pf, id2_rec.child_id)) == NULL) {
-                    DEBUG_WARN(("child id [%#"PRIi64"] not found\n", id2_rec.child_id));
+                    DEBUG_WARN(("child id [%#"PRIx64"] not found\n", id2_rec.child_id));
                 }
                 else {
                     i2_ptr->child = pst_build_id2(pf, i_ptr);
@@ -3885,7 +3885,7 @@ size_t pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf) {
     size_t r;
     int noenc = (int)(i_id & 2);   // disable encryption
     DEBUG_ENT("pst_ff_getIDblock_dec");
-    DEBUG_INFO(("for id %#"PRIi64"\n", i_id));
+    DEBUG_INFO(("for id %#"PRIx64"\n", i_id));
     r = pst_ff_getIDblock(pf, i_id, buf);
     if ((pf->encryption) && !(noenc)) {
         (void)pst_decrypt(i_id, *buf, r, pf->encryption);
@@ -3929,7 +3929,7 @@ static size_t pst_ff_getID2block(pst_file *pf, uint64_t id2, pst_id2_tree *id2_h
     ptr = pst_getID2(id2_head, id2);
 
     if (!ptr) {
-        DEBUG_WARN(("Cannot find id2 value %#"PRIi64"\n", id2));
+        DEBUG_WARN(("Cannot find id2 value %#"PRIx64"\n", id2));
         DEBUG_RET();
         return 0;
     }

@@ -274,82 +274,90 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             }
 
         } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
-            if (!ff.type) ff.type = item->type;
             DEBUG_INFO(("Processing Contact\n"));
-            if (ff.type != PST_TYPE_CONTACT) {
-                ff.skip_count++;
-                DEBUG_INFO(("I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Skipping it\n", ff.type));
-            }
-            else if (!(output_type_mode & OTMODE_CONTACT)) {
+            if (!(output_type_mode & OTMODE_CONTACT)) {
                 ff.skip_count++;
                 DEBUG_INFO(("skipping contact: not in output type list\n"));
             }
             else {
-                ff.item_count++;
-                if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                if (contact_mode == CMODE_VCARD) {
-                    pst_convert_utf8_null(item, &item->comment);
-                    write_vcard(ff.output, item, item->contact, item->comment.str);
+                if (!ff.type) ff.type = item->type;
+                if (ff.type != PST_TYPE_CONTACT) {
+                    ff.skip_count++;
+                    DEBUG_INFO(("I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Skipping it\n", ff.type));
                 }
                 else {
-                    pst_convert_utf8(item, &item->contact->fullname);
-                    pst_convert_utf8(item, &item->contact->address1);
-                    fprintf(ff.output, "%s <%s>\n", item->contact->fullname.str, item->contact->address1.str);
+                    ff.item_count++;
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                    if (contact_mode == CMODE_VCARD) {
+                        pst_convert_utf8_null(item, &item->comment);
+                        write_vcard(ff.output, item, item->contact, item->comment.str);
+                    }
+                    else {
+                        pst_convert_utf8(item, &item->contact->fullname);
+                        pst_convert_utf8(item, &item->contact->address1);
+                        fprintf(ff.output, "%s <%s>\n", item->contact->fullname.str, item->contact->address1.str);
+                    }
                 }
             }
 
         } else if (item->email && ((item->type == PST_TYPE_NOTE) || (item->type == PST_TYPE_SCHEDULE) || (item->type == PST_TYPE_REPORT))) {
-            if (!ff.type) ff.type = item->type;
             DEBUG_INFO(("Processing Email\n"));
-            if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_SCHEDULE) && (ff.type != PST_TYPE_REPORT)) {
-                ff.skip_count++;
-                DEBUG_INFO(("I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
-            }
-            else if (!(output_type_mode & OTMODE_EMAIL)) {
+            if (!(output_type_mode & OTMODE_EMAIL)) {
                 ff.skip_count++;
                 DEBUG_INFO(("skipping email: not in output type list\n"));
             }
             else {
-                char *extra_mime_headers = NULL;
-                ff.item_count++;
-                if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+                if (!ff.type) ff.type = item->type;
+                if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_SCHEDULE) && (ff.type != PST_TYPE_REPORT)) {
+                    ff.skip_count++;
+                    DEBUG_INFO(("I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
+                }
+                else {
+                    char *extra_mime_headers = NULL;
+                    ff.item_count++;
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                    write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+                }
             }
 
         } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
-            if (!ff.type) ff.type = item->type;
             DEBUG_INFO(("Processing Journal Entry\n"));
-            if (ff.type != PST_TYPE_JOURNAL) {
-                ff.skip_count++;
-                DEBUG_INFO(("I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Skipping it\n", ff.type));
-            }
-            else if (!(output_type_mode & OTMODE_JOURNAL)) {
+            if (!(output_type_mode & OTMODE_JOURNAL)) {
                 ff.skip_count++;
                 DEBUG_INFO(("skipping journal entry: not in output type list\n"));
             }
             else {
-                ff.item_count++;
-                if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                write_journal(ff.output, item);
-                fprintf(ff.output, "\n");
+                if (!ff.type) ff.type = item->type;
+                if (ff.type != PST_TYPE_JOURNAL) {
+                    ff.skip_count++;
+                    DEBUG_INFO(("I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Skipping it\n", ff.type));
+                }
+                else {
+                    ff.item_count++;
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                    write_journal(ff.output, item);
+                    fprintf(ff.output, "\n");
+                }
             }
 
         } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
-            if (!ff.type) ff.type = item->type;
             DEBUG_INFO(("Processing Appointment Entry\n"));
-            if (ff.type != PST_TYPE_APPOINTMENT) {
-                ff.skip_count++;
-                DEBUG_INFO(("I have an appointment, but the folder type %"PRIi32" isn't an appointment folder. Skipping it\n", ff.type));
-            }
-            else if (!(output_type_mode & OTMODE_APPOINTMENT)) {
+            if (!(output_type_mode & OTMODE_APPOINTMENT)) {
                 ff.skip_count++;
                 DEBUG_INFO(("skipping appointment: not in output type list\n"));
             }
             else {
-                ff.item_count++;
-                if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                write_appointment(ff.output, item, 0);
-                fprintf(ff.output, "\n");
+                if (!ff.type) ff.type = item->type;
+                if (ff.type != PST_TYPE_APPOINTMENT) {
+                    ff.skip_count++;
+                    DEBUG_INFO(("I have an appointment, but the folder type %"PRIi32" isn't an appointment folder. Skipping it\n", ff.type));
+                }
+                else {
+                    ff.item_count++;
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                    write_appointment(ff.output, item, 0);
+                    fprintf(ff.output, "\n");
+                }
             }
 
         } else if (item->message_store) {
@@ -1313,6 +1321,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     strncpy(body_charset, pst_default_charset(item, sizeof(buffer_charset), buffer_charset), sizeof(body_charset));
     body_charset[sizeof(body_charset)-1] = '\0';
     body_report[0] = '\0';
+    if (item->email->report_text.str && !item->body.str) {
+        strncpy(body_report, "delivery-status", sizeof(body_report));
+    }
 
     // setup default sender
     pst_convert_utf8(item, &item->email->sender_address);
@@ -1464,7 +1475,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     // needed or used by mail clients
     pst_convert_utf8_null(item, &item->email->sender_address);
     if (item->email->sender_address.str && !strchr(item->email->sender_address.str, '@')
-                                        && strcmp(item->email->sender_address.str, ".")) {
+                                        && strcmp(item->email->sender_address.str, ".")
+                                        && (strlen(item->email->sender_address.str) > 0)) {
         fprintf(f_output, "X-libpst-forensic-sender: %s\n", item->email->sender_address.str);
     }
 
@@ -1564,8 +1576,19 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             pst_convert_utf8_null(item, &attach->filename2);
             pst_convert_utf8_null(item, &attach->mimetype);
             DEBUG_INFO(("Attempting Attachment encoding\n"));
-            if (!attach->data.data && attach->mimetype.str && !strcmp(attach->mimetype.str, RFC822)) {
+            if (attach->method == PST_ATTACH_EMBEDDED) {
                 DEBUG_INFO(("seem to have special embedded message attachment\n"));
+                char *m = NULL;
+                if (attach->mimetype.str) {
+                    DEBUG_INFO(("already has a mime-type of %s\n", attach->mimetype.str));
+                    free(attach->mimetype.str);
+                }
+                attach->mimetype.str = strdup(RFC822);
+                attach->mimetype.is_utf8 = 1;
+                write_embedded_message(f_output, attach, boundary, pst, &m);
+            }
+            else if (!attach->data.data && attach->mimetype.str && !strcmp(attach->mimetype.str, RFC822)) {
+                DEBUG_INFO(("seem to have embedded message attachment\n"));
                 find_rfc822_headers(extra_mime_headers);
                 write_embedded_message(f_output, attach, boundary, pst, extra_mime_headers);
             }

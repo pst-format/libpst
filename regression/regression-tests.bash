@@ -52,7 +52,8 @@ function dopst()
     rm -rf output$n
     mkdir output$n
     #val ../src/readpst $jobs -r -D -cv -o output$n            $fn
-    $val ../src/readpst $jobs -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+    #$val ../src/readpst $jobs -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+    $val ../src/readpst $jobs -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
     #../src/getidblock -p $fn 0 >$ba.fulldump
 }
 

@@ -33,7 +33,6 @@
 #define PST_TYPE_OTHER      13
 #define PST_TYPE_REPORT     14
 
-
 // defines types of possible encryption
 #define PST_NO_ENCRYPT   0
 #define PST_COMP_ENCRYPT 1
@@ -71,6 +70,15 @@
 #define PST_APP_RECUR_WEEKLY      2
 #define PST_APP_RECUR_MONTHLY     3
 #define PST_APP_RECUR_YEARLY      4
+
+// define attachment types
+#define PST_ATTACH_NONE             0
+#define PST_ATTACH_BY_VALUE         1
+#define PST_ATTACH_BY_REF           2
+#define PST_ATTACH_BY_REF_RESOLV    3
+#define PST_ATTACH_BY_REF_ONLY      4
+#define PST_ATTACH_EMBEDDED         5
+#define PST_ATTACH_OLE              6
 
 
 typedef struct pst_entryid {
