@@ -1,4 +1,4 @@
-LibPST 0.6.43 (2009-09-10)
+LibPST 0.6.43 (2009-09-11)
 ===============================
     * patches from Justin Greer.
 	add code pages 1200 and 1201 to the list for iconv
@@ -11,6 +11,7 @@ LibPST 0.6.43 (2009-09-10)
     * patch from Justin Greer to ignore b5 tables at offset zero.
     * output type filtering can now be used to handle folders with multiple item types.
     * better decoding of rfc822 embedded message attachments.
+    * better detection of dsn delivery reports
 
 LibPST 0.6.42 (2009-09-03)
 ===============================
