@@ -1320,10 +1320,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     // setup default body character set and report type
     strncpy(body_charset, pst_default_charset(item, sizeof(buffer_charset), buffer_charset), sizeof(body_charset));
     body_charset[sizeof(body_charset)-1] = '\0';
-    body_report[0] = '\0';
-    if (item->email->report_text.str && !item->body.str) {
-        strncpy(body_report, "delivery-status", sizeof(body_report));
-    }
+    strncpy(body_report, "delivery-status", sizeof(body_report));
+    body_report[sizeof(body_report)-1] = '\0';
 
     // setup default sender
     pst_convert_utf8(item, &item->email->sender_address);
@@ -1487,7 +1485,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     // add our own mime headers
     fprintf(f_output, "MIME-Version: 1.0\n");
-    if (body_report[0] != '\0') {
+    if (item->type == PST_TYPE_REPORT) {
         // multipart/report for DSN/MDN reports
         fprintf(f_output, "Content-Type: multipart/report; report-type=%s;\n\tboundary=\"%s\"\n", body_report, boundary);
     }
@@ -1497,7 +1495,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     fprintf(f_output, "\n");    // end of headers, start of body
 
     // now dump the body parts
-    if ((item->email->report_text.str) && (body_report[0] != '\0')) {
+    if ((item->type == PST_TYPE_REPORT) && (item->email->report_text.str)) {
         write_body_part(f_output, &item->email->report_text, "text/plain", body_charset, boundary, pst);
         fprintf(f_output, "\n");
     }
