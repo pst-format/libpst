@@ -22,9 +22,12 @@ function dodii()
     fn="$2"
     echo $fn
     ba=$(basename "$fn" .pst)
+    size=$(stat -c %s $fn)
     rm -rf output$n
-    mkdir output$n
-    $val ../src/pst2dii -f /usr/share/fonts/bitstream-vera/VeraMono.ttf -B "bates-" -o output$n -O $ba.mydii -d $fn.log $fn >$fn.dii.err 2>&1
+    if [ -z "$val" ] || [ $size -lt 10000000 ]; then
+        mkdir output$n
+        $val ../src/pst2dii -f /usr/share/fonts/bitstream-vera/VeraMono.ttf -B "bates-" -o output$n -O $ba.mydii -d $fn.log $fn >$fn.dii.err 2>&1
+    fi
 }
 
 
@@ -34,9 +37,12 @@ function doldif()
     fn="$2"
     echo $fn
     ba=$(basename "$fn" .pst)
+    size=$(stat -c %s $fn)
     rm -rf output$n
-    mkdir output$n
-    $val ../src/pst2ldif -d $ba.ldif.log -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$ba.ldif.err 2>&1
+    if [ -z "$val" ] || [ $size -lt 10000000 ]; then
+        mkdir output$n
+        $val ../src/pst2ldif -d $ba.ldif.log -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$ba.ldif.err 2>&1
+    fi
 }
 
 
@@ -46,18 +52,20 @@ function dopst()
     fn="$2"
     echo $fn
     ba=$(basename "$fn" .pst)
+    size=$(stat -c %s $fn)
     jobs=""
-    [ -n "$val" ]              && jobs="-j 0"
-    [ "$regression" == "yes" ] && jobs="-j 0"
+    [ -n "$val" ] && jobs="-j 0"
     rm -rf output$n
-    mkdir output$n
-    if [ "$regression" == "yes" ]; then
-        $val ../src/readpst $jobs -te -r -D -cv -o output$n $fn >$ba.err 2>&1
-    else
-        #val ../src/readpst $jobs -r -D -cv -o output$n            $fn
-        $val ../src/readpst $jobs -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
-        #$val ../src/readpst $jobs -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
-        #../src/getidblock -p $fn 0 >$ba.fulldump
+    if [ -z "$val" ] || [ $size -lt 10000000 ]; then
+        mkdir output$n
+        if [ "$regression" == "yes" ]; then
+            $val ../src/readpst $jobs -te -r -cv -o output$n $fn >$ba.err 2>&1
+        else
+            #val ../src/readpst $jobs -r -D -cv -o output$n            $fn
+            $val ../src/readpst $jobs -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #$val ../src/readpst $jobs -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #../src/getidblock -p $fn 0 >$ba.fulldump
+        fi
     fi
 }
 
@@ -70,13 +78,14 @@ popd
 
 rm -rf output* *.err *.log
 
+v="valgrind --leak-check=full"
+val=""
+
 func="dopst"
 [ "$1" == "pst"  ] && func="dopst"
+[ "$1" == "pstv" ] && func="dopst" && val=$v
 [ "$1" == "ldif" ] && func="doldif"
 [ "$1" == "dii"  ] && func="dodii"
-
-val="valgrind --leak-check=full"
-val=""
 
 regression=""
 [ "$2" == "reg" ] && regression="yes"

@@ -1,4 +1,4 @@
-LibPST 0.6.43 (2009-09-11)
+LibPST 0.6.43 (2009-09-12)
 ===============================
     * patches from Justin Greer.
 	add code pages 1200 and 1201 to the list for iconv

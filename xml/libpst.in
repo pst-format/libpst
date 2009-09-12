@@ -35,7 +35,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2009-06-06</date>
+            <date>2009-09-12</date>
         </refentryinfo>
 
         <refmeta>
@@ -245,7 +245,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2009-06-06</date>
+            <date>2009-09-12</date>
         </refentryinfo>
 
         <refmeta>
@@ -340,7 +340,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2009-06-06</date>
+            <date>2009-09-12</date>
         </refentryinfo>
 
         <refmeta>
@@ -508,7 +508,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2009-06-06</date>
+            <date>2009-09-12</date>
         </refentryinfo>
 
         <refmeta>
@@ -641,7 +641,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2009-06-06</date>
+            <date>2009-09-12</date>
         </refentryinfo>
 
         <refmeta>

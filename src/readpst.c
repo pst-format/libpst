@@ -1575,18 +1575,13 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             pst_convert_utf8_null(item, &attach->mimetype);
             DEBUG_INFO(("Attempting Attachment encoding\n"));
             if (attach->method == PST_ATTACH_EMBEDDED) {
-                DEBUG_INFO(("seem to have special embedded message attachment\n"));
-                char *m = NULL;
+                DEBUG_INFO(("have an embedded rfc822 message attachment\n"));
                 if (attach->mimetype.str) {
-                    DEBUG_INFO(("already has a mime-type of %s\n", attach->mimetype.str));
+                    DEBUG_INFO(("which already has a mime-type of %s\n", attach->mimetype.str));
                     free(attach->mimetype.str);
                 }
                 attach->mimetype.str = strdup(RFC822);
                 attach->mimetype.is_utf8 = 1;
-                write_embedded_message(f_output, attach, boundary, pst, &m);
-            }
-            else if (!attach->data.data && attach->mimetype.str && !strcmp(attach->mimetype.str, RFC822)) {
-                DEBUG_INFO(("seem to have embedded message attachment\n"));
                 find_rfc822_headers(extra_mime_headers);
                 write_embedded_message(f_output, attach, boundary, pst, extra_mime_headers);
             }
