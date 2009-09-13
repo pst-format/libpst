@@ -1,3 +1,7 @@
+LibPST 0.6.44 (2009-xx-xx)
+===============================
+    * fix --help usage; readpstlog is gone, debug files are now ascii text.
+
 LibPST 0.6.43 (2009-09-12)
 ===============================
     * patches from Justin Greer.

@@ -106,7 +106,7 @@ static void usage()
     printf("\t-V                \t- Version. Display program version\n");
     printf("\t-b bates-number   \t- Set the starting bates sequence number\n");
     printf("\t-c bates-color    \t- Specify the color of the bates stamps as 6 digit hex\n");
-    printf("\t-d filename       \t- Debug to file. This is a binary log. Use readpstlog to print it.\n");
+    printf("\t-d filename       \t- Debug to file.\n");
     printf("\t-h                \t- Help. This screen\n");
     printf("\t-o dirname        \t- Output directory to write files to.\n");
 }

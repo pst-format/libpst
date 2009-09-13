@@ -1773,6 +1773,8 @@
 0x820e  Appointment end
 0x8214  Label for appointment
 0x8215  All day appointment flag
+0x8216  Appointment recurrence data
+0x8223  Appointment is recurring
 0x8231  Recurrence type
 0x8232  Recurrence description
 0x8234  TimeZone of times

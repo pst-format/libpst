@@ -682,7 +682,7 @@ void usage(void) {
     printf("\t-V\t- Version. Display program version\n");
     printf("\t-b ldapbase\t- set the LDAP base value\n");
     printf("\t-c class\t- set the class of the LDAP objects (may contain more than one)\n");
-    printf("\t-d <filename>\t- Debug to file. This is a binary log. Use readpstlog to print it\n");
+    printf("\t-d <filename>\t- Debug to file.\n");
     printf("\t-h\t- Help. This screen\n");
     printf("\t-l line\t- extra line to insert in the LDIF file for each contact\n");
     printf("\t-o\t- use old schema, default is new schema\n");

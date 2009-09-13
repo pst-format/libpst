@@ -646,7 +646,7 @@ void usage() {
     printf("\t-S\t- Separate. Write emails in the separate format\n");
     printf("\t-b\t- Don't save RTF-Body attachments\n");
     printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
-    printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readpstlog to print it\n");
+    printf("\t-d <filename> \t- Debug to file.\n");
     printf("\t-h\t- Help. This screen\n");
     printf("\t-j <integer>\t- Number of parallel jobs to run\n");
     printf("\t-k\t- KMail. Output in kmail format\n");
