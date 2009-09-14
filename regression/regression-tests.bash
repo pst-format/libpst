@@ -20,11 +20,11 @@ function dodii()
 {
     n="$1"
     fn="$2"
-    echo $fn
     ba=$(basename "$fn" .pst)
     size=$(stat -c %s $fn)
     rm -rf output$n
     if [ -z "$val" ] || [ $size -lt 10000000 ]; then
+        echo $fn
         mkdir output$n
         $val ../src/pst2dii -f /usr/share/fonts/bitstream-vera/VeraMono.ttf -B "bates-" -o output$n -O $ba.mydii -d $fn.log $fn >$fn.dii.err 2>&1
     fi
@@ -35,11 +35,11 @@ function doldif()
 {
     n="$1"
     fn="$2"
-    echo $fn
     ba=$(basename "$fn" .pst)
     size=$(stat -c %s $fn)
     rm -rf output$n
     if [ -z "$val" ] || [ $size -lt 10000000 ]; then
+        echo $fn
         mkdir output$n
         $val ../src/pst2ldif -d $ba.ldif.log -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$ba.ldif.err 2>&1
     fi
@@ -50,20 +50,30 @@ function dopst()
 {
     n="$1"
     fn="$2"
-    echo $fn
     ba=$(basename "$fn" .pst)
     size=$(stat -c %s $fn)
     jobs=""
     [ -n "$val" ] && jobs="-j 0"
     rm -rf output$n
     if [ -z "$val" ] || [ $size -lt 10000000 ]; then
+        echo $fn
         mkdir output$n
         if [ "$regression" == "yes" ]; then
             $val ../src/readpst $jobs -te -r -cv -o output$n $fn >$ba.err 2>&1
         else
-            #val ../src/readpst $jobs -r -D -cv -o output$n            $fn
-            $val ../src/readpst $jobs -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
-            #$val ../src/readpst $jobs -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            ## only email and include deleted items, have a deleted items folder with multiple item types
+            #$val ../src/readpst $jobs -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+
+            ## normal recursive dump
+            #$val ../src/readpst $jobs     -r    -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+
+             # separate mode with filename extensions
+             $val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+
+            ## separate mode where we decode all attachments to binary files
+            #$val ../src/readpst $jobs     -r -S -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+
+            ## testing idblock
             #../src/getidblock -p $fn 0 >$ba.fulldump
         fi
     fi

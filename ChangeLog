@@ -1,6 +1,8 @@
 LibPST 0.6.44 (2009-xx-xx)
 ===============================
     * fix --help usage; readpstlog is gone, debug files are now ascii text.
+    * patch from Lee Ayres to add file name extensions in separate mode.
+    * allow mixed items types in a folder in separate mode.
 
 LibPST 0.6.43 (2009-09-12)
 ===============================

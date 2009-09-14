@@ -11,7 +11,7 @@
 #define OUTPUT_TEMPLATE "%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
 #define KMAIL_INDEX ".%s.index"
-#define SEP_MAIL_FILE_TEMPLATE "%i"
+#define SEP_MAIL_FILE_TEMPLATE "%i%s"
 
 // max size of the c_time char*. It will store the date of the email
 #define C_TIME_SIZE 500
@@ -39,7 +39,7 @@ char*     mk_recurse_dir(char* dir, int32_t folder_type);
 int       close_recurse_dir();
 char*     mk_separate_dir(char *dir);
 int       close_separate_dir();
-int       mk_separate_file(struct file_ll *f);
+int       mk_separate_file(struct file_ll *f, char *extension);
 char*     my_stristr(char *haystack, char *needle);
 void      check_filename(char *fname);
 void      write_separate_attachment(char f_name[], pst_item_attach* attach, int attach_num, pst_file* pst);
@@ -81,7 +81,7 @@ char*  kmail_chdir = NULL;
 
 // separate mode creates the same directory structure as recurse. The emails are stored in
 // separate files, numbering from 1 upward. Attachments belonging to the emails are
-// saved as email_no-filename (e.g. 1-samplefile.doc or 000001-Attachment2.zip)
+// saved as email_no-filename (e.g. 1-samplefile.doc or 1-Attachment2.zip)
 #define MODE_SEPARATE 3
 
 
@@ -118,6 +118,7 @@ char*  kmail_chdir = NULL;
 // global settings
 int         mode         = MODE_NORMAL;
 int         mode_MH      = 0;   // a submode of MODE_SEPARATE
+int         mode_EX      = 0;   // a submode of MODE_SEPARATE
 int         mode_thunder = 0;   // a submode of MODE_RECURSE
 int         output_mode  = OUTPUT_NORMAL;
 int         contact_mode = CMODE_VCARD;
@@ -126,6 +127,7 @@ int         output_type_mode = 0xff;    // Default to all.
 int         contact_mode_specified = 0;
 int         overwrite = 0;
 int         save_rtf_body = 1;
+int         file_name_len = 10;     // enough room for MODE_SPEARATE file name
 pst_file    pstfile;
 regex_t     meta_charset_pattern;
 
@@ -281,13 +283,13 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             }
             else {
                 if (!ff.type) ff.type = item->type;
-                if (ff.type != PST_TYPE_CONTACT) {
+                if ((ff.type != PST_TYPE_CONTACT) && (mode != MODE_SEPARATE)) {
                     ff.skip_count++;
                     DEBUG_INFO(("I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Skipping it\n", ff.type));
                 }
                 else {
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".vcf" : "");
                     if (contact_mode == CMODE_VCARD) {
                         pst_convert_utf8_null(item, &item->comment);
                         write_vcard(ff.output, item, item->contact, item->comment.str);
@@ -308,14 +310,14 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             }
             else {
                 if (!ff.type) ff.type = item->type;
-                if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_SCHEDULE) && (ff.type != PST_TYPE_REPORT)) {
+                if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_SCHEDULE) && (ff.type != PST_TYPE_REPORT) && (mode != MODE_SEPARATE)) {
                     ff.skip_count++;
                     DEBUG_INFO(("I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
                 }
                 else {
                     char *extra_mime_headers = NULL;
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".eml" : "");
                     write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
                 }
             }
@@ -328,13 +330,13 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             }
             else {
                 if (!ff.type) ff.type = item->type;
-                if (ff.type != PST_TYPE_JOURNAL) {
+                if ((ff.type != PST_TYPE_JOURNAL) && (mode != MODE_SEPARATE)) {
                     ff.skip_count++;
                     DEBUG_INFO(("I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Skipping it\n", ff.type));
                 }
                 else {
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "");
                     write_journal(ff.output, item);
                     fprintf(ff.output, "\n");
                 }
@@ -348,14 +350,14 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             }
             else {
                 if (!ff.type) ff.type = item->type;
-                if (ff.type != PST_TYPE_APPOINTMENT) {
+                if ((ff.type != PST_TYPE_APPOINTMENT) && (mode != MODE_SEPARATE)) {
                     ff.skip_count++;
                     DEBUG_INFO(("I have an appointment, but the folder type %"PRIi32" isn't an appointment folder. Skipping it\n", ff.type));
                 }
                 else {
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff);
-                    write_appointment(ff.output, item, 0);
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "");
+                    write_schedule_part_data(ff.output, item, NULL, NULL);
                     fprintf(ff.output, "\n");
                 }
             }
@@ -396,7 +398,7 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "bc:Dd:hj:kMo:qrSt:uVw"))!= -1) {
+    while ((c = getopt(argc, argv, "bc:Dd:ehj:kMo:qrSt:uVw"))!= -1) {
         switch (c) {
         case 'b':
             save_rtf_body = 0;
@@ -435,6 +437,13 @@ int main(int argc, char* const* argv) {
         case 'M':
             mode = MODE_SEPARATE;
             mode_MH = 1;
+            mode_EX = 0;
+            break;
+        case 'e':
+            mode = MODE_SEPARATE;
+            mode_MH = 1;
+            mode_EX = 1;
+            file_name_len = 14;
             break;
         case 'o':
             output_dir = optarg;
@@ -449,6 +458,7 @@ int main(int argc, char* const* argv) {
         case 'S':
             mode = MODE_SEPARATE;
             mode_MH = 0;
+            mode_EX = 0;
             break;
         case 't':
             // email, appointment, contact, other
@@ -642,11 +652,12 @@ void usage() {
     printf("OPTIONS:\n");
     printf("\t-V\t- Version. Display program version\n");
     printf("\t-D\t- Include deleted items in output\n");
-    printf("\t-M\t- MH. Write emails in the MH format\n");
+    printf("\t-M\t- Write emails in the MH (rfc822) format\n");
     printf("\t-S\t- Separate. Write emails in the separate format\n");
     printf("\t-b\t- Don't save RTF-Body attachments\n");
     printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
     printf("\t-d <filename> \t- Debug to file.\n");
+    printf("\t-e\t- As with -M, but include extensions on output files\n");
     printf("\t-h\t- Help. This screen\n");
     printf("\t-j <integer>\t- Number of parallel jobs to run\n");
     printf("\t-k\t- KMail. Output in kmail format\n");
@@ -798,7 +809,7 @@ char *mk_separate_dir(char *dir) {
         if (y == 0)
             snprintf(dir_name, dirsize, "%s", dir);
         else
-            snprintf(dir_name, dirsize, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y); // enough for 9 digits allocated above
+      snprintf(dir_name, dirsize, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y, ""); // enough for 9 digits allocated above
 
         check_filename(dir_name);
         DEBUG_INFO(("about to try creating %s\n", dir_name));
@@ -858,14 +869,14 @@ int close_separate_dir() {
 }
 
 
-int mk_separate_file(struct file_ll *f) {
+int mk_separate_file(struct file_ll *f, char *extension) {
     const int name_offset = 1;
     DEBUG_ENT("mk_separate_file");
     DEBUG_INFO(("opening next file to save email\n"));
     if (f->item_count > 999999999) { // bigger than nine 9's
         DIE(("mk_separate_file: The number of emails in this folder has become too high to handle\n"));
     }
-    sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->item_count + name_offset);
+    sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->item_count + name_offset, extension);
     if (f->output) fclose(f->output);
     f->output = NULL;
     check_filename(f->name);
@@ -1265,9 +1276,9 @@ void write_schedule_part_data(FILE* f_output, pst_item* item, const char* sender
     fprintf(f_output, "BEGIN:VCALENDAR\n");
     fprintf(f_output, "VERSION:2.0\n");
     fprintf(f_output, "PRODID:LibPST v%s\n", VERSION);
-    fprintf(f_output, "METHOD:%s\n", method);
+    if (method) fprintf(f_output, "METHOD:%s\n", method);
     fprintf(f_output, "BEGIN:VEVENT\n");
-    fprintf(f_output, "ORGANIZER;CN=\"%s\":MAILTO:%s\n", item->email->outlook_sender_name.str, sender);
+    if (sender) fprintf(f_output, "ORGANIZER;CN=\"%s\":MAILTO:%s\n", item->email->outlook_sender_name.str, sender);
     write_appointment(f_output, item, 1);
     fprintf(f_output, "END:VCALENDAR\n");
 }
@@ -1912,8 +1923,8 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
     } else if (mode == MODE_SEPARATE) {
         // do similar stuff to recurse here.
         mk_separate_dir(item->file_as.str);
-        f->name = (char*) pst_malloc(10);
-        memset(f->name, 0, 10);
+        f->name = (char*) pst_malloc(file_name_len);
+        memset(f->name, 0, file_name_len);
     } else {
         f->name = (char*) pst_malloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+1);
         sprintf(f->name, OUTPUT_TEMPLATE, item->file_as.str);

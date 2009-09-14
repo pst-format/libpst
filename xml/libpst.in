@@ -35,7 +35,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2009-09-12</date>
+            <date>2009-09-14</date>
         </refentryinfo>
 
         <refmeta>
@@ -60,6 +60,7 @@
                 <arg><option>-b</option></arg>
                 <arg><option>-c <replaceable class="parameter">format</replaceable></option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
+                <arg><option>-e</option></arg>
                 <arg><option>-h</option></arg>
                 <arg><option>-j <replaceable class="parameter">jobs</replaceable></option></arg>
                 <arg><option>-k</option></arg>
@@ -93,7 +94,7 @@
                 <varlistentry>
                     <term>-M</term>
                     <listitem><para>
-                        Output messages in MH format as separate files.  This will create
+                        Output messages in MH (rfc822) format as separate files.  This will create
                         folders as named in the PST file, and will put each email together with
                         any attachments into its own file.  These files will be numbered from 1
                         to n with no leading zeros.
@@ -102,12 +103,14 @@
                 <varlistentry>
                     <term>-S</term>
                     <listitem><para>
-                        Output messages into separate files.  This will create folders as named
-                        in the PST file, and will put each email in its own file.  These files
-                        will be numbered from 1 increasing in intervals of 1 (ie 1, 2, 3, ...).
-                        Any attachments are saved alongside each email as XXXXXXXXX-attach1,
-                        XXXXXXXXX-attach2 and so on, or with the name of the attachment if one
-                        is present.
+                        Output messages into separate files.  This will create folders as
+                        named in the PST file, and will put each email in its own file.  These
+                        files will be numbered from 1 to n with no leading zeros. So the email
+                        contents for message $m are saved in a file named $m.  Attachments
+                        will also be saved in the same folder as the email message. The
+                        attachments for message $m are saved as $m-$name where $name is (the
+                        original name of the attachment, or 'attach$n' if the attachment had
+                        no name), where $n is another sequential index with no leading zeros.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -133,6 +136,13 @@
                     <listitem><para>
                         Specify name of debug log file. The log file is now an ascii file,
                         instead of the binary file used in previous versions.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-e</term>
+                    <listitem><para>
+                        Same as the M option, but each output file will include an extension
+                        from (.eml, .ics, .vcf).
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -245,7 +255,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2009-09-12</date>
+            <date>2009-09-14</date>
         </refentryinfo>
 
         <refmeta>
@@ -340,7 +350,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2009-09-12</date>
+            <date>2009-09-14</date>
         </refentryinfo>
 
         <refmeta>
@@ -508,7 +518,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2009-09-12</date>
+            <date>2009-09-14</date>
         </refentryinfo>
 
         <refmeta>
@@ -641,7 +651,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2009-09-12</date>
+            <date>2009-09-14</date>
         </refentryinfo>
 
         <refmeta>
