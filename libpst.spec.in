@@ -146,6 +146,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Sep 20 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.44-1
+- patch from Lee Ayres to add file name extensions in separate mode.
+- allow mixed items types in a folder in separate mode.
+
 * Thu Sep 12 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.43-1
 - decode more of the pst format, some minor bug fixes
 - add support for code pages 1200 and 1201.

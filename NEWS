@@ -1,4 +1,4 @@
-0.6.44  2009-09-14 patch from Lee Ayres to add file name extensions in separate mode
+0.6.44  2009-09-20 patch from Lee Ayres to add file name extensions in separate mode
 0.6.43  2009-09-12 patches from Justin Greer, Chris White, Roberto Polli; better rfc822 embedded message decoding
 0.6.42  2009-09-03 patch from Fridrich Strba to build with DJGPP DOS cross-compiler
 0.6.41  2009-06-23 fix ax_python detection - should not use locate command
