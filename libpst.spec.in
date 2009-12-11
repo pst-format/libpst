@@ -146,6 +146,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Nov 18 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.45-1
+- patch from Hugo DesRosiers to export categories and notes into vcards.
+- extend that patch to export categories into vcalendar appointments also.
+
 * Sun Sep 20 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.44-1
 - patch from Lee Ayres to add file name extensions in separate mode.
 - allow mixed items types in a folder in separate mode.

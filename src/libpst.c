@@ -1880,7 +1880,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         LIST_COPY(targ, (char*))                                            \
     }                                                                       \
     else {                                                                  \
-        DEBUG_WARN(("src not 0x1e or 0x1f or 0x102 for string dst\n"));    \
+        DEBUG_WARN(("src not 0x1e or 0x1f or 0x102 for string dst\n"));     \
         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
         SAFE_FREE(targ);                                                    \
         targ = NULL;                                                        \
@@ -1889,14 +1889,14 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
 #define LIST_COPY_BOOL(label, targ) {                                       \
     if (list->elements[x]->type != 0x0b) {                                  \
-        DEBUG_WARN(("src not 0x0b for boolean dst\n"));                    \
+        DEBUG_WARN(("src not 0x0b for boolean dst\n"));                     \
         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
     }                                                                       \
     if (*(int16_t*)list->elements[x]->data) {                               \
-        DEBUG_INFO((label" - True\n"));                                    \
+        DEBUG_INFO((label" - True\n"));                                     \
         targ = 1;                                                           \
     } else {                                                                \
-        DEBUG_INFO((label" - False\n"));                                   \
+        DEBUG_INFO((label" - False\n"));                                    \
         targ = 0;                                                           \
     }                                                                       \
 }
@@ -1918,7 +1918,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
 #define LIST_COPY_INT16_N(targ) {                                           \
     if (list->elements[x]->type != 0x02) {                                  \
-        DEBUG_WARN(("src not 0x02 for int16 dst\n"));                      \
+        DEBUG_WARN(("src not 0x02 for int16 dst\n"));                       \
         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
     }                                                                       \
     memcpy(&(targ), list->elements[x]->data, sizeof(targ));                 \
@@ -1927,12 +1927,12 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
 #define LIST_COPY_INT16(label, targ) {                          \
     LIST_COPY_INT16_N(targ);                                    \
-    DEBUG_INFO((label" - %i %#x\n", (int)targ, (int)targ));    \
+    DEBUG_INFO((label" - %i %#x\n", (int)targ, (int)targ));     \
 }
 
 #define LIST_COPY_INT32_N(targ) {                                           \
     if (list->elements[x]->type != 0x03) {                                  \
-        DEBUG_WARN(("src not 0x03 for int32 dst\n"));                      \
+        DEBUG_WARN(("src not 0x03 for int32 dst\n"));                       \
         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
     }                                                                       \
     memcpy(&(targ), list->elements[x]->data, sizeof(targ));                 \
@@ -1941,7 +1941,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
 #define LIST_COPY_INT32(label, targ) {                          \
     LIST_COPY_INT32_N(targ);                                    \
-    DEBUG_INFO((label" - %i %#x\n", (int)targ, (int)targ));    \
+    DEBUG_INFO((label" - %i %#x\n", (int)targ, (int)targ));     \
 }
 
 #define LIST_COPY_EMAIL_INT32(label, targ) {                    \
@@ -1968,7 +1968,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     char *tlabels[] = {__VA_ARGS__};                            \
     LIST_COPY_INT32_N(targ);                                    \
     targ += delta;                                              \
-    DEBUG_INFO((label" - %s [%i]\n",                           \
+    DEBUG_INFO((label" - %s [%i]\n",                            \
         (((int)targ < 0) || ((int)targ >= count))               \
             ? "**invalid"                                       \
             : tlabels[(int)targ], (int)targ));                  \
@@ -1988,7 +1988,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     char *tlabels[] = {__VA_ARGS__};                            \
     LIST_COPY_INT16_N(targ);                                    \
     targ += delta;                                              \
-    DEBUG_INFO((label" - %s [%i]\n",                           \
+    DEBUG_INFO((label" - %s [%i]\n",                            \
         (((int)targ < 0) || ((int)targ >= count))               \
             ? "**invalid"                                       \
             : tlabels[(int)targ], (int)targ));                  \
@@ -2003,7 +2003,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     LIST_COPY(targ, (pst_entryid*));                            \
     LE32_CPU(targ->u1);                                         \
     LE32_CPU(targ->id);                                         \
-    DEBUG_INFO((label" u1=%#x, id=%#x\n", targ->u1, targ->id));\
+    DEBUG_INFO((label" u1=%#x, id=%#x\n", targ->u1, targ->id)); \
 }
 
 #define LIST_COPY_EMAIL_ENTRYID(label, targ) {                  \
@@ -2022,7 +2022,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 #define LIST_COPY_STR(label, targ) {                                    \
     LIST_COPY_CSTR(targ.str);                                           \
     targ.is_utf8 = (list->elements[x]->type == 0x1f) ? 1 : 0;           \
-    DEBUG_INFO((label" - unicode %d - %s\n", targ.is_utf8, targ.str)); \
+    DEBUG_INFO((label" - unicode %d - %s\n", targ.is_utf8, targ.str));  \
 }
 
 #define LIST_COPY_EMAIL_STR(label, targ) {                      \
@@ -2055,7 +2055,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     memcpy(targ, list->elements[x]->data, list->elements[x]->size);         \
     LE32_CPU(targ->dwLowDateTime);                                          \
     LE32_CPU(targ->dwHighDateTime);                                         \
-    DEBUG_INFO((label" - %s", pst_fileTimeToAscii(targ, time_buffer)));    \
+    DEBUG_INFO((label" - %s", pst_fileTimeToAscii(targ, time_buffer)));     \
 }
 
 #define LIST_COPY_EMAIL_TIME(label, targ) {                     \
@@ -2094,12 +2094,12 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 #define LIST_COPY_EMAIL_BIN(label, targ) {          \
     MALLOC_EMAIL(item);                             \
     LIST_COPY_BIN(targ);                            \
-    DEBUG_INFO((label"\n"));                       \
+    DEBUG_INFO((label"\n"));                        \
 }
 #define LIST_COPY_APPT_BIN(label, targ) {           \
     MALLOC_APPOINTMENT(item);                       \
     LIST_COPY_BIN(targ);                            \
-    DEBUG_INFO((label"\n"));                       \
+    DEBUG_INFO((label"\n"));                        \
     DEBUG_HEXDUMP(targ.data, targ.size);            \
 }
 
@@ -2138,35 +2138,58 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
             switch (list->elements[x]->mapi_id) {
                 case PST_ATTRIB_HEADER: // CUSTOM attribute for saying the Extra Headers
                     if (list->elements[x]->extra) {
-                        pst_item_extra_field *ef = (pst_item_extra_field*) pst_malloc(sizeof(pst_item_extra_field));
-                        memset(ef, 0, sizeof(pst_item_extra_field));
-                        LIST_COPY_CSTR(ef->value);
-                        if (ef->value) {
-                            ef->field_name = strdup(list->elements[x]->extra);
-                            ef->next       = item->extra_fields;
-                            item->extra_fields = ef;
-                            DEBUG_INFO(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
-                            if (strcmp(ef->field_name, "content-type") == 0) {
-                                char *p = strstr(ef->value, "charset=\"");
-                                if (p) {
-                                    p += 9; // skip over charset="
-                                    char *pp = strchr(p, '"');
-                                    if (pp) {
-                                        *pp = '\0';
-                                        char *set = strdup(p);
-                                        *pp = '"';
-                                        if (item->body_charset.str) free(item->body_charset.str);
-                                        item->body_charset.str     = set;
-                                        item->body_charset.is_utf8 = 1;
-                                        DEBUG_INFO(("body charset %s from content-type extra field\n", set));
-                                    }
-                                }
+                        if (list->elements[x]->type == 0x0101e) {
+                            // an array of strings, rather than a single string
+                            int32_t string_length, i, offset, next_offset;
+                            int32_t p = 0;
+                            int32_t array_element_count = PST_LE_GET_INT32(list->elements[x]->data); p+=4;
+                            for (i = 1; i <= array_element_count; i++) {
+                                pst_item_extra_field *ef = (pst_item_extra_field*) pst_malloc(sizeof(pst_item_extra_field));
+                                memset(ef, 0, sizeof(pst_item_extra_field));
+                                offset      = PST_LE_GET_INT32(list->elements[x]->data + p); p+=4;
+                                next_offset = (i == array_element_count) ? list->elements[x]->size : PST_LE_GET_INT32(list->elements[x]->data + p);;
+                                string_length = next_offset - offset;
+                                ef->value = malloc(string_length + 1);
+                                memcpy(ef->value, list->elements[x]->data + offset, string_length);
+                                ef->value[string_length] = '\0';
+                                ef->field_name = strdup(list->elements[x]->extra);
+                                ef->next       = item->extra_fields;
+                                item->extra_fields = ef;
+                                DEBUG_INFO(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
                             }
                         }
                         else {
-                            DEBUG_WARN(("What does this mean? Internet header %s value\n", list->elements[x]->extra));
-                            DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
-                            free(ef);   // caught by valgrind
+                            // should be a single string
+                            pst_item_extra_field *ef = (pst_item_extra_field*) pst_malloc(sizeof(pst_item_extra_field));
+                            memset(ef, 0, sizeof(pst_item_extra_field));
+                            LIST_COPY_CSTR(ef->value);
+                            if (ef->value) {
+                                ef->field_name = strdup(list->elements[x]->extra);
+                                ef->next       = item->extra_fields;
+                                item->extra_fields = ef;
+                                DEBUG_INFO(("Extra Field - \"%s\" = \"%s\"\n", ef->field_name, ef->value));
+                                if (strcmp(ef->field_name, "content-type") == 0) {
+                                    char *p = strstr(ef->value, "charset=\"");
+                                    if (p) {
+                                        p += 9; // skip over charset="
+                                        char *pp = strchr(p, '"');
+                                        if (pp) {
+                                            *pp = '\0';
+                                            char *set = strdup(p);
+                                            *pp = '"';
+                                            if (item->body_charset.str) free(item->body_charset.str);
+                                            item->body_charset.str     = set;
+                                            item->body_charset.is_utf8 = 1;
+                                            DEBUG_INFO(("body charset %s from content-type extra field\n", set));
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                DEBUG_WARN(("What does this mean? Internet header %s value\n", list->elements[x]->extra));
+                                DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
+                                free(ef);   // caught by valgrind
+                            }
                         }
                     }
                     break;
@@ -3981,7 +4004,6 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size
     char      *buf3 = NULL;
     char      *buf2 = NULL;
     char      *b_ptr;
-    int       line_count = 0;
     pst_block_hdr  block_hdr;
     pst_table3_rec table3_rec;  //for type 3 (0x0101) blocks
 

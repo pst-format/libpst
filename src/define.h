@@ -165,12 +165,12 @@ void* pst_malloc(size_t size);
 #define DEBUG_HEXDUMPC(x, s, c) pst_debug_hexdump(__LINE__, __FILE__, (char*)x, s, c, 0)
 
 
-# define DEBUG_ENT(x)                                           \
+#define DEBUG_ENT(x)                                            \
     {                                                           \
         pst_debug_func(x);                                      \
         pst_debug(__LINE__, __FILE__, "Entering function\n");   \
     }
-# define DEBUG_RET()                                            \
+#define DEBUG_RET()                                             \
     {                                                           \
         pst_debug(__LINE__, __FILE__, "Leaving function\n");    \
         pst_debug_func_ret();                                   \

@@ -665,6 +665,7 @@ int main(int argc, char* const* argv) {
                 print_ldif_single("objectClass", ldap_class[i].c_str());
             printf("\n");
         }
+        free(ldap_org); // found by cppcheck
     }
 
     process(d_ptr->child);  // do the children of TOPF

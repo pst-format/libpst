@@ -58,8 +58,9 @@ void      write_schedule_part_data(FILE* f_output, pst_item* item, const char* s
 void      write_schedule_part(FILE* f_output, pst_item* item, const char* sender, const char* boundary);
 void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers);
 void      write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char comment[]);
+int       write_extra_categories(FILE* f_output, pst_item* item);
 void      write_journal(FILE* f_output, pst_item* item);
-void      write_appointment(FILE* f_output, pst_item *item, int event_open);
+void      write_appointment(FILE* f_output, pst_item *item);
 void      create_enter_dir(struct file_ll* f, pst_item *item);
 void      close_enter_dir(struct file_ll *f);
 
@@ -1279,7 +1280,7 @@ void write_schedule_part_data(FILE* f_output, pst_item* item, const char* sender
     if (method) fprintf(f_output, "METHOD:%s\n", method);
     fprintf(f_output, "BEGIN:VEVENT\n");
     if (sender) fprintf(f_output, "ORGANIZER;CN=\"%s\":MAILTO:%s\n", item->email->outlook_sender_name.str, sender);
-    write_appointment(f_output, item, 1);
+    write_appointment(f_output, item);
     fprintf(f_output, "END:VCALENDAR\n");
 }
 
@@ -1673,6 +1674,7 @@ void write_vcard(FILE* f_output, pst_item* item, pst_item_contact* contact, char
     pst_convert_utf8_null(item, &contact->assistant_name);
     pst_convert_utf8_null(item, &contact->assistant_phone);
     pst_convert_utf8_null(item, &contact->company_name);
+    pst_convert_utf8_null(item, &item->body);
 
     // the specification I am following is (hopefully) RFC2426 vCard Mime Directory Profile
     fprintf(f_output, "BEGIN:VCARD\n");
@@ -1756,11 +1758,42 @@ void write_vcard(FILE* f_output, pst_item* item, pst_item_contact* contact, char
     }
     if (contact->company_name.str)      fprintf(f_output, "ORG:%s\n",                       pst_rfc2426_escape(contact->company_name.str, &result, &resultlen));
     if (comment)                        fprintf(f_output, "NOTE:%s\n",                      pst_rfc2426_escape(comment, &result, &resultlen));
+    if (item->body.str)                 fprintf(f_output, "NOTE:%s\n",                      pst_rfc2426_escape(item->body.str, &result, &resultlen));
+
+    write_extra_categories(f_output, item);
 
     fprintf(f_output, "VERSION: 3.0\n");
     fprintf(f_output, "END:VCARD\n\n");
     if (result) free(result);
     DEBUG_RET();
+}
+
+
+/**
+ * write extra vcard or vcalendar categories from the extra keywords fields
+ *
+ * @param f_output open file pointer
+ * @param item     pst item containing the keywords
+ * @return         true if we write a categories line
+ */
+int write_extra_categories(FILE* f_output, pst_item* item)
+{
+    char*  result = NULL;
+    size_t resultlen = 0;
+    pst_item_extra_field *ef = item->extra_fields;
+    const char *fmt = "CATEGORIES:%s";
+    int category_started = 0;
+    while (ef) {
+        if (strcmp(ef->field_name, "Keywords") == 0) {
+            fprintf(f_output, fmt, pst_rfc2426_escape(ef->value, &result, &resultlen));
+            fmt = ", %s";
+            category_started = 1;
+        }
+        ef = ef->next;
+    }
+    if (category_started) fprintf(f_output, "\n");
+    if (result) free(result);
+    return category_started;
 }
 
 
@@ -1792,7 +1825,7 @@ void write_journal(FILE* f_output, pst_item* item)
 }
 
 
-void write_appointment(FILE* f_output, pst_item* item, int event_open)
+void write_appointment(FILE* f_output, pst_item* item)
 {
     char*  result = NULL;
     size_t resultlen = 0;
@@ -1804,7 +1837,6 @@ void write_appointment(FILE* f_output, pst_item* item, int event_open)
     pst_convert_utf8_null(item, &item->body);
     pst_convert_utf8_null(item, &appointment->location);
 
-    if (!event_open) fprintf(f_output, "BEGIN:VEVENT\n");
     fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now(sizeof(time_buffer), time_buffer));
     if (item->create_date)
         fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date, sizeof(time_buffer), time_buffer));
@@ -1865,7 +1897,7 @@ void write_appointment(FILE* f_output, pst_item* item, int event_open)
         }
         switch (appointment->label) {
             case PST_APP_LABEL_NONE:
-                fprintf(f_output, "CATEGORIES:NONE\n");
+                if (!write_extra_categories(f_output, item)) fprintf(f_output, "CATEGORIES:NONE\n");
                 break;
             case PST_APP_LABEL_IMPORTANT:
                 fprintf(f_output, "CATEGORIES:IMPORTANT\n");
