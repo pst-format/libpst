@@ -7,6 +7,7 @@
 
 #include "define.h"
 #include "lzfu.h"
+#include "msg.h"
 
 #define OUTPUT_TEMPLATE "%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
@@ -39,7 +40,7 @@ char*     mk_recurse_dir(char* dir, int32_t folder_type);
 int       close_recurse_dir();
 char*     mk_separate_dir(char *dir);
 int       close_separate_dir();
-int       mk_separate_file(struct file_ll *f, char *extension);
+int       mk_separate_file(struct file_ll *f, char *extension, int openit);
 char*     my_stristr(char *haystack, char *needle);
 void      check_filename(char *fname);
 void      write_separate_attachment(char f_name[], pst_item_attach* attach, int attach_num, pst_file* pst);
@@ -120,6 +121,7 @@ char*  kmail_chdir = NULL;
 int         mode         = MODE_NORMAL;
 int         mode_MH      = 0;   // a submode of MODE_SEPARATE
 int         mode_EX      = 0;   // a submode of MODE_SEPARATE
+int         mode_MSG     = 0;   // a submode of MODE_SEPARATE
 int         mode_thunder = 0;   // a submode of MODE_RECURSE
 int         output_mode  = OUTPUT_NORMAL;
 int         contact_mode = CMODE_VCARD;
@@ -290,7 +292,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 }
                 else {
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".vcf" : "");
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".vcf" : "", 1);
                     if (contact_mode == CMODE_VCARD) {
                         pst_convert_utf8_null(item, &item->comment);
                         write_vcard(ff.output, item, item->contact, item->comment.str);
@@ -318,8 +320,12 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 else {
                     char *extra_mime_headers = NULL;
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".eml" : "");
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".eml" : "", 1);
                     write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+                    if ((mode == MODE_SEPARATE) && (mode_MSG)) {
+                        mk_separate_file(&ff, ".msg", 0);
+                        write_msg_email(ff.name, item, &pstfile);
+                    }
                 }
             }
 
@@ -337,7 +343,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 }
                 else {
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "");
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "", 1);
                     write_journal(ff.output, item);
                     fprintf(ff.output, "\n");
                 }
@@ -357,7 +363,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 }
                 else {
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "");
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "", 1);
                     write_schedule_part_data(ff.output, item, NULL, NULL);
                     fprintf(ff.output, "\n");
                 }
@@ -399,7 +405,7 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "bc:Dd:ehj:kMo:qrSt:uVw"))!= -1) {
+    while ((c = getopt(argc, argv, "bc:Dd:emhj:kMo:qrSt:uVw"))!= -1) {
         switch (c) {
         case 'b':
             save_rtf_body = 0;
@@ -437,13 +443,22 @@ int main(int argc, char* const* argv) {
             break;
         case 'M':
             mode = MODE_SEPARATE;
-            mode_MH = 1;
-            mode_EX = 0;
+            mode_MH  = 1;
+            mode_EX  = 0;
+            mode_MSG = 0;
             break;
         case 'e':
             mode = MODE_SEPARATE;
-            mode_MH = 1;
-            mode_EX = 1;
+            mode_MH  = 1;
+            mode_EX  = 1;
+            mode_MSG = 0;
+            file_name_len = 14;
+            break;
+        case 'm':
+            mode = MODE_SEPARATE;
+            mode_MH  = 1;
+            mode_EX  = 1;
+            mode_MSG = 1;
             file_name_len = 14;
             break;
         case 'o':
@@ -458,8 +473,9 @@ int main(int argc, char* const* argv) {
             break;
         case 'S':
             mode = MODE_SEPARATE;
-            mode_MH = 0;
-            mode_EX = 0;
+            mode_MH  = 0;
+            mode_EX  = 0;
+            mode_MSG = 0;
             break;
         case 't':
             // email, appointment, contact, other
@@ -662,6 +678,7 @@ void usage() {
     printf("\t-h\t- Help. This screen\n");
     printf("\t-j <integer>\t- Number of parallel jobs to run\n");
     printf("\t-k\t- KMail. Output in kmail format\n");
+    printf("\t-m\t- As with -e, but write .msg files also\n");
     printf("\t-o <dirname>\t- Output directory to write files to. CWD is changed *after* opening pst file\n");
     printf("\t-q\t- Quiet. Only print error messages\n");
     printf("\t-r\t- Recursive. Output in a recursive format\n");
@@ -669,7 +686,7 @@ void usage() {
     printf("\t-u\t- Thunderbird mode. Write two extra .size and .type files\n");
     printf("\t-w\t- Overwrite any output mbox files\n");
     printf("\n");
-    printf("Only one of -k -M -r -S should be specified\n");
+    printf("Only one of -M -S -e -k -m -r should be specified\n");
     DEBUG_RET();
 }
 
@@ -870,7 +887,7 @@ int close_separate_dir() {
 }
 
 
-int mk_separate_file(struct file_ll *f, char *extension) {
+int mk_separate_file(struct file_ll *f, char *extension, int openit) {
     const int name_offset = 1;
     DEBUG_ENT("mk_separate_file");
     DEBUG_INFO(("opening next file to save email\n"));
@@ -881,8 +898,10 @@ int mk_separate_file(struct file_ll *f, char *extension) {
     if (f->output) fclose(f->output);
     f->output = NULL;
     check_filename(f->name);
-    if (!(f->output = fopen(f->name, "w"))) {
-        DIE(("mk_separate_file: Cannot open file to save email \"%s\"\n", f->name));
+    if (openit) {
+        if (!(f->output = fopen(f->name, "w"))) {
+            DIE(("mk_separate_file: Cannot open file to save email \"%s\"\n", f->name));
+        }
     }
     DEBUG_RET();
     return 0;

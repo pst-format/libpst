@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(libpst,0.6.45,carl@five-ten-sg.com)
+AC_INIT(libpst,0.6.46,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([src/libpst.c])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -303,7 +303,10 @@ if test "$enable_python" = "yes"; then
     AC_SUBST(PYTHON_VERSION, [$ax_python_bin])
 fi
 
-
+gsf_flags="`pkg-config libgsf-1 --cflags`"
+gsf_libs="`pkg-config libgsf-1 --libs`"
+AC_SUBST(GSF_FLAGS, [$gsf_flags])
+AC_SUBST(GSF_LIBS, [$gsf_libs])
 
 AC_OUTPUT(                  \
     Makefile                \
