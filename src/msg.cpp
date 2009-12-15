@@ -32,16 +32,20 @@ typedef list<property> property_list;
  *  @param str     reference to the mapi string of interest
  *  @param charset pointer to the 8 bit charset to use
  */
+static void convert_8bit(pst_string &str, const char *charset);
 static void convert_8bit(pst_string &str, const char *charset) {
     if (!str.str)     return;  // null
     if (!str.is_utf8) return;  // not utf8
 
+    DEBUG_ENT("convert_8bit");
     pst_vbuf *newer = pst_vballoc(2);
-    size_t rc = pst_vb_utf8to8bit(newer, str.str, strlen(str.str), charset);
+    size_t strsize = strlen(str.str);
+    size_t rc = pst_vb_utf8to8bit(newer, str.str, strsize, charset);
     if (rc == (size_t)-1) {
         // unable to convert, change the charset to utf8
         free(newer->b);
         DEBUG_INFO(("Failed to convert utf-8 to %s\n", charset));
+        DEBUG_HEXDUMPC(str.str, strsize, 0x10);
     }
     else {
         // null terminate the output string
@@ -51,9 +55,11 @@ static void convert_8bit(pst_string &str, const char *charset) {
         str.str = newer->b;
     }
     free(newer);
+    DEBUG_RET();
 }
 
 
+static void empty_property(GsfOutfile *out, uint32_t tag);
 static void empty_property(GsfOutfile *out, uint32_t tag) {
     vector<char> n(50);
     snprintf(&n[0], n.size(), "__substg1.0_%08X", tag);
@@ -63,6 +69,7 @@ static void empty_property(GsfOutfile *out, uint32_t tag) {
 }
 
 
+static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char *contents, size_t size);
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char *contents, size_t size) {
     if (!contents) return;
     vector<char> n(50);
@@ -82,6 +89,7 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 }
 
 
+static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILE *fp);
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILE *fp) {
     vector<char> n(50);
     snprintf(&n[0], n.size(), "__substg1.0_%08X", tag);
@@ -109,6 +117,7 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 }
 
 
+static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents);
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents) {
     if (contents.str) {
         convert_8bit(contents, charset);
@@ -117,6 +126,7 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 }
 
 
+static void strin0_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents);
 static void strin0_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents) {
     if (contents.str) {
         convert_8bit(contents, charset);
@@ -125,16 +135,19 @@ static void strin0_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 }
 
 
+static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const string &contents);
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const string &contents) {
     string_property(out, prop, tag, contents.c_str(), contents.size());
 }
 
 
+static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, pst_binary &contents);
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, pst_binary &contents) {
     if (contents.size) string_property(out, prop, tag, contents.data, contents.size);
 }
 
 
+static void write_properties(GsfOutfile *out, property_list &prop, const guint8* header, size_t hlen);
 static void write_properties(GsfOutfile *out, property_list &prop, const guint8* header, size_t hlen) {
     GsfOutput* dst = gsf_outfile_new_child(out, "__properties_version1.0", false);
     gsf_output_write(dst, hlen, header);
@@ -147,6 +160,7 @@ static void write_properties(GsfOutfile *out, property_list &prop, const guint8*
 }
 
 
+static void int_property(property_list &prop_list, uint32_t tag, uint32_t flags, uint32_t value);
 static void int_property(property_list &prop_list, uint32_t tag, uint32_t flags, uint32_t value) {
     property p;
     p.tag      = tag;
@@ -157,6 +171,7 @@ static void int_property(property_list &prop_list, uint32_t tag, uint32_t flags,
 }
 
 
+static void nzi_property(property_list &prop_list, uint32_t tag, uint32_t flags, uint32_t value);
 static void nzi_property(property_list &prop_list, uint32_t tag, uint32_t flags, uint32_t value) {
     if (value) int_property(prop_list, tag, flags, value);
 }
@@ -165,14 +180,17 @@ static void nzi_property(property_list &prop_list, uint32_t tag, uint32_t flags,
 void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
     // this is not an email item
     if (!item->email) return;
+    DEBUG_ENT("write_msg_email");
+
     pst_item_email &email = *(item->email);
 
     char charset[30];
     const char* body_charset = pst_default_charset(item, sizeof(charset), charset);
+    DEBUG_INFO(("%s body charset seems to be %s\n", fname, body_charset));
+    body_charset = "iso-8859-1//TRANSLIT//IGNORE";
 
     gsf_init();
 
-    DEBUG_ENT("write_msg_email");
     GsfOutfile *outfile;
     GsfOutput  *output;
     GError    *err = NULL;

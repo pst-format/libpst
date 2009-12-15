@@ -71,6 +71,7 @@ static size_t sbcs_conversion(pst_vbuf *dest, const char *inbuf, int iblen, icon
     char *outbuf        = NULL;
     int   myerrno;
 
+    DEBUG_ENT("sbcs_conversion");
     pst_vbresize(dest, 2*iblen);
 
     do {
@@ -85,9 +86,11 @@ static size_t sbcs_conversion(pst_vbuf *dest, const char *inbuf, int iblen, icon
     if (icresult == (size_t)-1) {
         DEBUG_WARN(("iconv failure: %s\n", strerror(myerrno)));
         pst_unicode_init();
+        DEBUG_RET();
         return (size_t)-1;
     }
-    return (icresult) ? (size_t)-1 : 0;
+    DEBUG_RET();
+    return 0;
 }
 
 
