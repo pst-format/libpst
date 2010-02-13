@@ -146,6 +146,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jan 21 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.46-1
+- prefer libpthread over librt for finding sem_init function.
+
+* Thu Jan 21 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.45-2
+- rebuild for new boost package
+
 * Wed Nov 18 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.45-1
 - patch from Hugo DesRosiers to export categories and notes into vcards.
 - extend that patch to export categories into vcalendar appointments also.

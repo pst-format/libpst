@@ -1,3 +1,4 @@
+0.6.46  2010-02-13 fixes for fedora 13 change in implicit dso linking semantics
 0.6.45  2009-11-18 patch from Hugo DesRosiers to export categories and notes into vcards
 0.6.44  2009-09-20 patch from Lee Ayres to add file name extensions in separate mode
 0.6.43  2009-09-12 patches from Justin Greer, Chris White, Roberto Polli; better rfc822 embedded message decoding
@@ -7,7 +8,7 @@
 0.6.39  2009-06-21 fedora > 10 moved to boost-python-devel
 0.6.39  2009-06-21 fedora > 10 moved to boost-python-devel
 0.6.38  2009-06-21 many changes including shared library soname
-0.6.37  2009-04-17 add pst_attach_to_mem() back into the shared library interface.
+0.6.37  2009-04-17 add pst_attach_to_mem() back into the shared library interface
 0.6.36  2009-04-14 build separate -doc and -devel-doc subpackages
 0.6.35  2009-04-08 properly add trailing mime boundary in all modes, build separate rpms with libpst.so shared.
 0.6.34  2009-03-19 avoid putting mixed item types into the same output folder
@@ -16,7 +17,7 @@
 0.6.31  2009-03-14 bump version for fedora cvs tagging mistake
 0.6.30  2009-03-14 track character set individually for each mapi element, avoid emitting bogus empty email messages into contacts and calendar files.
 0.6.29  2009-02-24 fix for 64bit on Fedora 11
-0.6.28  2009-02-24 improve decoding of multipart/report and message/rfc822 mime types.
+0.6.28  2009-02-24 improve decoding of multipart/report and message/rfc822 mime types
 0.6.27  2009-02-07 fix for const correctness on Fedora 11
 0.6.26  2009-02-07 patch from Fridrich Strba for building on mingw, and autoconf cleanup, better mime headers
 0.6.25  2009-01-16 improve handling of content-type charset values in mime parts
@@ -27,10 +28,10 @@
 0.6.20  2008-10-09 add configure option --enable-dii=no, fixes from Robert Harris for pst2ldif.
 0.6.19  2008-09-14 Initial work on a .so shared library from Bharath Acharya.
 0.6.18  2008-08-28 Fixes for iconv on Mac from Justin Greer.
-0.6.17  2008-08-05 More fixes for 32/64 bit portability on big endian ppc.
-0.6.16  2008-08-05 Use inttypes.h for portable printing of 64 bit items.
-0.6.15  2008-07-30 Fix file handle leak in error case, missing length on lz decompression.
-0.6.14  2008-06-15 Fix my mistake in debian packaging.
+0.6.17  2008-08-05 More fixes for 32/64 bit portability on big endian ppc
+0.6.16  2008-08-05 Use inttypes.h for portable printing of 64 bit items
+0.6.15  2008-07-30 Fix file handle leak in error case, missing length on lz decompression
+0.6.14  2008-06-15 Fix my mistake in debian packaging
 0.6.13  2008-06-13 Patch from Robert Simpson for encryption type 2.
 0.6.12  2008-06-10 Patch from Joachim Metz for debian packaging, and fix for incorrect length on lz decompression.
 0.6.11  2008-06-03 Use ftello/fseeko to properly handle large files.
