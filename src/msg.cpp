@@ -117,8 +117,8 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 }
 
 
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, FILETIME *contents);
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, FILETIME *contents) {
+static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILETIME *contents);
+static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILETIME *contents) {
     if (contents) {
         string_property(out, prop, tag, (char *)contents, sizeof(FILETIME));
     }
