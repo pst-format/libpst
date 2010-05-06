@@ -47,3 +47,8 @@
 
 
 #endif
+
+#if defined (__SVR4) && defined (__sun)
+    #define LITTLE_ENDIAN 1234
+    #define BYTE_ORDER LITTLE_ENDIAN
+#endif

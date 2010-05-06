@@ -871,13 +871,12 @@ int close_separate_dir() {
 
 
 int mk_separate_file(struct file_ll *f, char *extension) {
-    const int name_offset = 1;
     DEBUG_ENT("mk_separate_file");
     DEBUG_INFO(("opening next file to save email\n"));
     if (f->item_count > 999999999) { // bigger than nine 9's
         DIE(("mk_separate_file: The number of emails in this folder has become too high to handle\n"));
     }
-    sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->item_count + name_offset, extension);
+    sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->item_count, extension);
     if (f->output) fclose(f->output);
     f->output = NULL;
     check_filename(f->name);
@@ -1447,7 +1446,11 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     // create required header fields that are not already written
 
     if (!has_from) {
-        fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name.str, sender);
+        if (item->email->outlook_sender_name.str){
+            fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name.str, sender);
+        } else {
+            fprintf(f_output, "From: <%s>\n", sender);
+        }
     }
 
     if (!has_subject) {

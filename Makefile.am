@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I m4
+
 SUBDIRS = src python man html debian
 htmldir = ${datadir}/doc/@PACKAGE@-@VERSION@
 html_DATA = AUTHORS COPYING ChangeLog NEWS README

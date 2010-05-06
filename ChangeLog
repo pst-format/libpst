@@ -1,3 +1,8 @@
+LibPST 0.6.47 (2010-05-06)
+===============================
+    * patches from Kenneth Berland for solaris.
+    * fix output file name numbering to start at 1 rather than 2.
+
 LibPST 0.6.46 (2010-02-13)
 ===============================
     * prefer libpthread over librt for finding sem_init function.

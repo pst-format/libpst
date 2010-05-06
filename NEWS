@@ -1,3 +1,4 @@
+0.6.47  2010-05-06 patches from Kenneth Berland for solaris
 0.6.46  2010-02-13 fixes for fedora 13 change in implicit dso linking semantics
 0.6.45  2009-11-18 patch from Hugo DesRosiers to export categories and notes into vcards
 0.6.44  2009-09-20 patch from Lee Ayres to add file name extensions in separate mode
