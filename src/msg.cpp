@@ -117,6 +117,14 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 }
 
 
+static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, FILETIME *contents);
+static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, FILETIME *contents) {
+    if (contents) {
+        string_property(out, prop, tag, (char *)contents, sizeof(FILETIME));
+    }
+}
+
+
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents);
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents) {
     if (contents.str) {
@@ -235,6 +243,7 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
     GsfOutfile *out = GSF_OUTFILE (output);
     string_property(out, prop_list, 0x001A001E, item->ascii_type);
     string_property(out, prop_list, 0x0037001E, body_charset, item->subject);
+    string_property(out, prop_list, 0x00390040,               email.sent_date);
     strin0_property(out, prop_list, 0x003B0102, body_charset, email.outlook_sender);
     string_property(out, prop_list, 0x003D001E, string(""));
     string_property(out, prop_list, 0x0040001E, body_charset, email.outlook_received_name1);

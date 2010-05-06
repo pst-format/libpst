@@ -888,13 +888,12 @@ int close_separate_dir() {
 
 
 int mk_separate_file(struct file_ll *f, char *extension, int openit) {
-    const int name_offset = 1;
     DEBUG_ENT("mk_separate_file");
     DEBUG_INFO(("opening next file to save email\n"));
     if (f->item_count > 999999999) { // bigger than nine 9's
         DIE(("mk_separate_file: The number of emails in this folder has become too high to handle\n"));
     }
-    sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->item_count + name_offset, extension);
+    sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->item_count, extension);
     if (f->output) fclose(f->output);
     f->output = NULL;
     check_filename(f->name);
