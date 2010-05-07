@@ -35,6 +35,20 @@ AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
 
 
 
+# Check for solaris
+AC_MSG_CHECKING([for Solaris])
+case "$host" in
+    *solaris*)
+        os_solaris=yes
+        ;;
+    *)
+        os_solaris=no
+        ;;
+esac
+AC_MSG_RESULT($os_solaris)
+AM_CONDITIONAL(OS_SOLARIS, [test "$os_solaris" = "yes"])
+
+
 # Check for win32
 AC_MSG_CHECKING([for Win32])
 case "$host" in

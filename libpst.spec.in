@@ -146,7 +146,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Thu May 06 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.47-1
+* Fri May 07 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.47-1
 - patches from Kenneth Berland for solaris
 
 * Thu Jan 21 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.46-1

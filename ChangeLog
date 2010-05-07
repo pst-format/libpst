@@ -1,4 +1,4 @@
-LibPST 0.6.47 (2010-05-06)
+LibPST 0.6.47 (2010-05-07)
 ===============================
     * patches from Kenneth Berland for solaris.
     * fix output file name numbering to start at 1 rather than 2.

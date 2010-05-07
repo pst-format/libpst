@@ -4,11 +4,20 @@ else
     NO_UNDEFINED =
 endif
 
+
+if OS_SOLARIS
+	POSIX_SEMANTICS = -D_POSIX_PTHREAD_SEMANTICS
+else
+	POSIX_SEMANTICS =
+endif
+
+
 if STATIC_TOOLS
     PSTLIB = @PST_OBJDIR@/libpst.a
 else
     PSTLIB = libpst.la
 endif
+
 
 common_header = common.h        \
                 define.h        \
@@ -44,13 +53,13 @@ deltasearch_SOURCES = deltasearch.cpp  $(common_header)
 dumpblocks_SOURCES  = dumpblocks.c     $(common_header)
 getidblock_SOURCES  = getidblock.c     $(common_header)
 
-lspst_CFLAGS        = $(AM_CFLAGS)
-readpst_CFLAGS      = $(AM_CFLAGS)
-pst2ldif_CFLAGS     = $(AM_CFLAGS)
-pst2dii_CFLAGS      = $(AM_CFLAGS)
-deltasearch_CFLAGS  = $(AM_CFLAGS)
-dumpblocks_CFLAGS   = $(AM_CFLAGS)
-getidblock_CFLAGS   = $(AM_CFLAGS)
+lspst_CFLAGS        = $(AM_CFLAGS) $(POSIX_SEMANTICS)
+readpst_CFLAGS      = $(AM_CFLAGS) $(POSIX_SEMANTICS)
+pst2ldif_CFLAGS     = $(AM_CFLAGS) $(POSIX_SEMANTICS)
+pst2dii_CFLAGS      = $(AM_CFLAGS) $(POSIX_SEMANTICS)
+deltasearch_CFLAGS  = $(AM_CFLAGS) $(POSIX_SEMANTICS)
+dumpblocks_CFLAGS   = $(AM_CFLAGS) $(POSIX_SEMANTICS)
+getidblock_CFLAGS   = $(AM_CFLAGS) $(POSIX_SEMANTICS)
 
 lspst_DEPENDENCIES        = libpst.la
 readpst_DEPENDENCIES      = libpst.la
@@ -73,6 +82,7 @@ else
         timeconv.h  \
         vbuf.h
     libpst_la_LDFLAGS     = $(NO_UNDEFINED) -version-info @LIBPST_VERSION_INFO@
+	libpst_la_CFLAGS      = $(AM_CFLAGS) $(POSIX_SEMANTICS)
 endif
 
 libpst_la_SOURCES     = $(common_source) $(common_header)

@@ -1278,7 +1278,13 @@ void write_schedule_part_data(FILE* f_output, pst_item* item, const char* sender
     fprintf(f_output, "PRODID:LibPST v%s\n", VERSION);
     if (method) fprintf(f_output, "METHOD:%s\n", method);
     fprintf(f_output, "BEGIN:VEVENT\n");
-    if (sender) fprintf(f_output, "ORGANIZER;CN=\"%s\":MAILTO:%s\n", item->email->outlook_sender_name.str, sender);
+    if (sender) {
+        if (item->email->outlook_sender_name.str) {
+	    fprintf(f_output, "ORGANIZER;CN=\"%s\":MAILTO:%s\n", item->email->outlook_sender_name.str, sender);
+	} else {
+	    fprintf(f_output, "ORGANIZER;CN=\"\":MAILTO:%s\n", sender);
+	}
+    }
     write_appointment(f_output, item);
     fprintf(f_output, "END:VCALENDAR\n");
 }
