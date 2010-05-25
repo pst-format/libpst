@@ -1,3 +1,7 @@
+LibPST 0.6.48 (2010-05-24)
+===============================
+    * fix to/cc/bcc recipients in .msg file output format
+
 LibPST 0.6.46 (2009-12-11)
 ===============================
     * add readpst -m switch to produce Outlook .msg files

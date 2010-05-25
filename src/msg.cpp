@@ -72,18 +72,25 @@ static void empty_property(GsfOutfile *out, uint32_t tag) {
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char *contents, size_t size);
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char *contents, size_t size) {
     if (!contents) return;
+    size_t term = ((tag & 0x0000ffff) == 0x001e) ? 1 :
+                  ((tag & 0x0000ffff) == 0x001f) ? 2 : 0;  // null terminator
     vector<char> n(50);
     snprintf(&n[0], n.size(), "__substg1.0_%08X", tag);
+    fprintf(stdout, "dumping string property %08X size %d with data %s\n", tag, (int)size, contents);
     GsfOutput* dst = gsf_outfile_new_child(out, &n[0], false);
     gsf_output_write(dst, size, (const guint8*)contents);
+    if (term) {
+        memset(&n[0], 0, term);
+        gsf_output_write(dst, term, (const guint8*)&n[0]);
+        size += term;
+    }
     gsf_output_close(dst);
     g_object_unref(G_OBJECT(dst));
 
-    int bias = ((tag & 0x0000ffff) == 0x001e) ? 1 : 0;
     property p;
     p.tag      = tag;
     p.flags    = 0x6;   // make all the properties writable
-    p.length   = bias + size;
+    p.length   = size;
     p.reserved = 0;
     prop.push_back(p);
 }
@@ -282,27 +289,66 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
 
     {
         vector<char> n(50);
-        snprintf(&n[0], n.size(), "__recip_version1.0_#%08X", top_head.recipient_count);
-        GsfOutput  *output = gsf_outfile_new_child(out, &n[0], true);
         {
-            int v = (email.message_recip_me) ? 1 :  // to
-                    (email.message_cc_me)    ? 2 :  // cc
-                                               3;   // bcc
-            property_list prop_list;
-            int_property(prop_list, 0x0C150003, 0x6, v);                        // PidTagRecipientType
-            int_property(prop_list, 0x30000003, 0x6, top_head.recipient_count); // PR_ROWID
-            GsfOutfile *out = GSF_OUTFILE (output);
-            string_property(out, prop_list, 0x3001001E, body_charset, item->file_as);
-            if (item->contact) {
-                string_property(out, prop_list, 0x3002001E, body_charset, item->contact->address1_transport);
-                string_property(out, prop_list, 0x3003001E, body_charset, item->contact->address1);
+            snprintf(&n[0], n.size(), "__recip_version1.0_#%08X", top_head.recipient_count);
+            GsfOutput  *output = gsf_outfile_new_child(out, &n[0], true);
+            {
+                int v = 1;  // to
+                property_list prop_list;
+                int_property(prop_list, 0x0C150003, 0x6, v);                        // PidTagRecipientType
+                int_property(prop_list, 0x30000003, 0x6, top_head.recipient_count); // PR_ROWID
+                GsfOutfile *out = GSF_OUTFILE (output);
+                string_property(out, prop_list, 0x3001001E, body_charset, item->file_as);
+                if (item->contact) {
+                    string_property(out, prop_list, 0x3002001E, body_charset, item->contact->address1_transport);
+                    string_property(out, prop_list, 0x3003001E, body_charset, item->contact->address1);
+                    string_property(out, prop_list, 0x5ff6001E, body_charset, item->contact->address1);
+                }
+                strin0_property(out, prop_list, 0x300B0102, body_charset, email.outlook_search_key);
+                write_properties(out, prop_list, (const guint8*)&top_head, 8);  // convenient 8 bytes of reserved zeros
+                gsf_output_close(output);
+                g_object_unref(G_OBJECT(output));
+                top_head.next_recipient++;
+                top_head.recipient_count++;
             }
-            strin0_property(out, prop_list, 0x300B0102, body_charset, email.outlook_search_key);
-            write_properties(out, prop_list, (const guint8*)&top_head, 8);  // convenient 8 bytes of reserved zeros
-            gsf_output_close(output);
-            g_object_unref(G_OBJECT(output));
-            top_head.next_recipient++;
-            top_head.recipient_count++;
+        }
+        if (email.cc_address.str) {
+            snprintf(&n[0], n.size(), "__recip_version1.0_#%08X", top_head.recipient_count);
+            GsfOutput  *output = gsf_outfile_new_child(out, &n[0], true);
+            {
+                int v = 2;  // cc
+                property_list prop_list;
+                int_property(prop_list, 0x0C150003, 0x6, v);                        // PidTagRecipientType
+                int_property(prop_list, 0x30000003, 0x6, top_head.recipient_count); // PR_ROWID
+                GsfOutfile *out = GSF_OUTFILE (output);
+                string_property(out, prop_list, 0x3001001E, body_charset, email.cc_address);
+                string_property(out, prop_list, 0x3003001E, body_charset, email.cc_address);
+                string_property(out, prop_list, 0x5ff6001E, body_charset, email.cc_address);
+                write_properties(out, prop_list, (const guint8*)&top_head, 8);  // convenient 8 bytes of reserved zeros
+                gsf_output_close(output);
+                g_object_unref(G_OBJECT(output));
+                top_head.next_recipient++;
+                top_head.recipient_count++;
+            }
+        }
+        if (email.bcc_address.str) {
+            snprintf(&n[0], n.size(), "__recip_version1.0_#%08X", top_head.recipient_count);
+            GsfOutput  *output = gsf_outfile_new_child(out, &n[0], true);
+            {
+                int v = 3;  // bcc
+                property_list prop_list;
+                int_property(prop_list, 0x0C150003, 0x6, v);                        // PidTagRecipientType
+                int_property(prop_list, 0x30000003, 0x6, top_head.recipient_count); // PR_ROWID
+                GsfOutfile *out = GSF_OUTFILE (output);
+                string_property(out, prop_list, 0x3001001E, body_charset, email.bcc_address);
+                string_property(out, prop_list, 0x3003001E, body_charset, email.bcc_address);
+                string_property(out, prop_list, 0x5ff6001E, body_charset, email.bcc_address);
+                write_properties(out, prop_list, (const guint8*)&top_head, 8);  // convenient 8 bytes of reserved zeros
+                gsf_output_close(output);
+                g_object_unref(G_OBJECT(output));
+                top_head.next_recipient++;
+                top_head.recipient_count++;
+            }
         }
     }
 
@@ -346,6 +392,8 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
         a = a->next;
     }
 
+    write_properties(out, prop_list, (const guint8*)&top_head, sizeof(top_head));
+
     {
         GsfOutput  *output = gsf_outfile_new_child(out, "__nameid_version1.0", true);
         {
@@ -358,7 +406,6 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
         }
     }
 
-    write_properties(out, prop_list, (const guint8*)&top_head, sizeof(top_head));
     gsf_output_close(output);
     g_object_unref(G_OBJECT(output));
 

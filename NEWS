@@ -1,3 +1,4 @@
+0.6.48  2010-05-24 fix to/cc/bcc recipients in .msg file output format
 0.6.46  2009-12-11 add readpst -m switch to produce Outlook .msg files
 0.6.45  2009-11-18 patch from Hugo DesRosiers to export categories and notes into vcards
 0.6.44  2009-09-20 patch from Lee Ayres to add file name extensions in separate mode

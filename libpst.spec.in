@@ -146,6 +146,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon May 24 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.48-1
+- fix to/cc/bcc recipients in .msg file output format
+
 * Fri Dec 11 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.46-1
 - add readpst -m switch to produce Outlook .msg files
 

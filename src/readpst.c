@@ -1510,7 +1510,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     if (item->email->bcc_address.str) {
         pst_convert_utf8(item, &item->email->bcc_address);
-        fprintf(f_output, "X-libpst-forensic-bcc: %s\n", item->email->bcc_address.str);
+        fprintf(f_output, "Bcc: %s\n", item->email->bcc_address.str);
     }
 
     // add our own mime headers
