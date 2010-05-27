@@ -76,7 +76,6 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
                   ((tag & 0x0000ffff) == 0x001f) ? 2 : 0;  // null terminator
     vector<char> n(50);
     snprintf(&n[0], n.size(), "__substg1.0_%08X", tag);
-    fprintf(stdout, "dumping string property %08X size %d with data %s\n", tag, (int)size, contents);
     GsfOutput* dst = gsf_outfile_new_child(out, &n[0], false);
     gsf_output_write(dst, size, (const guint8*)contents);
     if (term) {
