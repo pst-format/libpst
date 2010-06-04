@@ -123,14 +123,6 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 }
 
 
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILETIME *contents);
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILETIME *contents) {
-    if (contents) {
-        string_property(out, prop, tag, (char *)contents, sizeof(FILETIME));
-    }
-}
-
-
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents);
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents) {
     if (contents.str) {
@@ -182,6 +174,19 @@ static void int_property(property_list &prop_list, uint32_t tag, uint32_t flags,
     p.length   = value;
     p.reserved = 0;
     prop_list.push_back(p);
+}
+
+
+static void i64_property(property_list &prop_list, uint32_t tag, uint32_t flags, FILETIME *value);
+static void i64_property(property_list &prop_list, uint32_t tag, uint32_t flags, FILETIME *value) {
+    if (value) {
+        property p;
+        p.tag      = tag;
+        p.flags    = flags;
+        p.length   = value->dwLowDateTime;
+        p.reserved = value->dwHighDateTime;
+        prop_list.push_back(p);
+    }
 }
 
 
@@ -246,10 +251,10 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
     nzi_property(prop_list, 0x0C17000B, 0x6, email.reply_requested);
     nzi_property(prop_list, 0x0E01000B, 0x6, email.delete_after_submit);
     int_property(prop_list, 0x0E070003, 0x6, item->flags);
+    i64_property(prop_list, 0x00390040, 0x6, email.sent_date);
     GsfOutfile *out = GSF_OUTFILE (output);
     string_property(out, prop_list, 0x001A001E, item->ascii_type);
     string_property(out, prop_list, 0x0037001E, body_charset, item->subject);
-    string_property(out, prop_list, 0x00390040,               email.sent_date);
     strin0_property(out, prop_list, 0x003B0102, body_charset, email.outlook_sender);
     string_property(out, prop_list, 0x003D001E, string(""));
     string_property(out, prop_list, 0x0040001E, body_charset, email.outlook_received_name1);
