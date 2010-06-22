@@ -68,10 +68,10 @@ function dopst()
             #$val ../src/readpst $jobs     -r    -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode with filename extensions
-            #$val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            $val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode where we decode all attachments to binary files
-            $val ../src/readpst $jobs     -r -S -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #$val ../src/readpst $jobs     -r -S -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## testing idblock
             #../src/getidblock -p $fn 0 >$ba.fulldump
@@ -101,6 +101,8 @@ regression=""
 [ "$2" == "reg" ] && regression="yes"
 [ "$regression" == "yes" ] && val=""
 
+$func  24 paul.sheer.pst    # embedded rfc822 attachment
+exit
 $func   1 ams.pst
 $func   2 sample_64.pst
 $func   3 test.pst
@@ -124,6 +126,7 @@ $func  20 rendgen2.pst      # email appointment with no termination date
 $func  21 rendgen3.pst      # mime signed email
 $func  22 rendgen4.pst      # appointment test cases
 $func  23 rendgen5.pst      # appointment test cases
+$func  24 paul.sheer.pst    # embedded rfc822 attachment
 
 [ -n "$val" ] && grep 'lost:' *err | grep -v 'lost: 0 '
 
