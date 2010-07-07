@@ -1,7 +1,7 @@
 Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
-Release:            1%{?dist}
+Release:            2%{?dist}
 License:            GPLv2+
 Group:              Applications/Productivity
 Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
@@ -113,6 +113,7 @@ rm -rf $RPM_BUILD_ROOT
 %files libs
 %defattr(-,root,root,-)
 %{_libdir}/libpst.so.*
+doc COPYING
 
 
 %files python
@@ -139,13 +140,16 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{_datadir}/doc/%{name}-%{version}/
 %{_datadir}/doc/%{name}-%{version}/*.html
 %{_datadir}/doc/%{name}-%{version}/AUTHORS
-%{_datadir}/doc/%{name}-%{version}/COPYING
 %{_datadir}/doc/%{name}-%{version}/ChangeLog
 %{_datadir}/doc/%{name}-%{version}/NEWS
 %{_datadir}/doc/%{name}-%{version}/README
 
 
 %changelog
+* Wed Jul 07 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.47-2
+- Subpackage Licensing, move COPYING to -libs.
+- patches from Kenneth Berland for solaris
+
 * Fri May 07 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.47-1
 - patches from Kenneth Berland for solaris
 
