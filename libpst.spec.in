@@ -113,7 +113,7 @@ rm -rf $RPM_BUILD_ROOT
 %files libs
 %defattr(-,root,root,-)
 %{_libdir}/libpst.so.*
-doc COPYING
+%doc COPYING
 
 
 %files python
@@ -140,6 +140,7 @@ doc COPYING
 %dir %{_datadir}/doc/%{name}-%{version}/
 %{_datadir}/doc/%{name}-%{version}/*.html
 %{_datadir}/doc/%{name}-%{version}/AUTHORS
+%{_datadir}/doc/%{name}-%{version}/COPYING
 %{_datadir}/doc/%{name}-%{version}/ChangeLog
 %{_datadir}/doc/%{name}-%{version}/NEWS
 %{_datadir}/doc/%{name}-%{version}/README
@@ -147,7 +148,7 @@ doc COPYING
 
 %changelog
 * Wed Jul 07 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.47-2
-- Subpackage Licensing, move COPYING to -libs.
+- Subpackage Licensing, add COPYING to -libs.
 - patches from Kenneth Berland for solaris
 
 * Fri May 07 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.47-1
