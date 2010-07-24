@@ -1,7 +1,7 @@
 Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
-Release:            2%{?dist}
+Release:            1%{?dist}
 License:            GPLv2+
 Group:              Applications/Productivity
 Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
@@ -147,6 +147,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Jul 24 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.48-1
+- fix for broken internet headers from Outlook
+
+* Wed Jul 21 2010 David Malcolm <dmalcolm@redhat.com> - 0.6.47-3
+- Rebuilt for https://fedoraproject.org/wiki/Features/Python_2.7/MassRebuild
+
 * Wed Jul 07 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.47-2
 - Subpackage Licensing, add COPYING to -libs.
 - patches from Kenneth Berland for solaris

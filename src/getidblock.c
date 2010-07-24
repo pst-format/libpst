@@ -31,7 +31,7 @@ void dumper(uint64_t i_id)
         DIE(("Error loading block\n"));
     }
 
-    DEBUG_INFO(("Printing block id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize));
+    DEBUG_INFO(("Printing block i_id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize));
     if (binary) {
         if (fwrite(buf, 1, readSize, stdout) != 0) {
             DIE(("Error occured during writing of buf to stdout\n"));
@@ -63,14 +63,18 @@ void dumper(uint64_t i_id)
 }
 
 
-void dump_desc(pst_desc_tree *ptr);
-void dump_desc(pst_desc_tree *ptr)
+void dump_desc(pst_desc_tree *ptr, pst_desc_tree *parent);
+void dump_desc(pst_desc_tree *ptr, pst_desc_tree *parent)
 {
     while (ptr) {
-        DEBUG_INFO(("\n\n\nLooking at block desc id %#"PRIx64"\n", ptr->d_id));
+        uint64_t parent_d_id = (parent) ? parent->d_id : 0;
+        printf("Descriptor block d_id %#"PRIx64" parent d_id %#"PRIx64" children %i desc.i_id=%#"PRIx64", assoc tree.i_id=%#"PRIx64"\n",
+            ptr->d_id, parent_d_id, ptr->no_child,
+            (ptr->desc       ? ptr->desc->i_id       : (uint64_t)0),
+            (ptr->assoc_tree ? ptr->assoc_tree->i_id : (uint64_t)0));
         if (ptr->desc       && ptr->desc->i_id)       dumper(ptr->desc->i_id);
         if (ptr->assoc_tree && ptr->assoc_tree->i_id) dumper(ptr->assoc_tree->i_id);
-        if (ptr->child) dump_desc(ptr->child);
+        if (ptr->child) dump_desc(ptr->child, ptr);
         ptr = ptr->next;
     }
 }
@@ -131,7 +135,7 @@ int main(int argc, char* const* argv)
             dumper(ptr->i_id);
             ptr = ptr->next;
         }
-        dump_desc(pstfile.d_head);
+        dump_desc(pstfile.d_head, NULL);
     }
 
     if (pst_close(&pstfile) != 0) {

@@ -2370,6 +2370,15 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     break;
                 case 0x007D: // PR_TRANSPORT_MESSAGE_HEADERS Internet Header
                     LIST_COPY_EMAIL_STR("Internet Header", item->email->header);
+                    if (item->email->header.str && item->email->header.str[0] == '\r') {
+                        // broken outlook internet headers
+                        const char* fix = "Received: header broken by outlook fixup by libpst";
+                        char *str = pst_malloc(strlen(fix) + strlen(item->email->header.str) + 1);
+                        strcpy(str, fix);
+                        strcat(str, item->email->header.str);
+                        free(item->email->header.str);
+                        item->email->header.str = str;
+                    }
                     break;
                 case 0x0C04: // PR_NDR_REASON_CODE
                     LIST_COPY_EMAIL_INT32("NDR reason code", item->email->ndr_reason_code);

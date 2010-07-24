@@ -1,3 +1,7 @@
+LibPST 0.6.48 (2010-07-24)
+===============================
+    * fix for broken internet headers from Outlook.
+
 LibPST 0.6.47 (2010-05-07)
 ===============================
     * patches from Kenneth Berland for solaris.
