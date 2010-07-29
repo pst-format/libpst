@@ -147,8 +147,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Sat Jul 24 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.48-1
+* Wed Jul 28 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.48-1
 - fix for broken internet headers from Outlook
+- fix ax_python.m4 to look for python2.7
+
+* Mon Jul 26 2010 David Malcolm <dmalcolm@redhat.com> - 0.6.47-4
+- hack up configure so that it looks for python 2.7
 
 * Wed Jul 21 2010 David Malcolm <dmalcolm@redhat.com> - 0.6.47-3
 - Rebuilt for https://fedoraproject.org/wiki/Features/Python_2.7/MassRebuild

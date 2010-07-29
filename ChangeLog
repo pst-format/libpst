@@ -1,6 +1,8 @@
-LibPST 0.6.48 (2010-07-24)
+LibPST 0.6.48 (2010-07-28)
 ===============================
     * fix for broken internet headers from Outlook.
+    * fix ax_python.m4 to look for python2.7
+    * Subpackage Licensing, add COPYING to -libs.
 
 LibPST 0.6.47 (2010-05-07)
 ===============================
