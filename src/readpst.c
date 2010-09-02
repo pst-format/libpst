@@ -77,7 +77,7 @@ char*  kmail_chdir = NULL;
 #define MODE_KMAIL 1
 
 // recurse mode creates a directory structure like the PST file. Each directory
-// contains only one file which stores the emails in mbox format.
+// contains only one file which stores the emails in mboxrd format.
 #define MODE_RECURSE 2
 
 // separate mode creates the same directory structure as recurse. The emails are stored in
@@ -617,13 +617,16 @@ int main(int argc, char* const* argv) {
 void write_email_body(FILE *f, char *body) {
     char *n = body;
     DEBUG_ENT("write_email_body");
-    while (n) {
-        if (strncmp(body, "From ", 5) == 0)
-            fprintf(f, ">");
-        if ((n = strchr(body, '\n'))) {
-            n++;
-            pst_fwrite(body, n-body, 1, f); //write just a line
-            body = n;
+    if (mode != MODE_SEPARATE) {
+        while (n) {
+            char *p = body;
+            while (*p == '>') p++;
+            if (strncmp(p, "From ", 5) == 0) fprintf(f, ">");
+            if ((n = strchr(body, '\n'))) {
+                n++;
+                pst_fwrite(body, n-body, 1, f); //write just a line
+                body = n;
+            }
         }
     }
     pst_fwrite(body, strlen(body), 1, f);

@@ -19,7 +19,7 @@ AC_CANONICAL_HOST
 #  6. libtool will build libpst.so.x.y.z where the SONAME is libpst.so.x
 #     and x=current-age, y=age, z=revision
 
-libpst_version_info='4:2:0'
+libpst_version_info='4:3:0'
 AC_SUBST(LIBPST_VERSION_INFO, [$libpst_version_info])
 libpst_so_major='4'
 AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
@@ -32,6 +32,7 @@ AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
 # 0.6.40    libpst.so.4     libpst.so.4.0.0
 # 0.6.43    libpst.so.4     libpst.so.4.0.1
 # 0.6.47    libpst.so.4     libpst.so.4.0.2
+# 0.6.48    libpst.so.4     libpst.so.4.0.3
 
 
 

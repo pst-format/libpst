@@ -97,7 +97,7 @@
                         Output messages in MH (rfc822) format as separate files.  This will create
                         folders as named in the PST file, and will put each email together with
                         any attachments into its own file.  These files will be numbered from 1
-                        to n with no leading zeros.
+                        to n with no leading zeros. This format has no from quoting.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -105,12 +105,12 @@
                     <listitem><para>
                         Output messages into separate files.  This will create folders as
                         named in the PST file, and will put each email in its own file.  These
-                        files will be numbered from 1 to n with no leading zeros. So the email
-                        contents for message $m are saved in a file named $m.  Attachments
+                        files will be numbered from 1 to n with no leading zeros.  Attachments
                         will also be saved in the same folder as the email message. The
                         attachments for message $m are saved as $m-$name where $name is (the
                         original name of the attachment, or 'attach$n' if the attachment had
                         no name), where $n is another sequential index with no leading zeros.
+                        This format has no from quoting.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -142,7 +142,7 @@
                     <term>-e</term>
                     <listitem><para>
                         Same as the M option, but each output file will include an extension
-                        from (.eml, .ics, .vcf).
+                        from (.eml, .ics, .vcf). This format has no from quoting.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -161,7 +161,7 @@
                 <varlistentry>
                     <term>-k</term>
                     <listitem><para>
-                        Changes the output format to KMail.
+                        Changes the output format to KMail. This format uses mboxrd from quoting.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -185,7 +185,7 @@
                         Changes the output format to Recursive. This will create folders as
                         named in the PST file, and will put all emails in a file called "mbox"
                         inside each folder. These files are then compatible with all
-                        mbox-compatible email clients.
+                        mbox-compatible email clients. This format uses mboxrd from quoting.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -200,7 +200,8 @@
                     <term>-u</term>
                     <listitem><para>
                         Sets Thunderbird mode, a submode of recursive mode. This causes
-                        two extra .type and .size meta files to be created.
+                        two extra .type and .size meta files to be created. This format uses
+                        mboxrd from quoting.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -212,6 +213,19 @@
                     </para></listitem>
                 </varlistentry>
             </variablelist>
+        </refsect1>
+
+        <refsect1 id='readpst.quoting.1'>
+            <title>From Quoting</title>
+            <para>
+                Output formats that place each mail message in a separate file (-M, -S, -e)
+                don't do any from quoting.
+                Output formats that place multiple email messages in a single file (-k, -r, -u)
+                now use mboxrd from quoting rules.
+                If none of those switches are specified, the default output format uses mboxrd
+                from quoting rules, since it produces multiple email messages in a single file.
+                Earlier versions used mboxo from quoting rules for all output formats.
+            </para>
         </refsect1>
 
         <refsect1 id='readpst.author.1'>
