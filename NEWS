@@ -1,3 +1,4 @@
+0.6.49  2010-09-13 fix to ignore embedded objects that are not email messages
 0.6.48  2010-09-02 fix for broken internet headers from Outlook, change to mboxrd quoting
 0.6.47  2010-05-07 patches from Kenneth Berland for solaris
 0.6.46  2010-02-13 fixes for fedora 13 change in implicit dso linking semantics

@@ -147,6 +147,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Sep 13 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.49-1
+- fix to ignore embedded objects that are not email messages
+  fedora bugzilla 633498
+
 * Thu Sep 02 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.48-1
 - fix for broken internet headers from Outlook
 - fix ax_python.m4 to look for python2.7

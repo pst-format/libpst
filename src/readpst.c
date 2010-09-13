@@ -1012,9 +1012,13 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
     if (!item) {
         DEBUG_WARN(("write_embedded_message: pst_parse_item was unable to parse the embedded message in attachment ID %llu", attach->i_id));
     } else {
-        fprintf(f_output, "\n--%s\n", boundary);
-        fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype.str);
-        write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, 0, extra_mime_headers);
+        if (!item->email) {
+            DEBUG_WARN(("write_embedded_message: pst_parse_item returned type %d, not an email message", item->type));
+        } else {
+            fprintf(f_output, "\n--%s\n", boundary);
+            fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype.str);
+            write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, 0, extra_mime_headers);
+        }
         pst_freeItem(item);
     }
 

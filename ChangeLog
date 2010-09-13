@@ -1,3 +1,7 @@
+LibPST 0.6.49 (2010-09-13)
+===============================
+    * fix to ignore embedded objects that are not email messages
+
 LibPST 0.6.48 (2010-09-02)
 ===============================
     * fix for broken internet headers from Outlook.
