@@ -813,7 +813,7 @@ char *mk_separate_dir(char *dir) {
         if (y == 0)
             snprintf(dir_name, dirsize, "%s", dir);
         else
-      snprintf(dir_name, dirsize, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y, ""); // enough for 9 digits allocated above
+            snprintf(dir_name, dirsize, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y, ""); // enough for 9 digits allocated above
 
         check_filename(dir_name);
         DEBUG_INFO(("about to try creating %s\n", dir_name));
@@ -1050,13 +1050,19 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
     }
     fprintf(f_output, "Content-Transfer-Encoding: base64\n");
 
-    // If there is a long filename (filename2) use that, otherwise
-    // use the 8.3 filename (filename1)
-    attach_filename = (attach->filename2.str) ? attach->filename2.str : attach->filename1.str;
-    if (!attach_filename) {
+    if (attach->filename2.str) {
+        // use the long filename, converted to proper encoding if needed.
+        // it is already utf8
+        pst_rfc2231(&attach->filename2);
+        fprintf(f_output, "Content-Disposition: attachment; \n        filename*=%s\n\n", attach->filename2.str);
+    }
+    else if (attach->filename1.str) {
+        // short filename never needs encoding
+        fprintf(f_output, "Content-Disposition: attachment; filename=\"%s\"\n\n", attach->filename1.str);
+    }
+    else {
+        // no filename is inline
         fprintf(f_output, "Content-Disposition: inline\n\n");
-    } else {
-        fprintf(f_output, "Content-Disposition: attachment; filename=\"%s\"\n\n", attach_filename);
     }
 
     (void)pst_attach_to_file_base64(pst, attach, f_output);
@@ -1154,7 +1160,7 @@ int  test_base64(char *body)
     int b64 = 0;
     uint8_t *b = (uint8_t *)body;
     DEBUG_ENT("test_base64");
-    while (*b != 0) {
+    while (*b) {
         if ((*b < 32) && (*b != 9) && (*b != 10)) {
             DEBUG_INFO(("found base64 byte %d\n", (int)*b));
             DEBUG_HEXDUMPC(body, strlen(body), 0x10);
@@ -1453,6 +1459,18 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             fprintf(f_output, "%s", headers);
             // make sure the headers end with a \n
             if (headers[len-1] != '\n') fprintf(f_output, "\n");
+            //char *h = headers;
+            //while (*h) {
+            //    char *e = strchr(h, '\n');
+            //    int   d = 1;    // normally e points to trailing \n
+            //    if (!e) {
+            //        e = h + strlen(h);  // e points to trailing null
+            //        d = 0;
+            //    }
+            //    // we could do rfc2047 encoding here if needed
+            //    fprintf(f_output, "%.*s\n", (int)(e-h), h);
+            //    h = e + d;
+            //}
         }
     }
 
@@ -1460,7 +1478,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     if (!has_from) {
         if (item->email->outlook_sender_name.str){
-            fprintf(f_output, "From: \"%s\" <%s>\n", item->email->outlook_sender_name.str, sender);
+            pst_rfc2047(item, &item->email->outlook_sender_name, 1);
+            fprintf(f_output, "From: %s <%s>\n", item->email->outlook_sender_name.str, sender);
         } else {
             fprintf(f_output, "From: <%s>\n", sender);
         }
@@ -1468,6 +1487,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     if (!has_subject) {
         if (item->subject.str) {
+            pst_rfc2047(item, &item->subject, 0);
             fprintf(f_output, "Subject: %s\n", item->subject.str);
         } else {
             fprintf(f_output, "Subject: \n");
@@ -1475,12 +1495,12 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     }
 
     if (!has_to && item->email->sentto_address.str) {
-        pst_convert_utf8(item, &item->email->sentto_address);
+        pst_rfc2047(item, &item->email->sentto_address, 0);
         fprintf(f_output, "To: %s\n", item->email->sentto_address.str);
     }
 
     if (!has_cc && item->email->cc_address.str) {
-        pst_convert_utf8(item, &item->email->cc_address);
+        pst_rfc2047(item, &item->email->cc_address, 0);
         fprintf(f_output, "Cc: %s\n", item->email->cc_address.str);
     }
 

@@ -14,13 +14,20 @@ static void base64_append(char **ou, int *line_count, char data)
         *line_count = 0;
     }
     *(*ou)++ = data;
-    (*line_count)++;
+    if (*line_count >= 0) (*line_count)++;
 }
 
 
 char *pst_base64_encode(void *data, size_t size)
 {
     int line_count = 0;
+    return pst_base64_encode_multiple(data, size, &line_count);
+}
+
+
+char *pst_base64_encode_single(void *data, size_t size)
+{
+    int line_count = -1;
     return pst_base64_encode_multiple(data, size, &line_count);
 }
 

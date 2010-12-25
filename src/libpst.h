@@ -1070,6 +1070,20 @@ char*           pst_rfc2445_datetime_format_now(int buflen, char* result);
 const char*     pst_default_charset(pst_item *item, int buflen, char* result);
 
 
+/** Convert str to rfc2231 encoding of str
+ *  @param item  pointer to the containing mapi item
+ *  @param str   pointer to the mapi string of interest
+ */
+void            pst_rfc2231(pst_string *str);
+
+
+/** Convert str to rfc2047 encoding of str, possibly enclosed in quotes if it contains spaces
+ *  @param item  pointer to the containing mapi item
+ *  @param str   pointer to the mapi string of interest
+ */
+void            pst_rfc2047(pst_item *item, pst_string *str, int needs_quote);
+
+
 /** Convert str to utf8 if possible; null strings are preserved.
  * @param item  pointer to the containing mapi item
  * @param str   pointer to the mapi string of interest

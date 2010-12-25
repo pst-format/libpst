@@ -4385,6 +4385,76 @@ const char*    pst_default_charset(pst_item *item, int buflen, char* result) {
 }
 
 
+/** Convert str to rfc2231 encoding of str
+ *
+ *  @param item  pointer to the containing mapi item
+ *  @param str   pointer to the mapi string of interest
+ */
+void pst_rfc2231(pst_string *str) {
+    int needs = 0;
+    const int8_t *x = (int8_t *)str->str;
+    while (*x) {
+        if (*x <= 32) needs++;
+        x++;
+    }
+    int n = strlen(str->str) + 2*needs + 15;
+    char *buffer = pst_malloc(n);
+    strcpy(buffer, "utf-8''");
+    x = (int8_t *)str->str;
+    const uint8_t *y = (uint8_t *)str->str;
+    uint8_t *z = (uint8_t *)buffer;
+    z += strlen(buffer);    // skip the utf8 prefix
+    while (*y) {
+        if (*x <= 32) {
+            *(z++) = (uint8_t)'%';
+            snprintf(z, 3, "%2x", *y);
+            z += 2;
+        }
+        else {
+            *(z++) = *y;
+        }
+        x++;
+        y++;
+    }
+    *z = '\0';
+    free(str->str);
+    str->str = buffer;
+}
+
+
+/** Convert str to rfc2047 encoding of str, possibly enclosed in quotes if it contains spaces
+ *
+ *  @param item  pointer to the containing mapi item
+ *  @param str   pointer to the mapi string of interest
+ */
+void pst_rfc2047(pst_item *item, pst_string *str, int needs_quote) {
+    int has_space = 0;
+    int needs_coding = 0;
+    pst_convert_utf8(item, str);
+    const int8_t *x = (int8_t *)str->str;
+    while (*x) {
+        if (*x == 32) has_space = 1;
+        if (*x < 32)  needs_coding = 1;
+        x++;
+    }
+    if (needs_coding) {
+        char *enc = pst_base64_encode_single(str->str, strlen(str->str));
+        free(str->str);
+        int n = strlen(enc) + 20;
+        str->str = pst_malloc(n);
+        snprintf(str->str, n, "=?utf-8?B?%s?=", enc);
+        free(enc);
+    }
+    else if (has_space && needs_quote) {
+        int n = strlen(str->str) + 10;
+        char *buffer = pst_malloc(n);
+        snprintf(buffer, n, "\"%s\"", str->str);
+        free(str->str);
+        str->str = buffer;
+    }
+}
+
+
 /** Convert str to utf8 if possible; null strings are preserved.
  *
  *  @param item  pointer to the containing mapi item
