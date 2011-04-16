@@ -40,7 +40,7 @@ if NEED_XGETOPT
 endif
 
 noinst_PROGRAMS     = deltasearch dumpblocks getidblock
-bin_PROGRAMS        = lspst readpst pst2ldif
+bin_PROGRAMS        = lspst readpst pst2ldif nick2ldif
 if BUILD_DII
     bin_PROGRAMS   += pst2dii
 endif
@@ -51,6 +51,7 @@ pst2dii_SOURCES     = pst2dii.cpp      $(common_header)
 deltasearch_SOURCES = deltasearch.cpp  $(common_header)
 dumpblocks_SOURCES  = dumpblocks.c     $(common_header)
 getidblock_SOURCES  = getidblock.c     $(common_header)
+nick2ldif_SOURCES   = nick2ldif.cpp    $(common_header)
 
 
 lspst_DEPENDENCIES        = libpst.la
@@ -60,6 +61,7 @@ pst2dii_DEPENDENCIES      = libpst.la
 deltasearch_DEPENDENCIES  = libpst.la
 dumpblocks_DEPENDENCIES   = libpst.la
 getidblock_DEPENDENCIES   = libpst.la
+nick2ldif_DEPENDENCIES    = libpst.la
 
 if STATIC_TOOLS
     noinst_LTLIBRARIES    = libpst.la
@@ -92,8 +94,9 @@ lspst_LDADD       = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 readpst_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) $(REGEXLIB)
 pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) -lgd
+deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 dumpblocks_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 getidblock_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
-deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
+nick2ldif_LDADD   = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 
 

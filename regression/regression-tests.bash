@@ -55,17 +55,17 @@ function dopst()
     jobs=""
     [ -n "$val" ] && jobs="-j 0"
     rm -rf output$n
-    if [ -z "$val" ] || [ $size -lt 10000000 ]; then
+    if [ -z "$val" ] || [ $size -lt 100000000 ]; then
         echo $fn
         mkdir output$n
         if [ "$regression" == "yes" ]; then
             $val ../src/readpst $jobs -te -r -cv -o output$n $fn >$ba.err 2>&1
         else
             ## only email and include deleted items, have a deleted items folder with multiple item types
-            $val ../src/readpst $jobs -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #$val ../src/readpst $jobs -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## normal recursive dump
-            #$val ../src/readpst $jobs     -r    -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            $val ../src/readpst $jobs     -r    -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode with filename extensions
             #$val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
@@ -119,13 +119,14 @@ regression=""
 #$func  16 test-mac.pst
 ##$func  17 harris.pst
 ##$func  18 spam.pst
-#$func  19 rendgen.pst       # single email appointment
-#$func  20 rendgen2.pst      # email appointment with no termination date
-#$func  21 rendgen3.pst      # mime signed email
-#$func  22 rendgen4.pst      # appointment test cases
-#$func  23 rendgen5.pst      # appointment test cases
-#$func  24 paul.sheer.pst    # embedded rfc822 attachment
-$func  25 jerry.pst         # non ascii subject lines
+#$func  19 rendgen.pst           # single email appointment
+#$func  20 rendgen2.pst          # email appointment with no termination date
+#$func  21 rendgen3.pst          # mime signed email
+#$func  22 rendgen4.pst          # appointment test cases
+#$func  23 rendgen5.pst          # appointment test cases
+#$func  24 paul.sheer.pst        # embedded rfc822 attachment
+#$func  25 jerry.pst             # non ascii subject lines
+$func  26 phill.bertolus.pst    #
 
 [ -n "$val" ] && grep 'lost:' *err | grep -v 'lost: 0 '
 

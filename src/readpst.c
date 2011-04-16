@@ -156,9 +156,15 @@ int grim_reaper(int waitall)
         //fflush(stdout);
         int i,j;
         for (i=0; i<active_children; i++) {
+            int status;
             pid_t child = child_processes[i];
-            pid_t ch = waitpid(child, NULL, ((waitall) ? 0 : WNOHANG));
+            pid_t ch = waitpid(child, &status, ((waitall) ? 0 : WNOHANG));
             if (ch == child) {
+                // check termination status
+                if (WIFSIGNALED(status)) {
+                    int sig = WTERMSIG(status);
+                    DEBUG_INFO(("Process %d terminated with signal %d\n", child, sig));
+                }
                 // this has terminated, remove it from the list
                 for (j=i; j<active_children-1; j++) {
                     child_processes[j] = child_processes[j+1];

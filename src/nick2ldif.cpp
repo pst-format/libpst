@@ -18,7 +18,7 @@ char *ldap_class = NULL;
 
 using namespace std;
 
-int main(int argc, const char** argv) {
+int main(int argc, char* const* argv) {
 	char c;
 	char *temp;
 	while ((c = getopt(argc, argv, "b:c:"))!= -1) {
@@ -46,6 +46,7 @@ int main(int argc, const char** argv) {
 		cin.getline(line, LINE_SIZE);
 		int n = strlen(line);
 		if (!n) continue;
+        if (strncmp(line, "alias", 5) != 0) continue;   // not alias
 		char *f = line + 6; 	// skip alias keyword
 		char *e;
 		if (*f == '"') {
@@ -60,11 +61,22 @@ int main(int argc, const char** argv) {
 		char *m = e+1;
 		while (*m == ' ') m++;
 		if (*m != '\0') {
-			char cn[1000];
-			snprintf(cn, sizeof(cn), "email %s", f);
+			char cn[1000], givenName[1000], sn[1000];
+			snprintf(cn, sizeof(cn), "%s", f);
+            char *ff = strchr(f, ' ');
+            if (ff) {
+                strncpy(givenName, ff+1, sizeof(givenName)-1);
+                *ff = '\0';
+                strncpy(sn, f, sizeof(sn)-1);
+            }
+            else {
+                strcpy(givenName, cn);
+                strcpy(sn, cn);
+            }
 			printf("dn: cn=%s, %s\n", cn, ldap_base);
 			printf("cn: %s\n", cn);
-			printf("sn: %s\n", f);
+            printf("givenName: %s\n", givenName);
+			printf("sn: %s\n", sn);
 			printf("mail: %s\n", m);
 			printf("objectClass: %s\n\n", ldap_class);
 		}
