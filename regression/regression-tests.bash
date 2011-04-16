@@ -65,7 +65,8 @@ function dopst()
             #$val ../src/readpst $jobs -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## normal recursive dump
-            $val ../src/readpst $jobs     -r    -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            $val ../src/readpst  -j 10 -Sb -o output$n            $fn >$ba.err 2>&1
+            #$val ../src/readpst $jobs     -r    -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode with filename extensions
             #$val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1

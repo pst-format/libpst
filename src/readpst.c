@@ -161,9 +161,16 @@ int grim_reaper(int waitall)
             pid_t ch = waitpid(child, &status, ((waitall) ? 0 : WNOHANG));
             if (ch == child) {
                 // check termination status
+                //if (WIFEXITED(status)) {
+                //    int ext = WEXITSTATUS(status);
+                //    printf("Process %d exited with status  %d\n", child, ext);
+                //    fflush(stdout);
+                //}
                 if (WIFSIGNALED(status)) {
                     int sig = WTERMSIG(status);
                     DEBUG_INFO(("Process %d terminated with signal %d\n", child, sig));
+                    //printf("Process %d terminated with signal %d\n", child, sig);
+                    //fflush(stdout);
                 }
                 // this has terminated, remove it from the list
                 for (j=i; j<active_children-1; j++) {
