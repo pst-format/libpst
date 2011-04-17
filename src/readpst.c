@@ -1043,7 +1043,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
 {
     char *attach_filename;
     DEBUG_ENT("write_inline_attachment");
-    DEBUG_INFO(("Attachment Size is %"PRIu64", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->i_id));
+    DEBUG_INFO(("Attachment Size is %"PRIu64", data = %"PRIxPTR", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->data.data, attach->i_id));
 
     if (!attach->data.data) {
         // make sure we can fetch data from the id
