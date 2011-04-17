@@ -114,7 +114,7 @@ regression=""
 ##$func  11 flow.pst
 #$func  12 test-html.pst
 #$func  13 test-text.pst
-#$func  14 joe.romanowski.pst
+$func  14 joe.romanowski.pst
 #$func  15 hourig1.pst
 #$func  16 test-mac.pst
 ##$func  17 harris.pst
@@ -127,7 +127,7 @@ regression=""
 #$func  24 paul.sheer.pst        # embedded rfc822 attachment
 #$func  25 jerry.pst             # non ascii subject lines
 #$func  26 phill.bertolus.pst    # possible segfault in forked process, cannot reproduce
-$func  27 justin.phelps.pst     # segfault?
+#$func  27 justin.phelps.pst     # segfault?
 
 [ -n "$val" ] && grep 'lost:' *err | grep -v 'lost: 0 '
 
