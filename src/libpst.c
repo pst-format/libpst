@@ -4156,7 +4156,7 @@ static size_t pst_append_holder(pst_holder *h, size_t size, char **buf, size_t z
  *  @return       updated size of the output
  */
 static size_t pst_finish_cleanup_holder(pst_holder *h, size_t size) {
-    char *t;attach->i_id     = id2_ptr->id->i_id;
+    char *t;
     DEBUG_ENT("pst_finish_cleanup_holder");
     if ((h->base64 == 1) && h->fp && h->base64_extra) {
         // need to encode any bytes left over
