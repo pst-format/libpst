@@ -65,8 +65,7 @@ function dopst()
             #$val ../src/readpst $jobs -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## normal recursive dump
-            $val ../src/readpst  -j 10 -Sb -o output$n            $fn >$ba.err 2>&1
-            #$val ../src/readpst $jobs     -r    -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            $val ../src/readpst -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode with filename extensions
             #$val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
@@ -127,7 +126,8 @@ regression=""
 #$func  23 rendgen5.pst          # appointment test cases
 #$func  24 paul.sheer.pst        # embedded rfc822 attachment
 #$func  25 jerry.pst             # non ascii subject lines
-$func  26 phill.bertolus.pst    #
+#$func  26 phill.bertolus.pst    # possible segfault in forked process, cannot reproduce
+$func  27 justin.phelps.pst     # segfault?
 
 [ -n "$val" ] && grep 'lost:' *err | grep -v 'lost: 0 '
 

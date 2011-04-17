@@ -39,8 +39,8 @@ void pst_debug_init(const char* fname, void* output_mutex) {
     #ifdef HAVE_SEMAPHORE_H
         debug_mutex = (sem_t*)output_mutex;
     #endif
-    memset(indent, ' ', MAX_DEPTH);
-    indent[MAX_DEPTH] = '\0';
+    memset(indent, ' ', MAX_DEPTH*4);
+    indent[MAX_DEPTH*4] = '\0';
     if (debug_fp) pst_debug_close();
     if (!fname) return;
     if ((debug_fp = fopen(fname, "wb")) == NULL) {

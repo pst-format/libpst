@@ -1335,11 +1335,12 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                 pst_free_list(list);
                 id2_ptr = pst_getID2(id2_head, attach->id2_val);
                 if (id2_ptr) {
-                    DEBUG_WARN(("second pass attachment updating id2 found i_id %#"PRIx64"\n", id2_ptr->id->i_id));
-                    // id2_val has been updated to the ID2 value of the datablock containing the
-                    // attachment data
+                    DEBUG_WARN(("second pass attachment updating id2 %#"PRIx64" found i_id %#"PRIx64"\n", attach->id2_val, id2_ptr->id->i_id));
+                    // i_id has been updated to the datablock containing the attachment data
                     attach->i_id     = id2_ptr->id->i_id;
                     attach->id2_head = deep_copy(id2_ptr->child);
+                    DEBUG_WARN(("attachment size was %#"PRIx64", is now %#"PRIx64" based on size of i_id", attach->data.size, id2_ptr->id->size));
+                    attach->data.size = id2_ptr->id->size;
                 } else {
                     DEBUG_WARN(("have not located the correct value for the attachment [%#"PRIx64"]\n", attach->id2_val));
                 }
@@ -3989,7 +3990,7 @@ static size_t pst_ff_getID2data(pst_file *pf, pst_index_ll *ptr, pst_holder *h) 
         free(b);
     } else {
         // here we will assume it is an indirection block that points to others
-        DEBUG_INFO(("Assuming it is a multi-block record because of it's id\n"));
+        DEBUG_INFO(("Assuming it is a multi-block record because of it's id %#"PRIx64"\n", ptr->i_id));
         ret = pst_ff_compile_ID(pf, ptr->i_id, h, (size_t)0);
     }
     ret = pst_finish_cleanup_holder(h, ret);
