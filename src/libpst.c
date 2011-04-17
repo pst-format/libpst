@@ -1349,7 +1349,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                         ptr = pst_getID(pf, attach->i_id);
                         if (ptr) {
                             rc.size = pst_ff_getID2data(pf, ptr, &h);
-                            DEBUG_WARN(("attachment size was %#"PRIx64", is now %#"PRIx64" based on size of i_id\n", attach->data.size, rc.size));
+                            DEBUG_WARN(("attachment %s size was %#"PRIx64", is now %#"PRIx64" based on size of i_id\n", attach->filename2.str, attach->data.size, rc.size));
                             attach->data.size = rc.size;
                         } else {
                             DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
