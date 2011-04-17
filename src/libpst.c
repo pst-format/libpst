@@ -1339,7 +1339,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                     // i_id has been updated to the datablock containing the attachment data
                     attach->i_id     = id2_ptr->id->i_id;
                     attach->id2_head = deep_copy(id2_ptr->child);
-                    {
+                    if (attach->data.data) {
                         // fetch the actual data to determine the actual attachment size.
                         pst_index_ll *ptr;
                         pst_binary rc;
@@ -1349,12 +1349,14 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                         ptr = pst_getID(pf, attach->i_id);
                         if (ptr) {
                             rc.size = pst_ff_getID2data(pf, ptr, &h);
-                            DEBUG_WARN(("attachment %s size was %#"PRIx64", is now %#"PRIx64" based on size of i_id\n", attach->filename2.str, attach->data.size, rc.size));
-                            attach->data.size = rc.size;
+                            if (rc.data) free(rc.data);
+                            if (rc.size < attach->data.size) {
+                                DEBUG_WARN(("reducing attachment %s size was %#"PRIx64", is now %#"PRIx64" based on size of i_id\n", attach->filename2.str, attach->data.size, rc.size));
+                                attach->data.size = rc.size;
+                            }
                         } else {
                             DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
                         }
-                        if (rc.data) free(rc.data);
                     }
                 } else {
                     DEBUG_WARN(("have not located the correct value for the attachment [%#"PRIx64"]\n", attach->id2_val));

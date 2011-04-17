@@ -955,7 +955,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
     char *attach_filename = (attach->filename2.str) ? attach->filename2.str
                                                     : attach->filename1.str;
     DEBUG_ENT("write_separate_attachment");
-    DEBUG_INFO(("Attachment %s Size is %"PRIx64", data = %"PRIxPTR", id %#"PRIx64"\n", attach_filename, (uint64_t)attach->data.size, attach->data.data, attach->i_id));
+    DEBUG_INFO(("Attachment %s Size is %#"PRIx64", data = %#"PRIxPTR", id %#"PRIx64"\n", attach_filename, (uint64_t)attach->data.size, attach->data.data, attach->i_id));
 
     if (!attach->data.data) {
         // make sure we can fetch data from the id
@@ -1042,9 +1042,8 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
 
 void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst)
 {
-    char *attach_filename;
     DEBUG_ENT("write_inline_attachment");
-    DEBUG_INFO(("Attachment Size is %"PRIx64", data = %"PRIxPTR", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->data.data, attach->i_id));
+    DEBUG_INFO(("Attachment Size is %#"PRIx64", data = %#"PRIxPTR", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->data.data, attach->i_id));
 
     if (!attach->data.data) {
         // make sure we can fetch data from the id
