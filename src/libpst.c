@@ -1327,6 +1327,8 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                 if (list->count_objects > 1) {
                     DEBUG_WARN(("ERROR probably fatal, list count array will overrun attach structure.\n"));
                 }
+                // reprocess the same attachment list against new data
+                // this might update attach->id2_val
                 if (pst_process(list, item, attach)) {
                     DEBUG_WARN(("ERROR pst_process() failed with an attachment\n"));
                     pst_free_list(list);
@@ -1339,25 +1341,6 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                     // i_id has been updated to the datablock containing the attachment data
                     attach->i_id     = id2_ptr->id->i_id;
                     attach->id2_head = deep_copy(id2_ptr->child);
-                    if (attach->data.data) {
-                        // fetch the actual data to determine the actual attachment size.
-                        pst_index_ll *ptr;
-                        pst_binary rc;
-                        pst_holder h = {&rc.data, NULL, 0, 0, 0};
-                        rc.size = 0;
-                        rc.data = NULL;
-                        ptr = pst_getID(pf, attach->i_id);
-                        if (ptr) {
-                            rc.size = pst_ff_getID2data(pf, ptr, &h);
-                            if (rc.data) free(rc.data);
-                            if (rc.size < attach->data.size) {
-                                DEBUG_WARN(("reducing attachment %s size was %#"PRIx64", is now %#"PRIx64" based on size of i_id\n", attach->filename2.str, attach->data.size, rc.size));
-                                attach->data.size = rc.size;
-                            }
-                        } else {
-                            DEBUG_WARN(("Couldn't find ID pointer. Cannot save attachment to file\n"));
-                        }
-                    }
                 } else {
                     DEBUG_WARN(("have not located the correct value for the attachment [%#"PRIx64"]\n", attach->id2_val));
                 }
@@ -2467,12 +2450,8 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                 case 0x0E20: // PR_ATTACH_SIZE binary Attachment data in record
                     NULL_CHECK(attach);
                     LIST_COPY_INT32("Attachment Size", t);
-                    if (attach->data.data && (attach->data.size != (size_t)t)) {
-                        DEBUG_INFO(("already have data %#"PRIxPTR" size %#"PRIx64"\n", attach->data.data, attach->data.size));
-                    }
-                    else {
-                        attach->data.size = (size_t)t;
-                    }
+                    // ignore this. we either get data and size from 0x3701
+                    // or id codes from 0x3701 or 0x67f2
                     break;
                 case 0x0FF9: // PR_RECORD_KEY Record Header 1
                     LIST_COPY_BIN(item->record_key);
