@@ -1,3 +1,10 @@
+LibPST 0.6.51 (2011-04-17)
+===============================
+    * fix for buffer overrun; attachment size from the secondary
+      list of mapi elements overwrote proper size from the primary
+      list of mapi elements.
+      fedora bugzilla 696263
+
 LibPST 0.6.50 (2010-12-24)
 ===============================
     * rfc2047 and rfc2231 encoding for non-ascii headers and attachment filenames

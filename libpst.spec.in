@@ -147,9 +147,24 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Apr 17 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.51-1
+- fix for buffer overrun; attachment size from the secondary
+  list of mapi elements overwrote proper size from the primary
+  list of mapi elements.
+  fedora bugzilla 696263
+
+* Tue Feb 08 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.49-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
+* Mon Feb 07 2011 Thomas Spura <tomspur@fedoraproject.org> - 0.6.49-3
+- rebuild for new boost
+
 * Fri Dec 24 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.50-1
 - rfc2047 and rfc2231 encoding for non-ascii headers and
   attachment filenames.
+
+* Wed Sep 29 2010 jkeating - 0.6.49-2
+- Rebuilt for gcc bug 634757
 
 * Mon Sep 13 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.49-1
 - fix to ignore embedded objects that are not email messages
