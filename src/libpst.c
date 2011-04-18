@@ -2467,7 +2467,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                 case 0x0E20: // PR_ATTACH_SIZE binary Attachment data in record
                     NULL_CHECK(attach);
                     LIST_COPY_INT32("Attachment Size", t);
-                    if (attach->data.data || attach->data.size) {
+                    if (attach->data.data && (attach->data.size != (size_t)t)) {
                         DEBUG_INFO(("already have data %#"PRIxPTR" size %#"PRIx64"\n", attach->data.data, attach->data.size));
                     }
                     else {
