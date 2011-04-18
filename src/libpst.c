@@ -2151,6 +2151,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
         char time_buffer[30];
         for (x=0; x<list->count_elements; x++) {
             int32_t t;
+            uint32_t ut;
             DEBUG_INFO(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
 
             switch (list->elements[x]->mapi_id) {
@@ -2466,7 +2467,12 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                 case 0x0E20: // PR_ATTACH_SIZE binary Attachment data in record
                     NULL_CHECK(attach);
                     LIST_COPY_INT32("Attachment Size", t);
-                    attach->data.size = (size_t)t;
+                    if (attach->data.data || attach->data.size) {
+                        DEBUG_INFO(("already have data %#"PRIxPTR" size %#"PRIx64"\n", attach->data.data, attach->data.size));
+                    }
+                    else {
+                        attach->data.size = (size_t)t;
+                    }
                     break;
                 case 0x0FF9: // PR_RECORD_KEY Record Header 1
                     LIST_COPY_BIN(item->record_key);
@@ -2892,16 +2898,10 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                     DEBUG_INFO(("Predecessor Change\n"));
                     DEBUG_HEXDUMP(item->predecessor_change.data, item->predecessor_change.size);
                     break;
-                case 0x67F2: // ID2 value of the attachments proper record
-                    if (attach) {
-                        uint32_t tempid;
-                        memcpy(&(tempid), list->elements[x]->data, sizeof(tempid));
-                        LE32_CPU(tempid);
-                        attach->id2_val = tempid;
-                        DEBUG_INFO(("Attachment ID2 value - %#"PRIx64"\n", attach->id2_val));
-                    } else {
-                        DEBUG_WARN(("NOT AN ATTACHMENT: %#x\n", list->elements[x]->mapi_id));
-                    }
+                case 0x67F2: // ID2 value of the attachment
+                    NULL_CHECK(attach);
+                    LIST_COPY_INT32("Attachment ID2 value", ut);
+                    attach->id2_val = ut;
                     break;
                 case 0x67FF: // Extra Property Identifier (Password CheckSum)
                     LIST_COPY_STORE_INT32("Password checksum", item->message_store->pwd_chksum);
