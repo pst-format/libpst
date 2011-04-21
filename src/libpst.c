@@ -4369,6 +4369,7 @@ static const char* codepage(int cp, int buflen, char* result) {
 
 /** Get the default character set for this item. This is used to find
  *  the charset for pst_string elements that are not already in utf8 encoding.
+ *
  *  @param  item   pointer to the mapi item of interest
  *  @param[in]  buflen  length of the output buffer
  *  @param[out] result  pointer to output buffer, must be at least 30 bytes
@@ -4384,7 +4385,6 @@ const char*    pst_default_charset(pst_item *item, int buflen, char* result) {
 
 /** Convert str to rfc2231 encoding of str
  *
- *  @param item  pointer to the containing mapi item
  *  @param str   pointer to the mapi string of interest
  */
 void pst_rfc2231(pst_string *str) {
@@ -4421,8 +4421,9 @@ void pst_rfc2231(pst_string *str) {
 
 /** Convert str to rfc2047 encoding of str, possibly enclosed in quotes if it contains spaces
  *
- *  @param item  pointer to the containing mapi item
- *  @param str   pointer to the mapi string of interest
+ *  @param item          pointer to the containing mapi item
+ *  @param str           pointer to the mapi string of interest
+ *  @param needs_quote   true if strings containing spaces should be wrapped in quotes
  */
 void pst_rfc2047(pst_item *item, pst_string *str, int needs_quote) {
     int has_space = 0;
