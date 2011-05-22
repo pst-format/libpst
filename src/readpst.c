@@ -1364,9 +1364,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         // normally we would use the headers on our current (inner) message, but those
         // headers are sometimes really bogus - they seem to be fragments of the message body. So
         // we only use them if they seem to be actual smtp rfc822 headers.
-        if ((strncasecmp(headers, "Return-Path: ") == 0) ||
-            (strncasecmp(headers, "Received: ") == 0) ||
-            (strncasecmp(headers, "From: ") == 0)) {
+        if ((strncasecmp(headers, "Return-Path: ", 13) == 0) ||
+            (strncasecmp(headers, "Received: ",    10) == 0) ||
+            (strncasecmp(headers, "From: ",         6) == 0)) {
         }
         else {
             DEBUG_INFO(("Ignore bogus inner headers = \n%s\n", headers));
