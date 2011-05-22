@@ -1092,7 +1092,8 @@ int  valid_headers(char *header)
     if (header) {
         if ((strncasecmp(header, "Return-Path: ", 13) == 0) ||
             (strncasecmp(header, "Received: ",    10) == 0) ||
-            (strncasecmp(header, "From: ",         6) == 0)) {
+            (strncasecmp(header, "From: ",         6) == 0) ||
+            (strncasecmp(header, "X-x: ",          5) == 0)) {
             return 1;
         }
         else {
