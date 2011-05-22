@@ -1359,6 +1359,11 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
     pst_convert_utf8_null(item, &item->email->header);
     headers = (item->email->header.str) ? item->email->header.str : *extra_mime_headers;
+    if (*extra_mime_headers && item->email->header.str) {
+        // we have both extra mime headers from outer message,
+        // and also our own set of headers
+        DEBUG_INFO(("Double headers! outer set = \n%s\n\nDouble headers! inner set = \n%s\n", *extra_mime_headers, item->email->header.str));
+    }
 
     // setup default body character set and report type
     strncpy(body_charset, pst_default_charset(item, sizeof(buffer_charset), buffer_charset), sizeof(body_charset));
@@ -1387,7 +1392,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         else
             c_time = "Fri Dec 28 12:06:21 2001";
     } else
-        c_time= "Fri Dec 28 12:06:21 2001";
+        c_time = "Fri Dec 28 12:06:21 2001";
 
     // create our MIME boundaries here.
     snprintf(boundary, sizeof(boundary), "--boundary-LibPST-iamunique-%i_-_-", rand());

@@ -126,6 +126,8 @@ $func  23 rendgen5.pst          # appointment test cases
 $func  24 paul.sheer.pst        # embedded rfc822 attachment
 $func  25 jerry.pst             # non ascii subject lines
 $func  26 phill.bertolus.pst    # possible segfault in forked process, cannot reproduce
+$func  27 justin.phelps.pst     # segfault?
+
 
 [ -n "$val" ] && grep 'lost:' *err | grep -v 'lost: 0 '
 
