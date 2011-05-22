@@ -1360,9 +1360,18 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     pst_convert_utf8_null(item, &item->email->header);
     headers = (item->email->header.str) ? item->email->header.str : *extra_mime_headers;
     if (*extra_mime_headers && item->email->header.str) {
-        // we have both extra mime headers from outer message,
-        // and also our own set of headers
-        DEBUG_INFO(("Double headers! outer set = \n%s\n\nDouble headers! inner set = \n%s\n", *extra_mime_headers, item->email->header.str));
+        // we have both extra mime headers from the outer message,  and also our own set of headers
+        // normally we would use the headers on our current (inner) message, but those
+        // headers are sometimes really bogus - they seem to be fragments of the message body. So
+        // we only use them if they seem to be actual smtp rfc822 headers.
+        if ((strncasecmp(headers, "Return-Path: ") == 0) ||
+            (strncasecmp(headers, "Received: ") == 0) ||
+            (strncasecmp(headers, "From: ") == 0)) {
+        }
+        else {
+            DEBUG_INFO(("Ignore bogus inner headers = \n%s\n", headers));
+            headers = *extra_mime_headers;
+        }
     }
 
     // setup default body character set and report type
@@ -1409,7 +1418,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             temp[1] = '\0';
             // pointer to all the embedded MIME headers.
             // we use these to find the actual rfc822 headers for embedded message/rfc822 mime parts
-            *extra_mime_headers = temp+2;
+            // but only for the outermost message
+            if (!*extra_mime_headers) *extra_mime_headers = temp+2;
             DEBUG_INFO(("Found extra mime headers\n%s\n", temp+2));
         }
 
