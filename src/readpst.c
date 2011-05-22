@@ -1096,7 +1096,9 @@ int  valid_headers(char *header)
             return 1;
         }
         else {
-            DEBUG_INFO(("Ignore bogus headers = \n%s\n", header));
+            if (strlen(header) > 2) {
+                DEBUG_INFO(("Ignore bogus headers = %s\n", header));
+            }
             return 0;
         }
     }
