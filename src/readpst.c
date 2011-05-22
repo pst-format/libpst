@@ -45,6 +45,7 @@ void      check_filename(char *fname);
 void      write_separate_attachment(char f_name[], pst_item_attach* attach, int attach_num, pst_file* pst);
 void      write_embedded_message(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pf, char** extra_mime_headers);
 void      write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst);
+int       valid_headers(char *header);
 void      header_has_field(char *header, char *field, int *flag);
 void      header_get_subfield(char *field, const char *subfield, char *body_subfield, size_t size_subfield);
 char*     header_get_field(char *header, char *field);
@@ -1084,6 +1085,20 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
 }
 
 
+int  valid_headers(char *header)
+{
+    // headers are sometimes really bogus - they seem to be fragments of the
+    // message body, so we only use them if they seem to be real rfc822 headers.
+    if ((strncasecmp(header, "Return-Path: ", 13) == 0) ||
+        (strncasecmp(header, "Received: ",    10) == 0) ||
+        (strncasecmp(header, "From: ",         6) == 0)) {
+    }
+    else {
+        DEBUG_INFO(("Ignore bogus headers = \n%s\n", header));
+    }
+}
+
+
 void header_has_field(char *header, char *field, int *flag)
 {
     DEBUG_ENT("header_has_field");
@@ -1358,21 +1373,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     DEBUG_ENT("write_normal_email");
 
     pst_convert_utf8_null(item, &item->email->header);
-    headers = (item->email->header.str) ? item->email->header.str : *extra_mime_headers;
-    if (*extra_mime_headers && item->email->header.str) {
-        // we have both extra mime headers from the outer message,  and also our own set of headers
-        // normally we would use the headers on our current (inner) message, but those
-        // headers are sometimes really bogus - they seem to be fragments of the message body. So
-        // we only use them if they seem to be actual smtp rfc822 headers.
-        if ((strncasecmp(headers, "Return-Path: ", 13) == 0) ||
-            (strncasecmp(headers, "Received: ",    10) == 0) ||
-            (strncasecmp(headers, "From: ",         6) == 0)) {
-        }
-        else {
-            DEBUG_INFO(("Ignore bogus inner headers = \n%s\n", headers));
-            headers = *extra_mime_headers;
-        }
-    }
+    headers = valid_headers(item->email->header.str) ? item->email->header.str :
+              valid_headers(*extra_mime_headers)     ? *extra_mime_headers     :
+              NULL;
 
     // setup default body character set and report type
     strncpy(body_charset, pst_default_charset(item, sizeof(buffer_charset), buffer_charset), sizeof(body_charset));
