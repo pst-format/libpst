@@ -147,6 +147,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun May 22 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.52-1
+- fix dangling freed pointer in embedded rfc822 message processing
+- allow broken outlook internet header field - it sometimes contains
+  fragments of the message body rather than headers
+
 * Sun Apr 17 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.51-1
 - fix for buffer overrun; attachment size from the secondary
   list of mapi elements overwrote proper size from the primary

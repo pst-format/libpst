@@ -1,3 +1,9 @@
+LibPST 0.6.52 (2011-05-22)
+===============================
+    * fix dangling freed pointer in embedded rfc822 message processing
+    * allow broken outlook internet header field - it sometimes contains
+      fragments of the message body rather than headers
+
 LibPST 0.6.51 (2011-04-17)
 ===============================
     * fix for buffer overrun; attachment size from the secondary
