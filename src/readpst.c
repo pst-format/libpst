@@ -1089,13 +1089,18 @@ int  valid_headers(char *header)
 {
     // headers are sometimes really bogus - they seem to be fragments of the
     // message body, so we only use them if they seem to be real rfc822 headers.
+    // this list is composed of ones that we have seen in real pst files.
+    // there are surely others. the problem is - given an arbitrary character
+    // string, is it a valid (or even reasonable) set of rfc822 headers?
     if (header) {
-        if ((strncasecmp(header, "Return-Path: ", 13) == 0) ||
-            (strncasecmp(header, "Received: ",    10) == 0) ||
-            (strncasecmp(header, "Subject: ",      9) == 0) ||
-            (strncasecmp(header, "Date: ",         6) == 0) ||
-            (strncasecmp(header, "From: ",         6) == 0) ||
-            (strncasecmp(header, "X-x: ",          5) == 0) ||
+        if ((strncasecmp(header, "X-Barracuda-URL: ", 17) == 0) ||
+            (strncasecmp(header, "X-ASG-Debug-ID: ",  16) == 0) ||
+            (strncasecmp(header, "Return-Path: ",     13) == 0) ||
+            (strncasecmp(header, "Received: ",        10) == 0) ||
+            (strncasecmp(header, "Subject: ",          9) == 0) ||
+            (strncasecmp(header, "Date: ",             6) == 0) ||
+            (strncasecmp(header, "From: ",             6) == 0) ||
+            (strncasecmp(header, "X-x: ",              5) == 0) ||
             (strncasecmp(header, "Microsoft Mail Internet Headers", 31) == 0)) {
             return 1;
         }
