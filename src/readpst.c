@@ -1089,13 +1089,18 @@ int  valid_headers(char *header)
 {
     // headers are sometimes really bogus - they seem to be fragments of the
     // message body, so we only use them if they seem to be real rfc822 headers.
-    if ((strncasecmp(header, "Return-Path: ", 13) == 0) ||
-        (strncasecmp(header, "Received: ",    10) == 0) ||
-        (strncasecmp(header, "From: ",         6) == 0)) {
+    if (header) {
+        if ((strncasecmp(header, "Return-Path: ", 13) == 0) ||
+            (strncasecmp(header, "Received: ",    10) == 0) ||
+            (strncasecmp(header, "From: ",         6) == 0)) {
+            return 1;
+        }
+        else {
+            DEBUG_INFO(("Ignore bogus headers = \n%s\n", header));
+            return 0;
+        }
     }
-    else {
-        DEBUG_INFO(("Ignore bogus headers = \n%s\n", header));
-    }
+    else return 0;
 }
 
 
