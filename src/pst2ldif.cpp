@@ -699,9 +699,6 @@ void version(void) {
 #else
 #  error "Byte order not supported by this library"
 #endif
-#ifdef __GNUC__
-    printf("GCC %d.%d : %s %s\n", __GNUC__, __GNUC_MINOR__, __DATE__, __TIME__);
-#endif
 }
 
 
