@@ -3194,7 +3194,7 @@ static void pst_free_id2(pst_id2_tree * head) {
     pst_id2_tree *t;
     DEBUG_ENT("pst_free_id2");
     while (head) {
-        if (head->child) pst_free_id2(head->child);
+        pst_free_id2(head->child);
         t = head->next;
         free(head);
         head = t;
@@ -3219,20 +3219,9 @@ static void pst_free_desc (pst_desc_tree *head) {
     pst_desc_tree *t;
     DEBUG_ENT("pst_free_desc");
     while (head) {
-        while (head->child) {
-            head = head->child;
-        }
-
-        // point t to the next item
+        pst_free_desc(head->child);
         t = head->next;
-        if (!t && head->parent) {
-            t = head->parent;
-            t->child = NULL; // set the child to NULL so we don't come back here again!
-        }
-
-        if (head) free(head);
-        else      DIE(("head is NULL"));
-
+        free(head);
         head = t;
     }
     DEBUG_RET();
