@@ -164,3 +164,12 @@ void *pst_malloc(size_t size) {
     return mem;
 }
 
+
+void *pst_realloc(void *ptr, size_t size) {
+    void *mem = realloc(ptr, size);
+    if (!mem) {
+        fprintf(stderr, "pst_realloc: Out Of memory [req: %ld]\n", (long)size);
+        exit(1);
+    }
+    return mem;
+}

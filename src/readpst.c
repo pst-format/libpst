@@ -742,7 +742,7 @@ char *mk_kmail_dir(char *fname) {
         x = errno;
         DIE(("mk_kmail_dir: Cannot change to directory %s: %s\n", kmail_chdir, strerror(x)));
     }
-    dir = malloc(strlen(fname)+strlen(OUTPUT_KMAIL_DIR_TEMPLATE)+1);
+    dir = pst_malloc(strlen(fname)+strlen(OUTPUT_KMAIL_DIR_TEMPLATE)+1);
     sprintf(dir, OUTPUT_KMAIL_DIR_TEMPLATE, fname);
     check_filename(dir);
     if (D_MKDIR(dir)) {
@@ -751,17 +751,17 @@ char *mk_kmail_dir(char *fname) {
             DIE(("mk_kmail_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
         }
     }
-    kmail_chdir = realloc(kmail_chdir, strlen(dir)+1);
+    kmail_chdir = pst_realloc(kmail_chdir, strlen(dir)+1);
     strcpy(kmail_chdir, dir);
     free (dir);
 
     //we should remove any existing indexes created by KMail, cause they might be different now
-    index = malloc(strlen(fname)+strlen(KMAIL_INDEX)+1);
+    index = pst_malloc(strlen(fname)+strlen(KMAIL_INDEX)+1);
     sprintf(index, KMAIL_INDEX, fname);
     unlink(index);
     free(index);
 
-    out_name = malloc(strlen(fname)+strlen(OUTPUT_TEMPLATE)+1);
+    out_name = pst_malloc(strlen(fname)+strlen(OUTPUT_TEMPLATE)+1);
     sprintf(out_name, OUTPUT_TEMPLATE, fname);
     DEBUG_RET();
     return out_name;

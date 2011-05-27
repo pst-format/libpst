@@ -65,13 +65,13 @@ function dopst()
             #$val ../src/readpst $jobs -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## normal recursive dump
-            $val ../src/readpst  -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #$val ../src/readpst  -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode with filename extensions
             #$val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode where we decode all attachments to binary files
-            #$val ../src/readpst $jobs     -r -S -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            $val ../src/readpst $jobs     -r -S -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## testing idblock
             #../src/getidblock -p $fn 0 >$ba.fulldump

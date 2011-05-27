@@ -143,6 +143,7 @@ void  pst_debug_hexdump(int line, const char *file, const char* buf, size_t size
 void  pst_debug_hexdumper(FILE* out, const char* buf, size_t size, int cols, int delta);
 void  pst_debug_close(void);
 void* pst_malloc(size_t size);
+void *pst_realloc(void *ptr, size_t size);
 
 #define MESSAGEPRINT(...) pst_debug(__LINE__, __FILE__,  __VA_ARGS__)
 

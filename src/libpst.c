@@ -50,8 +50,8 @@
 
 
 typedef struct pst_block_offset {
-    int16_t from;
-    int16_t to;
+    uint16_t from;
+    uint16_t to;
 } pst_block_offset;
 
 
@@ -1869,7 +1869,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
 // malloc space and copy the current item's data null terminated
 #define LIST_COPY(targ, type) {                                    \
-    targ = type realloc(targ, list->elements[x]->size+1);          \
+    targ = type pst_realloc(targ, list->elements[x]->size+1);      \
     memcpy(targ, list->elements[x]->data, list->elements[x]->size);\
     memset(((char*)targ)+list->elements[x]->size, 0, (size_t)1);   \
 }
@@ -2052,7 +2052,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         DEBUG_WARN(("src not 0x40 for filetime dst\n"));                    \
         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
     }                                                                       \
-    targ = (FILETIME*) realloc(targ, sizeof(FILETIME));                     \
+    targ = (FILETIME*) pst_realloc(targ, sizeof(FILETIME));                 \
     memcpy(targ, list->elements[x]->data, list->elements[x]->size);         \
     LE32_CPU(targ->dwLowDateTime);                                          \
     LE32_CPU(targ->dwHighDateTime);                                         \
@@ -2083,7 +2083,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 #define LIST_COPY_BIN(targ) {                                       \
     targ.size = list->elements[x]->size;                            \
     if (targ.size) {                                                \
-        targ.data = (char*)realloc(targ.data, targ.size);           \
+        targ.data = (char*)pst_realloc(targ.data, targ.size);       \
         memcpy(targ.data, list->elements[x]->data, targ.size);      \
     }                                                               \
     else {                                                          \
@@ -2151,7 +2151,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
                                 offset      = PST_LE_GET_INT32(list->elements[x]->data + p); p+=4;
                                 next_offset = (i == array_element_count) ? list->elements[x]->size : PST_LE_GET_INT32(list->elements[x]->data + p);;
                                 string_length = next_offset - offset;
-                                ef->value = malloc(string_length + 1);
+                                ef->value = pst_malloc(string_length + 1);
                                 memcpy(ef->value, list->elements[x]->data + offset, string_length);
                                 ef->value[string_length] = '\0';
                                 ef->field_name = strdup(list->elements[x]->extra);
@@ -4066,7 +4066,7 @@ static size_t pst_append_holder(pst_holder *h, size_t size, char **buf, size_t z
 
     // raw append to a buffer
     if (h->buf) {
-        *(h->buf) = realloc(*(h->buf), size+z+1);
+        *(h->buf) = pst_realloc(*(h->buf), size+z+1);
         DEBUG_INFO(("appending read data of size %i onto main buffer from pos %i\n", z, size));
         memcpy(*(h->buf)+size, *buf, z);
 
@@ -4075,7 +4075,7 @@ static size_t pst_append_holder(pst_holder *h, size_t size, char **buf, size_t z
         //
         if (h->base64_extra) {
             // include any bytes left over from the last encoding
-            *buf = (char*)realloc(*buf, z+h->base64_extra);
+            *buf = (char*)pst_realloc(*buf, z+h->base64_extra);
             memmove(*buf+h->base64_extra, *buf, z);
             memcpy(*buf, h->base64_extra_chars, h->base64_extra);
             z += h->base64_extra;
@@ -4217,7 +4217,7 @@ char* pst_rfc2426_escape(char* str, char **buf, size_t* buflen) {
     else {
         x = strlen(str) + y - z + 1; // don't forget room for the NUL
         if (x > *buflen) {
-            *buf = (char*) realloc(*buf, x);
+            *buf = (char*)pst_realloc(*buf, x);
             *buflen = x;
         }
         a = str;
