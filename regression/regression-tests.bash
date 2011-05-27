@@ -101,7 +101,7 @@ regression=""
 [ "$2" == "reg" ] && regression="yes"
 [ "$regression" == "yes" ] && val=""
 
-$func   1 ams.pst
+#$func   1 ams.pst
 #$func   2 sample_64.pst
 #$func   3 test.pst
 #$func   4 big_mail.pst
@@ -125,7 +125,7 @@ $func   1 ams.pst
 #$func  23 rendgen5.pst          # appointment test cases
 #$func  24 paul.sheer.pst        # embedded rfc822 attachment
 #$func  25 jerry.pst             # non ascii subject lines
-#$func  26 phill.bertolus.pst    # possible segfault in forked process, cannot reproduce
+$func  26 phill.bertolus.pst    # possible segfault in forked process, cannot reproduce
 #$func  27 justin.phelps.pst     # segfault?
 
 

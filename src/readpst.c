@@ -152,7 +152,7 @@ int grim_reaper(int waitall)
 #ifdef HAVE_FORK
 #ifdef HAVE_SEMAPHORE_H
     if (global_children) {
-        sem_getvalue(global_children, &available);
+        //sem_getvalue(global_children, &available);
         //printf("grim reaper %s for pid %d (parent %d) with %d children, %d available\n", (waitall) ? "all" : "", getpid(), getppid(), active_children, available);
         //fflush(stdout);
         int i,j;
@@ -330,10 +330,35 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     DEBUG_INFO(("I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
                 }
                 else {
-                    char *extra_mime_headers = NULL;
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".eml" : "");
-                    write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+                    char *extra_mime_headers = NULL;
+                    if (mode == MODE_SEPARATE) {
+                        // process this single email message, possibly forking
+                        pid_t parent = getpid();
+                        pid_t child = try_fork(item->file_as.str);
+                        if (child == 0) {
+                            // we are the child process, or the original parent if no children were available
+                            pid_t me = getpid();
+                            mk_separate_file(&ff, (mode_EX) ? ".eml" : "");
+                            write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+#ifdef HAVE_FORK
+#ifdef HAVE_SEMAPHORE_H
+                            if (me != parent) {
+                                // we really were a child, forked for the sole purpose of processing this message
+                                // free my child count slot before really exiting, since
+                                // all I am doing here is waiting for my children to exit
+                                sem_post(global_children);
+                                grim_reaper(1); // wait for all my child processes to exit - there should not be any
+                                exit(0);        // really exit
+                            }
+#endif
+#endif
+                        }
+                    }
+                    else {
+                        // process this single email message, cannot fork since not separate mode
+                        write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+                    }
                 }
             }
 
