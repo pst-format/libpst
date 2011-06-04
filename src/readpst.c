@@ -39,7 +39,8 @@ char*     mk_recurse_dir(char* dir, int32_t folder_type);
 int       close_recurse_dir();
 char*     mk_separate_dir(char *dir);
 int       close_separate_dir();
-int       mk_separate_file(struct file_ll *f, char *extension);
+void      mk_separate_file(struct file_ll *f, char *extension);
+void      close_separate_file(struct file_ll *f);
 char*     my_stristr(char *haystack, char *needle);
 void      check_filename(char *fname);
 void      write_separate_attachment(char f_name[], pst_item_attach* attach, int attach_num, pst_file* pst);
@@ -314,6 +315,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                         pst_convert_utf8(item, &item->contact->address1);
                         fprintf(ff.output, "%s <%s>\n", item->contact->fullname.str, item->contact->address1.str);
                     }
+                    if (mode == MODE_SEPARATE) close_separate_file(&ff);
                 }
             }
 
@@ -332,7 +334,6 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 else {
                     char *extra_mime_headers = NULL;
                     ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".eml" : "");
                     if (mode == MODE_SEPARATE) {
                         // process this single email message, possibly forking
                         pid_t parent = getpid();
@@ -340,7 +341,9 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                         if (child == 0) {
                             // we are the child process, or the original parent if no children were available
                             pid_t me = getpid();
+                            mk_separate_file(&ff, (mode_EX) ? ".eml" : "");
                             write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+                            close_separate_file(&ff);
 #ifdef HAVE_FORK
 #ifdef HAVE_SEMAPHORE_H
                             if (me != parent) {
@@ -379,6 +382,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "");
                     write_journal(ff.output, item);
                     fprintf(ff.output, "\n");
+                    if (mode == MODE_SEPARATE) close_separate_file(&ff);
                 }
             }
 
@@ -399,6 +403,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "");
                     write_schedule_part_data(ff.output, item, NULL, NULL);
                     fprintf(ff.output, "\n");
+                    if (mode == MODE_SEPARATE) close_separate_file(&ff);
                 }
             }
 
@@ -909,21 +914,34 @@ int close_separate_dir() {
 }
 
 
-int mk_separate_file(struct file_ll *f, char *extension) {
+void mk_separate_file(struct file_ll *f, char *extension) {
     DEBUG_ENT("mk_separate_file");
     DEBUG_INFO(("opening next file to save email\n"));
     if (f->item_count > 999999999) { // bigger than nine 9's
         DIE(("mk_separate_file: The number of emails in this folder has become too high to handle\n"));
     }
     sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->item_count, extension);
-    if (f->output) fclose(f->output);
-    f->output = NULL;
     check_filename(f->name);
     if (!(f->output = fopen(f->name, "w"))) {
         DIE(("mk_separate_file: Cannot open file to save email \"%s\"\n", f->name));
     }
     DEBUG_RET();
-    return 0;
+}
+
+
+void close_separate_file(struct file_ll *f) {
+    DEBUG_ENT("close_separate_file");
+    if (f->output) {
+        struct stat st;
+        fclose(f->output);
+        stat(f->name, &st);
+        if (!st.st_size) {
+            DEBUG_WARN(("removing empty output file %s\n", f->name));
+            remove(f->name);
+        }
+        f->output = NULL;
+    }
+    DEBUG_RET();
 }
 
 
@@ -2117,6 +2135,7 @@ void close_enter_dir(struct file_ll *f)
         pst_debug_unlock();
     }
     if (f->output) {
+        if (mode == MODE_SEPARATE) DEBUG_WARN(("close_enter_dir finds open separate file\n"));
         struct stat st;
         fclose(f->output);
         stat(f->name, &st);
@@ -2124,6 +2143,7 @@ void close_enter_dir(struct file_ll *f)
             DEBUG_WARN(("removing empty output file %s\n", f->name));
             remove(f->name);
         }
+        f->output = NULL;
     }
     free(f->name);
     free(f->dname);
