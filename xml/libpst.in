@@ -35,7 +35,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2009-09-14</date>
+            <date>2011-05-27</date>
         </refentryinfo>
 
         <refmeta>
@@ -155,7 +155,9 @@
                     <term>-j <replaceable class="parameter">jobs</replaceable></term>
                     <listitem><para>
                         Specifies the maximum number of parallel jobs. Specify 0 to suppress
-                        running parallel jobs.
+                        running parallel jobs. Folders may be processed in parallel. Output
+                        formats that place each mail message in a separate file (-M, -S, -e)
+                        may process the contents of individual folders in parallel.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -269,7 +271,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2009-09-14</date>
+            <date>2011-05-27</date>
         </refentryinfo>
 
         <refmeta>
@@ -364,7 +366,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2009-09-14</date>
+            <date>2011-05-27</date>
         </refentryinfo>
 
         <refmeta>
@@ -532,7 +534,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2009-09-14</date>
+            <date>2011-05-27</date>
         </refentryinfo>
 
         <refmeta>
@@ -665,7 +667,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2009-09-14</date>
+            <date>2011-05-27</date>
         </refentryinfo>
 
         <refmeta>

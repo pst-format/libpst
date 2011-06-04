@@ -330,8 +330,9 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     DEBUG_INFO(("I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
                 }
                 else {
-                    ff.item_count++;
                     char *extra_mime_headers = NULL;
+                    ff.item_count++;
+                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".eml" : "");
                     if (mode == MODE_SEPARATE) {
                         // process this single email message, possibly forking
                         pid_t parent = getpid();
@@ -339,7 +340,6 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                         if (child == 0) {
                             // we are the child process, or the original parent if no children were available
                             pid_t me = getpid();
-                            mk_separate_file(&ff, (mode_EX) ? ".eml" : "");
                             write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
 #ifdef HAVE_FORK
 #ifdef HAVE_SEMAPHORE_H
