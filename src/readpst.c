@@ -1561,6 +1561,11 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         }
     }
 
+    // record read status
+    if ((item->flags & PST_FLAG_READ) == PST_FLAG_READ) {
+        fprintf(f_output, "Status: RO\n");
+    }
+
     // create required header fields that are not already written
 
     if (!has_from) {

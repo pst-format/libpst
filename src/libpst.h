@@ -80,6 +80,18 @@
 #define PST_ATTACH_EMBEDDED         5
 #define PST_ATTACH_OLE              6
 
+// define flags
+#define PST_FLAG_READ			0x01
+#define PST_FLAG_UNMODIFIED		0x02
+#define PST_FLAG_SUBMIT			0x04
+#define PST_FLAG_UNSENT			0x08
+#define PST_FLAG_HAS_ATTACHMENT	0x10
+#define PST_FLAG_FROM_ME		0x20
+#define PST_FLAG_ASSOCIATED		0x40
+#define PST_FLAG_RESEND			0x80
+#define PST_FLAG_RN_PENDING		0x100
+#define PST_FLAG_NRN_PENDING	0x200
+
 
 typedef struct pst_entryid {
     int32_t u1;
