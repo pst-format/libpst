@@ -77,6 +77,7 @@ ac_cv_boost_python,
 if test "$ac_cv_boost_python" = "yes"; then
   AC_DEFINE(HAVE_BOOST_PYTHON,,[define if the Boost::Python library is available])
   ax_python_lib=boost_python
+  BOOST_PYTHON_LIB=$ax_python_lib
   AC_ARG_WITH([boost-python],AS_HELP_STRING([--with-boost-python],[specify the boost python library or suffix to use]),
   [if test "x$with_boost_python" != "xno"; then
      ax_python_lib=$with_boost_python
