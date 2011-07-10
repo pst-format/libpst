@@ -147,6 +147,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Jul 10 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.53-1
+- add Status: header in output
+- allow fork for parallel processing of individual email folders
+  in separate mode
+- proper handling of --with-boost-python option
+
 * Sun May 22 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.52-1
 - fix dangling freed pointer in embedded rfc822 message processing
 - allow broken outlook internet header field - it sometimes contains
