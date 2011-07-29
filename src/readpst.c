@@ -1377,10 +1377,10 @@ void write_schedule_part_data(FILE* f_output, pst_item* item, const char* sender
     fprintf(f_output, "BEGIN:VEVENT\n");
     if (sender) {
         if (item->email->outlook_sender_name.str) {
-	    fprintf(f_output, "ORGANIZER;CN=\"%s\":MAILTO:%s\n", item->email->outlook_sender_name.str, sender);
-	} else {
-	    fprintf(f_output, "ORGANIZER;CN=\"\":MAILTO:%s\n", sender);
-	}
+            fprintf(f_output, "ORGANIZER;CN=\"%s\":MAILTO:%s\n", item->email->outlook_sender_name.str, sender);
+        } else {
+            fprintf(f_output, "ORGANIZER;CN=\"\":MAILTO:%s\n", sender);
+        }
     }
     write_appointment(f_output, item);
     fprintf(f_output, "END:VCALENDAR\n");
@@ -1965,6 +1965,7 @@ void write_appointment(FILE* f_output, pst_item* item)
     pst_convert_utf8_null(item, &item->body);
     pst_convert_utf8_null(item, &appointment->location);
 
+    fprintf(f_output, "UID:%#"PRIx64"\n", item->block_id);
     fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now(sizeof(time_buffer), time_buffer));
     if (item->create_date)
         fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date, sizeof(time_buffer), time_buffer));
@@ -2057,6 +2058,14 @@ void write_appointment(FILE* f_output, pst_item* item)
             case PST_APP_LABEL_PHONE_CALL:
                 fprintf(f_output, "CATEGORIES:PHONE-CALL\n");
                 break;
+        }
+        // ignore bogus alarms
+        if (appointment->alarm && (appointment->alarm_minutes >= 0) && (appointment->alarm_minutes < 1440)) {
+            fprintf(f_output, "BEGIN:VALARM\n");
+            fprintf(f_output, "TRIGGER:-PT%dM\n", appointment->alarm_minutes);
+            fprintf(f_output, "ACTION:DISPLAY\n");
+            fprintf(f_output, "DESCRIPTION:Reminder\n");
+            fprintf(f_output, "END:VALARM\n");
         }
     }
     fprintf(f_output, "END:VEVENT\n");

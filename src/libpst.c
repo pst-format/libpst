@@ -281,7 +281,7 @@ static uint64_t         pst_getIntAtPos(pst_file *pf, int64_t pos);
 static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2_tree *i2_head);
 static void             pst_printDptr(pst_file *pf, pst_desc_tree *ptr);
 static void             pst_printID2ptr(pst_id2_tree *ptr);
-static int              pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach);
+static int              pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item, pst_item_attach *attach);
 static size_t           pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
 static int              pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
 static int              pst_stricmp(char *a, char *b);
@@ -1246,7 +1246,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
     item = (pst_item*) pst_malloc(sizeof(pst_item));
     memset(item, 0, sizeof(pst_item));
 
-    if (pst_process(list, item, NULL)) {
+    if (pst_process(d_ptr->desc->i_id, list, item, NULL)) {
         DEBUG_WARN(("pst_process() returned non-zero value. That is an error\n"));
         pst_freeItem(item);
         pst_free_list(list);
@@ -1267,7 +1267,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                 attach->next = item->attach;
                 item->attach = attach;
             }
-            if (pst_process(list, item, item->attach)) {
+            if (pst_process(id2_ptr->id->i_id, list, item, item->attach)) {
                 DEBUG_WARN(("ERROR pst_process() failed with DSN/MDN attachments\n"));
                 pst_freeItem(item);
                 pst_free_list(list);
@@ -1299,7 +1299,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
             attach->next = item->attach;
             item->attach = attach;
         }
-        if (pst_process(list, item, item->attach)) {
+        if (pst_process(id2_ptr->id->i_id, list, item, item->attach)) {
             DEBUG_WARN(("ERROR pst_process() failed with attachments\n"));
             pst_freeItem(item);
             pst_free_list(list);
@@ -1329,7 +1329,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                 }
                 // reprocess the same attachment list against new data
                 // this might update attach->id2_val
-                if (pst_process(list, item, attach)) {
+                if (pst_process(id2_ptr->id->i_id, list, item, attach)) {
                     DEBUG_WARN(("ERROR pst_process() failed with an attachment\n"));
                     pst_free_list(list);
                     continue;
@@ -2121,7 +2121,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
  *
  * @return 0 for ok, -1 for error.
  */
-static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *attach) {
+static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item, pst_item_attach *attach) {
     DEBUG_ENT("pst_process");
     if (!item) {
         DEBUG_WARN(("item cannot be NULL.\n"));
@@ -2129,6 +2129,7 @@ static int pst_process(pst_mapi_object *list, pst_item *item, pst_item_attach *a
         return -1;
     }
 
+    item->block_id = block_id;
     while (list) {
         int32_t x;
         char time_buffer[30];

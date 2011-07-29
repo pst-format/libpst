@@ -760,6 +760,8 @@ typedef struct pst_item_appointment {
  *  each major mapi item type. It represents a complete mapi object.
  */
 typedef struct pst_item {
+    /** block id that can be used to generate uid */
+    uint64_t               block_id;
     /** email mapi elements */
     pst_item_email         *email;
     /** folder mapi elements */
