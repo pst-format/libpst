@@ -71,7 +71,7 @@ function dopst()
             #$val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode where we decode all attachments to binary files
-            $val ../src/readpst $jobs     -r -S -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            $val ../src/readpst $jobs      -r -S -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## testing idblock
             #../src/getidblock -p $fn 0 >$ba.fulldump
@@ -127,6 +127,7 @@ $func  23 rendgen5.pst          # appointment test cases
 #$func  25 jerry.pst             # non ascii subject lines
 #$func  26 phill.bertolus.pst    # possible segfault in forked process, cannot reproduce
 #$func  27 justin.phelps.pst     # segfault?
+$func  27 kaiser.pst            # appointments with other character sets
 
 
 [ -n "$val" ] && grep 'lost:' *err | grep -v 'lost: 0 '

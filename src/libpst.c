@@ -290,7 +290,7 @@ static char*            pst_wide_to_single(char *wt, size_t size);
 
 
 
-int pst_open(pst_file *pf, const char *name) {
+int pst_open(pst_file *pf, const char *name, const char *charset) {
     int32_t sig;
 
     pst_unicode_init();
@@ -303,6 +303,7 @@ int pst_open(pst_file *pf, const char *name) {
         return -1;
     }
     memset(pf, 0, sizeof(*pf));
+    pf->charset = charset;
 
     if ((pf->fp = fopen(name, "rb")) == NULL) {
         perror("Error opening PST file");
@@ -1245,6 +1246,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
 
     item = (pst_item*) pst_malloc(sizeof(pst_item));
     memset(item, 0, sizeof(pst_item));
+    item->pf = pf;
 
     if (pst_process(d_ptr->desc->i_id, list, item, NULL)) {
         DEBUG_WARN(("pst_process() returned non-zero value. That is an error\n"));
@@ -4357,10 +4359,11 @@ static const char* codepage(int cp, int buflen, char* result) {
  *  @return default character set as a string useable by iconv()
  */
 const char*    pst_default_charset(pst_item *item, int buflen, char* result) {
-    return (item->body_charset.str) ? item->body_charset.str :
-           (item->message_codepage) ? codepage(item->message_codepage, buflen, result) :
-           (item->internet_cpid)    ? codepage(item->internet_cpid, buflen, result) :
-           "utf-8";
+    return (item->body_charset.str)         ? item->body_charset.str :
+           (item->message_codepage)         ? codepage(item->message_codepage, buflen, result) :
+           (item->internet_cpid)            ? codepage(item->internet_cpid, buflen, result) :
+           (item->pf && item->pf->charset)  ? item->pf->charset :
+           "iso-8859-1";
 }
 
 
@@ -4451,15 +4454,25 @@ void pst_convert_utf8_null(pst_item *item, pst_string *str) {
  *  @param str   pointer to the mapi string of interest
  */
 void pst_convert_utf8(pst_item *item, pst_string *str) {
+    DEBUG_ENT("pst_convert_utf8");
     char buffer[30];
-    if (str->is_utf8) return;
+    if (str->is_utf8) {
+        DEBUG_WARN(("Already utf8\n"));
+        DEBUG_RET();
+        return;
+    }
     if (!str->str) {
         str->str = strdup("");
+        DEBUG_WARN(("null to empty string\n"));
+        DEBUG_RET();
         return;
     }
     const char *charset = pst_default_charset(item, sizeof(buffer), buffer);
-    if (!strcasecmp("utf-8", charset)) return;  // already utf8
-    DEBUG_ENT("pst_convert_utf8");
+    DEBUG_WARN(("default charset is %s\n", charset));
+    if (!strcasecmp("utf-8", charset)) {
+        DEBUG_RET();
+        return;
+    }
     pst_vbuf *newer = pst_vballoc(2);
     size_t rc = pst_vb_8bit2utf8(newer, str->str, strlen(str->str) + 1, charset);
     if (rc == (size_t)-1) {

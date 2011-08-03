@@ -27,7 +27,7 @@ struct ppst_binary : public pst_binary
 
 class pst {
 public:
-                    pst(const string filename);
+                    pst(const string filename, const string charset);
     virtual         ~pst();
     pst_desc_tree*  pst_getTopOfFolders();
     ppst_binary     pst_attach_to_mem(pst_item_attach *attach);
@@ -61,9 +61,8 @@ private:
 };
 
 
-pst::pst(const string filename) {
-    char *f = (char *)filename.c_str(); // ok, since pst_open does not actually modify this buffer, and newer versions will change the signature to const anyway
-    is_open = (::pst_open(&pf, f) == 0);
+pst::pst(const string filename, const string charset) {
+    is_open = (::pst_open(&pf, filename.c_str(), charset.c_str()) == 0);
     root = NULL;
     topf = NULL;
     if (is_open) {
@@ -602,7 +601,7 @@ BOOST_PYTHON_MODULE(_libpst)
         .def_readonly("ind_type",    &pst_file::ind_type)
         ;
 
-    class_<pst>("pst", init<string>())
+    class_<pst>("pst", init<string,string>())
         .def("pst_getTopOfFolders",         &pst::pst_getTopOfFolders, return_value_policy<reference_existing_object>())
         .def("pst_attach_to_mem",           &pst::pst_attach_to_mem)
         .def("pst_attach_to_file",          &pst::pst_attach_to_file)

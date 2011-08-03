@@ -212,7 +212,7 @@ int main(int argc, char* const* argv) {
 	}
 
     // Open PST file
-    if (pst_open(&pstfile, argv[optind])) DIE(("Error opening File\n"));
+    if (pst_open(&pstfile, argv[optind], NULL)) DIE(("Error opening File\n"));
 
     // Load PST index
     if (pst_load_index(&pstfile)) DIE(("Index Error\n"));

@@ -760,6 +760,8 @@ typedef struct pst_item_appointment {
  *  each major mapi item type. It represents a complete mapi object.
  */
 typedef struct pst_item {
+    /** pointer to the pst_file */
+    struct pst_file        *pf;
     /** block id that can be used to generate uid */
     uint64_t               block_id;
     /** email mapi elements */
@@ -878,6 +880,8 @@ typedef struct pst_file {
     char*   cwd;
     /** original file name when the file was opened */
     char*   fname;
+    /** default character set for items without one */
+    char*   charset;
     /** the head and tail of the linked list of index structures */
     pst_index_ll *i_head, *i_tail;
     /** the head and tail of the top level of the descriptor tree */
@@ -916,12 +920,13 @@ typedef struct pst_file {
 
 
 /** Open a pst file.
- * @param pf   pointer to uninitialized pst_file structure. This structure
- *             will be filled in by this function.
- * @param name name of the file, suitable for fopen().
+ * @param pf       pointer to uninitialized pst_file structure. This structure
+ *                 will be filled in by this function.
+ * @param name     name of the file, suitable for fopen().
+ * @param charset  default charset for item with unspecified character sets
  * @return 0 if ok, -1 if error
  */
-int             pst_open(pst_file *pf, const char *name);
+int             pst_open(pst_file *pf, const char *name, const char *charset);
 
 
 /** Reopen the pst file after a fork

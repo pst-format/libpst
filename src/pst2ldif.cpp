@@ -629,7 +629,7 @@ int main(int argc, char* const* argv) {
     #endif
     DEBUG_INIT(d_log, NULL);
     DEBUG_ENT("main");
-    RET_DERROR(pst_open(&pstfile, fname), 1, ("Error opening File\n"));
+    RET_DERROR(pst_open(&pstfile, fname, NULL), 1, ("Error opening File\n"));
     RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
 
     pst_load_extended_attributes(&pstfile);

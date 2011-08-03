@@ -133,6 +133,7 @@ int         save_rtf_body = 1;
 int         file_name_len = 10;     // enough room for MODE_SPEARATE file name
 pst_file    pstfile;
 regex_t     meta_charset_pattern;
+char*       default_charset = NULL;
 
 int         number_processors = 1;  // number of cpus we have
 int         max_children  = 0;      // based on number of cpus and command line args
@@ -443,10 +444,19 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "bc:Dd:ehj:kMo:qrSt:uVw"))!= -1) {
+    while ((c = getopt(argc, argv, "bC:c:Dd:ehj:kMo:qrSt:uVw"))!= -1) {
         switch (c) {
         case 'b':
             save_rtf_body = 0;
+            break;
+        case 'C':
+            if (optarg) {
+                default_charset = optarg;
+            }
+            else {
+                usage();
+                exit(0);
+            }
             break;
         case 'c':
             if (optarg && optarg[0]=='v') {
@@ -597,7 +607,7 @@ int main(int argc, char* const* argv) {
 
     if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");
 
-    RET_DERROR(pst_open(&pstfile, fname), 1, ("Error opening File\n"));
+    RET_DERROR(pst_open(&pstfile, fname, default_charset), 1, ("Error opening File\n"));
     RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
 
     pst_load_extended_attributes(&pstfile);
@@ -699,6 +709,7 @@ void usage() {
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
     printf("\t-V\t- Version. Display program version\n");
+    printf("\t-C charset\t- character set for items with unspecified character set\n");
     printf("\t-D\t- Include deleted items in output\n");
     printf("\t-M\t- Write emails in the MH (rfc822) format\n");
     printf("\t-S\t- Separate. Write emails in the separate format\n");
