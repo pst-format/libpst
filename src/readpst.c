@@ -44,7 +44,7 @@ void      close_separate_file(struct file_ll *f);
 char*     my_stristr(char *haystack, char *needle);
 void      check_filename(char *fname);
 void      write_separate_attachment(char f_name[], pst_item_attach* attach, int attach_num, pst_file* pst);
-void      write_embedded_message(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pf, char** extra_mime_headers);
+void      write_embedded_message(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pf, int save_rtf, char** extra_mime_headers);
 void      write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst);
 int       valid_headers(char *header);
 void      header_has_field(char *header, char *field, int *flag);
@@ -606,7 +606,6 @@ int main(int argc, char* const* argv) {
     DEBUG_ENT("main");
 
     if (output_mode != OUTPUT_QUIET) printf("Opening PST file and indexes...\n");
-
     RET_DERROR(pst_open(&pstfile, fname, default_charset), 1, ("Error opening File\n"));
     RET_DERROR(pst_load_index(&pstfile), 2, ("Index Error\n"));
 
@@ -1050,7 +1049,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
 }
 
 
-void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pf, char** extra_mime_headers)
+void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pf, int save_rtf, char** extra_mime_headers)
 {
     pst_index_ll *ptr;
     DEBUG_ENT("write_embedded_message");
@@ -1083,7 +1082,7 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
         } else {
             fprintf(f_output, "\n--%s\n", boundary);
             fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype.str);
-            write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, 0, extra_mime_headers);
+            write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, save_rtf, extra_mime_headers);
         }
         pst_freeItem(item);
     }
@@ -1734,7 +1733,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
                 attach->mimetype.str = strdup(RFC822);
                 attach->mimetype.is_utf8 = 1;
                 find_rfc822_headers(extra_mime_headers);
-                write_embedded_message(f_output, attach, boundary, pst, extra_mime_headers);
+                write_embedded_message(f_output, attach, boundary, pst, save_rtf, extra_mime_headers);
             }
             else if (attach->data.data || attach->i_id) {
                 if (mode == MODE_SEPARATE && !mode_MH)

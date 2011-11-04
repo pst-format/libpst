@@ -147,6 +147,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Nov 04 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.54-1
+- embedded rfc822 messages might contain rtf encoded bodies
+
 * Sun Jul 10 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.53-1
 - add Status: header in output
 - allow fork for parallel processing of individual email folders
