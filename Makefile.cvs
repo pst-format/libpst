@@ -6,7 +6,7 @@ all:
 	libtoolize --force --copy
 	aclocal -I m4
 	autoheader
-	automake
+	automake --add-missing
 	autoconf
 	./configure >/dev/null
 	rm -rf html.internal
