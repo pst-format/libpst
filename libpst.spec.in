@@ -1,7 +1,7 @@
 Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
-Release:            1%{?dist}
+Release:            3%{?dist}
 License:            GPLv2+
 Group:              Applications/Productivity
 Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
@@ -147,8 +147,20 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Dec 24 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.54-3
+- bump versions and prep for fedora build
+
+* Wed Nov 30 2011 Petr Pisar <ppisar@redhat.com> - 0.6.53-3
+- Rebuild against boost-1.48
+
+* Wed Nov 14 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.54-2
+- failed to bump version number
+
 * Fri Nov 04 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.54-1
 - embedded rfc822 messages might contain rtf encoded bodies
+
+* Fri Sep 02 2011 Petr Pisar <ppisar@redhat.com> - 0.6.53-2
+- Rebuild against boost-1.47
 
 * Sun Jul 10 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.53-1
 - add Status: header in output
