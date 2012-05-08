@@ -53,6 +53,7 @@
             <title>Synopsis</title>
             <cmdsynopsis>
                 <command>readpst</command>
+                <arg><option>-C <replaceable class="parameter">default-charset</replaceable></option></arg>
                 <arg><option>-D</option></arg>
                 <arg><option>-M</option></arg>
                 <arg><option>-S</option></arg>
@@ -85,6 +86,12 @@
         <refsect1 id='readpst.options.1'>
             <title>Options</title>
             <variablelist>
+                <varlistentry>
+                    <term>-C <replaceable class="parameter">default-charset</replaceable></term>
+                    <listitem><para>
+                        Set the character set to be used for items with an unspecified character set.
+                    </para></listitem>
+                </varlistentry>
                 <varlistentry>
                     <term>-D</term>
                     <listitem><para>

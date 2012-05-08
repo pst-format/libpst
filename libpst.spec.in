@@ -1,7 +1,7 @@
 Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
-Release:            3%{?dist}
+Release:            1%{?dist}
 License:            GPLv2+
 Group:              Applications/Productivity
 Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
@@ -147,6 +147,17 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue May 08 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.55-1
+- preserve bcc headers
+- document -C switch to set default character set
+- space after colon is not required in header fields
+
+* Tue Feb 28 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.54-5
+- Rebuilt for c++ ABI breakage
+
+* Fri Jan 13 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.54-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
+
 * Sat Dec 24 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.54-3
 - bump versions and prep for fedora build
 

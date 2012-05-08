@@ -708,7 +708,7 @@ void usage() {
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
     printf("\t-V\t- Version. Display program version\n");
-    printf("\t-C charset\t- character set for items with unspecified character set\n");
+    printf("\t-C charset\t- character set for items with an unspecified character set\n");
     printf("\t-D\t- Include deleted items in output\n");
     printf("\t-M\t- Write emails in the MH (rfc822) format\n");
     printf("\t-S\t- Separate. Write emails in the separate format\n");
@@ -1305,7 +1305,7 @@ void find_rfc822_headers(char** extra_mime_headers)
         char *temp, *t;
         while ((temp = strstr(headers, "\n\n"))) {
             temp[1] = '\0';
-            t = header_get_field(headers, "\nContent-Type: ");
+            t = header_get_field(headers, "\nContent-Type:");
             if (t) {
                 t++;
                 DEBUG_INFO(("found content type header\n"));
@@ -1493,21 +1493,21 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         }
 
         // Check if the headers have all the necessary fields
-        header_has_field(headers, "\nFrom: ",        &has_from);
-        header_has_field(headers, "\nTo: ",          &has_to);
-        header_has_field(headers, "\nSubject: ",     &has_subject);
-        header_has_field(headers, "\nDate: ",        &has_date);
-        header_has_field(headers, "\nCC: ",          &has_cc);
-        header_has_field(headers, "\nMessage-Id: ",  &has_msgid);
+        header_has_field(headers, "\nFrom:",        &has_from);
+        header_has_field(headers, "\nTo:",          &has_to);
+        header_has_field(headers, "\nSubject:",     &has_subject);
+        header_has_field(headers, "\nDate:",        &has_date);
+        header_has_field(headers, "\nCC:",          &has_cc);
+        header_has_field(headers, "\nMessage-Id:",  &has_msgid);
 
         // look for charset and report-type in Content-Type header
-        t = header_get_field(headers, "\nContent-Type: ");
+        t = header_get_field(headers, "\nContent-Type:");
         header_get_subfield(t, "charset", body_charset, sizeof(body_charset));
         header_get_subfield(t, "report-type", body_report, sizeof(body_report));
 
         // derive a proper sender email address
         if (!sender_known) {
-            t = header_get_field(headers, "\nFrom: ");
+            t = header_get_field(headers, "\nFrom:");
             if (t) {
                 // assume address is on the first line, rather than on a continuation line
                 t++;
@@ -1525,13 +1525,12 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
 
         // Strip out the mime headers and some others that we don't want to emit
         header_strip_field(headers, "\nMicrosoft Mail Internet Headers");
-        header_strip_field(headers, "\nMIME-Version: ");
-        header_strip_field(headers, "\nContent-Type: ");
-        header_strip_field(headers, "\nContent-Transfer-Encoding: ");
-        header_strip_field(headers, "\nContent-class: ");
-        header_strip_field(headers, "\nX-MimeOLE: ");
-        header_strip_field(headers, "\nBcc:");
-        header_strip_field(headers, "\nX-From_: ");
+        header_strip_field(headers, "\nMIME-Version:");
+        header_strip_field(headers, "\nContent-Type:");
+        header_strip_field(headers, "\nContent-Transfer-Encoding:");
+        header_strip_field(headers, "\nContent-class:");
+        header_strip_field(headers, "\nX-MimeOLE:");
+        header_strip_field(headers, "\nX-From_:");
     }
 
     DEBUG_INFO(("About to print Header\n"));

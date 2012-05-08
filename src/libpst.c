@@ -2112,6 +2112,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 /**
  * process the list of MAPI objects produced from parse_block()
  *
+ * @param block_id  block number used by parse_block() to produce these MAPI objects
  * @param list  pointer to the list of MAPI objects from parse_block()
  * @param item  pointer to the high level item to be updated from the list.
  *              this item may be an email, contact or other sort of item.

@@ -1,3 +1,9 @@
+LibPST 0.6.55 (2012-05-08)
+===============================
+    * preserve bcc headers
+    * document -C switch to set default character set
+    * space after colon is not required in header fields
+
 LibPST 0.6.54 (2011-11-04)
 ===============================
     * embedded rfc822 messages might contain rtf encoded bodies
