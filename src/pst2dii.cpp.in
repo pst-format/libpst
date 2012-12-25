@@ -180,7 +180,7 @@ static string write_separate_attachment(string fname, pst_item_attach* current_a
     DEBUG_INFO(("dirname=%s, pathname=%s, filename=%s\n", output_directory, f_name, attach_filename));
     int len = strlen(output_directory) + 1 + strlen(f_name) + 15;
     if (!attach_filename) {
-        // generate our own (dummy) filename for the attachement
+        // generate our own (dummy) filename for the attachment
         temp = (char*)pst_malloc(len);
         sprintf(temp, "%s/%s_attach%i", output_directory, f_name, attach_num);
     } else {
