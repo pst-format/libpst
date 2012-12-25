@@ -54,6 +54,14 @@ LibPST 0.6.46 (2010-02-13)
     * prefer libpthread over librt for finding sem_init function.
     * rebuild for fedora 13 change in implicit dso linking semantics.
 
+LibPST 0.6.48 (2010-05-24)
+===============================
+    * fix to/cc/bcc recipients in .msg file output format
+
+LibPST 0.6.46 (2009-12-11)
+===============================
+    * add readpst -m switch to produce Outlook .msg files
+
 LibPST 0.6.45 (2009-11-18)
 ===============================
     * patch from Hugo DesRosiers to export categories and notes into vcards.

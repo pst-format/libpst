@@ -319,6 +319,16 @@ typedef struct pst_item_email {
     pst_string  supplementary_info;
     /** mapi element 0x0c20 PR_NDR_STATUS_CODE */
     int32_t     ndr_status_code;
+
+    // elements added for .msg processing
+    /** mapi element 0x0040 PR_RECEIVED_BY_NAME */
+    pst_string  outlook_received_name1;
+    /** mapi element 0x0c1a PR_SENDER_NAME */
+    pst_string  outlook_sender_name2;
+    /** mapi element 0x0e1d PR_NORMALIZED_SUBJECT */
+    pst_string  outlook_normalized_subject;
+    /** mapi element 0x300b PR_SEARCH_KEY */
+    pst_string  outlook_search_key;
 } pst_item_email;
 
 

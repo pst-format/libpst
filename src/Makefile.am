@@ -45,7 +45,7 @@ if BUILD_DII
     bin_PROGRAMS   += pst2dii
 endif
 lspst_SOURCES       = lspst.c          $(common_header)
-readpst_SOURCES     = readpst.c        $(common_header)
+readpst_SOURCES     = readpst.c        $(common_header) msg.cpp msg.h
 pst2ldif_SOURCES    = pst2ldif.cpp     $(common_header)
 pst2dii_SOURCES     = pst2dii.cpp      $(common_header)
 deltasearch_SOURCES = deltasearch.cpp  $(common_header)
@@ -53,6 +53,7 @@ dumpblocks_SOURCES  = dumpblocks.c     $(common_header)
 getidblock_SOURCES  = getidblock.c     $(common_header)
 nick2ldif_SOURCES   = nick2ldif.cpp    $(common_header)
 
+readpst_CPPFLAGS    = $(AM_CPPFLAGS) $(GSF_FLAGS)
 
 lspst_DEPENDENCIES        = libpst.la
 readpst_DEPENDENCIES      = libpst.la
@@ -91,7 +92,7 @@ INCLUDES= -I$(srcdir)/.. $(all_includes)
 
 # the library search path.
 lspst_LDADD       = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
-readpst_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) $(REGEXLIB)
+readpst_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) $(REGEXLIB) $(GSF_LIBS)
 pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
 pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) -lgd
 deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(LTLIBICONV)

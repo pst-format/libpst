@@ -2300,7 +2300,7 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                     DEBUG_INFO(("Recipient Structure 1 -- NOT PROCESSED\n"));
                     break;
                 case 0x0040: // PR_RECEIVED_BY_NAME Name of Recipient Structure
-                    DEBUG_INFO(("Received By Name 1 -- NOT PROCESSED\n"));
+                    LIST_COPY_EMAIL_STR("Received By Name 1", item->email->outlook_received_name1);
                     break;
                 case 0x0041: // PR_SENT_REPRESENTING_ENTRYID Structure containing Sender
                     DEBUG_INFO(("Sent on behalf of Structure 1 -- NOT PROCESSED\n"));
@@ -2393,7 +2393,7 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                     DEBUG_INFO(("Sender Structure 2 -- NOT PROCESSED\n"));
                     break;
                 case 0x0C1A: // PR_SENDER_NAME Name of Sender Structure 2
-                    DEBUG_INFO(("Name of Sender Structure 2 -- NOT PROCESSED\n"));
+                    LIST_COPY_EMAIL_STR("Name of Sender Structure 2", item->email->outlook_sender_name2);
                     break;
                 case 0x0C1B: // PR_SUPPLEMENTARY_INFO
                     LIST_COPY_EMAIL_STR("Supplementary info", item->email->supplementary_info);
@@ -2434,6 +2434,9 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                 case 0x0E0A: // PR_SENTMAIL_ENTRYID
                     // folder that this message is sent to after submission
                     LIST_COPY_EMAIL_ENTRYID("Sentmail EntryID", item->email->sentmail_folder);
+                    break;
+                case 0x0E1D: // PR_NORMALIZED_SUBJECT
+                    LIST_COPY_EMAIL_STR("Normalized subject", item->email->outlook_normalized_subject);
                     break;
                 case 0x0E1F: // PR_RTF_IN_SYNC
                     // True means that the rtf version is same as text body
@@ -2514,7 +2517,7 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                     LIST_COPY_TIME("Date 5 (Modify Date)", item->modify_date);
                     break;
                 case 0x300B: // PR_SEARCH_KEY Record Header 2
-                    DEBUG_INFO(("Record Search 2 -- NOT PROCESSED\n"));
+                    LIST_COPY_EMAIL_STR("Record Search 2", item->email->outlook_search_key);
                     break;
                 case 0x35DF: // PR_VALID_FOLDER_MASK
                     LIST_COPY_STORE_INT32("Valid Folder Mask", item->message_store->valid_mask);
