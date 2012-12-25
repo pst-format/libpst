@@ -65,6 +65,7 @@
                 <arg><option>-h</option></arg>
                 <arg><option>-j <replaceable class="parameter">jobs</replaceable></option></arg>
                 <arg><option>-k</option></arg>
+                <arg><option>-m</option></arg>
                 <arg><option>-o <replaceable class="parameter">output-directory</replaceable></option></arg>
                 <arg><option>-q</option></arg>
                 <arg><option>-r</option></arg>

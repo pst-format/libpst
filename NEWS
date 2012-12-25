@@ -1,3 +1,4 @@
+0.6.56  2012-12-24 merge -m .msg files code into main branch
 0.6.55  2012-05-08 preserve bcc headers, space after colon is not required in header fields
 0.6.54  2011-11-04 embedded rfc822 messages might contain rtf encoded bodies
 0.6.53  2011-07-10 allow fork for parallel processing of individual email folders in separate mode
@@ -8,8 +9,6 @@
 0.6.48  2010-09-02 fix for broken internet headers from Outlook, change to mboxrd quoting
 0.6.47  2010-05-07 patches from Kenneth Berland for solaris
 0.6.46  2010-02-13 fixes for fedora 13 change in implicit dso linking semantics
-0.6.48  2010-05-24 fix to/cc/bcc recipients in .msg file output format
-0.6.46  2009-12-11 add readpst -m switch to produce Outlook .msg files
 0.6.45  2009-11-18 patch from Hugo DesRosiers to export categories and notes into vcards
 0.6.44  2009-09-20 patch from Lee Ayres to add file name extensions in separate mode
 0.6.43  2009-09-12 patches from Justin Greer, Chris White, Roberto Polli; better rfc822 embedded message decoding
