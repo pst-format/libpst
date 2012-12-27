@@ -65,14 +65,14 @@ function dopst()
             #$val ../src/readpst $jobs -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## normal recursive dump
-            char='us-ascii'
-            char='BIG-5'
-            echo $val ../src/readpst -C $char -j 0 -r -cv -o output$n -d $ba.log $fn
-                 $val ../src/readpst -C $char -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #char='us-ascii'
+            #char='BIG-5'
+            #echo $val ../src/readpst -C $char -j 0 -r -cv -o output$n -d $ba.log $fn
+            #     $val ../src/readpst -C $char -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
-            ## separate mode with filename extensions
-            #echo $val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn
-            #     $val ../src/readpst $jobs     -r -e -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            ## separate mode with filename extensions and .msg files
+            echo $val ../src/readpst $jobs     -r -m -D -cv -o output$n -d $ba.log $fn
+                 $val ../src/readpst $jobs     -r -m -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode where we decode all attachments to binary files
             #echo $val ../src/readpst $jobs      -r -S -D -cv -o output$n -d $ba.log $fn

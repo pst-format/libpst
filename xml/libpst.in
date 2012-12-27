@@ -234,7 +234,7 @@
         <refsect1 id='readpst.quoting.1'>
             <title>From Quoting</title>
             <para>
-                Output formats that place each mail message in a separate file (-M, -S, -e)
+                Output formats that place each mail message in a separate file (-M, -S, -e, -m)
                 don't do any from quoting.
                 Output formats that place multiple email messages in a single file (-k, -r, -u)
                 now use mboxrd from quoting rules.
