@@ -1,3 +1,4 @@
+0.6.57  2012-12-27 remove useless dependencies
 0.6.56  2012-12-24 merge -m .msg files code into main branch
 0.6.55  2012-05-08 preserve bcc headers, space after colon is not required in header fields
 0.6.54  2011-11-04 embedded rfc822 messages might contain rtf encoded bodies

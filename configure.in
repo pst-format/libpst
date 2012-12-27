@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(libpst,0.6.56,carl@five-ten-sg.com)
+AC_INIT(libpst,0.6.57,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([src/libpst.c])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -41,6 +41,7 @@ AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
 # 0.6.54    libpst.so.4     libpst.so.4.1.4
 # 0.6.55    libpst.so.4     libpst.so.4.1.5
 # 0.6.56    libpst.so.4     libpst.so.4.1.6
+# 0.6.57    libpst.so.4     libpst.so.4.1.6
 
 
 

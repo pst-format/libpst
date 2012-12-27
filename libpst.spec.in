@@ -1,7 +1,7 @@
 Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
-Release:            2%{?dist}
+Release:            1%{?dist}
 License:            GPLv2+
 Group:              Applications/Productivity
 Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
@@ -152,7 +152,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Wed Dec 26 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.56-2
+* Wed Dec 26 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.57-1
 - bugzilla 852414, remove unnecessary dependencies
 
 * Mon Dec 24 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.56-1
