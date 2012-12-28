@@ -59,7 +59,7 @@ void      find_rfc822_headers(char** extra_mime_headers);
 void      write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset, char *boundary, pst_file* pst);
 void      write_schedule_part_data(FILE* f_output, pst_item* item, const char* sender, const char* method);
 void      write_schedule_part(FILE* f_output, pst_item* item, const char* sender, const char* boundary);
-void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers);
+void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, int embedding, char** extra_mime_headers);
 void      write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char comment[]);
 int       write_extra_categories(FILE* f_output, pst_item* item);
 void      write_journal(FILE* f_output, pst_item* item);
@@ -345,7 +345,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                             // we are the child process, or the original parent if no children were available
                             pid_t me = getpid();
                             mk_separate_file(&ff, (mode_EX) ? ".eml" : "", 1);
-                            write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+                            write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, 0, &extra_mime_headers);
                             close_separate_file(&ff);
                             if (mode_MSG) {
                                 mk_separate_file(&ff, ".msg", 0);
@@ -367,7 +367,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     }
                     else {
                         // process this single email message, cannot fork since not separate mode
-                        write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, &extra_mime_headers);
+                        write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, 0, &extra_mime_headers);
                     }
                 }
             }
@@ -1101,7 +1101,7 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
         } else {
             fprintf(f_output, "\n--%s\n", boundary);
             fprintf(f_output, "Content-Type: %s\n\n", attach->mimetype.str);
-            write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, save_rtf, extra_mime_headers);
+            write_normal_email(f_output, "", item, MODE_NORMAL, 0, pf, save_rtf, 1, extra_mime_headers);
         }
         pst_freeItem(item);
     }
@@ -1439,7 +1439,7 @@ void write_schedule_part(FILE* f_output, pst_item* item, const char* sender, con
 }
 
 
-void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, char** extra_mime_headers)
+void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, int embedding, char** extra_mime_headers)
 {
     char boundary[60];
     char altboundary[66];
@@ -1564,7 +1564,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         // procmail produces this separator without the quotes around the
         // sender email address, but apparently some Mac email client needs
         // those quotes, and they don't seem to cause problems for anyone else.
-        fprintf(f_output, "From \"%s\" %s\n", sender, c_time);
+        char *quo = (embedding) ? ">" : "";
+        fprintf(f_output, "%sFrom \"%s\" %s\n", quo, sender, c_time);
     }
 
     // print the supplied email headers

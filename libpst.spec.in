@@ -152,6 +152,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Dec 28 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.58-1
+- fix From quoting on embedded rfc/822 messages
+
 * Wed Dec 26 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.57-1
 - bugzilla 852414, remove unnecessary dependencies
 
