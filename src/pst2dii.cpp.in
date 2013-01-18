@@ -42,7 +42,7 @@ const char*    output_file = "load.dii";
 char*    font_file = NULL;
 int      bates_color = 0xff0000;    // color of bates header stamp
 int      email_sequence = 0;        // current pdf sequence number
-char     pdf_name[PATH_MAX];        // current pdf file name
+char*    pdf_name = NULL;           // current pdf file name
 FILE*    dii_file = NULL;           // the output dii load file
 pst_file pstfile;                   // the input pst file
 
@@ -344,8 +344,9 @@ static void close_png()
 {
     if (png_open) {
         png_open = false;
-        char fn[PATH_MAX];
-        snprintf(fn, sizeof(fn), "page%d.png", ++page_sequence);
+        int len = 4 + 11 + 4 +1;
+        char *fn = (char*)pst_malloc(len);
+        snprintf(fn, len, "page%d.png", ++page_sequence);
         FILE *pngout = fopen(fn, "wb");
         if (pngout) {
             gdImagePng(image, pngout);
@@ -354,6 +355,7 @@ static void close_png()
         gdImageDestroy(image); // free memory
         png_names.push_back(fn);
         conversion += string(" ") + fn;
+        free(fn);
     }
 }
 
@@ -366,9 +368,12 @@ static void open_pdf(char *line)
     conversion    = string(convert);
     png_names.clear();
     open_png();
-    snprintf(pdf_name, sizeof(pdf_name), "dii%06d", ++email_sequence);
+    /* Note; allocating the largest string length to pdf_name */
+    int len = strlen(output_directory) + 4 + 6 + 4 + 1;
+    pdf_name = (char*)pst_malloc(len);
+    snprintf(pdf_name, 3 + 6 + 1, "dii%06d", ++email_sequence);
     fprintf(dii_file, "\n@T %s\n", pdf_name);
-    snprintf(pdf_name, sizeof(pdf_name), "%s/dii%06d.pdf", output_directory, email_sequence);
+    snprintf(pdf_name, len, "%s/dii%06d.pdf", output_directory, email_sequence);
 }
 
 
@@ -382,6 +387,7 @@ static void close_pdf()
         remove((*i).c_str());
     }
     fprintf(dii_file, "@D %s\n", pdf_name);
+    free(pdf_name);
 }
 
 

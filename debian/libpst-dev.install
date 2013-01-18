@@ -1,3 +1,0 @@
-debian/tmp/usr/include/libpst*
-debian/tmp/usr/lib/libpst*.so
-debian/tmp/usr/lib/pkgconfig/*

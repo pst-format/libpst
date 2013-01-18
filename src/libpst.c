@@ -289,6 +289,17 @@ static int              pst_strincmp(char *a, char *b, size_t x);
 static char*            pst_wide_to_single(char *wt, size_t size);
 
 
+static char *pst_getcwd(void) {
+    char *cwd;
+#ifdef HAVE_GET_CURRENT_DIR_NAME
+    cwd = get_current_dir_name();
+#else
+    cwd = pst_malloc(PATH_MAX+1);
+    getcwd(cwd, PATH_MAX+1);
+#endif
+    return cwd;
+}
+
 
 int pst_open(pst_file *pf, const char *name, const char *charset) {
     int32_t sig;
@@ -361,20 +372,24 @@ int pst_open(pst_file *pf, const char *name, const char *charset) {
 
     DEBUG_RET();
 
-    pf->cwd = pst_malloc(PATH_MAX+1);
-    getcwd(pf->cwd, PATH_MAX+1);
+    pf->cwd   = pst_getcwd();
     pf->fname = strdup(name);
     return 0;
 }
 
 
 int  pst_reopen(pst_file *pf) {
-    char cwd[PATH_MAX];
-    if (!getcwd(cwd, PATH_MAX))            return -1;
-    if (chdir(pf->cwd))                    return -1;
-    if (!freopen(pf->fname, "rb", pf->fp)) return -1;
-    if (chdir(cwd))                        return -1;
+    char *cwd;
+    cwd = pst_getcwd();
+    if (cwd == NULL)                       return -1;
+    if (chdir(pf->cwd))                    goto err;
+    if (!freopen(pf->fname, "rb", pf->fp)) goto err;
+    if (chdir(cwd))                        goto err;
+    free(cwd);
     return 0;
+err:
+    free(cwd);
+    return -1;
 }
 
 

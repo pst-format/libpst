@@ -129,10 +129,10 @@ regression=""
 #$func  22 rendgen4.pst          # appointment test cases
 #$func  23 rendgen5.pst          # appointment test cases
 $func  24 paul.sheer.pst        # embedded rfc822 attachment
-#$func  25 jerry.pst             # non ascii subject lines
+$func  25 jerry.pst             # non ascii subject lines
 #$func  26 phill.bertolus.pst    # possible segfault in forked process, cannot reproduce
-#$func  27 kaiser.pst            # appointments with other character sets
-#$func  28 pstsample.pst         # character set issue
+$func  27 kaiser.pst            # appointments with other character sets
+$func  28 pstsample.pst         # character set issue
 #$func  29 pstsample2.pst        # embedded image in rtf data
 $func  30 pstsample3.pst        # exports of rtf and html
 

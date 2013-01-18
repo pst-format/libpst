@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = src python man html debian
+SUBDIRS = src python man html
 htmldir = ${datadir}/doc/@PACKAGE@-@VERSION@
 html_DATA = AUTHORS COPYING ChangeLog NEWS README
 CLEANFILES = xml/libpst xml/Makefile

@@ -189,7 +189,7 @@ if test "$cross_compiling" != "yes"; then
 fi
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([chdir getcwd memchr memmove memset regcomp strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol])
+AC_CHECK_FUNCS([chdir getcwd memchr memmove memset regcomp strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol get_current_dir_name])
 AM_ICONV
 if test "$am_cv_func_iconv" != "yes"; then
     AC_MSG_ERROR([libpst requires iconv which is missing])
@@ -365,7 +365,6 @@ AC_SUBST(GSF_LIBS, [$gsf_libs])
 
 AC_OUTPUT(                  \
     Makefile                \
-    debian/Makefile         \
     html/Makefile           \
     libpst.pc               \
     libpst.spec             \
