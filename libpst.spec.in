@@ -9,6 +9,7 @@ BuildRoot:          %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXX
 URL:                http://www.five-ten-sg.com/%{name}/
 Requires:           ImageMagick libgsf
 Requires:           %{name}-libs = %{version}-%{release}
+BuildRequires:      libtool
 BuildRequires:      ImageMagick gd-devel zlib-devel python-devel boost-devel libgsf-devel
 
 %{!?python_sitelib:  %global python_sitelib  %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
@@ -87,6 +88,7 @@ libpst utilities.
 
 
 %build
+autoreconf -v -f -i
 %configure --enable-libpst-shared
 make %{?_smp_mflags}
 
@@ -152,7 +154,19 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Wed Dec 28 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.58-1
+* Fri May 17 2013 Carl Byington <carl@five-ten-sg.com> 0.6.59-1
+- add autoconf checking for libgsf
+
+* Fri Mar 29 2013 Carl Byington <carl@five-ten-sg.com> 0.6.58-4
+- add autoreconf for aarch64
+
+* Sun Feb 10 2013 Denis Arnaud <denis.arnaud_fedora@m4x.org> - 0.6.58-3
+- Rebuild for Boost-1.53.0
+
+* Sat Feb 09 2013 Denis Arnaud <denis.arnaud_fedora@m4x.org> - 0.6.58-2
+- Rebuild for Boost-1.53.0
+
+* Fri Dec 28 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.58-1
 - fix From quoting on embedded rfc/822 messages
 
 * Wed Dec 26 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.57-1
@@ -162,7 +176,7 @@ rm -rf $RPM_BUILD_ROOT
 - filter private provides from rpm
 - merge -m .msg files code into main branch
 
-* Tue Aug 09 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.55-2
+* Thu Aug 09 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.55-2
 - rebuild for python
 
 * Thu Jul 19 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.54-6
@@ -185,7 +199,7 @@ rm -rf $RPM_BUILD_ROOT
 * Wed Nov 30 2011 Petr Pisar <ppisar@redhat.com> - 0.6.53-3
 - Rebuild against boost-1.48
 
-* Wed Nov 14 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.54-2
+* Mon Nov 14 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.54-2
 - failed to bump version number
 
 * Fri Nov 04 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.54-1
@@ -264,7 +278,7 @@ rm -rf $RPM_BUILD_ROOT
 - patch from Lee Ayres to add file name extensions in separate mode.
 - allow mixed items types in a folder in separate mode.
 
-* Thu Sep 12 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.43-1
+* Sat Sep 12 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.43-1
 - decode more of the pst format, some minor bug fixes
 - add support for code pages 1200 and 1201.
 - add readpst -t option to select output item types, which can
