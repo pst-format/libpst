@@ -1,9 +1,11 @@
-AC_PREREQ(2.59)
-AC_INIT(libpst,0.6.59,carl@five-ten-sg.com)
+AC_PREREQ(2.60)
+AC_INIT(libpst,0.6.60,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([src/libpst.c])
 AC_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
 AC_CANONICAL_HOST
+AC_USE_SYSTEM_EXTENSIONS
 
 #
 #  1. Remember that version-info is current:revision:age, and age <= current.
@@ -19,7 +21,7 @@ AC_CANONICAL_HOST
 #  6. libtool will build libpst.so.x.y.z where the SONAME is libpst.so.x
 #     and x=current-age, y=age, z=revision
 
-libpst_version_info='5:8:1'
+libpst_version_info='5:9:1'
 AC_SUBST(LIBPST_VERSION_INFO, [$libpst_version_info])
 libpst_so_major='4'
 AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
@@ -44,6 +46,7 @@ AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
 # 0.6.57    libpst.so.4     libpst.so.4.1.6
 # 0.6.58    libpst.so.4     libpst.so.4.1.7
 # 0.6.59    libpst.so.4     libpst.so.4.1.8
+# 0.6.60    libpst.so.4     libpst.so.4.1.9
 
 
 
@@ -147,7 +150,6 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 
 
 # make sure we get large file support

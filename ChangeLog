@@ -1,3 +1,8 @@
+LibPST 0.6.60 (2013-06-12)
+===============================
+    * patch from Dominique Leuenberger to add AC_USE_SYSTEM_EXTENSIONS
+    * add readpst -a option for attachment stripping
+
 LibPST 0.6.59 (2013-05-17)
 ===============================
     * add autoconf checking for libgsf

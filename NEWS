@@ -1,3 +1,4 @@
+0.6.60  2013-06-12 add AC_USE_SYSTEM_EXTENSIONS, add readpst -a option for attachment stripping
 0.6.59  2013-05-17 add autoconf checking for libgsf
 0.6.58  2012-12-28 fix From quoting on embedded rfc/822 messages
 0.6.57  2012-12-27 remove useless dependencies

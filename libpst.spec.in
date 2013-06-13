@@ -154,6 +154,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* xxx xxx xx 2013 Carl Byington <carl@five-ten-sg.com> 0.6.60-1
+- patch from Dominique Leuenberger to add AC_USE_SYSTEM_EXTENSIONS
+
+* Tue Jun 11 2013 Remi Collet <rcollet@redhat.com> - 0.6.59-2
+- rebuild for new GD 2.1.0
+
 * Fri May 17 2013 Carl Byington <carl@five-ten-sg.com> 0.6.59-1
 - add autoconf checking for libgsf
 

@@ -44,6 +44,7 @@ void      mk_separate_file(struct file_ll *f, char *extension, int openit);
 void      close_separate_file(struct file_ll *f);
 char*     my_stristr(char *haystack, char *needle);
 void      check_filename(char *fname);
+int       acceptable_ext(pst_item_attach* attach);
 void      write_separate_attachment(char f_name[], pst_item_attach* attach, int attach_num, pst_file* pst);
 void      write_embedded_message(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pf, int save_rtf, char** extra_mime_headers);
 void      write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst);
@@ -136,6 +137,7 @@ int         file_name_len = 10;     // enough room for MODE_SPEARATE file name
 pst_file    pstfile;
 regex_t     meta_charset_pattern;
 char*       default_charset = NULL;
+char*       acceptable_extensions = NULL;
 
 int         number_processors = 1;  // number of cpus we have
 int         max_children  = 0;      // based on number of cpus and command line args
@@ -450,8 +452,21 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "bC:c:Dd:emhj:kMo:qrSt:uVw"))!= -1) {
+    while ((c = getopt(argc, argv, "a:bC:c:Dd:emhj:kMo:qrSt:uVw"))!= -1) {
         switch (c) {
+        case 'a':
+            if (optarg) {
+                int n = strlen(optarg);
+                acceptable_extensions = (char*)pst_malloc(n+2);
+                strcpy(acceptable_extensions, optarg);
+                acceptable_extensions[n+1] = '\0';  // double null terminates array of non-empty null terminated strings.
+                char *p = acceptable_extensions;
+                while (*p) {
+                    if (*p == ',') *p = '\0';
+                    p++;
+                }
+            }
+            break;
         case 'b':
             save_rtf_body = 0;
             break;
@@ -728,6 +743,7 @@ void usage() {
     printf("\t-D\t- Include deleted items in output\n");
     printf("\t-M\t- Write emails in the MH (rfc822) format\n");
     printf("\t-S\t- Separate. Write emails in the separate format\n");
+    printf("\t-a <attachment-extension-list>\t- Discard any attachment without an extension on the list\n");
     printf("\t-b\t- Don't save RTF-Body attachments\n");
     printf("\t-c[v|l]\t- Set the Contact output mode. -cv = VCard, -cl = EMail list\n");
     printf("\t-d <filename> \t- Debug to file.\n");
@@ -1011,6 +1027,37 @@ void check_filename(char *fname) {
         *t = '_'; //replace them with an underscore
     }
     DEBUG_RET();
+}
+
+
+/**
+ * check if the file name extension is acceptable. If not, the attachment
+ * will be discarded
+ * @param attach  pst attachment object
+ * @return        true if the attachment filename contains an extension that we want.
+ */
+int  acceptable_ext(pst_item_attach* attach)
+{
+    if (!acceptable_extensions || *acceptable_extensions == '\0') return 1;     // acceptable list missing or empty
+    char *attach_filename = (attach->filename2.str) ? attach->filename2.str
+                                                    : attach->filename1.str;
+    if (!attach_filename) return 1; // attachment with no name is always acceptable
+    char *e = strrchr(attach_filename, '.');
+    if (!e) return 1;               // attachment with no extension is always acceptable.
+    DEBUG_ENT("acceptable_ext");
+    DEBUG_INFO(("attachment extension %s\n", e));
+    int rc = 0;
+    char *a = acceptable_extensions;
+    while (*a) {
+        if (pst_stricmp(a, e) == 0) {
+            rc = 1;
+            break;
+        }
+        a += strlen(a) + 1;
+    }
+    DEBUG_INFO(("attachment acceptable returns %d\n", rc));
+    DEBUG_RET();
+    return rc;
 }
 
 
@@ -1755,10 +1802,12 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
                 write_embedded_message(f_output, attach, boundary, pst, save_rtf, extra_mime_headers);
             }
             else if (attach->data.data || attach->i_id) {
-                if (mode == MODE_SEPARATE && !mode_MH)
-                    write_separate_attachment(f_name, attach, ++attach_num, pst);
-                else
-                    write_inline_attachment(f_output, attach, boundary, pst);
+                if (acceptable_ext(attach)) {
+                    if (mode == MODE_SEPARATE && !mode_MH)
+                        write_separate_attachment(f_name, attach, ++attach_num, pst);
+                    else
+                        write_inline_attachment(f_output, attach, boundary, pst);
+                }
             }
         }
     }

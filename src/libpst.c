@@ -284,7 +284,6 @@ static void             pst_printID2ptr(pst_id2_tree *ptr);
 static int              pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item, pst_item_attach *attach);
 static size_t           pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
 static int              pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
-static int              pst_stricmp(char *a, char *b);
 static int              pst_strincmp(char *a, char *b, size_t x);
 static char*            pst_wide_to_single(char *wt, size_t size);
 
@@ -3391,6 +3390,10 @@ void pst_freeItem(pst_item *item) {
             SAFE_FREE_STR(item->email->report_text);
             SAFE_FREE(item->email->report_time);
             SAFE_FREE_STR(item->email->supplementary_info);
+            SAFE_FREE_STR(item->email->outlook_received_name1);
+            SAFE_FREE_STR(item->email->outlook_sender_name2);
+            SAFE_FREE_STR(item->email->outlook_normalized_subject);
+            SAFE_FREE_STR(item->email->outlook_search_key);
             free(item->email);
         }
         if (item->folder) {
@@ -4155,9 +4158,10 @@ static size_t pst_finish_cleanup_holder(pst_holder *h, size_t size) {
 }
 
 
-static int pst_stricmp(char *a, char *b) {
-    // compare strings case-insensitive.
-    // returns -1 if a < b, 0 if a==b, 1 if a > b
+/** compare strings case-insensitive.
+ *  @return  -1 if a < b, 0 if a==b, 1 if a > b
+ */
+int pst_stricmp(char *a, char *b) {
     while(*a != '\0' && *b != '\0' && toupper(*a)==toupper(*b)) {
         a++; b++;
     }

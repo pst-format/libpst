@@ -891,7 +891,7 @@ typedef struct pst_file {
     /** original file name when the file was opened */
     char*   fname;
     /** default character set for items without one */
-    char*   charset;
+    const char*   charset;
     /** the head and tail of the linked list of index structures */
     pst_index_ll *i_head, *i_tail;
     /** the head and tail of the top level of the descriptor tree */
@@ -1039,6 +1039,12 @@ pst_index_ll*   pst_getID(pst_file* pf, uint64_t i_id);
  * @return     Size of block read into memory
  */
 size_t          pst_ff_getIDblock_dec(pst_file *pf, uint64_t i_id, char **buf);
+
+
+/** compare strings case-insensitive.
+ *  @return  -1 if a < b, 0 if a==b, 1 if a > b
+ */
+int pst_stricmp(char *a, char *b);
 
 
 /** fwrite with checking for null pointer.
