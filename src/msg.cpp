@@ -381,8 +381,19 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
                     GsfOutfile *out = GSF_OUTFILE (output);
                     string_property(out, prop_list, 0x0FF90102, item->record_key);
                     string_property(out, prop_list, 0x37010102, fp);
-                    string_property(out, prop_list, 0x3704001E, body_charset, a->filename1);
-                    string_property(out, prop_list, 0x3707001E, body_charset, a->filename2);
+                    if (a->filename2.str) {
+                        // have long file name
+                        string_property(out, prop_list, 0x3707001E, body_charset, a->filename2);
+                    }
+                    else if (a->filename1.str) {
+                        // have short file name
+                        string_property(out, prop_list, 0x3704001E, body_charset, a->filename1);
+                    }
+                    else {
+                        // make up a name
+                        const char *n = "inline";
+                        string_property(out, prop_list, 0x3704001E, n, strlen(n));
+                    }
                     string_property(out, prop_list, 0x370E001E, body_charset, a->mimetype);
                     write_properties(out, prop_list, (const guint8*)&top_head, 8);  // convenient 8 bytes of reserved zeros
                     gsf_output_close(output);

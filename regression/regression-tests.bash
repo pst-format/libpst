@@ -66,9 +66,11 @@ function dopst()
 
             ## normal recursive dump
             char='us-ascii'
+            acc="-a '.xls,.doc'"
+            acc=''
             #char='BIG-5'
-            echo $val ../src/readpst -a '.xls,.doc' -C $char -j 0 -r -cv -o output$n -d $ba.log $fn
-                 $val ../src/readpst -a '.xls,.doc' -C $char -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            echo $val ../src/readpst $acc -C $char -j 0 -r -cv -o output$n -d $ba.log $fn
+                 $val ../src/readpst $acc -C $char -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode with filename extensions and .msg files
             #echo $val ../src/readpst $jobs     -r -m -D -cv -o output$n -d $ba.log $fn
@@ -135,6 +137,7 @@ regression=""
 #$func  28 pstsample.pst         # character set issue
 #$func  29 pstsample2.pst        # embedded image in rtf data
 #$func  30 pstsample3.pst        # exports of rtf and html
+$func  31 Journal_Archives_08_29_2010.pst
 
 [ -n "$val" ] && grep 'lost:' *err | grep -v 'lost: 0 '
 
