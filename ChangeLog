@@ -1,3 +1,7 @@
+LibPST 0.6.61 (2013-08-06)
+===============================
+    * move documentation to unversioned directory
+
 LibPST 0.6.60 (2013-06-12)
 ===============================
     * patch from Dominique Leuenberger to add AC_USE_SYSTEM_EXTENSIONS
