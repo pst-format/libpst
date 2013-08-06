@@ -98,6 +98,7 @@ rm -rf $RPM_BUILD_ROOT
 make DESTDIR=$RPM_BUILD_ROOT install
 rm $RPM_BUILD_ROOT%{_libdir}/libpst.la
 rm $RPM_BUILD_ROOT%{_libdir}/libpst.a
+mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/doc/%{name}
 
 
 %clean
@@ -139,21 +140,30 @@ rm -rf $RPM_BUILD_ROOT
 
 %files devel-doc
 %defattr(-,root,root,-)
-%{_datadir}/doc/%{name}-%{version}/devel/
+%{_datadir}/doc/%{name}/devel/
 
 
 %files doc
 %defattr(-,root,root,-)
-%dir %{_datadir}/doc/%{name}-%{version}/
-%{_datadir}/doc/%{name}-%{version}/*.html
-%{_datadir}/doc/%{name}-%{version}/AUTHORS
-%{_datadir}/doc/%{name}-%{version}/COPYING
-%{_datadir}/doc/%{name}-%{version}/ChangeLog
-%{_datadir}/doc/%{name}-%{version}/NEWS
-%{_datadir}/doc/%{name}-%{version}/README
+%dir %{_datadir}/doc/%{name}/
+%{_datadir}/doc/%{name}/*.html
+%{_datadir}/doc/%{name}/AUTHORS
+%{_datadir}/doc/%{name}/COPYING
+%{_datadir}/doc/%{name}/ChangeLog
+%{_datadir}/doc/%{name}/NEWS
+%{_datadir}/doc/%{name}/README
 
 
 %changelog
+* Tue Aug 06 2013 Carl Byington <carl@five-ten-sg.com> 0.6.61-1
+- move documentation to unversioned directory
+
+* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.59-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+
+* Sat Jul 27 2013 pmachata@redhat.com - 0.6.59-3
+- Rebuild for boost 1.54.0
+
 * Wed Jun 12 2013 Carl Byington <carl@five-ten-sg.com> 0.6.60-1
 - patch from Dominique Leuenberger to add AC_USE_SYSTEM_EXTENSIONS
 - add readpst -a option for attachment stripping
