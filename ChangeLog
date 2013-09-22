@@ -1,3 +1,7 @@
+LibPST 0.6.62 (2013-09-22)
+===============================
+    * 983596 - Old dependency filter breaks file coloring
+
 LibPST 0.6.61 (2013-08-06)
 ===============================
     * move documentation to unversioned directory

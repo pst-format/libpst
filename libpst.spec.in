@@ -1,7 +1,7 @@
 Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
-Release:            2%{?dist}
+Release:            1%{?dist}
 License:            GPLv2+
 Group:              Applications/Productivity
 Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
@@ -154,7 +154,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Sun Sep 22 2013 Carl Byington <carl@five-ten-sg.com> 0.6.61-2
+* Sun Sep 22 2013 Carl Byington <carl@five-ten-sg.com> 0.6.62-1
 - 983596 - Old dependency filter breaks file coloring
 
 * Tue Aug 06 2013 Carl Byington <carl@five-ten-sg.com> 0.6.61-1
