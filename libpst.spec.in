@@ -1,7 +1,7 @@
 Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
-Release:            1%{?dist}
+Release:            2%{?dist}
 License:            GPLv2+
 Group:              Applications/Productivity
 Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
@@ -39,10 +39,9 @@ Group:              Development/Libraries
 Requires:           python
 Requires:           %{name}-libs = %{version}-%{release}
 
-%{?filter_setup:
-%filter_provides_in %{python_sitearch}/_.*\.so$
-%filter_setup
-}
+%global __provides_exclude_from
+%{?__provides_exclude_from:%__provides_exclude_from|}^
+%{python_sitearch}/_.*\.so$
 
 %description python
 The libpst-python package allows you to use the libpst shared object
@@ -155,6 +154,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Sep 22 2013 Carl Byington <carl@five-ten-sg.com> 0.6.61-2
+- 983596 - Old dependency filter breaks file coloring
+
 * Tue Aug 06 2013 Carl Byington <carl@five-ten-sg.com> 0.6.61-1
 - move documentation to unversioned directory
 
