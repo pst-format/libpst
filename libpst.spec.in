@@ -39,9 +39,15 @@ Group:              Development/Libraries
 Requires:           python
 Requires:           %{name}-libs = %{version}-%{release}
 
-%global __provides_exclude_from
-%{?__provides_exclude_from:%__provides_exclude_from|}^
-%{python_sitearch}/_.*\.so$
+%if 0%{?fedora} >= 20
+    %global __provides_exclude_from
+    %{?__provides_exclude_from:%__provides_exclude_from|}^%{python_sitearch}/_.*\.so$
+%else
+    %{?filter_setup:
+    %filter_provides_in %{python_sitearch}/_.*\.so$
+    %filter_setup
+%endif
+
 
 %description python
 The libpst-python package allows you to use the libpst shared object
