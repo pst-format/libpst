@@ -2065,7 +2065,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 // malloc space and copy the item filetime
 #define LIST_COPY_TIME(label, targ) {                                       \
     if ((list->elements[x]->type != 0x40) ||                                \
-        (list->elements[x]->size != sizeof(FILETIME)) {                     \
+        (list->elements[x]->size != sizeof(FILETIME))) {                    \
         DEBUG_WARN(("src not 0x40 or wrong length for filetime dst\n"));    \
         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
     }                                                                       \
