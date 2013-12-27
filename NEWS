@@ -1,3 +1,4 @@
+0.6.63  2013-12-27 Daniel Gryniewicz found buffer overrun in LIST_COPY_TIME
 0.6.62  2013-09-22 983596 - Old dependency filter breaks file coloring
 0.6.61  2013-08-06 move documentation to unversioned directory
 0.6.60  2013-06-12 add AC_USE_SYSTEM_EXTENSIONS, add readpst -a option for attachment stripping

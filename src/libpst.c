@@ -2068,11 +2068,13 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         DEBUG_WARN(("src not 0x40 for filetime dst\n"));                    \
         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);    \
     }                                                                       \
-    targ = (FILETIME*) pst_realloc(targ, sizeof(FILETIME));                 \
-    memcpy(targ, list->elements[x]->data, list->elements[x]->size);         \
-    LE32_CPU(targ->dwLowDateTime);                                          \
-    LE32_CPU(targ->dwHighDateTime);                                         \
-    DEBUG_INFO((label" - %s", pst_fileTimeToAscii(targ, time_buffer)));     \
+    else {                                                                  \
+        targ = (FILETIME*) pst_realloc(targ, sizeof(FILETIME));             \
+        memcpy(targ, list->elements[x]->data, min(sizeof(FILETIME), list->elements[x]->size)); \
+        LE32_CPU(targ->dwLowDateTime);                                      \
+        LE32_CPU(targ->dwHighDateTime);                                     \
+        DEBUG_INFO((label" - %s", pst_fileTimeToAscii(targ, time_buffer))); \
+    }                                                                       \
 }
 
 #define LIST_COPY_EMAIL_TIME(label, targ) {                     \
