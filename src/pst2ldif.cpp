@@ -463,7 +463,9 @@ void print_ldif_address(const char *attr, int nvalues, pst_string value, ...)
         else {
             if (i > (len-5)) {
                 len += 256;
-                address = (char *)realloc(address, len);
+                char *addr = (char *)realloc(address, len);  // cppcheck found unchecked error
+                if (!addr) exit(3);
+                address = addr;
             }
             if (newline_flag) {
                 address[i++] = '$';

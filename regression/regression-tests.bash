@@ -112,7 +112,7 @@ regression=""
 #$func   2 sample_64.pst
 #$func   3 test.pst
 #$func   4 big_mail.pst
-#$func   5 mbmg.archive.pst
+$func   5 mbmg.archive.pst
 #$func   6 Single2003-read.pst
 #$func   7 Single2003-unread.pst
 #$func   8 ol2k3high.pst
@@ -137,7 +137,7 @@ regression=""
 #$func  28 pstsample.pst         # character set issue
 #$func  29 pstsample2.pst        # embedded image in rtf data
 #$func  30 pstsample3.pst        # exports of rtf and html
-$func  31 Journal_Archives_08_29_2010.pst
+#$func  31 Journal_Archives_08_29_2010.pst
 
 [ -n "$val" ] && grep 'lost:' *err | grep -v 'lost: 0 '
 

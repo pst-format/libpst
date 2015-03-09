@@ -40,8 +40,7 @@ Requires:           python
 Requires:           %{name}-libs = %{version}-%{release}
 
 %if 0%{?fedora} >= 20
-%global __provides_exclude_from
-%{?__provides_exclude_from:%__provides_exclude_from|}^%{python_sitearch}/_.*\.so$
+%global __provides_exclude_from %{?__provides_exclude_from:%__provides_exclude_from|}^%{python_sitearch}/_.*\.so$
 %else
 %{?filter_setup:
 %filter_provides_in %{python_sitearch}/_.*\.so$
@@ -161,6 +160,22 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Mar 09 2015 Carl Byington <carl@five-ten-sg.com> 0.6.64-1
+- fix line wrap on python provides_exclude_from
+- fix unchecked errors found by cppcheck
+
+* Mon Jan 26 2015 Petr Machata <pmachata@redhat.com> - 0.6.63-5
+- Rebuild for boost 1.57.0
+
+* Sun Aug 17 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.63-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_22_Mass_Rebuild
+
+* Sat Jun 07 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.63-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_Mass_Rebuild
+
+* Fri May 23 2014 David Tardon <dtardon@redhat.com> - 0.6.63-2
+- rebuild for boost 1.55.0
+
 * Fri Dec 27 2013 Carl Byington <carl@five-ten-sg.com> 0.6.63-1
 - Daniel Gryniewicz found buffer overrun in LIST_COPY_TIME
 

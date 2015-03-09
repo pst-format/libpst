@@ -935,6 +935,7 @@ char *mk_separate_dir(char *dir) {
                         }
                     }
             }
+            closedir(sdir);     // cppcheck detected leak
         }
 #endif
     }
