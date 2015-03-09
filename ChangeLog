@@ -1,3 +1,8 @@
+LibPST 0.6.64 (2015-03-09)
+===============================
+    * AJ Shankar fixes for attachment processing and body
+      encodings that contain embedded null chars
+
 LibPST 0.6.63 (2013-12-27)
 ===============================
     * Daniel Gryniewicz found buffer overrun in LIST_COPY_TIME
