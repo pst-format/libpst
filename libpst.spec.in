@@ -163,6 +163,8 @@ rm -rf $RPM_BUILD_ROOT
 * Mon Mar 09 2015 Carl Byington <carl@five-ten-sg.com> 0.6.64-1
 - fix line wrap on python provides_exclude_from
 - fix unchecked errors found by cppcheck
+- AJ Shankar fixes for attachment processing and body encodings
+  that contain embedded null chars.
 
 * Mon Jan 26 2015 Petr Machata <pmachata@redhat.com> - 0.6.63-5
 - Rebuild for boost 1.57.0

@@ -54,7 +54,7 @@ void      header_get_subfield(char *field, const char *subfield, char *body_subf
 char*     header_get_field(char *header, char *field);
 char*     header_end_field(char *field);
 void      header_strip_field(char *header, char *field);
-int       test_base64(char *body);
+int       test_base64(char *body, size_t len);
 void      find_html_charset(char *html, char *charset, size_t charsetlen);
 void      find_rfc822_headers(char** extra_mime_headers);
 void      write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset, char *boundary, pst_file* pst);
@@ -132,6 +132,7 @@ int         deleted_mode = DMODE_EXCLUDE;
 int         output_type_mode = 0xff;    // Default to all.
 int         contact_mode_specified = 0;
 int         overwrite = 0;
+int         prefer_utf8 = 0;
 int         save_rtf_body = 1;
 int         file_name_len = 10;     // enough room for MODE_SPEARATE file name
 pst_file    pstfile;
@@ -452,7 +453,7 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "a:bC:c:Dd:emhj:kMo:qrSt:uVw"))!= -1) {
+    while ((c = getopt(argc, argv, "a:bC:c:Dd:emhj:kMo:qrSt:uVw8"))!= -1) {
         switch (c) {
         case 'a':
             if (optarg) {
@@ -586,6 +587,9 @@ int main(int argc, char* const* argv) {
             break;
         case 'w':
             overwrite = 1;
+            break;
+        case '8':
+            prefer_utf8 = 1;
             break;
         default:
             usage();
@@ -758,6 +762,7 @@ void usage() {
     printf("\t-t[eajc]\t- Set the output type list. e = email, a = attachment, j = journal, c = contact\n");
     printf("\t-u\t- Thunderbird mode. Write two extra .size and .type files\n");
     printf("\t-w\t- Overwrite any output mbox files\n");
+    printf("\t-8\t- Output bodies in UTF-8, rather than original encoding, if UTF-8 version is available\n");
     printf("\n");
     printf("Only one of -M -S -e -k -m -r should be specified\n");
     DEBUG_RET();
@@ -1267,7 +1272,7 @@ void header_get_subfield(char *field, const char *subfield, char *body_subfield,
         if (!e || (e > n)) e = n;   // use the trailing lf as terminator if nothing better
         save = *e;
         *e = '\0';
-            snprintf(body_subfield, size_subfield, "%s", s);  // copy the subfield to our buffer
+        snprintf(body_subfield, size_subfield, "%s", s);  // copy the subfield to our buffer
         *e = save;
         DEBUG_INFO(("body %s %s from headers\n", subfield, body_subfield));
     }
@@ -1316,12 +1321,12 @@ void header_strip_field(char *header, char *field)
 }
 
 
-int  test_base64(char *body)
+int  test_base64(char *body, size_t len)
 {
     int b64 = 0;
     uint8_t *b = (uint8_t *)body;
     DEBUG_ENT("test_base64");
-    while (*b) {
+    while (len--) {
         if ((*b < 32) && (*b != 9) && (*b != 10)) {
             DEBUG_INFO(("found base64 byte %d\n", (int)*b));
             DEBUG_HEXDUMPC(body, strlen(body), 0x10);
@@ -1401,37 +1406,44 @@ void find_rfc822_headers(char** extra_mime_headers)
 void write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset, char *boundary, pst_file* pst)
 {
     DEBUG_ENT("write_body_part");
-    if (body->is_utf8 && (strcasecmp("utf-8", charset))) {
-        // try to convert to the specified charset since the target
-        // is not utf-8, and the data came from a unicode (utf16) field
-        // and is now in utf-8.
-        size_t rc;
-        DEBUG_INFO(("Convert %s utf-8 to %s\n", mime, charset));
-        pst_vbuf *newer = pst_vballoc(2);
-        rc = pst_vb_utf8to8bit(newer, body->str, strlen(body->str), charset);
-        if (rc == (size_t)-1) {
-            // unable to convert, change the charset to utf8
-            free(newer->b);
-            DEBUG_INFO(("Failed to convert %s utf-8 to %s\n", mime, charset));
-            charset = "utf-8";
-        }
-        else {
-            // null terminate the output string
-            pst_vbgrow(newer, 1);
-            newer->b[newer->dlen] = '\0';
-            free(body->str);
-            body->str = newer->b;
-        }
-        free(newer);
-    }
     removeCR(body->str);
-    int base64 = test_base64(body->str);
+    size_t body_len = strlen(body->str);
+
+    if (body->is_utf8 && (strcasecmp("utf-8", charset))) {
+        if (prefer_utf8) {
+            charset = "utf-8";
+        } else {
+            // try to convert to the specified charset since the target
+            // is not utf-8, and the data came from a unicode (utf16) field
+            // and is now in utf-8.
+            size_t rc;
+            DEBUG_INFO(("Convert %s utf-8 to %s\n", mime, charset));
+            pst_vbuf *newer = pst_vballoc(2);
+            rc = pst_vb_utf8to8bit(newer, body->str, body_len, charset);
+            if (rc == (size_t)-1) {
+                // unable to convert, change the charset to utf8
+                free(newer->b);
+                DEBUG_INFO(("Failed to convert %s utf-8 to %s\n", mime, charset));
+                charset = "utf-8";
+            } else {
+                // null terminate the output string
+                pst_vbgrow(newer, 1);
+                newer->b[newer->dlen] = '\0';
+                free(body->str);
+                body->str = newer->b;
+                body_len = newer->dlen;
+            }
+            free(newer);
+        }
+    }
+    int base64 = test_base64(body->str, body_len);
     fprintf(f_output, "\n--%s\n", boundary);
     fprintf(f_output, "Content-Type: %s; charset=\"%s\"\n", mime, charset);
     if (base64) fprintf(f_output, "Content-Transfer-Encoding: base64\n");
     fprintf(f_output, "\n");
+    // Any body that uses an encoding with NULLs, e.g. UTF16, will be base64-encoded here.
     if (base64) {
-        char *enc = pst_base64_encode(body->str, strlen(body->str));
+        char *enc = pst_base64_encode(body->str, body_len);
         if (enc) {
             write_email_body(f_output, enc);
             fprintf(f_output, "\n");
@@ -1535,9 +1547,9 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
         if (c_time)
             c_time[strlen(c_time)-1] = '\0'; //remove end \n
         else
-            c_time = "Fri Dec 28 12:06:21 2001";
+            c_time = "Thu Jan 1 00:00:00 1970";
     } else
-        c_time = "Fri Dec 28 12:06:21 2001";
+        c_time = "Thu Jan 1 00:00:00 1970";
 
     // create our MIME boundaries here.
     snprintf(boundary, sizeof(boundary), "--boundary-LibPST-iamunique-%i_-_-", rand());

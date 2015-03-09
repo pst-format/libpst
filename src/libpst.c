@@ -1304,7 +1304,10 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
         DEBUG_INFO(("ATTACHMENT processing attachment\n"));
         list = pst_parse_block(pf, id2_ptr->id->i_id, id2_head);
         if (!list) {
-            DEBUG_WARN(("ERROR error processing main attachment record\n"));
+            if (item->flags & PST_FLAG_HAS_ATTACHMENT) {
+                // Only report an error if we expected to see an attachment table and didn't.
+                DEBUG_WARN(("ERROR error processing main attachment record\n"));
+            }
             if (!m_head) pst_free_id2(id2_head);
             DEBUG_RET();
             return item;
@@ -1351,7 +1354,9 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                     continue;
                 }
                 pst_free_list(list);
-                id2_ptr = pst_getID2(id2_head, attach->id2_val);
+                // As per 2.4.6.2 in the spec, the attachment data is stored as a child of the
+                // attachment object, so we pass in id2_ptr as the head to search from.
+                id2_ptr = pst_getID2(id2_ptr, attach->id2_val);
                 if (id2_ptr) {
                     DEBUG_WARN(("second pass attachment updating id2 %#"PRIx64" found i_id %#"PRIx64"\n", attach->id2_val, id2_ptr->id->i_id));
                     // i_id has been updated to the datablock containing the attachment data
