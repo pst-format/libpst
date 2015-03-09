@@ -35,7 +35,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2013-06-12</date>
+            <date>2015-03-09</date>
         </refentryinfo>
 
         <refmeta>
@@ -73,6 +73,7 @@
                 <arg><option>-t <replaceable class="parameter">output-type-codes</replaceable></option></arg>
                 <arg><option>-u</option></arg>
                 <arg><option>-w</option></arg>
+                <arg><option>-8</option></arg>
                 <arg choice='plain'>pstfile</arg>
             </cmdsynopsis>
         </refsynopsisdiv>
@@ -237,6 +238,13 @@
                         writing. This is to keep the count of emails and attachments correct.
                     </para></listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>-8</term>
+                    <listitem><para>
+                        Output bodies in UTF-8, rather than original encoding, if a UTF-8
+                        version is available.
+                    </para></listitem>
+                </varlistentry>
             </variablelist>
         </refsect1>
 
@@ -294,7 +302,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2013-06-12</date>
+            <date>2015-03-09</date>
         </refentryinfo>
 
         <refmeta>
@@ -389,7 +397,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2013-06-12</date>
+            <date>2015-03-09</date>
         </refentryinfo>
 
         <refmeta>
@@ -557,7 +565,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2013-06-12</date>
+            <date>2015-03-09</date>
         </refentryinfo>
 
         <refmeta>
@@ -690,7 +698,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2013-06-12</date>
+            <date>2015-03-09</date>
         </refentryinfo>
 
         <refmeta>
