@@ -1,3 +1,4 @@
+0.6.65  2015-09-11 Jeffrey Morlan - fix multiple Content-Type headers; Hans Liss - debug level output
 0.6.64  2015-03-09 AJ Shankar fixes for attachment processing and body encodings that contain embedded null chars
 0.6.63  2013-12-27 Daniel Gryniewicz found buffer overrun in LIST_COPY_TIME
 0.6.62  2013-09-22 983596 - Old dependency filter breaks file coloring

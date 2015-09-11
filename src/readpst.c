@@ -420,11 +420,11 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
         } else if (item->message_store) {
             // there should only be one message_store, and we have already done it
             ff.skip_count++;
-            DEBUG_INFO(("item with message store content, type %i %s folder type %i, skipping it\n", item->type, item->ascii_type, ff.type));
+            DEBUG_WARN(("item with message store content, type %i %s folder type %i, skipping it\n", item->type, item->ascii_type, ff.type));
 
         } else {
             ff.skip_count++;
-            DEBUG_INFO(("Unknown item type %i (%s) name (%s)\n",
+            DEBUG_WARN(("Unknown item type %i (%s) name (%s)\n",
                         item->type, item->ascii_type, item->file_as.str));
         }
         pst_freeItem(item);
@@ -453,7 +453,7 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "a:bC:c:Dd:emhj:kMo:qrSt:uVw8"))!= -1) {
+    while ((c = getopt(argc, argv, "a:bC:c:Dd:emhj:kMo:qrSt:uVwL:8"))!= -1) {
         switch (c) {
         case 'a':
             if (optarg) {
@@ -523,6 +523,9 @@ int main(int argc, char* const* argv) {
             mode_EX  = 1;
             mode_MSG = 0;
             file_name_len = 14;
+            break;
+        case 'L':
+            pst_debug_setlevel(atoi(optarg));
             break;
         case 'm':
             mode = MODE_SEPARATE;
@@ -745,6 +748,7 @@ void usage() {
     printf("\t-V\t- Version. Display program version\n");
     printf("\t-C charset\t- character set for items with an unspecified character set\n");
     printf("\t-D\t- Include deleted items in output\n");
+    printf("\t-L <level> \t- Set debug level; 1=debug,2=info,3=warn.\n");
     printf("\t-M\t- Write emails in the MH (rfc822) format\n");
     printf("\t-S\t- Separate. Write emails in the separate format\n");
     printf("\t-a <attachment-extension-list>\t- Discard any attachment without an extension on the list\n");

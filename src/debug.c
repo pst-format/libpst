@@ -12,12 +12,18 @@ struct pst_debug_func {
 
 static struct pst_debug_func *func_head = NULL;
 static int func_depth = 0;
+static int pst_debuglevel = 0;
 static char indent[MAX_DEPTH*4+1];
 static FILE *debug_fp = NULL;
 #ifdef HAVE_SEMAPHORE_H
     static sem_t* debug_mutex = NULL;
 #endif
 
+
+void pst_debug_setlevel(int level)
+{
+  pst_debuglevel = level;
+}
 
 void pst_debug_lock()
 {
@@ -50,7 +56,8 @@ void pst_debug_init(const char* fname, void* output_mutex) {
 }
 
 
-void pst_debug_func(const char* function) {
+void pst_debug_func(int level, const char* function) {
+    if (pst_debuglevel > level) return;
     struct pst_debug_func *func_ptr = pst_malloc (sizeof(struct pst_debug_func));
     func_ptr->name = strdup(function);
     func_ptr->next = func_head;
@@ -59,7 +66,8 @@ void pst_debug_func(const char* function) {
 }
 
 
-void pst_debug_func_ret() {
+void pst_debug_func_ret(int level) {
+    if (pst_debuglevel > level) return;
     //remove the head item
     struct pst_debug_func *func_ptr = func_head;
     if (func_head) {
@@ -73,8 +81,9 @@ void pst_debug_func_ret() {
 }
 
 
-static void pst_debug_info(int line, const char* file);
-static void pst_debug_info(int line, const char* file) {
+static void pst_debug_info(int level, int line, const char* file);
+static void pst_debug_info(int level, int line, const char* file) {
+    if (pst_debuglevel > level) return;
     int le = (func_depth > MAX_DEPTH) ? MAX_DEPTH : func_depth;
     if (le > 0) le--;
     char *func = (func_head ? func_head->name : "No Function");
@@ -83,23 +92,25 @@ static void pst_debug_info(int line, const char* file) {
 }
 
 
-void pst_debug(int line, const char* file, const char *fmt, ...) {
+void pst_debug(int level, int line, const char* file, const char *fmt, ...) {
+    if (pst_debuglevel > level) return;
     if (debug_fp) {
-        pst_debug_info(line, file);
-            va_list ap;
-            va_start(ap,fmt);
-            vfprintf(debug_fp, fmt, ap);
-            va_end(ap);
-            fflush(debug_fp);
+        pst_debug_info(level, line, file);
+        va_list ap;
+        va_start(ap,fmt);
+        vfprintf(debug_fp, fmt, ap);
+        va_end(ap);
+        fflush(debug_fp);
         pst_debug_unlock();
     }
 }
 
 
-void pst_debug_hexdump(int line, const char *file, const char *buf, size_t size, int cols, int delta) {
+void pst_debug_hexdump(int level, int line, const char *file, const char *buf, size_t size, int cols, int delta) {
+    if (pst_debuglevel > level) return;
     if (debug_fp) {
-        pst_debug_info(line, file);
-           pst_debug_hexdumper(debug_fp, buf, size, cols, delta);
+        pst_debug_info(level, line, file);
+        pst_debug_hexdumper(debug_fp, buf, size, cols, delta);
         pst_debug_unlock();
     }
 }

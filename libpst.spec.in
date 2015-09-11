@@ -162,6 +162,7 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Fri Sep 11 2015 Carl Byington <carl@five-ten-sg.com> 0.6.65-1
 - Jeffrey Morlan - fix multiple Content-Type headers
+- Hans Liss - debug level output
 
 * Thu Aug 27 2015 Jonathan Wakely <jwakely@redhat.com> - 0.6.64-6
 - Rebuilt for Boost 1.59

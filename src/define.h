@@ -135,20 +135,23 @@
 
 void  pst_debug_lock();
 void  pst_debug_unlock();
+void  pst_debug_setlevel(int level);
 void  pst_debug_init(const char* fname, void* output_mutex);
-void  pst_debug_func(const char* function);
-void  pst_debug_func_ret();
-void  pst_debug(int line, const char *file, const char *fmt, ...);
-void  pst_debug_hexdump(int line, const char *file, const char* buf, size_t size, int cols, int delta);
+void  pst_debug_func(int level, const char* function);
+void  pst_debug_func_ret(int level);
+void  pst_debug(int level, int line, const char *file, const char *fmt, ...);
+void  pst_debug_hexdump(int level, int line, const char *file, const char* buf, size_t size, int cols, int delta);
 void  pst_debug_hexdumper(FILE* out, const char* buf, size_t size, int cols, int delta);
-void  pst_debug_close(void);
+void  pst_debug_close();
 void* pst_malloc(size_t size);
 void *pst_realloc(void *ptr, size_t size);
 
-#define MESSAGEPRINT(...) pst_debug(__LINE__, __FILE__,  __VA_ARGS__)
+#define MESSAGEPRINT1(...) pst_debug(1, __LINE__, __FILE__,  __VA_ARGS__)
+#define MESSAGEPRINT2(...) pst_debug(2, __LINE__, __FILE__,  __VA_ARGS__)
+#define MESSAGEPRINT3(...) pst_debug(3, __LINE__, __FILE__,  __VA_ARGS__)
 
 #define WARN(x) {           \
-    MESSAGEPRINT x;         \
+    MESSAGEPRINT3 x;	    \
     pst_debug_lock();       \
         printf x;           \
         fflush(stdout);     \
@@ -160,21 +163,21 @@ void *pst_realloc(void *ptr, size_t size);
     exit(EXIT_FAILURE);     \
 }
 
-#define DEBUG_WARN(x)           MESSAGEPRINT x
-#define DEBUG_INFO(x)           MESSAGEPRINT x
-#define DEBUG_HEXDUMP(x, s)     pst_debug_hexdump(__LINE__, __FILE__, (char*)x, s, 0x10, 0)
-#define DEBUG_HEXDUMPC(x, s, c) pst_debug_hexdump(__LINE__, __FILE__, (char*)x, s, c, 0)
+#define DEBUG_WARN(x)           MESSAGEPRINT3 x
+#define DEBUG_INFO(x)           MESSAGEPRINT2 x
+#define DEBUG_HEXDUMP(x, s)     pst_debug_hexdump(1, __LINE__, __FILE__, (char*)x, s, 0x10, 0)
+#define DEBUG_HEXDUMPC(x, s, c) pst_debug_hexdump(1, __LINE__, __FILE__, (char*)x, s, c, 0)
 
 
 #define DEBUG_ENT(x)                                            \
     {                                                           \
-        pst_debug_func(x);                                      \
-        pst_debug(__LINE__, __FILE__, "Entering function\n");   \
+      pst_debug_func(1, x);                                      \
+      pst_debug(1, __LINE__, __FILE__, "Entering function\n");	 \
     }
 #define DEBUG_RET()                                             \
     {                                                           \
-        pst_debug(__LINE__, __FILE__, "Leaving function\n");    \
-        pst_debug_func_ret();                                   \
+      pst_debug(1, __LINE__, __FILE__, "Leaving function\n");    \
+      pst_debug_func_ret(1);					 \
     }
 
 #define DEBUG_INIT(fname,mutex) {pst_debug_init(fname,mutex);}
