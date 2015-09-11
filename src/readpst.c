@@ -1301,8 +1301,8 @@ char *header_end_field(char *field)
 
 void header_strip_field(char *header, char *field)
 {
-    char *t = header_get_field(header, field);
-    if (t) {
+    char *t;
+    while ((t = header_get_field(header, field))) {
         char *e = header_end_field(t);
         if (e) {
             if (t == header) e++;   // if *t is not \n, we don't want to keep the \n at *e either.

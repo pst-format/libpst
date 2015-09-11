@@ -160,6 +160,26 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Sep 11 2015 Carl Byington <carl@five-ten-sg.com> 0.6.65-1
+- Jeffrey Morlan - fix multiple Content-Type headers
+
+* Thu Aug 27 2015 Jonathan Wakely <jwakely@redhat.com> - 0.6.64-6
+- Rebuilt for Boost 1.59
+
+* Wed Jul 29 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> -
+ 0.6.64-5
+- Rebuilt for https://fedoraproject.org/wiki/Changes/F23Boost159
+
+* Wed Jul 22 2015 David Tardon <dtardon@redhat.com> - 0.6.64-4
+- rebuild for Boost 1.58
+
+* Wed Jun 17 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> -
+ 0.6.64-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_23_Mass_Rebuild
+
+* Sat May 02 2015 Kalev Lember <kalevlember@gmail.com> - 0.6.64-2
+- Rebuilt for GCC 5 C++11 ABI change
+
 * Mon Mar 09 2015 Carl Byington <carl@five-ten-sg.com> 0.6.64-1
 - fix line wrap on python provides_exclude_from
 - fix unchecked errors found by cppcheck
