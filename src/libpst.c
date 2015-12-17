@@ -2646,6 +2646,11 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                     NULL_CHECK(attach);
                     LIST_COPY_INT32("Attachment Mime Sequence", attach->sequence);
                     break;
+                case 0x3712: // PR_ATTACH_CONTENT_ID
+                    // content identification header (Content-ID)
+                    NULL_CHECK(attach);
+                    LIST_COPY_STR("Content ID", attach->content_id);
+                    break;
                 case 0x3A00: // PR_ACCOUNT
                     LIST_COPY_CONTACT_STR("Contact's Account name", item->contact->account_name);
                     break;

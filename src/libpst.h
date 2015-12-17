@@ -606,6 +606,8 @@ typedef struct pst_item_attach {
     pst_string      filename2;
     /** mapi element 0x370e PR_ATTACH_MIME_TAG */
     pst_string      mimetype;
+    /** mapi element 0x3712 PR_ATTACH_CONTENT_ID  */
+    pst_string      content_id;
     /** mapi element 0x3701 PR_ATTACH_DATA_OBJ */
     pst_binary      data;
     /** only used if the attachment is by reference, in which case this is the id2 reference */

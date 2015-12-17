@@ -1190,6 +1190,10 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
     }
     fprintf(f_output, "Content-Transfer-Encoding: base64\n");
 
+    if (attach->content_id.str) {
+        fprintf(f_output, "Content-ID: %s\n", attach->content_id.str);
+    }
+
     if (attach->filename2.str) {
         // use the long filename, converted to proper encoding if needed.
         // it is already utf8
