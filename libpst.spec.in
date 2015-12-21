@@ -160,6 +160,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Dec 21 2015 Carl Byington <carl@five-ten-sg.com> 0.6.66-1
+- Igor Stroh - Added Content-ID header support
+
 * Fri Sep 11 2015 Carl Byington <carl@five-ten-sg.com> 0.6.65-1
 - Jeffrey Morlan - fix multiple Content-Type headers
 - Hans Liss - debug level output
