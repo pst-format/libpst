@@ -1191,7 +1191,7 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
     fprintf(f_output, "Content-Transfer-Encoding: base64\n");
 
     if (attach->content_id.str) {
-        fprintf(f_output, "Content-ID: %s\n", attach->content_id.str);
+        fprintf(f_output, "Content-ID: <%s>\n", attach->content_id.str);
     }
 
     if (attach->filename2.str) {
@@ -1777,7 +1777,6 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     if (item->email->encrypted_body.data) {
         pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
         DEBUG_INFO(("Adding encrypted text body as attachment\n"));
-        attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
         memset(attach, 0, sizeof(pst_item_attach));
         attach->next = item->attach;
         item->attach = attach;
@@ -1789,7 +1788,6 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
     if (item->email->encrypted_htmlbody.data) {
         pst_item_attach* attach = (pst_item_attach*)pst_malloc(sizeof(pst_item_attach));
         DEBUG_INFO(("Adding encrypted HTML body as attachment\n"));
-        attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
         memset(attach, 0, sizeof(pst_item_attach));
         attach->next = item->attach;
         item->attach = attach;

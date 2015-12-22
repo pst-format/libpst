@@ -3350,6 +3350,7 @@ static void pst_free_attach(pst_item_attach *attach) {
         SAFE_FREE_STR(attach->filename1);
         SAFE_FREE_STR(attach->filename2);
         SAFE_FREE_STR(attach->mimetype);
+        SAFE_FREE_STR(attach->content_id);
         SAFE_FREE_BIN(attach->data);
         pst_free_id2(attach->id2_head);
         t = attach->next;
