@@ -1043,14 +1043,6 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
                 return -1;
             }
             old = index.id;
-            if (x == (int32_t)1) {   // first entry
-                if ((start_val) && (index.id != start_val)) {
-                    DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
-                    if (buf) free(buf);
-                    DEBUG_RET();
-                    return -1;
-                }
-            }
             i_ptr = (pst_index_ll*) pst_malloc(sizeof(pst_index_ll));
             i_ptr->i_id   = index.id;
             i_ptr->offset = index.offset;
@@ -1083,14 +1075,6 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
                 return -1;
             }
             old = table.start;
-            if (x == (int32_t)1) {  // first entry
-                if ((start_val) && (table.start != start_val)) {
-                    DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
-                    if (buf) free(buf);
-                    DEBUG_RET();
-                    return -1;
-                }
-            }
             (void)pst_build_id_ptr(pf, table.offset, depth+1, table.u1, table.start, table2.start);
         }
     }
@@ -1157,14 +1141,6 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
                 return -1;
             }
             old = desc_rec.d_id;
-            if (x == 0) {   // first entry
-                if (start_val && (desc_rec.d_id != start_val)) {
-                    DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
-                    if (buf) free(buf);
-                    DEBUG_RET();
-                    return -1;
-                }
-            }
             DEBUG_INFO(("New Record %#"PRIx64" with parent %#x\n", desc_rec.d_id, desc_rec.parent_d_id));
             {
                 pst_desc_tree *d_ptr = (pst_desc_tree*) pst_malloc(sizeof(pst_desc_tree));
@@ -1202,14 +1178,6 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
                 return -1;
             }
             old = table.start;
-            if (x == 0) {   // first entry
-                if (start_val && (table.start != start_val)) {
-                    DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
-                    if (buf) free(buf);
-                    DEBUG_RET();
-                    return -1;
-                }
-            }
             (void)pst_build_desc_ptr(pf, table.offset, depth+1, table.u1, table.start, table2.start);
         }
     }

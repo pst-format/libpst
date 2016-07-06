@@ -137,8 +137,8 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 ff.skip_count++;
                 DEBUG_INFO(("A NULL item was seen\n"));
             }
-            d_ptr = d_ptr->next;
         }
+        d_ptr = d_ptr->next;
     }
     close_enter_dir(&ff);
     if (result) free(result);
