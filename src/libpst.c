@@ -1827,10 +1827,6 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 if (mo_ptr->elements[x]->type == 0) mo_ptr->elements[x]->type = table_rec.ref_type;
             } else {
                 DEBUG_WARN(("ERROR Unknown ref_type %#hx\n", table_rec.ref_type));
-                freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
-                pst_free_list(mo_head);
-                DEBUG_RET();
-                return NULL;
             }
             x++;
         }
