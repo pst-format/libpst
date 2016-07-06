@@ -1405,6 +1405,8 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     char*    to_ptr;
     char*    ind2_end = NULL;
     char*    ind2_ptr = NULL;
+    char*    ind2_block_start = NULL;
+    size_t   ind2_max_block_size = pf->do_read64 ? 0x1FF0 : 0x1FF4;
     pst_x_attrib_ll *mapptr;
     pst_block_hdr    block_hdr;
     pst_table3_rec   table3_rec;  //for type 3 (0x0101) blocks
@@ -1601,6 +1603,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 return NULL;
             }
             ind2_ptr = block_offset6.from;
+            ind2_block_start = ind2_ptr;
             ind2_end = block_offset6.to;
         }
         else {
@@ -1832,6 +1835,12 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         }
         DEBUG_INFO(("increasing ind2_ptr by %i [%#x] bytes. Was %#x, Now %#x\n", rec_size, rec_size, ind2_ptr, ind2_ptr+rec_size));
         ind2_ptr += rec_size;
+        // ind2 rows do not get split between blocks. See PST spec, 2.3.4.4 "Row Matrix".
+        if (ind2_ptr + rec_size > ind2_block_start + ind2_max_block_size) {
+            ind2_block_start += ind2_max_block_size;
+            DEBUG_INFO(("advancing ind2_ptr to next block. Was %#x, Now %#x\n", ind2_ptr, ind2_block_start));
+            ind2_ptr = ind2_block_start;
+        }
     }
     freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
     DEBUG_RET();
@@ -3601,8 +3610,8 @@ static int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, ui
     LE16_CPU(p->from);
     LE16_CPU(p->to);
     DEBUG_WARN(("get block offset finds from=%i(%#x), to=%i(%#x)\n", p->from, p->from, p->to, p->to));
-    if (p->from > p->to) {
-        DEBUG_WARN(("get block offset from > to\n"));
+    if (p->from > p->to || p->to > read_size) {
+        DEBUG_WARN(("get block offset bad range\n"));
         DEBUG_RET();
         return 0;
     }
