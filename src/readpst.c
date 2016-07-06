@@ -180,6 +180,9 @@ int grim_reaper(int waitall)
                     //printf("Process %d terminated with signal %d\n", child, sig);
                     //fflush(stdout);
                 }
+                if (status != 0) {
+                    exit(status);
+                }
                 // this has terminated, remove it from the list
                 for (j=i; j<active_children-1; j++) {
                     child_processes[j] = child_processes[j+1];
