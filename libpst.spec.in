@@ -160,6 +160,15 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 06 2016 Carl Byington <carl@five-ten-sg.com> 0.6.67-1
+- Jeffrey Morlan - multiple bug fixes and an optimization
+
+* Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.66-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
+
+* Fri Jan 15 2016 Jonathan Wakely <jwakely@redhat.com> - 0.6.66-2
+- Rebuilt for Boost 1.60
+
 * Mon Dec 21 2015 Carl Byington <carl@five-ten-sg.com> 0.6.66-1
 - Igor Stroh - Added Content-ID header support
 

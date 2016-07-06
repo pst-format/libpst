@@ -1671,6 +1671,7 @@
             0x200 - NRN Pending
 0x0e08  Message Size
 0x0e0a  Sentmail EntryID
+0x0e1d  Normalized subject
 0x0e1f  Compressed RTF in Sync
 0x0e20  Attachment Size
 0x0ff9  binary record header
@@ -1713,6 +1714,7 @@
 0x370b  Attachment Position
 0x370e  Attachment mime encoding
 0x3710  Attachment mime Sequence
+0x3712  Content ID
 0x3a00  Contact's Account name
 0x3a01  Contact Alternate Recipient
 0x3a02  Callback telephone number
