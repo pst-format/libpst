@@ -130,10 +130,9 @@ int main(int argc, char* const* argv)
         dumper(i_id);
     }
     else {
-        pst_index_ll *ptr = pstfile.i_head;
-        while (ptr) {
-            dumper(ptr->i_id);
-            ptr = ptr->next;
+        size_t i;
+        for (i = 0; i < pstfile.i_count; i++) {
+            dumper(pstfile.i_table[i].i_id);
         }
         dump_desc(pstfile.d_head, NULL);
     }

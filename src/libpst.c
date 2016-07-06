@@ -268,7 +268,6 @@ static size_t           pst_finish_cleanup_holder(pst_holder *h, size_t size);
 static void             pst_free_attach(pst_item_attach *attach);
 static void             pst_free_desc (pst_desc_tree *head);
 static void             pst_free_id2(pst_id2_tree * head);
-static void             pst_free_id (pst_index_ll *head);
 static void             pst_free_list(pst_mapi_object *list);
 static void             pst_free_xattrib(pst_x_attrib_ll *x);
 static size_t           pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size);
@@ -404,8 +403,8 @@ int pst_close(pst_file *pf) {
     // free the paths
     free(pf->cwd);
     free(pf->fname);
-    // we must free the id linklist and the desc tree
-    pst_free_id(pf->i_head);
+    // we must free the id array and the desc tree
+    free(pf->i_table);
     pst_free_desc(pf->d_head);
     pst_free_xattrib(pf->x_head);
     DEBUG_RET();
@@ -1043,15 +1042,15 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
                 return -1;
             }
             old = index.id;
-            i_ptr = (pst_index_ll*) pst_malloc(sizeof(pst_index_ll));
+            if (pf->i_count == pf->i_capacity) {
+                pf->i_capacity += (pf->i_capacity >> 1) + 16; // arbitrary growth rate
+                pf->i_table = pst_realloc(pf->i_table, pf->i_capacity * sizeof(pst_index_ll));
+            }
+            i_ptr = &pf->i_table[pf->i_count++];
             i_ptr->i_id   = index.id;
             i_ptr->offset = index.offset;
             i_ptr->u1     = index.u1;
             i_ptr->size   = index.size;
-            i_ptr->next   = NULL;
-            if (pf->i_tail)  pf->i_tail->next = i_ptr;
-            if (!pf->i_head) pf->i_head = i_ptr;
-            pf->i_tail = i_ptr;
         }
     } else {
         // this node contains node pointers
@@ -3210,18 +3209,6 @@ static void pst_free_id2(pst_id2_tree * head) {
 }
 
 
-static void pst_free_id (pst_index_ll *head) {
-    pst_index_ll *t;
-    DEBUG_ENT("pst_free_id");
-    while (head) {
-        t = head->next;
-        free(head);
-        head = t;
-    }
-    DEBUG_RET();
-}
-
-
 static void pst_free_desc (pst_desc_tree *head) {
     pst_desc_tree *t;
     DEBUG_ENT("pst_free_desc");
@@ -3620,6 +3607,13 @@ static int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, ui
 }
 
 
+static int pst_getID_compare(const void *key, const void *entry) {
+    uint64_t key_id = *(const uint64_t*)key;
+    uint64_t entry_id = ((const pst_index_ll*)entry)->i_id;
+    return (key_id > entry_id) - (key_id < entry_id);
+}
+
+
 /** */
 pst_index_ll* pst_getID(pst_file* pf, uint64_t i_id) {
     pst_index_ll *ptr;
@@ -3634,10 +3628,7 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t i_id) {
     i_id -= (i_id & 1);
 
     DEBUG_INFO(("Trying to find %#"PRIx64"\n", i_id));
-    ptr = pf->i_head;
-    while (ptr && (ptr->i_id != i_id)) {
-        ptr = ptr->next;
-    }
+    ptr = bsearch(&i_id, pf->i_table, pf->i_count, sizeof *pf->i_table, pst_getID_compare);
     if (ptr) {DEBUG_INFO(("Found Value %#"PRIx64"\n", i_id));            }
     else     {DEBUG_INFO(("ERROR: Value %#"PRIx64" not found\n", i_id)); }
     DEBUG_RET();

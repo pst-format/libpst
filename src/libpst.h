@@ -105,7 +105,6 @@ typedef struct pst_index_ll {
     uint64_t offset;
     uint64_t size;
     int64_t  u1;
-    struct pst_index_ll *next;
 } pst_index_ll;
 
 
@@ -894,8 +893,9 @@ typedef struct pst_file {
     char*   fname;
     /** default character set for items without one */
     const char*   charset;
-    /** the head and tail of the linked list of index structures */
-    pst_index_ll *i_head, *i_tail;
+    /** the array of index structures */
+    pst_index_ll *i_table;
+    size_t i_count, i_capacity;
     /** the head and tail of the top level of the descriptor tree */
     pst_desc_tree  *d_head, *d_tail;
     /** the head of the extended attributes linked list */

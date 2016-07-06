@@ -5,7 +5,7 @@
 int main(int argc, char* const* argv)
 {
     pst_file pstfile;
-    pst_index_ll *ptr;
+    size_t i;
     char *outdir = NULL, *file = NULL, *outname = NULL;
     char *buf = NULL;
     int c;
@@ -50,12 +50,11 @@ int main(int argc, char* const* argv)
             exit(1);
         }
 
-    ptr = pstfile.i_head;
     outname = (char *) pst_malloc(OUT_BUF);
     printf("Saving blocks\n");
-    while (ptr != NULL) {
-        size_t c;
-        c = pst_ff_getIDblock_dec(&pstfile, ptr->i_id, &buf);
+    for (i = 0; i < pstfile.i_count; i++) {
+        pst_index_ll *ptr = &pstfile.i_table[i];
+        size_t c = pst_ff_getIDblock_dec(&pstfile, ptr->i_id, &buf);
         if (c) {
             snprintf(outname, OUT_BUF, "%#"PRIx64, ptr->i_id);
             if ((fp = fopen(outname, "wb")) == NULL) {
@@ -67,7 +66,6 @@ int main(int argc, char* const* argv)
         } else {
             printf("Failed to read block i_id %#"PRIx64"\n", ptr->i_id);
         }
-        ptr = ptr->next;
     }
     pst_close(&pstfile);
     DEBUG_RET();
