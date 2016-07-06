@@ -203,7 +203,8 @@ pid_t try_fork(char *folder)
 #ifdef HAVE_FORK
 #ifdef HAVE_SEMAPHORE_H
     int available = grim_reaper(0);
-    if (available) {
+    // If children have called sem_post but not exited yet, we could have available > 0 but active_children == max_children
+    if (available && active_children < max_children) {
         sem_wait(global_children);
         pid_t child = fork();
         if (child < 0) {
