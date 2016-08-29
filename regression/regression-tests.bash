@@ -73,6 +73,7 @@ function dopst()
             utf='-8'
             echo $val ../src/readpst $utf $acc -C $char -j 0 -r -cv -o output$n -d $ba.log $fn
                  $val ../src/readpst $utf $acc -C $char -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #readpst $utf $acc -C $char -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode with filename extensions and .msg files
             #echo $val ../src/readpst $jobs     -r -m -D -cv -o output$n -d $ba.log $fn

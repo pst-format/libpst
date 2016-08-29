@@ -35,7 +35,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2015-03-09</date>
+            <date>2016-08-29</date>
         </refentryinfo>
 
         <refmeta>
@@ -208,10 +208,13 @@
                 <varlistentry>
                     <term>-r</term>
                     <listitem><para>
-                        Changes the output format to Recursive. This will create folders as
-                        named in the PST file, and will put all emails in a file called "mbox"
-                        inside each folder. These files are then compatible with all
-                        mbox-compatible email clients. This format uses mboxrd from quoting.
+                        Changes the output format to Recursive. This will create folders
+                        as named in the PST file, and will put all emails in a file called
+                        "mbox" inside each folder. Appointments go into a file called
+                        "calendar", address book entries go into a file called "contacts",
+                        and journal entries go into a file called "journal".  These files
+                        are then compatible with all mbox-compatible email clients. This
+                        format uses mboxrd from quoting.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -302,7 +305,7 @@
 
     <refentry id="lspst.1">
         <refentryinfo>
-            <date>2015-03-09</date>
+            <date>2016-08-29</date>
         </refentryinfo>
 
         <refmeta>
@@ -397,7 +400,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2015-03-09</date>
+            <date>2016-08-29</date>
         </refentryinfo>
 
         <refmeta>
@@ -565,7 +568,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2015-03-09</date>
+            <date>2016-08-29</date>
         </refentryinfo>
 
         <refmeta>
@@ -698,7 +701,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2015-03-09</date>
+            <date>2016-08-29</date>
         </refentryinfo>
 
         <refmeta>
@@ -1687,7 +1690,7 @@
 0x1035  Message ID
 0x1042  In-Reply-To or Parent's Message ID
 0x1046  Return Path
-0x3001  Folder Name? I have seen this value used for the contacts record aswell
+0x3001  Folder Name? I have also seen this value used for the contacts record
 0x3002  Address Type
 0x3003  Contact Address
 0x3004  Comment

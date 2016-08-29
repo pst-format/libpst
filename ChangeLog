@@ -1,3 +1,8 @@
+LibPST 0.6.68 (2016-08-29)
+===============================
+    * allow folders containing multiple item types, e.g. email and calendar
+    * better detection of valid internet headers
+
 LibPST 0.6.67 (2016-07-06)
 ===============================
     * Jeffrey Morlan - multiple bug fixes and an optimization
@@ -120,10 +125,10 @@ LibPST 0.6.44 (2009-09-20)
 LibPST 0.6.43 (2009-09-12)
 ===============================
     * patches from Justin Greer.
-	add code pages 1200 and 1201 to the list for iconv
-    	add support for 0x0201 indirect blocks that point to 0x0101 blocks
-	add readpst -t option to select output item types
-	fix (remove) extra new line inside headers
+    add code pages 1200 and 1201 to the list for iconv
+        add support for 0x0201 indirect blocks that point to 0x0101 blocks
+    add readpst -t option to select output item types
+    fix (remove) extra new line inside headers
     * cleanup base64 encoding to remove duplicate code.
     * patch from Chris White to avoid segfault with embedded appointments.
     * patch from Roberto Polli to add creation of some Thunderbird specific meta files.

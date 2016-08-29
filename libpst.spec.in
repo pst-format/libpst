@@ -160,6 +160,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Aug 29 2016 Carl Byington <carl@five-ten-sg.com> 0.6.68-1
+- allow folders containing multiple item types, e.g. email and calendar
+- better detection of valid internet headers
+
+* Tue Jul 19 2016 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.67-2
+- https://fedoraproject.org/wiki/Changes/Automatic_Provides_for_Python_RPM_Packages
+
 * Wed Jul 06 2016 Carl Byington <carl@five-ten-sg.com> 0.6.67-1
 - Jeffrey Morlan - multiple bug fixes and an optimization
 
@@ -179,15 +186,13 @@ rm -rf $RPM_BUILD_ROOT
 * Thu Aug 27 2015 Jonathan Wakely <jwakely@redhat.com> - 0.6.64-6
 - Rebuilt for Boost 1.59
 
-* Wed Jul 29 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> -
- 0.6.64-5
+* Wed Jul 29 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.64-5
 - Rebuilt for https://fedoraproject.org/wiki/Changes/F23Boost159
 
 * Wed Jul 22 2015 David Tardon <dtardon@redhat.com> - 0.6.64-4
 - rebuild for Boost 1.58
 
-* Wed Jun 17 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> -
- 0.6.64-3
+* Wed Jun 17 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.64-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_23_Mass_Rebuild
 
 * Sat May 02 2015 Kalev Lember <kalevlember@gmail.com> - 0.6.64-2

@@ -18,13 +18,12 @@
 #define C_TIME_SIZE 500
 
 struct file_ll {
-    char *name;
+    char *name[PST_TYPE_MAX];
     char *dname;
-    FILE * output;
+    FILE * output[PST_TYPE_MAX];
     int32_t stored_count;
     int32_t item_count;
     int32_t skip_count;
-    int32_t type;
 };
 
 int       grim_reaper();
@@ -36,11 +35,11 @@ void      usage();
 void      version();
 char*     mk_kmail_dir(char* fname);
 int       close_kmail_dir();
-char*     mk_recurse_dir(char* dir, int32_t folder_type);
+void      mk_recurse_dir(char* dir);
 int       close_recurse_dir();
-char*     mk_separate_dir(char *dir);
+void      mk_separate_dir(char *dir);
 int       close_separate_dir();
-void      mk_separate_file(struct file_ll *f, char *extension, int openit);
+void      mk_separate_file(struct file_ll *f, int32_t t, char *extension, int openit);
 void      close_separate_file(struct file_ll *f);
 char*     my_stristr(char *haystack, char *needle);
 void      check_filename(char *fname);
@@ -244,7 +243,6 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
     pst_item *item = NULL;
 
     DEBUG_ENT("process");
-    memset(&ff, 0, sizeof(ff));
     create_enter_dir(&ff, outeritem);
 
     for (; d_ptr; d_ptr = d_ptr->next) {
@@ -308,25 +306,18 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 DEBUG_INFO(("skipping contact: not in output type list\n"));
             }
             else {
-                if (!ff.type) ff.type = item->type;
-                if ((ff.type != PST_TYPE_CONTACT) && (mode != MODE_SEPARATE)) {
-                    ff.skip_count++;
-                    DEBUG_INFO(("I have a contact, but the folder type %"PRIi32" isn't a contacts folder. Skipping it\n", ff.type));
+                ff.item_count++;
+                if (mode == MODE_SEPARATE) mk_separate_file(&ff, PST_TYPE_CONTACT, (mode_EX) ? ".vcf" : "", 1);
+                if (contact_mode == CMODE_VCARD) {
+                    pst_convert_utf8_null(item, &item->comment);
+                    write_vcard(ff.output[PST_TYPE_CONTACT], item, item->contact, item->comment.str);
                 }
                 else {
-                    ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".vcf" : "", 1);
-                    if (contact_mode == CMODE_VCARD) {
-                        pst_convert_utf8_null(item, &item->comment);
-                        write_vcard(ff.output, item, item->contact, item->comment.str);
-                    }
-                    else {
-                        pst_convert_utf8(item, &item->contact->fullname);
-                        pst_convert_utf8(item, &item->contact->address1);
-                        fprintf(ff.output, "%s <%s>\n", item->contact->fullname.str, item->contact->address1.str);
-                    }
-                    if (mode == MODE_SEPARATE) close_separate_file(&ff);
+                    pst_convert_utf8(item, &item->contact->fullname);
+                    pst_convert_utf8(item, &item->contact->address1);
+                    fprintf(ff.output[PST_TYPE_CONTACT], "%s <%s>\n", item->contact->fullname.str, item->contact->address1.str);
                 }
+                if (mode == MODE_SEPARATE) close_separate_file(&ff);
             }
 
         } else if (item->email && ((item->type == PST_TYPE_NOTE) || (item->type == PST_TYPE_SCHEDULE) || (item->type == PST_TYPE_REPORT))) {
@@ -336,46 +327,39 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 DEBUG_INFO(("skipping email: not in output type list\n"));
             }
             else {
-                if (!ff.type) ff.type = item->type;
-                if ((ff.type != PST_TYPE_NOTE) && (ff.type != PST_TYPE_SCHEDULE) && (ff.type != PST_TYPE_REPORT) && (mode != MODE_SEPARATE)) {
-                    ff.skip_count++;
-                    DEBUG_INFO(("I have an email type %"PRIi32", but the folder type %"PRIi32" isn't an email folder. Skipping it\n", item->type, ff.type));
-                }
-                else {
-                    char *extra_mime_headers = NULL;
-                    ff.item_count++;
-                    if (mode == MODE_SEPARATE) {
-                        // process this single email message, possibly forking
-                        pid_t parent = getpid();
-                        pid_t child = try_fork(item->file_as.str);
-                        if (child == 0) {
-                            // we are the child process, or the original parent if no children were available
-                            pid_t me = getpid();
-                            mk_separate_file(&ff, (mode_EX) ? ".eml" : "", 1);
-                            write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, 0, &extra_mime_headers);
-                            close_separate_file(&ff);
-                            if (mode_MSG) {
-                                mk_separate_file(&ff, ".msg", 0);
-                                write_msg_email(ff.name, item, &pstfile);
-                            }
+                char *extra_mime_headers = NULL;
+                ff.item_count++;
+                if (mode == MODE_SEPARATE) {
+                    // process this single email message, possibly forking
+                    pid_t parent = getpid();
+                    pid_t child = try_fork(item->file_as.str);
+                    if (child == 0) {
+                        // we are the child process, or the original parent if no children were available
+                        pid_t me = getpid();
+                        mk_separate_file(&ff, PST_TYPE_NOTE, (mode_EX) ? ".eml" : "", 1);
+                        write_normal_email(ff.output[PST_TYPE_NOTE], ff.name[PST_TYPE_NOTE], item, mode, mode_MH, &pstfile, save_rtf_body, PST_TYPE_NOTE, &extra_mime_headers);
+                        close_separate_file(&ff);
+                        if (mode_MSG) {
+                            mk_separate_file(&ff, PST_TYPE_NOTE, ".msg", 0);
+                            write_msg_email(ff.name[PST_TYPE_NOTE], item, &pstfile);
+                        }
 #ifdef HAVE_FORK
 #ifdef HAVE_SEMAPHORE_H
-                            if (me != parent) {
-                                // we really were a child, forked for the sole purpose of processing this message
-                                // free my child count slot before really exiting, since
-                                // all I am doing here is waiting for my children to exit
-                                sem_post(global_children);
-                                grim_reaper(1); // wait for all my child processes to exit - there should not be any
-                                exit(0);        // really exit
-                            }
-#endif
-#endif
+                        if (me != parent) {
+                            // we really were a child, forked for the sole purpose of processing this message
+                            // free my child count slot before really exiting, since
+                            // all I am doing here is waiting for my children to exit
+                            sem_post(global_children);
+                            grim_reaper(1); // wait for all my child processes to exit - there should not be any
+                            exit(0);        // really exit
                         }
+#endif
+#endif
                     }
-                    else {
-                        // process this single email message, cannot fork since not separate mode
-                        write_normal_email(ff.output, ff.name, item, mode, mode_MH, &pstfile, save_rtf_body, 0, &extra_mime_headers);
-                    }
+                }
+                else {
+                    // process this single email message, cannot fork since not separate mode
+                    write_normal_email(ff.output[PST_TYPE_NOTE], ff.name[PST_TYPE_NOTE], item, mode, mode_MH, &pstfile, save_rtf_body, 0, &extra_mime_headers);
                 }
             }
 
@@ -386,18 +370,11 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 DEBUG_INFO(("skipping journal entry: not in output type list\n"));
             }
             else {
-                if (!ff.type) ff.type = item->type;
-                if ((ff.type != PST_TYPE_JOURNAL) && (mode != MODE_SEPARATE)) {
-                    ff.skip_count++;
-                    DEBUG_INFO(("I have a journal entry, but the folder type %"PRIi32" isn't a journal folder. Skipping it\n", ff.type));
-                }
-                else {
-                    ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "", 1);
-                    write_journal(ff.output, item);
-                    fprintf(ff.output, "\n");
-                    if (mode == MODE_SEPARATE) close_separate_file(&ff);
-                }
+                ff.item_count++;
+                if (mode == MODE_SEPARATE) mk_separate_file(&ff, PST_TYPE_JOURNAL, (mode_EX) ? ".ics" : "", 1);
+                write_journal(ff.output[PST_TYPE_JOURNAL], item);
+                fprintf(ff.output[PST_TYPE_JOURNAL], "\n");
+                if (mode == MODE_SEPARATE) close_separate_file(&ff);
             }
 
         } else if (item->appointment && (item->type == PST_TYPE_APPOINTMENT)) {
@@ -407,24 +384,17 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                 DEBUG_INFO(("skipping appointment: not in output type list\n"));
             }
             else {
-                if (!ff.type) ff.type = item->type;
-                if ((ff.type != PST_TYPE_APPOINTMENT) && (mode != MODE_SEPARATE)) {
-                    ff.skip_count++;
-                    DEBUG_INFO(("I have an appointment, but the folder type %"PRIi32" isn't an appointment folder. Skipping it\n", ff.type));
-                }
-                else {
-                    ff.item_count++;
-                    if (mode == MODE_SEPARATE) mk_separate_file(&ff, (mode_EX) ? ".ics" : "", 1);
-                    write_schedule_part_data(ff.output, item, NULL, NULL);
-                    fprintf(ff.output, "\n");
-                    if (mode == MODE_SEPARATE) close_separate_file(&ff);
-                }
+                ff.item_count++;
+                if (mode == MODE_SEPARATE) mk_separate_file(&ff, PST_TYPE_APPOINTMENT, (mode_EX) ? ".ics" : "", 1);
+                write_schedule_part_data(ff.output[PST_TYPE_APPOINTMENT], item, NULL, NULL);
+                fprintf(ff.output[PST_TYPE_APPOINTMENT], "\n");
+                if (mode == MODE_SEPARATE) close_separate_file(&ff);
             }
 
         } else if (item->message_store) {
             // there should only be one message_store, and we have already done it
             ff.skip_count++;
-            DEBUG_WARN(("item with message store content, type %i %s folder type %i, skipping it\n", item->type, item->ascii_type, ff.type));
+            DEBUG_WARN(("item with message store content, type %i %s, skipping it\n", item->type, item->ascii_type));
 
         } else {
             ff.skip_count++;
@@ -847,11 +817,55 @@ int close_kmail_dir() {
 }
 
 
-// this will create a directory by that name,
-// then make an mbox file inside that directory.
-char *mk_recurse_dir(char *dir, int32_t folder_type) {
+char *item_type_to_name(int32_t item_type) {
+    char *name;
+    switch (item_type) {
+        case PST_TYPE_APPOINTMENT:
+            name = "calendar";
+            break;
+        case PST_TYPE_CONTACT:
+            name = "contacts";
+            break;
+        case PST_TYPE_JOURNAL:
+            name = "journal";
+            break;
+        case PST_TYPE_STICKYNOTE:
+        case PST_TYPE_TASK:
+        case PST_TYPE_NOTE:
+        case PST_TYPE_OTHER:
+        case PST_TYPE_REPORT:
+        default:
+            name = "mbox";
+            break;
+    }
+    return name;
+}
+
+
+int32_t reduced_item_type(int32_t item_type) {
+    int32_t reduced;
+    switch (item_type) {
+        case PST_TYPE_APPOINTMENT:
+        case PST_TYPE_CONTACT:
+        case PST_TYPE_JOURNAL:
+            reduced = item_type;
+            break;
+        case PST_TYPE_STICKYNOTE:
+        case PST_TYPE_TASK:
+        case PST_TYPE_NOTE:
+        case PST_TYPE_OTHER:
+        case PST_TYPE_REPORT:
+        default:
+            reduced = PST_TYPE_NOTE;
+            break;
+    }
+    return reduced;
+}
+
+
+// this will create a directory by that name
+void mk_recurse_dir(char *dir) {
     int x;
-    char *out_name;
     DEBUG_ENT("mk_recurse_dir");
     check_filename(dir);
     if (D_MKDIR (dir)) {
@@ -864,27 +878,7 @@ char *mk_recurse_dir(char *dir, int32_t folder_type) {
         x = errno;
         DIE(("mk_recurse_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
     }
-    switch (folder_type) {
-        case PST_TYPE_APPOINTMENT:
-            out_name = strdup("calendar");
-            break;
-        case PST_TYPE_CONTACT:
-            out_name = strdup("contacts");
-            break;
-        case PST_TYPE_JOURNAL:
-            out_name = strdup("journal");
-            break;
-        case PST_TYPE_STICKYNOTE:
-        case PST_TYPE_TASK:
-        case PST_TYPE_NOTE:
-        case PST_TYPE_OTHER:
-        case PST_TYPE_REPORT:
-        default:
-            out_name = strdup("mbox");
-            break;
-    }
     DEBUG_RET();
-    return out_name;
 }
 
 
@@ -900,7 +894,7 @@ int close_recurse_dir() {
 }
 
 
-char *mk_separate_dir(char *dir) {
+void mk_separate_dir(char *dir) {
     size_t dirsize = strlen(dir) + 10;
     char dir_name[dirsize];
     int x = 0, y = 0;
@@ -953,9 +947,7 @@ char *mk_separate_dir(char *dir) {
 #endif
     }
 
-    // we don't return a filename here cause it isn't necessary.
     DEBUG_RET();
-    return NULL;
 }
 
 
@@ -971,17 +963,17 @@ int close_separate_dir() {
 }
 
 
-void mk_separate_file(struct file_ll *f, char *extension, int openit) {
+void mk_separate_file(struct file_ll *f, int32_t t, char *extension, int openit) {
     DEBUG_ENT("mk_separate_file");
     DEBUG_INFO(("opening next file to save email\n"));
     if (f->item_count > 999999999) { // bigger than nine 9's
         DIE(("mk_separate_file: The number of emails in this folder has become too high to handle\n"));
     }
-    sprintf(f->name, SEP_MAIL_FILE_TEMPLATE, f->item_count, extension);
-    check_filename(f->name);
+    sprintf(f->name[t], SEP_MAIL_FILE_TEMPLATE, f->item_count, extension);
+    check_filename(f->name[t]);
     if (openit) {
-        if (!(f->output = fopen(f->name, "w"))) {
-            DIE(("mk_separate_file: Cannot open file to save email \"%s\"\n", f->name));
+        if (!(f->output[t] = fopen(f->name[t], "w"))) {
+            DIE(("mk_separate_file: Cannot open file to save email \"%s\"\n", f->name[t]));
         }
     }
     DEBUG_RET();
@@ -989,16 +981,19 @@ void mk_separate_file(struct file_ll *f, char *extension, int openit) {
 
 
 void close_separate_file(struct file_ll *f) {
+    int32_t t;
     DEBUG_ENT("close_separate_file");
-    if (f->output) {
-        struct stat st;
-        fclose(f->output);
-        stat(f->name, &st);
-        if (!st.st_size) {
-            DEBUG_WARN(("removing empty output file %s\n", f->name));
-            remove(f->name);
+    for (t=0; t<PST_TYPE_MAX; t++) {
+        if (f->output[t]) {
+            struct stat st;
+            fclose(f->output[t]);
+            stat(f->name[t], &st);
+            if (!st.st_size) {
+                DEBUG_WARN(("removing empty output file %s\n", f->name[t]));
+                remove(f->name[t]);
+            }
+            f->output[t] = NULL;
         }
-        f->output = NULL;
     }
     DEBUG_RET();
 }
@@ -1227,16 +1222,19 @@ int  valid_headers(char *header)
     // there are surely others. the problem is - given an arbitrary character
     // string, is it a valid (or even reasonable) set of rfc822 headers?
     if (header) {
-        if ((strncasecmp(header, "X-Barracuda-URL: ", 17) == 0) ||
-            (strncasecmp(header, "X-ASG-Debug-ID: ",  16) == 0) ||
-            (strncasecmp(header, "Return-Path: ",     13) == 0) ||
-            (strncasecmp(header, "Received: ",        10) == 0) ||
-            (strncasecmp(header, "Subject: ",          9) == 0) ||
-            (strncasecmp(header, "Date: ",             6) == 0) ||
-            (strncasecmp(header, "From: ",             6) == 0) ||
-            (strncasecmp(header, "X-x: ",              5) == 0) ||
-            (strncasecmp(header, "Microsoft Mail Internet Headers", 31) == 0)) {
-            return 1;
+        if ((strncasecmp(header, "Content-Type: ",                  14) == 0) ||
+            (strncasecmp(header, "Date: ",                           6) == 0) ||
+            (strncasecmp(header, "From: ",                           6) == 0) ||
+            (strncasecmp(header, "MIME-Version: ",                  14) == 0) ||
+            (strncasecmp(header, "Microsoft Mail Internet Headers", 31) == 0) ||
+            (strncasecmp(header, "Received: ",                      10) == 0) ||
+            (strncasecmp(header, "Return-Path: ",                   13) == 0) ||
+            (strncasecmp(header, "Subject: ",                        9) == 0) ||
+            (strncasecmp(header, "To: ",                             4) == 0) ||
+            (strncasecmp(header, "X-ASG-Debug-ID: ",                16) == 0) ||
+            (strncasecmp(header, "X-Barracuda-URL: ",               17) == 0) ||
+            (strncasecmp(header, "X-x: ",                            5) == 0)) {
+            return 1;                                 
         }
         else {
             if (strlen(header) > 2) {
@@ -2176,15 +2174,23 @@ void write_appointment(FILE* f_output, pst_item* item)
 
 void create_enter_dir(struct file_ll* f, pst_item *item)
 {
-    pst_convert_utf8(item, &item->file_as);
-    f->type         = item->type;
+    memset(f, 0, sizeof(*f));
     f->stored_count = (item->folder) ? item->folder->item_count : 0;
+    pst_convert_utf8(item, &item->file_as);
+    f->dname = (char*) pst_malloc(strlen(item->file_as.str)+1);
+    strcpy(f->dname, item->file_as.str);
 
     DEBUG_ENT("create_enter_dir");
     if (mode == MODE_KMAIL)
-        f->name = mk_kmail_dir(item->file_as.str);
+        f->name[0] = mk_kmail_dir(item->file_as.str);
     else if (mode == MODE_RECURSE) {
-        f->name = mk_recurse_dir(item->file_as.str, f->type);
+        int32_t t;
+        mk_recurse_dir(item->file_as.str);
+        for (t=0; t<PST_TYPE_MAX; t++) {
+            if (t == reduced_item_type(t)) {
+                f->name[t] = strdup(item_type_to_name(t));
+            }
+        }
         if (mode_thunder) {
             FILE *type_file = fopen(".type", "w");
             fprintf(type_file, "%d\n", item->type);
@@ -2193,46 +2199,47 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
     } else if (mode == MODE_SEPARATE) {
         // do similar stuff to recurse here.
         mk_separate_dir(item->file_as.str);
-        f->name = (char*) pst_malloc(file_name_len);
-        memset(f->name, 0, file_name_len);
+        f->name[0] = (char*) pst_malloc(file_name_len);
+        memset(f->name[0], 0, file_name_len);
     } else {
-        f->name = (char*) pst_malloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+1);
-        sprintf(f->name, OUTPUT_TEMPLATE, item->file_as.str);
+        f->name[0] = (char*) pst_malloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+1);
+        sprintf(f->name[0], OUTPUT_TEMPLATE, item->file_as.str);
     }
 
-    f->dname = (char*) pst_malloc(strlen(item->file_as.str)+1);
-    strcpy(f->dname, item->file_as.str);
-
-    if (overwrite != 1) {
-        int x = 0;
-        char *temp = (char*) pst_malloc (strlen(f->name)+10); //enough room for 10 digits
-
-        sprintf(temp, "%s", f->name);
-        check_filename(temp);
-        while ((f->output = fopen(temp, "r"))) {
-            DEBUG_INFO(("need to increase filename because one already exists with that name\n"));
-            DEBUG_INFO(("- increasing it to %s%d\n", f->name, x));
-            x++;
-            sprintf(temp, "%s%08d", f->name, x);
-            DEBUG_INFO(("- trying \"%s\"\n", f->name));
-            if (x == 99999999) {
-                DIE(("create_enter_dir: Why can I not create a folder %s? I have tried %i extensions...\n", f->name, x));
-            }
-            fclose(f->output);
-        }
-        if (x > 0) { //then the f->name should change
-            free (f->name);
-            f->name = temp;
-        } else {
-            free(temp);
-        }
-    }
-
-    DEBUG_INFO(("f->name = %s\nitem->folder_name = %s\n", f->name, item->file_as.str));
     if (mode != MODE_SEPARATE) {
-        check_filename(f->name);
-        if (!(f->output = fopen(f->name, "w"))) {
-            DIE(("create_enter_dir: Could not open file \"%s\" for write\n", f->name));
+        int32_t t;
+        for (t=0; t<PST_TYPE_MAX; t++) {
+            if (f->name[t]) {
+                if (!overwrite) {
+                    int x = 0;
+                    char *temp = (char*) pst_malloc (strlen(f->name[t])+10); //enough room for 10 digits
+
+                    sprintf(temp, "%s", f->name[t]);
+                    check_filename(temp);
+                    while ((f->output[t] = fopen(temp, "r"))) {
+                        DEBUG_INFO(("need to increase filename because one already exists with that name\n"));
+                        DEBUG_INFO(("- increasing it to %s%d\n", f->name, x));
+                        x++;
+                        sprintf(temp, "%s%08d", f->name, x);
+                        DEBUG_INFO(("- trying \"%s\"\n", f->name));
+                        if (x == 99999999) {
+                            DIE(("create_enter_dir: Why can I not create a folder %s? I have tried %i extensions...\n", f->name, x));
+                        }
+                        fclose(f->output[t]);
+                    }
+                    if (x > 0) { //then the f->name should change
+                        free (f->name[t]);
+                        f->name[t] = temp;
+                    } else {
+                        free(temp);
+                    }
+                }
+                check_filename(f->name[t]);
+                if (!(f->output[t] = fopen(f->name[t], "w"))) {
+                    DIE(("create_enter_dir: Could not open file \"%s\" for write\n", f->name[t]));
+                }
+                DEBUG_INFO(("f->name = %s\nitem->folder_name = %s\n", f->name[t], item->file_as.str));
+            }
         }
     }
     DEBUG_RET();
@@ -2241,6 +2248,7 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
 
 void close_enter_dir(struct file_ll *f)
 {
+    int32_t t;
     DEBUG_INFO(("processed item count for folder %s is %i, skipped %i, total %i \n",
                 f->dname, f->item_count, f->skip_count, f->stored_count));
     if (output_mode != OUTPUT_QUIET) {
@@ -2249,18 +2257,21 @@ void close_enter_dir(struct file_ll *f)
             fflush(stdout);
         pst_debug_unlock();
     }
-    if (f->output) {
-        if (mode == MODE_SEPARATE) DEBUG_WARN(("close_enter_dir finds open separate file\n"));
-        struct stat st;
-        fclose(f->output);
-        stat(f->name, &st);
-        if (!st.st_size) {
-            DEBUG_WARN(("removing empty output file %s\n", f->name));
-            remove(f->name);
+    for (t=0; t<PST_TYPE_MAX; t++) {
+        if (f->output[t]) {
+            if (mode == MODE_SEPARATE) DEBUG_WARN(("close_enter_dir finds open separate file\n"));
+            struct stat st;
+            fclose(f->output[t]);
+            stat(f->name[t], &st);
+            if (!st.st_size) {
+                DEBUG_WARN(("removing empty output file %s\n", f->name[t]));
+                remove(f->name[t]);
+            }
+            f->output[t] = NULL;
         }
-        f->output = NULL;
+        free(f->name[t]);
+        f->name[t] = NULL;
     }
-    free(f->name);
     free(f->dname);
 
     if (mode == MODE_KMAIL)

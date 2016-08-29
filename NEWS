@@ -1,3 +1,4 @@
+0.6.68  2016-08-29 allow folders containing multiple item types;  better detection of valid internet headers
 0.6.67  2016-07-06 Jeffrey Morlan - multiple bug fixes and an optimization
 0.6.66  2015-12-21 Igor Stroh  - Added Content-ID header support
 0.6.65  2015-09-11 Jeffrey Morlan - fix multiple Content-Type headers; Hans Liss - debug level output
