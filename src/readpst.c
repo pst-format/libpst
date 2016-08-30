@@ -1214,6 +1214,17 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
 }
 
 
+int  header_match(char *header, char*field) {
+    int n = strlen(field);
+    if (strncasecmp(header, field, n) == 0) return 1;   // tag:{space}
+    if ((field[n-1] == ' ') && (strncasecmp(header, field, n-1) == 0)) {
+        char *crlftab = "\r\n\t";
+        DEBUG_INFO(("Possible wrapped header = %s\n", header));
+        if (strncasecmp(header+n-1, crlftab, 3) == 0) return 1; // tag:{cr}{lf}{tab}
+    }
+    return 0;
+}
+
 int  valid_headers(char *header)
 {
     // headers are sometimes really bogus - they seem to be fragments of the
@@ -1222,26 +1233,22 @@ int  valid_headers(char *header)
     // there are surely others. the problem is - given an arbitrary character
     // string, is it a valid (or even reasonable) set of rfc822 headers?
     if (header) {
-        if ((strncasecmp(header, "Content-Type: ",                  14) == 0) ||
-            (strncasecmp(header, "Date: ",                           6) == 0) ||
-            (strncasecmp(header, "From: ",                           6) == 0) ||
-            (strncasecmp(header, "MIME-Version: ",                  14) == 0) ||
-            (strncasecmp(header, "Microsoft Mail Internet Headers", 31) == 0) ||
-            (strncasecmp(header, "Received: ",                      10) == 0) ||
-            (strncasecmp(header, "Return-Path: ",                   13) == 0) ||
-            (strncasecmp(header, "Subject: ",                        9) == 0) ||
-            (strncasecmp(header, "To: ",                             4) == 0) ||
-            (strncasecmp(header, "X-ASG-Debug-ID: ",                16) == 0) ||
-            (strncasecmp(header, "X-Barracuda-URL: ",               17) == 0) ||
-            (strncasecmp(header, "X-x: ",                            5) == 0)) {
-            return 1;                                 
+        if (header_match(header, "Content-Type: "                 )) return 1;
+        if (header_match(header, "Date: "                         )) return 1;
+        if (header_match(header, "From: "                         )) return 1;
+        if (header_match(header, "MIME-Version: "                 )) return 1;
+        if (header_match(header, "Microsoft Mail Internet Headers")) return 1;
+        if (header_match(header, "Received: "                     )) return 1;
+        if (header_match(header, "Return-Path: "                  )) return 1;
+        if (header_match(header, "Subject: "                      )) return 1;
+        if (header_match(header, "To: "                           )) return 1;
+        if (header_match(header, "X-ASG-Debug-ID: "               )) return 1;
+        if (header_match(header, "X-Barracuda-URL: "              )) return 1;
+        if (header_match(header, "X-x: "                          )) return 1;
+        if (strlen(header) > 2) {
+            DEBUG_INFO(("Ignore bogus headers = %s\n", header));
         }
-        else {
-            if (strlen(header) > 2) {
-                DEBUG_INFO(("Ignore bogus headers = %s\n", header));
-            }
-            return 0;
-        }
+        return 0;
     }
     else return 0;
 }
