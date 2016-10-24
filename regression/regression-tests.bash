@@ -27,7 +27,7 @@ function dodii()
     if [ -z "$val" ] || [ $size -lt 10000000 ]; then
         echo $fn
         mkdir output$n
-        $val ../src/pst2dii -f /usr/share/fonts/bitstream-vera/VeraMono.ttf -B "bates-" -o output$n -O $ba.mydii -d $fn.log $fn >$fn.dii.err 2>&1
+        $val ../src/pst2dii -f /usr/share/fonts/liberation/LiberationMono-Regular.ttf -B "bates-" -o output$n -O $ba.mydii -d $fn.log $fn >$fn.dii.err 2>&1
     fi
 }
 

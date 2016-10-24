@@ -2225,12 +2225,11 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
                     check_filename(temp);
                     while ((f->output[t] = fopen(temp, "r"))) {
                         DEBUG_INFO(("need to increase filename because one already exists with that name\n"));
-                        DEBUG_INFO(("- increasing it to %s%d\n", f->name, x));
                         x++;
-                        sprintf(temp, "%s%08d", f->name, x);
-                        DEBUG_INFO(("- trying \"%s\"\n", f->name));
+                        sprintf(temp, "%s%08d", f->name[t], x);
+                        DEBUG_INFO(("- bump file name and try \"%s\"\n", temp));
                         if (x == 99999999) {
-                            DIE(("create_enter_dir: Why can I not create a folder %s? I have tried %i extensions...\n", f->name, x));
+                            DIE(("create_enter_dir: Why can I not create a folder %s? I have tried %i extensions...\n", f->name[t], x));
                         }
                         fclose(f->output[t]);
                     }
