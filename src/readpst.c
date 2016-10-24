@@ -9,9 +9,9 @@
 #include "lzfu.h"
 #include "msg.h"
 
-#define OUTPUT_TEMPLATE "%s"
+#define OUTPUT_TEMPLATE "%s.%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
-#define KMAIL_INDEX ".%s.index"
+#define KMAIL_INDEX "../.%s.index"
 #define SEP_MAIL_FILE_TEMPLATE "%i%s"
 
 // max size of the c_time char*. It will store the date of the email
@@ -33,7 +33,7 @@ void      write_email_body(FILE *f, char *body);
 void      removeCR(char *c);
 void      usage();
 void      version();
-char*     mk_kmail_dir(char* fname);
+void      mk_kmail_dir(char* fname);
 int       close_kmail_dir();
 void      mk_recurse_dir(char* dir);
 int       close_recurse_dir();
@@ -69,7 +69,6 @@ void      close_enter_dir(struct file_ll *f);
 
 const char*  prog_name;
 char*  output_dir = ".";
-char*  kmail_chdir = NULL;
 
 // Normal mode just creates mbox format files in the current directory. Each file is named
 // the same as the folder's name that it represents
@@ -761,18 +760,12 @@ void version() {
 }
 
 
-char *mk_kmail_dir(char *fname) {
-    //change to that directory
+void mk_kmail_dir(char *fname) {
     //make a directory based on OUTPUT_KMAIL_DIR_TEMPLATE
-    //allocate space for OUTPUT_TEMPLATE and form a char* with fname
-    //return that value
-    char *dir, *out_name, *index;
+    //change to that directory
+    char *dir, *index;
     int x;
     DEBUG_ENT("mk_kmail_dir");
-    if (kmail_chdir && chdir(kmail_chdir)) {
-        x = errno;
-        DIE(("mk_kmail_dir: Cannot change to directory %s: %s\n", kmail_chdir, strerror(x)));
-    }
     dir = pst_malloc(strlen(fname)+strlen(OUTPUT_KMAIL_DIR_TEMPLATE)+1);
     sprintf(dir, OUTPUT_KMAIL_DIR_TEMPLATE, fname);
     check_filename(dir);
@@ -782,8 +775,10 @@ char *mk_kmail_dir(char *fname) {
             DIE(("mk_kmail_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
         }
     }
-    kmail_chdir = pst_realloc(kmail_chdir, strlen(dir)+1);
-    strcpy(kmail_chdir, dir);
+    if (chdir(dir)) {
+        x = errno;
+        DIE(("mk_kmail_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
+    }
     free (dir);
 
     //we should remove any existing indexes created by KMail, cause they might be different now
@@ -792,25 +787,16 @@ char *mk_kmail_dir(char *fname) {
     unlink(index);
     free(index);
 
-    out_name = pst_malloc(strlen(fname)+strlen(OUTPUT_TEMPLATE)+1);
-    sprintf(out_name, OUTPUT_TEMPLATE, fname);
     DEBUG_RET();
-    return out_name;
 }
 
 
 int close_kmail_dir() {
-    // change ..
     int x;
     DEBUG_ENT("close_kmail_dir");
-    if (kmail_chdir) { //only free kmail_chdir if not NULL. do not change directory
-        free(kmail_chdir);
-        kmail_chdir = NULL;
-    } else {
-        if (chdir("..")) {
-            x = errno;
-            DIE(("close_kmail_dir: Cannot move up dir (..): %s\n", strerror(x)));
-        }
+    if (chdir("..")) {
+        x = errno;
+        DIE(("close_kmail_dir: Cannot move up dir (..): %s\n", strerror(x)));
     }
     DEBUG_RET();
     return 0;
@@ -874,7 +860,7 @@ void mk_recurse_dir(char *dir) {
             DIE(("mk_recurse_dir: Cannot create directory %s: %s\n", dir, strerror(x)));
         }
     }
-    if (chdir (dir)) {
+    if (chdir(dir)) {
         x = errno;
         DIE(("mk_recurse_dir: Cannot change to directory %s: %s\n", dir, strerror(x)));
     }
@@ -965,7 +951,7 @@ int close_separate_dir() {
 
 void mk_separate_file(struct file_ll *f, int32_t t, char *extension, int openit) {
     DEBUG_ENT("mk_separate_file");
-    DEBUG_INFO(("opening next file to save email\n"));
+    DEBUG_INFO(("opening next file to save email type %s\n", item_type_to_name(t)));
     if (f->item_count > 999999999) { // bigger than nine 9's
         DIE(("mk_separate_file: The number of emails in this folder has become too high to handle\n"));
     }
@@ -2188,9 +2174,16 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
     strcpy(f->dname, item->file_as.str);
 
     DEBUG_ENT("create_enter_dir");
-    if (mode == MODE_KMAIL)
-        f->name[0] = mk_kmail_dir(item->file_as.str);
-    else if (mode == MODE_RECURSE) {
+    if (mode == MODE_KMAIL) {
+        int32_t t;
+        mk_kmail_dir(item->file_as.str);
+        for (t=0; t<PST_TYPE_MAX; t++) {
+            if (t == reduced_item_type(t)) {
+                f->name[t] = (char*) pst_malloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+30);
+                sprintf(f->name[t], OUTPUT_TEMPLATE, item->file_as.str, item_type_to_name(t));
+            }
+        }
+    } else if (mode == MODE_RECURSE) {
         int32_t t;
         mk_recurse_dir(item->file_as.str);
         for (t=0; t<PST_TYPE_MAX; t++) {
@@ -2205,12 +2198,23 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
         }
     } else if (mode == MODE_SEPARATE) {
         // do similar stuff to recurse here.
+        int32_t t;
         mk_separate_dir(item->file_as.str);
-        f->name[0] = (char*) pst_malloc(file_name_len);
-        memset(f->name[0], 0, file_name_len);
+        for (t=0; t<PST_TYPE_MAX; t++) {
+            if (t == reduced_item_type(t)) {
+                f->name[t] = (char*) pst_malloc(file_name_len);
+                memset(f->name[t], 0, file_name_len);
+            }
+        }
     } else {
-        f->name[0] = (char*) pst_malloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+1);
-        sprintf(f->name[0], OUTPUT_TEMPLATE, item->file_as.str);
+        // MODE_NORMAL
+        int32_t t;
+        for (t=0; t<PST_TYPE_MAX; t++) {
+            if (t == reduced_item_type(t)) {
+                f->name[t] = (char*) pst_malloc(strlen(item->file_as.str)+strlen(OUTPUT_TEMPLATE)+30);
+                sprintf(f->name[t], OUTPUT_TEMPLATE, item->file_as.str, item_type_to_name(t));
+            }
+        }
     }
 
     if (mode != MODE_SEPARATE) {
@@ -2266,17 +2270,19 @@ void close_enter_dir(struct file_ll *f)
     for (t=0; t<PST_TYPE_MAX; t++) {
         if (f->output[t]) {
             if (mode == MODE_SEPARATE) DEBUG_WARN(("close_enter_dir finds open separate file\n"));
-            struct stat st;
             fclose(f->output[t]);
+            f->output[t] = NULL;
+        }
+        if (f->name[t]) {
+            struct stat st;
             stat(f->name[t], &st);
             if (!st.st_size) {
                 DEBUG_WARN(("removing empty output file %s\n", f->name[t]));
                 remove(f->name[t]);
             }
-            f->output[t] = NULL;
+            free(f->name[t]);
+            f->name[t] = NULL;
         }
-        free(f->name[t]);
-        f->name[t] = NULL;
     }
     free(f->dname);
 

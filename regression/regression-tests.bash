@@ -71,9 +71,18 @@ function dopst()
             acc="-a '.xls,.doc'"
             acc=''
             utf='-8'
+
+            ## normal mode
+            #echo $val ../src/readpst $utf $acc -C $char -j 0 -cv -o output$n -d $ba.log $fn
+            #     $val ../src/readpst $utf $acc -C $char -j 0 -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+
+            ## kmail mode
+            #echo $val ../src/readpst $utf $acc -C $char -j 0 -k -cv -o output$n -d $ba.log $fn
+            #     $val ../src/readpst $utf $acc -C $char -j 0 -k -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+
+            ## recursive mode
             echo $val ../src/readpst $utf $acc -C $char -j 0 -r -cv -o output$n -d $ba.log $fn
                  $val ../src/readpst $utf $acc -C $char -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
-            #readpst $utf $acc -C $char -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
 
             ## separate mode with filename extensions and .msg files
             #echo $val ../src/readpst $jobs     -r -m -D -cv -o output$n -d $ba.log $fn
