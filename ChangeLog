@@ -1,3 +1,7 @@
+LibPST 0.6.69 (2016-10-29)
+===============================
+    * fix bugs in code allowing folders containing multiple item types
+
 LibPST 0.6.68 (2016-08-29)
 ===============================
     * allow folders containing multiple item types, e.g. email and calendar

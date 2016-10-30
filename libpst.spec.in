@@ -160,6 +160,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Oct 29 2016 Carl Byington <carl@five-ten-sg.com> 0.6.69-1
+- fix bugs in code allowing folders containing multiple item types
+
 * Mon Aug 29 2016 Carl Byington <carl@five-ten-sg.com> 0.6.68-1
 - allow folders containing multiple item types, e.g. email and calendar
 - better detection of valid internet headers
