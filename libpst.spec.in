@@ -160,6 +160,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Feb 08 2017 Carl Byington <carl@five-ten-sg.com> 0.6.70-1
+- Jeffrey Morlan - pst_getID2 must not recurse into children
+
+* Fri Jan 27 2017 Jonathan Wakely <jwakely@redhat.com> - 0.6.69-2
+- Rebuilt for Boost 1.63
+
 * Sat Oct 29 2016 Carl Byington <carl@five-ten-sg.com> 0.6.69-1
 - fix bugs in code allowing folders containing multiple item types
 

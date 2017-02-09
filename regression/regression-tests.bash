@@ -138,6 +138,7 @@ $func  13 test-text.pst
 $func  14 joe.romanowski.pst
 $func  15 hourig1.pst
 $func  16 test-mac.pst
+$func  17 backup.pst
 $func  18 spam.pst
 $func  19 rendgen.pst           # single email appointment
 $func  20 rendgen2.pst          # email appointment with no termination date

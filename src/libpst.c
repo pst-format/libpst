@@ -1242,7 +1242,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x692))) {
         // DSN/MDN reports?
         DEBUG_INFO(("DSN/MDN processing\n"));
-        list = pst_parse_block(pf, id2_ptr->id->i_id, id2_head);
+        list = pst_parse_block(pf, id2_ptr->id->i_id, id2_ptr->child);
         if (list) {
             for (x=0; x < list->count_objects; x++) {
                 attach = (pst_item_attach*) pst_malloc(sizeof(pst_item_attach));
@@ -1269,7 +1269,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
 
     if ((id2_ptr = pst_getID2(id2_head, (uint64_t)0x671))) {
         DEBUG_INFO(("ATTACHMENT processing attachment\n"));
-        list = pst_parse_block(pf, id2_ptr->id->i_id, id2_head);
+        list = pst_parse_block(pf, id2_ptr->id->i_id, id2_ptr->child);
         if (!list) {
             if (item->flags & PST_FLAG_HAS_ATTACHMENT) {
                 // Only report an error if we expected to see an attachment table and didn't.
@@ -1323,7 +1323,7 @@ pst_item* pst_parse_item(pst_file *pf, pst_desc_tree *d_ptr, pst_id2_tree *m_hea
                 pst_free_list(list);
                 // As per 2.4.6.2 in the spec, the attachment data is stored as a child of the
                 // attachment object, so we pass in id2_ptr as the head to search from.
-                id2_ptr = pst_getID2(id2_ptr, attach->id2_val);
+                id2_ptr = pst_getID2(id2_ptr->child, attach->id2_val);
                 if (id2_ptr) {
                     DEBUG_WARN(("second pass attachment updating id2 %#"PRIx64" found i_id %#"PRIx64"\n", attach->id2_val, id2_ptr->id->i_id));
                     // i_id has been updated to the datablock containing the attachment data
@@ -3637,18 +3637,14 @@ pst_index_ll* pst_getID(pst_file* pf, uint64_t i_id) {
 
 
 static pst_id2_tree *pst_getID2(pst_id2_tree *head, uint64_t id2) {
+    // the id2 values are only unique among siblings.
+    // we must not recurse into children
+    // the caller must supply the correct parent
     DEBUG_ENT("pst_getID2");
     DEBUG_INFO(("looking for id2 = %#"PRIx64"\n", id2));
     pst_id2_tree *ptr = head;
     while (ptr) {
         if (ptr->id2 == id2) break;
-        if (ptr->child) {
-            pst_id2_tree *rc = pst_getID2(ptr->child, id2);
-            if (rc) {
-                DEBUG_RET();
-                return rc;
-            }
-        }
         ptr = ptr->next;
     }
     if (ptr && ptr->id) {

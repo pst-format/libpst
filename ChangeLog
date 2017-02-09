@@ -1,3 +1,7 @@
+LibPST 0.6.70 (2017-02-08)
+===============================
+    * Jeffrey Morlan - pst_getID2 must not recurse into children
+
 LibPST 0.6.69 (2016-10-29)
 ===============================
     * fix bugs in code allowing folders containing multiple item types
