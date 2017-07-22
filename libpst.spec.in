@@ -10,7 +10,12 @@ URL:                http://www.five-ten-sg.com/%{name}/
 Requires:           ImageMagick libgsf
 Requires:           %{name}-libs = %{version}-%{release}
 BuildRequires:      libtool
-BuildRequires:      ImageMagick gd-devel zlib-devel python-devel boost-devel libgsf-devel
+BuildRequires:      ImageMagick gd-devel zlib-devel boost-devel libgsf-devel
+%if 0%{?fedora} > 25
+BuildRequires:      python2-devel
+%else
+BuildRequires:      python-devel
+%endif
 
 %{!?python_sitelib:  %global python_sitelib  %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
@@ -33,10 +38,15 @@ The libpst-libs package contains the shared library used by the pst
 utilities.
 
 
+%if 0%{?fedora} > 25
+%package python2
+Requires:           python2
+%else
 %package python
+Requires:           python
+%endif
 Summary:            Python bindings for libpst
 Group:              Development/Libraries
-Requires:           python
 Requires:           %{name}-libs = %{version}-%{release}
 
 %if 0%{?fedora} >= 20
@@ -49,7 +59,11 @@ Requires:           %{name}-libs = %{version}-%{release}
 %endif
 
 
+%if 0%{?fedora} > 25
 %description python
+%else
+%description python2
+%endif
 The libpst-python package allows you to use the libpst shared object
 from python code.
 
@@ -129,11 +143,19 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING
 
 
+%if 0%{?fedora} > 25
+%files python2
+%defattr(-,root,root,-)
+%{python2_sitearch}/_*.so
+%exclude %{python2_sitearch}/*.a
+%exclude %{python2_sitearch}/*.la
+%else
 %files python
 %defattr(-,root,root,-)
 %{python_sitearch}/_*.so
 %exclude %{python_sitearch}/*.a
 %exclude %{python_sitearch}/*.la
+%endif
 
 
 %files devel
@@ -160,6 +182,15 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Feb 08 2017 Carl Byington <carl@five-ten-sg.com> 0.6.71-1
+- fedora python naming scheme changes
+
+* Thu Jul 20 2017 Kalev Lember <klember@redhat.com> - 0.6.70-3
+- Rebuilt for Boost 1.64
+
+* Fri Jul 07 2017 Igor Gnatenko <ignatenko@redhat.com> - 0.6.70-2
+- Rebuild due to bug in RPM (RHBZ #1468476)
+
 * Wed Feb 08 2017 Carl Byington <carl@five-ten-sg.com> 0.6.70-1
 - Jeffrey Morlan - pst_getID2 must not recurse into children
 
