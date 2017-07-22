@@ -60,9 +60,9 @@ Requires:           %{name}-libs = %{version}-%{release}
 
 
 %if 0%{?fedora} > 25
-%description python
-%else
 %description python2
+%else
+%description python
 %endif
 The libpst-python package allows you to use the libpst shared object
 from python code.
