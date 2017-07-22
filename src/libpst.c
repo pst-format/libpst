@@ -6,6 +6,7 @@
  */
 
 #include "define.h"
+#include "zlib.h"
 
 
 // switch to maximal packing for our own internal structures
@@ -23,6 +24,7 @@
 #define INDEX_TYPE32A           0x0F    // unknown, but assumed to be similar for now
 #define INDEX_TYPE64            0x17
 #define INDEX_TYPE64A           0x15    // http://sourceforge.net/projects/libpff/
+#define INDEX_TYPE4K            0x24
 #define INDEX_TYPE_OFFSET       (int64_t)0x0A
 
 #define FILE_SIZE_POINTER32     (int64_t)0xA8
@@ -45,6 +47,7 @@
 #define SECOND_POINTER    ((pf->do_read64) ? SECOND_POINTER64    : SECOND_POINTER32)
 #define SECOND_BACK       ((pf->do_read64) ? SECOND_BACK64       : SECOND_BACK32)
 #define ENC_TYPE          ((pf->do_read64) ? ENC_TYPE64          : ENC_TYPE32)
+
 
 #define PST_SIGNATURE 0x4E444221
 
@@ -135,10 +138,19 @@ typedef struct pst_desc {
 } pst_desc;
 
 
+typedef struct pst_index64 {
+    uint64_t id;
+    uint64_t offset;
+    uint16_t size;
+    int16_t  u0;
+    int32_t  u1;
+} pst_index64;
+
 typedef struct pst_index {
     uint64_t id;
     uint64_t offset;
     uint16_t size;
+    uint16_t inflated_size;
     int16_t  u0;
     int32_t  u1;
 } pst_index;
@@ -281,7 +293,8 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 static void             pst_printDptr(pst_file *pf, pst_desc_tree *ptr);
 static void             pst_printID2ptr(pst_id2_tree *ptr);
 static int              pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item, pst_item_attach *attach);
-static size_t           pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
+static size_t           pst_read_block_size(pst_file *pf, int64_t offset, size_t size, size_t inflated_size, char **buf);
+static size_t           pst_read_raw_block_size(pst_file *pf, int64_t offset, size_t size, char **buf);
 static int              pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type);
 static int              pst_strincmp(char *a, char *b, size_t x);
 static char*            pst_wide_to_single(char *wt, size_t size);
@@ -347,6 +360,9 @@ int pst_open(pst_file *pf, const char *name, const char *charset) {
         case INDEX_TYPE64 :
         case INDEX_TYPE64A :
             pf->do_read64 = 1;
+            break;
+        case INDEX_TYPE4K :
+            pf->do_read64 = 2;
             break;
         default:
             (void)fclose(pf->fp);
@@ -807,31 +823,32 @@ int pst_load_extended_attributes(pst_file *pf) {
 
 
 #define ITEM_COUNT_OFFSET32        0x1f0    // count byte
+#define MAX_COUNT_OFFSET32         0x1f1
+#define ENTRY_SIZE_OFFSET32        0x1f2
 #define LEVEL_INDICATOR_OFFSET32   0x1f3    // node or leaf
 #define BACKLINK_OFFSET32          0x1f8    // backlink u1 value
-#define ITEM_SIZE32                12
-#define DESC_SIZE32                16
-#define INDEX_COUNT_MAX32          41       // max active items
-#define DESC_COUNT_MAX32           31       // max active items
 
 #define ITEM_COUNT_OFFSET64        0x1e8    // count byte
+#define MAX_COUNT_OFFSET64         0x1e9
+#define ENTRY_SIZE_OFFSET64        0x1ea    // node or leaf
 #define LEVEL_INDICATOR_OFFSET64   0x1eb    // node or leaf
 #define BACKLINK_OFFSET64          0x1f8    // backlink u1 value
-#define ITEM_SIZE64                24
-#define DESC_SIZE64                32
-#define INDEX_COUNT_MAX64          20       // max active items
-#define DESC_COUNT_MAX64           15       // max active items
 
-#define BLOCK_SIZE                 512      // index blocks
-#define DESC_BLOCK_SIZE            512      // descriptor blocks
-#define ITEM_COUNT_OFFSET        (size_t)((pf->do_read64) ? ITEM_COUNT_OFFSET64      : ITEM_COUNT_OFFSET32)
-#define LEVEL_INDICATOR_OFFSET   (size_t)((pf->do_read64) ? LEVEL_INDICATOR_OFFSET64 : LEVEL_INDICATOR_OFFSET32)
-#define BACKLINK_OFFSET          (size_t)((pf->do_read64) ? BACKLINK_OFFSET64        : BACKLINK_OFFSET32)
-#define ITEM_SIZE                (size_t)((pf->do_read64) ? ITEM_SIZE64              : ITEM_SIZE32)
-#define DESC_SIZE                (size_t)((pf->do_read64) ? DESC_SIZE64              : DESC_SIZE32)
-#define INDEX_COUNT_MAX         (int32_t)((pf->do_read64) ? INDEX_COUNT_MAX64        : INDEX_COUNT_MAX32)
-#define DESC_COUNT_MAX          (int32_t)((pf->do_read64) ? DESC_COUNT_MAX64         : DESC_COUNT_MAX32)
+#define ITEM_COUNT_OFFSET4K        0xfd8
+#define MAX_COUNT_OFFSET4K         0xfda
+#define ENTRY_SIZE_OFFSET4K        0xfdc
+#define LEVEL_INDICATOR_OFFSET4K   0xfdd
+#define BACKLINK_OFFSET4K          0xff0
 
+#define BLOCK_SIZE               (size_t)((pf->do_read64 == 2) ? 4096 : 512)      // index blocks
+#define DESC_BLOCK_SIZE          (size_t)((pf->do_read64 == 2) ? 4096 : 512)      // descriptor blocks
+#define ITEM_COUNT_OFFSET        (size_t)((pf->do_read64) ? (pf->do_read64 == 2 ? ITEM_COUNT_OFFSET4K : ITEM_COUNT_OFFSET64) : ITEM_COUNT_OFFSET32)
+#define LEVEL_INDICATOR_OFFSET   (size_t)((pf->do_read64) ? (pf->do_read64 == 2 ? LEVEL_INDICATOR_OFFSET4K : LEVEL_INDICATOR_OFFSET64) : LEVEL_INDICATOR_OFFSET32)
+#define BACKLINK_OFFSET          (size_t)((pf->do_read64) ? (pf->do_read64 == 2 ? BACKLINK_OFFSET4K : BACKLINK_OFFSET64) : BACKLINK_OFFSET32)
+#define ENTRY_SIZE_OFFSET        (size_t)((pf->do_read64) ? (pf->do_read64 == 2 ? ENTRY_SIZE_OFFSET4K : ENTRY_SIZE_OFFSET64) : ENTRY_SIZE_OFFSET32)
+#define MAX_COUNT_OFFSET         (size_t)((pf->do_read64) ? (pf->do_read64 == 2 ? MAX_COUNT_OFFSET4K : MAX_COUNT_OFFSET64) : MAX_COUNT_OFFSET32)
+
+#define read_twobyte(BUF, OFF)   (int32_t) ((((unsigned)BUF[OFF + 1] & 0xFF)) << 8) | ((unsigned)BUF[OFF] & 0xFF);
 
 static size_t pst_decode_desc(pst_file *pf, pst_desc *desc, char *buf);
 static size_t pst_decode_desc(pst_file *pf, pst_desc *desc, char *buf) {
@@ -899,16 +916,34 @@ static size_t pst_decode_table(pst_file *pf, struct pst_table_ptr_struct *table,
 static size_t pst_decode_index(pst_file *pf, pst_index *index, char *buf);
 static size_t pst_decode_index(pst_file *pf, pst_index *index, char *buf) {
     size_t r;
-    if (pf->do_read64) {
-        DEBUG_INFO(("Decoding index64\n"));
+    if (pf->do_read64 == 2) {
+        DEBUG_INFO(("Decoding index4k\n"));
         DEBUG_HEXDUMPC(buf, sizeof(pst_index), 0x10);
         memcpy(index, buf, sizeof(pst_index));
         LE64_CPU(index->id);
         LE64_CPU(index->offset);
         LE16_CPU(index->size);
+        LE16_CPU(index->inflated_size);
         LE16_CPU(index->u0);
         LE32_CPU(index->u1);
         r = sizeof(pst_index);
+    } else  if (pf->do_read64 == 1) {
+        pst_index64 index64;
+        DEBUG_INFO(("Decoding index64\n"));
+        DEBUG_HEXDUMPC(buf, sizeof(pst_index64), 0x10);
+        memcpy(&index64, buf, sizeof(pst_index64));
+        LE64_CPU(index64.id);
+        LE64_CPU(index64.offset);
+        LE16_CPU(index64.size);
+        LE16_CPU(index64.u0);
+        LE32_CPU(index64.u1);
+        index->id     = index64.id;
+        index->offset = index64.offset;
+        index->size   = index64.size;
+        index->inflated_size = index64.size;
+        index->u0     = index64.u0;
+        index->u1     = index64.u1;
+        r = sizeof(pst_index64);
     } else {
         pst_index32 index32;
         DEBUG_INFO(("Decoding index32\n"));
@@ -921,6 +956,7 @@ static size_t pst_decode_index(pst_file *pf, pst_index *index, char *buf) {
         index->id     = index32.id;
         index->offset = index32.offset;
         index->size   = index32.size;
+        index->inflated_size = index32.size;
         index->u0     = 0;
         index->u1     = index32.u1;
         r = sizeof(pst_index32);
@@ -990,7 +1026,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
     struct pst_table_ptr_struct table, table2;
     pst_index_ll *i_ptr=NULL;
     pst_index index;
-    int32_t x, item_count;
+    int32_t x, item_count, count_max;
     uint64_t old = start_val;
     char *buf = NULL, *bptr;
 
@@ -1002,17 +1038,23 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
         return -1;
     }
     DEBUG_INFO(("Reading index block\n"));
-    if (pst_read_block_size(pf, offset, BLOCK_SIZE, &buf) < BLOCK_SIZE) {
+    if (pst_read_block_size(pf, offset, BLOCK_SIZE, BLOCK_SIZE, &buf) < BLOCK_SIZE) {
         DEBUG_WARN(("Failed to read %i bytes\n", BLOCK_SIZE));
         if (buf) free(buf);
         DEBUG_RET();
         return -1;
     }
     bptr = buf;
-    DEBUG_HEXDUMPC(buf, BLOCK_SIZE, ITEM_SIZE32);
-    item_count = (int32_t)(unsigned)(buf[ITEM_COUNT_OFFSET]);
-    if (item_count > INDEX_COUNT_MAX) {
-        DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, INDEX_COUNT_MAX));
+    DEBUG_HEXDUMPC(buf, BLOCK_SIZE, 0x10);
+    if (pf->do_read64 == 2) {
+        item_count = read_twobyte(buf, ITEM_COUNT_OFFSET);
+        count_max = read_twobyte(buf, MAX_COUNT_OFFSET);
+    } else {
+        item_count = (int32_t)(unsigned)(buf[ITEM_COUNT_OFFSET]);
+        count_max = (int32_t)(unsigned)(buf[MAX_COUNT_OFFSET]);
+    }
+    if (item_count > count_max) {
+        DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, count_max));
         if (buf) free(buf);
         DEBUG_RET();
         return -1;
@@ -1024,12 +1066,14 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
         DEBUG_RET();
         return -1;
     }
-
+    int entry_size = (int32_t)(unsigned)(buf[ENTRY_SIZE_OFFSET]);
+    DEBUG_INFO(("count %#"PRIx64" max %#"PRIx64" size %#"PRIx64"\n", item_count, count_max, entry_size));
     if (buf[LEVEL_INDICATOR_OFFSET] == '\0') {
         // this node contains leaf pointers
         x = 0;
         while (x < item_count) {
-            bptr += pst_decode_index(pf, &index, bptr);
+            pst_decode_index(pf, &index, bptr);
+            bptr += entry_size;
             x++;
             if (index.id == 0) break;
             DEBUG_INFO(("[%i]%i Item [id = %#"PRIx64", offset = %#"PRIx64", u1 = %#x, size = %i(%#x)]\n",
@@ -1051,12 +1095,14 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
             i_ptr->offset = index.offset;
             i_ptr->u1     = index.u1;
             i_ptr->size   = index.size;
+            i_ptr->inflated_size = index.inflated_size;
         }
     } else {
         // this node contains node pointers
         x = 0;
         while (x < item_count) {
-            bptr += pst_decode_table(pf, &table, bptr);
+            pst_decode_table(pf, &table, bptr);
+            bptr += entry_size;
             x++;
             if (table.start == 0) break;
             if (x < item_count) {
@@ -1090,7 +1136,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
 static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint64_t linku1, uint64_t start_val, uint64_t end_val) {
     struct pst_table_ptr_struct table, table2;
     pst_desc desc_rec;
-    int32_t item_count;
+    int32_t item_count, count_max;
     uint64_t old = start_val;
     int x;
     char *buf = NULL, *bptr;
@@ -1103,15 +1149,20 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
         return -1;
     }
     DEBUG_INFO(("Reading desc block\n"));
-    if (pst_read_block_size(pf, offset, DESC_BLOCK_SIZE, &buf) < DESC_BLOCK_SIZE) {
+    if (pst_read_block_size(pf, offset, DESC_BLOCK_SIZE, DESC_BLOCK_SIZE, &buf) < DESC_BLOCK_SIZE) {
         DEBUG_WARN(("Failed to read %i bytes\n", DESC_BLOCK_SIZE));
         if (buf) free(buf);
         DEBUG_RET();
         return -1;
     }
     bptr = buf;
-    item_count = (int32_t)(unsigned)(buf[ITEM_COUNT_OFFSET]);
-
+    if (pf->do_read64 == 2) {
+        item_count = read_twobyte(buf, ITEM_COUNT_OFFSET);
+        count_max = read_twobyte(buf, MAX_COUNT_OFFSET);
+    } else {
+        item_count = (int32_t)(unsigned)(buf[ITEM_COUNT_OFFSET]);
+        count_max = (int32_t)(unsigned)(buf[MAX_COUNT_OFFSET]);
+    }
     desc_rec.d_id = pst_getIntAt(pf, buf+BACKLINK_OFFSET);
     if (desc_rec.d_id != linku1) {
         DEBUG_WARN(("Backlink %#"PRIx64" in this node does not match required %#"PRIx64"\n", desc_rec.d_id, linku1));
@@ -1119,17 +1170,19 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
         DEBUG_RET();
         return -1;
     }
+    int32_t entry_size = (int32_t)(unsigned)(buf[ENTRY_SIZE_OFFSET]);
     if (buf[LEVEL_INDICATOR_OFFSET] == '\0') {
         // this node contains leaf pointers
-        DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, DESC_SIZE32);
-        if (item_count > DESC_COUNT_MAX) {
-            DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, DESC_COUNT_MAX));
+        DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, entry_size);
+        if (item_count > count_max) {
+            DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, count_max));
             if (buf) free(buf);
             DEBUG_RET();
             return -1;
         }
         for (x=0; x<item_count; x++) {
-            bptr += pst_decode_desc(pf, &desc_rec, bptr);
+            pst_decode_desc(pf, &desc_rec, bptr);
+            bptr += entry_size;
             DEBUG_INFO(("[%i] Item(%#x) = [d_id = %#"PRIx64", desc_id = %#"PRIx64", tree_id = %#"PRIx64", parent_d_id = %#x]\n",
                         depth, x, desc_rec.d_id, desc_rec.desc_id, desc_rec.tree_id, desc_rec.parent_d_id));
             if ((desc_rec.d_id >= end_val) || (desc_rec.d_id < old)) {
@@ -1152,15 +1205,16 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
         }
     } else {
         // this node contains node pointers
-        DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, ITEM_SIZE32);
-        if (item_count > INDEX_COUNT_MAX) {
-            DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, INDEX_COUNT_MAX));
+        DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, entry_size);
+        if (item_count > count_max) {
+            DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, count_max));
             if (buf) free(buf);
             DEBUG_RET();
             return -1;
         }
         for (x=0; x<item_count; x++) {
-            bptr += pst_decode_table(pf, &table, bptr);
+            pst_decode_table(pf, &table, bptr);
+            bptr += entry_size;
             if (table.start == 0) break;
             if (x < (item_count-1)) {
                 (void)pst_decode_table(pf, &table2, bptr);
@@ -3246,7 +3300,7 @@ static pst_id2_tree * pst_build_id2(pst_file *pf, pst_index_ll* list) {
     pst_id2_tree *i2_ptr = NULL;
     DEBUG_ENT("pst_build_id2");
 
-    if (pst_read_block_size(pf, list->offset, list->size, &buf) < list->size) {
+    if (pst_read_block_size(pf, list->offset, list->size, list->inflated_size, &buf) < list->size) {
         //an error occured in block read
         DEBUG_WARN(("block read error occured. offset = %#"PRIx64", size = %#"PRIx64"\n", list->offset, list->size));
         if (buf) free(buf);
@@ -3277,7 +3331,7 @@ static pst_id2_tree * pst_build_id2(pst_file *pf, pst_index_ll* list) {
             DEBUG_WARN(("%#"PRIx64" - Not Found\n", id2_rec.id));
         } else {
             DEBUG_INFO(("%#"PRIx64" - Offset %#"PRIx64", u1 %#"PRIx64", Size %"PRIi64"(%#"PRIx64")\n",
-                         i_ptr->i_id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->size));
+                         i_ptr->i_id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->inflated_size));
             // add it to the tree
             i2_ptr = (pst_id2_tree*) pst_malloc(sizeof(pst_id2_tree));
             i2_ptr->id2   = id2_rec.id2;
@@ -3564,8 +3618,13 @@ static int pst_getBlockOffsetPointer(pst_file *pf, pst_id2_tree *i2_head, pst_su
         }
     }
     else {
+        DEBUG_WARN(("Found internal %#x value.\n", offset));
         // internal index reference
         size_t subindex  = offset >> 16;
+        if (pf->do_read64 == 2) {
+            // Shift over 3 more bits for new flags.
+            subindex = subindex >> 3;
+        }
         size_t suboffset = offset & 0xffff;
         if (subindex < subblocks->subblock_count) {
             if (pst_getBlockOffset(subblocks->subs[subindex].buf,
@@ -3720,10 +3779,10 @@ static void pst_printID2ptr(pst_id2_tree *ptr) {
                  is non-NULL, it will first be free()d
  * @return       size of block read into memory
  */
-static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, char **buf) {
+static size_t pst_read_raw_block_size(pst_file *pf, int64_t offset, size_t size, char **buf) {
     size_t rsize;
-    DEBUG_ENT("pst_read_block_size");
-    DEBUG_INFO(("Reading block from %#"PRIx64", %x bytes\n", offset, size));
+    DEBUG_ENT("pst_read_raw_block_size");
+    DEBUG_INFO(("Reading raw block from %#"PRIx64", %x bytes\n", offset, size));
 
     if (*buf) {
         DEBUG_INFO(("Freeing old memory\n"));
@@ -3746,6 +3805,36 @@ static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, cha
     DEBUG_RET();
     return rsize;
 }
+
+static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, size_t inflated_size, char **buf) {
+    DEBUG_ENT("pst_read_block_size");
+    DEBUG_INFO(("Reading block from %#"PRIx64", %x bytes, %x inflated\n", offset, size, inflated_size));
+    if (inflated_size <= size) {
+        // Not deflated.
+        size_t ret = pst_read_raw_block_size(pf, offset, size, buf);
+        DEBUG_RET();
+        return ret;
+    }
+    // We need to read the raw block and inflate it.
+    char *zbuf = NULL;
+    if (pst_read_raw_block_size(pf, offset, size, &zbuf) != size) {
+        DEBUG_WARN(("Failed to read %i bytes\n", size));
+        if (zbuf) free(zbuf);
+        DEBUG_RET();
+        return -1;
+    }
+    *buf = (char *) pst_malloc(inflated_size);
+    size_t result_size = inflated_size;
+    if (uncompress((Bytef *) *buf, &result_size, (Bytef *) zbuf, size) != Z_OK || result_size != inflated_size) {
+        DEBUG_WARN(("Failed to uncompress %i bytes to %i bytes, got %i\n", size, inflated_size, result_size));
+        if (zbuf) free(zbuf);
+        DEBUG_RET();
+        return -1;
+    }
+    DEBUG_RET();
+    return inflated_size;
+}
+
 
 
 /** Decrypt a block of data from the pst file.
@@ -3923,7 +4012,7 @@ static size_t pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf) {
         return 0;
     }
     DEBUG_INFO(("id = %#"PRIx64", record size = %#x, offset = %#x\n", i_id, rec->size, rec->offset));
-    rsize = pst_read_block_size(pf, rec->offset, rec->size, buf);
+    rsize = pst_read_block_size(pf, rec->offset, rec->size, rec->inflated_size, buf);
     DEBUG_RET();
     return rsize;
 }

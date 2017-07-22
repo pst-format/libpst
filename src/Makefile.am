@@ -91,13 +91,13 @@ endif
 INCLUDES= -I$(srcdir)/.. $(all_includes)
 
 # the library search path.
-lspst_LDADD       = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
-readpst_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) $(REGEXLIB) $(GSF_LIBS)
-pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
-pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) -lgd
-deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
-dumpblocks_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
-getidblock_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
-nick2ldif_LDADD   = $(all_libraries) $(PSTLIB) $(LTLIBICONV)
+lspst_LDADD       = $(all_libraries) $(PSTLIB) $(LTLIBICONV) @ZLIB_LIBS@
+readpst_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) $(REGEXLIB) $(GSF_LIBS) @ZLIB_LIBS@
+pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(LTLIBICONV) @ZLIB_LIBS@
+pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) -lgd @ZLIB_LIBS@
+deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(LTLIBICONV) @ZLIB_LIBS@
+dumpblocks_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV) @ZLIB_LIBS@
+getidblock_LDADD  = $(all_libraries) $(PSTLIB) $(LTLIBICONV) @ZLIB_LIBS@
+nick2ldif_LDADD   = $(all_libraries) $(PSTLIB) $(LTLIBICONV) @ZLIB_LIBS@
 
 

@@ -105,6 +105,7 @@ typedef struct pst_index_ll {
     uint64_t i_id;
     uint64_t offset;
     uint64_t size;
+    uint64_t inflated_size;
     int64_t  u1;
 } pst_index_ll;
 
@@ -907,7 +908,8 @@ typedef struct pst_file {
     pst_block_recorder *block_head;
 
     /** @li 0 is 32-bit pst file, pre Outlook 2003;
-     *  @li 1 is 64-bit pst file, Outlook 2003 or later */
+     *  @li 1 is 64-bit pst file, Outlook 2003 or later;
+     *  @li 2 is 64-bit OST file, Outlook 2013 or later */
     int do_read64;
     /** file offset of the first b-tree node in the index tree */
     uint64_t index1;

@@ -377,6 +377,8 @@ fi
 AC_SUBST(GSF_FLAGS, [$gsf_flags])
 AC_SUBST(GSF_LIBS, [$gsf_libs])
 
+PKG_CHECK_MODULES([ZLIB], [zlib])
+
 AC_OUTPUT(                  \
     Makefile                \
     html/Makefile           \

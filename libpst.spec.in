@@ -182,8 +182,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Wed Feb 08 2017 Carl Byington <carl@five-ten-sg.com> 0.6.71-1
+* Fri Jul 21 2017 Carl Byington <carl@five-ten-sg.com> 0.6.71-1
 - fedora python naming scheme changes
+- Zachary Travis - Add support for the OST 2013 format, and
+  Content-Disposition filename key fix for outlook compatibility
 
 * Thu Jul 20 2017 Kalev Lember <klember@redhat.com> - 0.6.70-3
 - Rebuilt for Boost 1.64
