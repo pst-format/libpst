@@ -74,13 +74,12 @@
     #else
         #error Only MSC and mingw supported for Windows
     #endif
-    #ifndef __MINGW32__
-        #define size_t     __int64
-    #endif
     #ifndef UINT64_MAX
         #define UINT64_MAX ((uint64_t)0xffffffffffffffff)
     #endif
-    #define PRIx64 "I64x"
+    #ifndef PRIx64
+        #define PRIx64 "I64x"
+    #endif
     int __cdecl _fseeki64(FILE *, __int64, int);
     __int64 __cdecl _ftelli64(FILE *);
 
@@ -97,7 +96,7 @@
     #ifdef __DJGPP__
         #define gmtime_r(tp,tmp) (gmtime(tp)?(*(tmp)=*gmtime(tp),(tmp)):0)
         #define ctime_r(tp,tmp) (ctime(tp)?(strcpy((tmp),ctime((tp))),(tmp)):0)
-		#define fseeko(stream, offset, whence) fseek(stream, (long)offset, whence)
+        #define fseeko(stream, offset, whence) fseek(stream, (long)offset, whence)
         #define ftello ftell
     #endif
     #ifdef HAVE_UNISTD_H
@@ -151,7 +150,7 @@ void *pst_realloc(void *ptr, size_t size);
 #define MESSAGEPRINT3(...) pst_debug(3, __LINE__, __FILE__,  __VA_ARGS__)
 
 #define WARN(x) {           \
-    MESSAGEPRINT3 x;	    \
+    MESSAGEPRINT3 x;        \
     pst_debug_lock();       \
         printf x;           \
         fflush(stdout);     \
@@ -172,12 +171,12 @@ void *pst_realloc(void *ptr, size_t size);
 #define DEBUG_ENT(x)                                            \
     {                                                           \
       pst_debug_func(1, x);                                      \
-      pst_debug(1, __LINE__, __FILE__, "Entering function\n");	 \
+      pst_debug(1, __LINE__, __FILE__, "Entering function\n");   \
     }
 #define DEBUG_RET()                                             \
     {                                                           \
       pst_debug(1, __LINE__, __FILE__, "Leaving function\n");    \
-      pst_debug_func_ret(1);					 \
+      pst_debug_func_ret(1);                     \
     }
 
 #define DEBUG_INIT(fname,mutex) {pst_debug_init(fname,mutex);}
@@ -245,11 +244,11 @@ void *pst_realloc(void *ptr, size_t size);
                   (((uint8_t const *)(p))[2] << 16) |    \
                   (((uint8_t const *)(p))[3] << 24))
 
-#define PST_LE_GET_UINT16(p)				  \
+#define PST_LE_GET_UINT16(p)                  \
         (uint16_t)((((uint8_t const *)(p))[0] << 0)  |    \
                    (((uint8_t const *)(p))[1] << 8))
 
-#define PST_LE_GET_INT16(p)				  \
+#define PST_LE_GET_INT16(p)               \
         (int16_t)((((uint8_t const *)(p))[0] << 0)  |    \
                    (((uint8_t const *)(p))[1] << 8))
 
