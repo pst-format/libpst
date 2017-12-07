@@ -16,6 +16,10 @@ struct file_ll {
     int32_t type;
 };
 
+struct options {
+    int long_format;
+    char *date_format;
+};
 
 void canonicalize_filename(char *fname);
 void debug_print(char *fmt, ...);
@@ -42,13 +46,13 @@ void close_enter_dir(struct file_ll *f)
     free(f->dname);
 }
 
-
-void process(pst_item *outeritem, pst_desc_tree *d_ptr)
+void process(pst_item *outeritem, pst_desc_tree *d_ptr, struct options o)
 {
     struct file_ll ff;
     pst_item *item = NULL;
     char *result = NULL;
     size_t resultlen = 0;
+    size_t dateresultlen;
 
     DEBUG_ENT("process");
     memset(&ff, 0, sizeof(ff));
@@ -74,7 +78,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                     // if this is a folder, we want to recurse into it
                     pst_convert_utf8(item, &item->file_as);
                     printf("Folder \"%s\"\n", item->file_as.str);
-                    process(item, d_ptr->child);
+                    process(item, d_ptr->child, o);
 
                 } else if (item->contact && (item->type == PST_TYPE_CONTACT)) {
                     if (!ff.type) ff.type = item->type;
@@ -94,10 +98,39 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                         DEBUG_INFO(("I have an email, but the folder isn't an email folder. Processing anyway\n"));
                     }
                     printf("Email");
+                    if (o.long_format == 1) {
+                        if (item->email->arrival_date) {
+                            char time_buffer[MAXDATEFMTLEN];
+                            dateresultlen = pst_fileTimeToString(item->email->arrival_date, o.date_format, time_buffer);
+                            if (dateresultlen < 1)
+                                DIE(("Date format error in -f option.\n"));
+                            printf("\tDate: %s", time_buffer);
+                        }
+                        else
+                            printf("\t");
+                    }
                     if (item->email->outlook_sender_name.str)
                         printf("\tFrom: %s", item->email->outlook_sender_name.str);
+                    else
+                        printf("\t");
+                    if (o.long_format == 1) {
+                        if (item->email->outlook_recipient_name.str)
+                            printf("\tTo: %s", item->email->outlook_recipient_name.str);
+                        else
+                            printf("\t");
+                        if (item->email->cc_address.str)
+                            printf("\tCC: %s", item->email->cc_address.str);
+                        else
+                            printf("\t");
+                        if (item->email->bcc_address.str)
+                            printf("\tBCC: %s", item->email->bcc_address.str);
+                        else
+                            printf("\t");
+                    }
                     if (item->subject.str)
                         printf("\tSubject: %s", item->subject.str);
+                    else
+                        printf("\t");
                     printf("\n");
 
                 } else if (item->journal && (item->type == PST_TYPE_JOURNAL)) {
@@ -152,6 +185,8 @@ void usage(char *prog_name) {
 	printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
 	printf("OPTIONS:\n");
     printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readlog to print it\n");
+	printf("\t-l\t- Print the date, CC and BCC fields of emails too (by default only the From and Subject)\n");
+	printf("\t-f <date_format> \t- Select the date format in ctime format (by default \"%%F %%T\")\n");
 	printf("\t-h\t- Help. This screen\n");
 	printf("\t-V\t- Version. Display program version\n");
 	DEBUG_RET();
@@ -178,11 +213,21 @@ int main(int argc, char* const* argv) {
     char *temp  = NULL; //temporary char pointer
     int  c;
     char *d_log = NULL;
+    struct options o;
+    o.long_format = 0;
+    char *defaultfmtdate = "%F %T";
+    o.date_format = defaultfmtdate;
 
-	while ((c = getopt(argc, argv, "d:hV"))!= -1) {
+	while ((c = getopt(argc, argv, "d:f:lhV"))!= -1) {
 		switch (c) {
 			case 'd':
 				d_log = optarg;
+				break;
+			case 'f':
+				o.date_format = optarg;
+				break;
+			case 'l':
+				o.long_format = 1;
 				break;
 			case 'h':
 				usage(argv[0]);
@@ -242,7 +287,7 @@ int main(int argc, char* const* argv) {
     d_ptr = pst_getTopOfFolders(&pstfile, item);
     if (!d_ptr) DIE(("Top of folders record not found. Cannot continue\n"));
 
-    process(item, d_ptr->child);    // do the childred of TOPF
+    process(item, d_ptr->child, o);    // do the childred of TOPF
     pst_freeItem(item);
     pst_close(&pstfile);
 

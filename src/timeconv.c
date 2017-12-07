@@ -8,6 +8,11 @@ char* pst_fileTimeToAscii(const FILETIME* filetime, char* result) {
     return ctime_r(&t, result);
 }
 
+size_t pst_fileTimeToString(const FILETIME* filetime, const char* date_format, char* result) {
+    time_t t;
+    t = pst_fileTimeToUnixTime(filetime);
+    return strftime(result, MAXDATEFMTLEN-1, date_format, localtime(&t));
+}
 
 void pst_fileTimeToStructTM (const FILETIME *filetime, struct tm *result) {
     time_t t1;

@@ -256,5 +256,6 @@ void *pst_realloc(void *ptr, size_t size);
 
 #define PST_LE_GET_INT8(p) (*(int8_t const *)(p))
 
+#define MAXDATEFMTLEN 40
 
 #endif //DEFINEH_H

@@ -35,7 +35,7 @@
 
     <refentry id="readpst.1">
         <refentryinfo>
-            <date>2016-08-29</date>
+            <date>2017-12-07</date>
         </refentryinfo>
 
         <refmeta>
@@ -325,6 +325,8 @@
                 <command>lspst</command>
                 <arg><option>-V</option></arg>
                 <arg><option>-d <replaceable class="parameter">debug-file</replaceable></option></arg>
+                <arg><option>-f <replaceable class="parameter">date-format</replaceable></option></arg>
+                <arg><option>-l</option></arg>
                 <arg><option>-h</option></arg>
                 <arg choice='plain'>pstfile</arg>
             </cmdsynopsis>
@@ -344,6 +346,18 @@
                     <listitem><para>
                         Specify name of debug log file. The log file is now an ascii file,
                         instead of the binary file used in previous versions.
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-f <replaceable class="parameter">date-format</replaceable></term>
+                    <listitem><para>
+                        Select the date format for long format listing. Defaults to "%F %T".
+                    </para></listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>-l</term>
+                    <listitem><para>
+                        Use long format listing to show the Date, CC and BCC headers.
                     </para></listitem>
                 </varlistentry>
                 <varlistentry>
@@ -400,7 +414,7 @@
 
     <refentry id="pst2ldif.1">
         <refentryinfo>
-            <date>2016-08-29</date>
+            <date>2017-12-07</date>
         </refentryinfo>
 
         <refmeta>
@@ -568,7 +582,7 @@
 
     <refentry id="pst2dii.1">
         <refentryinfo>
-            <date>2016-08-29</date>
+            <date>2017-12-07</date>
         </refentryinfo>
 
         <refmeta>
@@ -701,7 +715,7 @@
 
     <refentry id="pst.5">
         <refentryinfo>
-            <date>2016-08-29</date>
+            <date>2017-12-07</date>
         </refentryinfo>
 
         <refmeta>
