@@ -26,9 +26,9 @@ extern "C" {
     time_t pst_fileTimeToUnixTime( const FILETIME* filetime);
 
     /** Convert a FILETIME to string in date_format format.
-       @param[in]  filetime time structure to be converted
-       @param[in]  string ctime_r format of output date
-       @param[out] result   pointer to output buffer, must be at least 30 bytes.
+       @param[in]  filetime    time structure to be converted
+       @param[in]  date_format string ctime_r format of output date
+       @param[out] result      pointer to output buffer, must be at least 30 bytes.
        @return     result size_t value returned by strftime
      */
     size_t pst_fileTimeToString( const FILETIME* filetime, const char* date_format, char* result);

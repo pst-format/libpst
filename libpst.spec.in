@@ -9,10 +9,10 @@ BuildRoot:          %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXX
 URL:                http://www.five-ten-sg.com/%{name}/
 Requires:           ImageMagick libgsf
 Requires:           %{name}-libs = %{version}-%{release}
-BuildRequires:      libtool
+BuildRequires:      libtool gcc-c++
 BuildRequires:      ImageMagick gd-devel zlib-devel boost-devel libgsf-devel
-%if 0%{?fedora} > 25
-BuildRequires:      python2-devel
+%if 0%{?fedora} > 27
+BuildRequires:      python3 python3-devel boost-python3 boost-python3-devel
 %else
 BuildRequires:      python-devel
 %endif
@@ -38,9 +38,10 @@ The libpst-libs package contains the shared library used by the pst
 utilities.
 
 
-%if 0%{?fedora} > 25
-%package python2
-Requires:           python2
+%if 0%{?fedora} > 27
+%package -n python3-%{name}
+Requires:           python3
+Provides: %{name}-python = %{version}-%{release}
 %else
 %package python
 Requires:           python
@@ -59,8 +60,8 @@ Requires:           %{name}-libs = %{version}-%{release}
 %endif
 
 
-%if 0%{?fedora} > 25
-%description python2
+%if 0%{?fedora} > 27
+%description -n python3-%{name}
 %else
 %description python
 %endif
@@ -109,12 +110,20 @@ libpst utilities.
 %build
 autoreconf -v -f -i
 %configure --enable-libpst-shared
+%if 0%{?fedora} > 27
+%make_build
+%else
 make %{?_smp_mflags}
+%endif
 
 
 %install
+%if 0%{?fedora} > 27
+%make_install
+%else
 rm -rf $RPM_BUILD_ROOT
 make DESTDIR=$RPM_BUILD_ROOT install
+%endif
 rm $RPM_BUILD_ROOT%{_libdir}/libpst.la
 rm $RPM_BUILD_ROOT%{_libdir}/libpst.a
 mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/doc/%{name}
@@ -143,12 +152,12 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING
 
 
-%if 0%{?fedora} > 25
-%files python2
+%if 0%{?fedora} > 27
+%files -n python3-%{name}
 %defattr(-,root,root,-)
-%{python2_sitearch}/_*.so
-%exclude %{python2_sitearch}/*.a
-%exclude %{python2_sitearch}/*.la
+%{python3_sitearch}/_*.so
+%exclude %{python3_sitearch}/*.a
+%exclude %{python3_sitearch}/*.la
 %else
 %files python
 %defattr(-,root,root,-)
@@ -182,6 +191,34 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Aug 01 2018 Carl Byington <carl@five-ten-sg.com> 0.6.72-1
+- allow all 7 days in bydays recurring appointment
+- update for fedora python packaging
+- Alfredo Esteban - add -l and -f options to lspst
+
+* Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.71-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
+
+* Wed Feb 07 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.71-7
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
+
+* Sun Aug 20 2017 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 0.6.71-6
+- Add Provides for the old name without %%_isa
+
+* Sat Aug 19 2017 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 0.6.71-5
+- Python 2 binary package renamed to python2-libpst
+  See https://fedoraproject.org/wiki/FinalizingFedoraSwitchtoPython3
+
+* Sat Aug 19 2017 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 0.6.71-4
+- Python 2 binary package renamed to python2-libpst
+  See https://fedoraproject.org/wiki/FinalizingFedoraSwitchtoPython3
+
+* Thu Aug 03 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.71-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
+
+* Wed Jul 26 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.71-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
+
 * Fri Jul 21 2017 Carl Byington <carl@five-ten-sg.com> 0.6.71-1
 - fedora python naming scheme changes
 - Zachary Travis - Add support for the OST 2013 format, and

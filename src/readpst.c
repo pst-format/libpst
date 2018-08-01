@@ -1160,10 +1160,10 @@ char *quote_string(char *inp) {
     int count = 0;
     char *curr = inp;
     while (*curr) {
-        *curr++;
         if (*curr == '\"' || *curr == '\\') {
             count++;
         }
+        curr++;
         i++;
     }
     char *res = malloc(i + count + 1);
@@ -2135,7 +2135,7 @@ void write_appointment(FILE* f_output, pst_item* item)
                 int  empty = 1;
                 int i=0;
                 memset(byday, 0, sizeof(byday));
-                for (i=0; i<6; i++) {
+                for (i=0; i<7; i++) {
                     int bit = 1 << i;
                     if (bit & rdata->bydaymask) {
                         char temp[40];
