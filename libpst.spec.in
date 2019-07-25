@@ -1,7 +1,7 @@
 Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
-Release:            4%{?dist}
+Release:            1%{?dist}
 License:            GPLv2+
 Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
 URL:                http://www.five-ten-sg.com/%{name}/
@@ -178,6 +178,9 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 
 
 %changelog
+* Thu Jul 25 2019 Carl Byington <carl@five-ten-sg.com> 0.6.73-1
+- Tim Dufrane - fix segfault in pst_close()
+
 * Fri Jun 07 2019 Carl Byington <carl@five-ten-sg.com> 0.6.72-4
 - fixes for python3
 

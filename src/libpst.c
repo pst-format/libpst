@@ -409,6 +409,10 @@ err:
 
 int pst_close(pst_file *pf) {
     DEBUG_ENT("pst_close");
+    if (!pf) {
+        DEBUG_RET();
+        return 0;
+    }
     if (!pf->fp) {
         DEBUG_RET();
         return 0;

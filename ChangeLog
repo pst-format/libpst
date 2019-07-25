@@ -1,3 +1,6 @@
+LibPST 0.6.73 (2019-07-25)
+    * Tim Dufrane - fix segfault in pst_close()
+
 LibPST 0.6.72 (2018-08-01)
 ===============================
     * Alfredo Esteban - add -l and -f options to lspst.

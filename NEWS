@@ -1,4 +1,5 @@
-0.6.72  2017-12-07 Alfredo Esteban - add -l and -f options to lspst.
+0.6.73  2019-07-25 Tim Dufrane - fix segfault in pst_close()
+0.6.72  2018-08-01 Alfredo Esteban - add -l and -f options to lspst.
 0.6.71  2017-07-21 Zachary Travis - Add support for the OST 2013 format, and Content-Disposition filename key fix for outlook compatibility
 0.6.70  2017-02-08 Jeffrey Morlan - pst_getID2 must not recurse into children
 0.6.69  2016-10-29 fix bugs in code allowing folders containing multiple item types
