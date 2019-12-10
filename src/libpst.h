@@ -13,6 +13,11 @@
 #include "common.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 // switch to maximal packing for all structures in the libpst interface
 // this is reverted at the end of this file
 #ifdef _MSC_VER
@@ -1159,6 +1164,12 @@ void            pst_free_recurrence(pst_recurrence* r);
 #endif
 #if defined(__GNUC__) || defined (__SUNPRO_C) || defined(__SUNPRO_CC)
     #pragma pack()
+#endif
+
+
+
+#ifdef __cplusplus
+}
 #endif
 
 
