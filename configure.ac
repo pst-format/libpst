@@ -201,6 +201,8 @@ fi
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([chdir getcwd memchr memmove memset regcomp strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol get_current_dir_name])
+AM_GNU_GETTEXT
+AM_GNU_GETTEXT_VERSION([0.19.1])
 AM_ICONV
 if test "$am_cv_func_iconv" != "yes"; then
     AC_MSG_ERROR([libpst requires iconv which is missing])

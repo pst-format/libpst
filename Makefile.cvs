@@ -3,6 +3,7 @@ default: all
 HOST=$(shell hostname)
 
 all:
+	autopoint
 	libtoolize --force --copy
 	aclocal -I m4
 	autoheader
