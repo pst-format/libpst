@@ -9,6 +9,6 @@ Starting with an unpacked tarball, try this:
 Starting with a mercurial working directory, try this:
 
     make -f *cvs
-    (cd xml; make; make distclean)
+    make -C xml all distclean
     make distcheck
 
