@@ -425,7 +425,7 @@
 
         <refnamediv id='pst2ldif.name.1'>
             <refname>pst2ldif</refname>
-            <refpurpose>extract contacts from a MS Outlook .pst file in .ldif format</refpurpose>
+            <refpurpose>extract contacts from an MS Outlook .pst file in .ldif format</refpurpose>
         </refnamediv>
 
         <refsynopsisdiv id='pst2ldif.synopsis.1'>
@@ -507,7 +507,7 @@
         <refsect1 id='pst2ldif.description.1'>
             <title>Description</title>
             <para><command>pst2ldif</command>
-                reads the contact information from a MS Outlook .pst file
+                reads the contact information from an MS Outlook .pst file
                 and produces a .ldif file that may be used to import those contacts
                 into an LDAP database. The following ldap attributes are generated
                 for the old ldap schema:
@@ -593,7 +593,7 @@
 
         <refnamediv id='pst2dii.name.1'>
             <refname>pst2dii</refname>
-            <refpurpose>extract email messages from a MS Outlook .pst file in DII load format</refpurpose>
+            <refpurpose>extract email messages from an MS Outlook .pst file in DII load format</refpurpose>
         </refnamediv>
 
         <refsynopsisdiv id='pst2dii.synopsis.1'>
@@ -679,7 +679,7 @@
         <refsect1 id='pst2dii.description.1'>
             <title>Description</title>
             <para><command>pst2dii</command>
-                reads the email messages from a MS Outlook .pst file
+                reads the email messages from an MS Outlook .pst file
                 and produces a DII load file that may be used to import message
                 summaries into a Summation DII system. The DII output file contains
                 references to the image and attachment files in the output directory.

@@ -94,7 +94,7 @@ Reference Types: - I don't know if I have interpreted this field correctly. It m
 0x0002 -
 0x0003 - Value following is a value in it's own right
 0x000B -
-0x001E - (STRING) Value following is a Index Position (must be shifted left 4 times)
+0x001E - (STRING) Value following is an Index Position (must be shifted left 4 times)
 0x0040 - (DATE)       "         "              "              "              "
 0x0048 -
 0x0102 - (STRUCTURE)  "         "              "              "              "
@@ -104,7 +104,7 @@ Reference Types: - I don't know if I have interpreted this field correctly. It m
 
 Value:
 ======
-When the value is of type Index Position, you can left shift the value 4 times to get an offset into the Block Index. Some descriptor types can have Id2 values. This is recognised by using a bitwise AND with the number. ie val & 0x0000000F. if the result is 0xF, it is likely to be a Id2 reference.
+When the value is of type Index Position, you can left shift the value 4 times to get an offset into the Block Index. Some descriptor types can have Id2 values. This is recognised by using a bitwise AND with the number. ie val & 0x0000000F. if the result is 0xF, it is likely to be an Id2 reference.
 
 
 Descriptor Types: - Types that are in "Descriptor Fields"
@@ -112,7 +112,7 @@ Descriptor Types: - Types that are in "Descriptor Fields"
 
 All Values are Hex
 
-Note: it appears that some types can have a IPOS value or a ID2 value depending on the size of the field in question. It is safer to check every field than for me to say what the "usually" contain. Absolute values though, are generally going to be constant.
+Note: it appears that some types can have an IPOS value or an ID2 value depending on the size of the field in question. It is safer to check every field than for me to say what the "usually" contain. Absolute values though, are generally going to be constant.
 
 Type  Ref Type  Value   Desc
 ----  --------  -----   ----
@@ -150,7 +150,7 @@ Type  Ref Type  Value   Desc
 0E07		[REF]	Flag - contains IsSeen value
 0FF9		[REF]	binary record header
 1000  001E      [REF]   Plain Text Email Body. Does not exist if the email doesn't have a plain text version
-1013  001E      [REF]   HTML Email Body. Does not exist if the email doesn't have a HTML version
+1013  001E      [REF]   HTML Email Body. Does not exist if the email doesn't have an HTML version
 1035		[REF]	Message ID
 1042		[REF]	In-Reply-To or Parent's Message ID
 1046		[REF]	Return Path
