@@ -1726,7 +1726,7 @@
 0x3617  Associate Content count
 0x3701  Binary Data attachment
 0x3704  Attachment Filename
-0x3705  Attachement method
+0x3705  Attachment method
 0x3707  Attachment Filename long
 0x370b  Attachment Position
 0x370e  Attachment mime encoding

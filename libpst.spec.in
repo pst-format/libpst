@@ -63,7 +63,7 @@ Requires:           %{name}-libs = %{version}-%{release}
 %description python
 %endif
 The libpst-python package allows you to use the libpst shared object
-from python code.
+from Python code.
 
 
 %package devel
@@ -182,7 +182,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - Tim Dufrane - fix segfault in pst_close()
 
 * Fri Jun 07 2019 Carl Byington <carl@five-ten-sg.com> 0.6.72-4
-- fixes for python3
+- fixes for Python 3
 
 * Fri Feb 01 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.72-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
@@ -192,7 +192,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 
 * Wed Aug 01 2018 Carl Byington <carl@five-ten-sg.com> 0.6.72-1
 - allow all 7 days in bydays recurring appointment
-- update for fedora python packaging
+- update for Fedora Python packaging
 - Alfredo Esteban - add -l and -f options to lspst
 
 * Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.71-8
@@ -219,7 +219,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
 
 * Fri Jul 21 2017 Carl Byington <carl@five-ten-sg.com> 0.6.71-1
-- fedora python naming scheme changes
+- Fedora Python naming scheme changes
 - Zachary Travis - Add support for the OST 2013 format, and
   Content-Disposition filename key fix for outlook compatibility
 
@@ -277,7 +277,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - Rebuilt for GCC 5 C++11 ABI change
 
 * Mon Mar 09 2015 Carl Byington <carl@five-ten-sg.com> 0.6.64-1
-- fix line wrap on python provides_exclude_from
+- fix line wrap on Python provides_exclude_from
 - fix unchecked errors found by cppcheck
 - AJ Shankar fixes for attachment processing and body encodings
   that contain embedded null chars.
@@ -339,7 +339,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - merge -m .msg files code into main branch
 
 * Thu Aug 09 2012 Carl Byington <carl@five-ten-sg.com> - 0.6.55-2
-- rebuild for python
+- rebuild for Python
 
 * Thu Jul 19 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.54-6
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
@@ -356,7 +356,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
 
 * Sat Dec 24 2011 Carl Byington <carl@five-ten-sg.com> - 0.6.54-3
-- bump versions and prep for fedora build
+- bump versions and prep for Fedora build
 
 * Wed Nov 30 2011 Petr Pisar <ppisar@redhat.com> - 0.6.53-3
 - Rebuild against boost-1.48
@@ -385,7 +385,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - fix for buffer overrun; attachment size from the secondary
   list of mapi elements overwrote proper size from the primary
   list of mapi elements.
-  fedora bugzilla 696263
+  Fedora bugzilla 696263
 
 * Tue Feb 08 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.6.49-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
@@ -402,7 +402,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 
 * Mon Sep 13 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.49-1
 - fix to ignore embedded objects that are not email messages
-  fedora bugzilla 633498
+  Fedora bugzilla 633498
 
 * Thu Sep 02 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.48-1
 - fix for broken internet headers from Outlook
@@ -411,10 +411,10 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - use no from quoting for output formats with single message per file
 
 * Sat Jul 31 2010 Carl Byington <carl@five-ten-sg.com> - 0.6.47-6
-- rebuild for python dependencies
+- rebuild for Python dependencies
 
 * Mon Jul 26 2010 David Malcolm <dmalcolm@redhat.com> - 0.6.47-4
-- hack up configure so that it looks for python 2.7
+- hack up configure so that it looks for Python 2.7
 
 * Wed Jul 21 2010 David Malcolm <dmalcolm@redhat.com> - 0.6.47-3
 - Rebuilt for https://fedoraproject.org/wiki/Features/Python_2.7/MassRebuild
@@ -457,17 +457,17 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 
 * Tue Jun 23 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.41-1
 - fix ax_python detection - should not use locate command
-- checking for fedora versions is not needed
+- checking for Fedora versions is not needed
 
 * Tue Jun 23 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.40-1
-- fedora 11 has python2.6
+- Fedora 11 has python2.6
 - remove pdf version of the man pages
 
 * Sun Jun 21 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.39-1
-- fedora > 10 moved to boost-python-devel
+- Fedora > 10 moved to boost-python-devel
 
 * Sun Jun 21 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.38-1
-- add python interface to the shared library.
+- add Python interface to the shared library.
 - bump soname to version 4 for many changes to the interface.
 - better decoding of recurrence data in appointments.
 - remove readpstlog since debug log files are now plain text.
@@ -498,7 +498,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - fix ppc64 compile error
 
 * Sat Mar 14 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.31-1
-- bump version for fedora cvs tagging mistake
+- bump version for Fedora cvs tagging mistake
 
 * Sat Mar 14 2009 Carl Byington <carl@five-ten-sg.com> - 0.6.30-1
 - track character set individually for each mapi element.
@@ -573,13 +573,13 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - Fix for missing length on lz decompression, bug found by Chris White.
 
 * Sun Jun 15 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.14-1
-- Fix my mistake in debian packaging.
+- Fix my mistake in Debian packaging.
 
 * Fri Jun 13 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.13-1
 - Patch from Robert Simpson for encryption type 2.
 
 * Tue Jun 10 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.12-1
-- Patch from Joachim Metz for debian packaging and
+- Patch from Joachim Metz for Debian packaging and
 - fix for incorrect length on lz decompression
 
 * Tue Jun 03 2008 Carl Byington <carl@five-ten-sg.com> - 0.6.11-1

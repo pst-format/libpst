@@ -5,7 +5,7 @@ LibPST 0.6.72 (2018-08-01)
 ===============================
     * Alfredo Esteban - add -l and -f options to lspst.
     * fix bydays recurring appointment, allow all 7 days
-    * update for fedora python packaging
+    * update for Fedora Python packaging
 
 LibPST 0.6.71 (2017-07-21)
 ===============================
@@ -105,7 +105,7 @@ LibPST 0.6.51 (2011-04-17)
     * fix for buffer overrun; attachment size from the secondary
       list of mapi elements overwrote proper size from the primary
       list of mapi elements.
-      fedora bugzilla 696263
+      Fedora bugzilla 696263
 
 LibPST 0.6.50 (2010-12-24)
 ===============================
@@ -131,7 +131,7 @@ LibPST 0.6.47 (2010-05-07)
 LibPST 0.6.46 (2010-02-13)
 ===============================
     * prefer libpthread over librt for finding sem_init function.
-    * rebuild for fedora 13 change in implicit dso linking semantics.
+    * rebuild for Fedora 13 change in implicit dso linking semantics.
 
 LibPST 0.6.45 (2009-11-18)
 ===============================
@@ -166,20 +166,20 @@ LibPST 0.6.42 (2009-09-03)
 LibPST 0.6.41 (2009-06-23)
 ===============================
     * fix ax_python detection - should not use locate command
-    * checking for fedora versions is not needed
+    * checking for Fedora versions is not needed
 
 LibPST 0.6.40 (2009-06-23)
 ===============================
-    * fedora 11 has python2.6
+    * Fedora 11 has python2.6
     * remove pdf version of the man pages
 
 LibPST 0.6.39 (2009-06-21)
 ===============================
-    * fedora > 10 moved to boost-python-devel
+    * Fedora > 10 moved to boost-python-devel
 
 LibPST 0.6.38 (2009-06-21)
 ===============================
-    * add python module interface to the shared library for easy scripting.
+    * add Python module interface to the shared library for easy scripting.
     * the shared library must never write to stdout or stderr.
     * fix pst_attach_to_mem so the caller does not need to initialize
       the buffer pointer.
@@ -221,7 +221,7 @@ LibPST 0.6.35 (2009-04-08)
     * move version-info into main configure.in, and set it properly
     * prefix all external symbols in the shared library with pst_ to
       avoid symbol clashes with other shared libraries.
-    * new debianization from hggdh.
+    * new Debianization from hggdh.
     * build separate libpst, libpst-libs, libpst-devel rpms.
     * remove many functions from the interface by making them static.
 
@@ -233,8 +233,8 @@ LibPST 0.6.34 (2009-03-19)
 LibPST 0.6.33 (2009-03-17)
 ===============================
 
-    * fix fedora 11 type mismatch warning (actually an error in this case).
-    * fix large file support, some sytems require config.h to be included
+    * fix Fedora 11 type mismatch warning (actually an error in this case).
+    * fix large file support, some systems require config.h to be included
       earlier in the compilation.
     * compensate for iconv conversion to utf-7 that produces strings that
       are not null terminated.
@@ -248,7 +248,7 @@ LibPST 0.6.32 (2009-03-14)
 LibPST 0.6.31 (2009-03-14)
 ===============================
 
-    * bump version for fedora cvs tagging mistake.
+    * bump version for Fedora cvs tagging mistake.
 
 LibPST 0.6.30 (2009-03-14)
 ===============================
@@ -326,7 +326,7 @@ LibPST 0.6.24 (2008-12-11)
 
 LibPST 0.6.23 (2008-12-04)
 ===============================
-    * bump version to avoid cvs tagging mistake in fedora
+    * bump version to avoid cvs tagging mistake in Fedora
 
 LibPST 0.6.22 (2008-11-28)
 ===============================
@@ -375,7 +375,7 @@ LibPST 0.6.15 (2008-07-30)
 
 LibPST 0.6.14 (2008-06-15)
 ===============================
-    * Fix my mistake in debian packaging.
+    * Fix my mistake in Debian packaging.
 
 LibPST 0.6.13 (2008-06-13)
 ===============================
@@ -385,7 +385,7 @@ LibPST 0.6.13 (2008-06-13)
 
 LibPST 0.6.12 (2008-06-10)
 ===============================
-    * Patch from Joachim Metz for debian packaging, and fix
+    * Patch from Joachim Metz for Debian packaging, and fix
     for incorrect length on lz decompression.
 
 LibPST 0.6.11 (2008-06-03)
@@ -429,7 +429,7 @@ LibPST 0.6.7 (2008-02-16)
 LibPST 0.6.6 (2008-01-31)
 ===============================
     * More code cleanup, removing unnecessary null terminations on
-      binary buffers. All pst file reads now go thru one function.
+      binary buffers. All pst file reads now go through one function.
       Logging all pst reads to detect cases where we read the same data
       multiple times - discovers node sizes are actually 512 bytes.
     * Switch from cvs to mercurial source control.
@@ -460,7 +460,7 @@ LibPST 0.6.4 (2008-01-19)
           (SourceForge #304314)
         * Fix crash with unknown reference type
         * Fix more memory issues detected by valgrind
-        * lspst - add usage mesage and option parsing using getopt
+        * lspst - add usage message and option parsing using getopt
             (SourceForge #304199)
         * Fix crash caused by invalid free calls
         * Fix crash when email subject is empty
@@ -497,7 +497,7 @@ LibPST 0.5.12 (2007-10-02)
 LibPST 0.5.11 (2007-08-24)
 ===============================
     * fix from Stevens Miller <smiller@novadatalabs.com>
-      for unitialized variable.
+      for uninitialized variable.
 
 LibPST 0.5.10 (2007-08-20)
 ===============================
@@ -555,7 +555,7 @@ LibPST 0.5.4 (2006-02-25)
 
 LibPST 0.5.3 (2006-02-20)
 ===============================
-    * switch to gnu autoconf/automake. This breaks the MS VC++ projects
+    * switch to GNU autoconf/automake. This breaks the MS VC++ projects
       since the source code is now in the src subdirectory.
     * documentation switched to xml, building man pages and html
       from the master xml copy.
@@ -573,7 +573,7 @@ LibPST 0.5.2 (2006-02-18)
 LibPST 0.5.1 (17 November 2004)
 ===============================
 
-Well, alot has happened since the last release of libpst.
+Well, a lot has happened since the last release of libpst.
 
 Release / Management:
 
@@ -602,7 +602,7 @@ Code Changes:
         * Fixed bogus creation of readpst.log on every invocation
         * escaped dashes and apostrophe in manpages
         * Updated TODO
-        * added manpages from debian pkg
+        * added manpages from Debian pkg
         * fix escaped-string length count to consider '\n',
                 thanks to Paul Bakker <bakker@fox-it.com>.
         * ensure there's a blank line between header and body
@@ -675,9 +675,9 @@ LibPST v0.4.1
 Fixed a couple more bugs. Is it me or do bugs just insert themselves
 in random, hard to find places!
 
-Cured a few problems with regard to emails with multiple embeded
+Cured a few problems with regard to emails with multiple embedded
 items. They are not fully re-created using Mime-types, but are
-accessible with the -S switch (which saves everything as seperate
+accessible with the -S switch (which saves everything as separate
 items)
 
 Fixed a problem reading the first index. Back sliders are now
@@ -700,7 +700,7 @@ LibPST v0.4
 Fixed a nasty bug that occasionally corrupted attachments. Another bug
 with regard to reading of indexes (also occasional).
 
-Another output method has been added which is called "Seperate". It is
+Another output method has been added which is called "Separate". It is
 activated with the -S switch. It operates in the following manor:
 
   |--Inbox-->000000
@@ -710,10 +710,10 @@ activated with the -S switch. It operates in the following manor:
   |             0000001
   |             0000002
 
-All the emails are stored in seperate files counting from 0 upwards,
+All the emails are stored in separate files counting from 0 upwards,
 in a folder named as the PST folder.
 
-When an email has an attachment, it is saved as a seperate file. The
+When an email has an attachment, it is saved as a separate file. The
 filename for the attachment is made up of 2 parts, the first is the
 email number to which it belongs, the second is its filename.
 
@@ -743,7 +743,7 @@ at make it operate on Solaris.
 A whole load more items are now recognized by the Item records. With
 more items in Emails and Folders. I haven't got to the Contacts yet.
 
-Anyway, this is what I would call a minor feature enhancment and
+Anyway, this is what I would call a minor feature enhancement and
 bugfix release.
 
 Dave Smith
@@ -820,11 +820,11 @@ attachments that were created disappear.
 
 A major enhancement is that "compressible encryption" support has been
 added. This was an incredibly simple method to use. It is basically a
-ceasar cipher. It has been noted by several users already that the PST
+caesar cipher. It has been noted by several users already that the PST
 password that Outlook uses, serves *no purpose*. It is not used to
-encrypt the PST, it is mearly stored there. This means that the
+encrypt the PST, it is merely stored there. This means that the
 readpst application is able to convert PST files without knowing the
-password. Microsoft have some explaning to do!
+password. Microsoft have some explaining to do!
 
 Output files are now not overwritten if they already exist. This means
 that if you have two folders in your PST file named "fred", the first

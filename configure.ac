@@ -334,10 +334,10 @@ if test "$enable_python" = "yes"; then
     # find the flags for that version
     AX_PYTHON_DEVEL([>= '$PYTHON_VERSION'])
 
-    # do we have boost python?
+    # do we have Boost Python?
     AX_BOOST_PYTHON
     if test "$ac_cv_boost_python" = "no"; then
-        AC_MSG_ERROR(boost python not found)
+        AC_MSG_ERROR(Boost Python not found)
     fi
     AC_SUBST(PYTHON_VERSION, [$ax_python_bin])
 fi

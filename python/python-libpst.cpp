@@ -19,7 +19,7 @@ using namespace std;
 using namespace boost::python;
 
 
-/** python version of pst_binary, where python is
+/** Python version of pst_binary, where Python is
     responsible for freeing the underlying buffer */
 struct ppst_binary : public pst_binary
 {
@@ -47,9 +47,9 @@ public:
     pst_recurrence* pst_convert_recurrence(pst_item_appointment *appt);
     void            pst_free_recurrence(pst_recurrence* r);
 
-    /** helper for python access to fopen() */
+    /** helper for Python access to fopen() */
     FILE*          ppst_open_file(string filename, string mode);
-    /** helper for python access to fclose() */
+    /** helper for Python access to fclose() */
     int            ppst_close_file(FILE* fp);
 
 private:

@@ -2,7 +2,7 @@
  * lspst.c
  * Part of the LibPST project
  * Author: Joe Nahmias <joe@nahmias.net>
- * Based on readpst.c by by David Smith <dave.s@earthcorp.com>
+ * Based on readpst.c by David Smith <dave.s@earthcorp.com>
  *
  */
 
@@ -296,7 +296,7 @@ int main(int argc, char* const* argv) {
 }
 
 
-// This function will make sure that a filename is in cannonical form.  That
+// This function will make sure that a filename is in canonical form.  That
 // is, it will replace any slashes, backslashes, or colons with underscores.
 void canonicalize_filename(char *fname) {
     DEBUG_ENT("canonicalize_filename");

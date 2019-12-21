@@ -735,7 +735,7 @@ int pst_load_extended_attributes(pst_file *pf) {
         return 0;
     }
 
-    DEBUG_INFO(("look thru d_id 0x61 list of mapi objects\n"));
+    DEBUG_INFO(("look through d_id 0x61 list of mapi objects\n"));
     for (x=0; x < list->count_elements; x++) {
         DEBUG_INFO(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
         if (list->elements[x]->data) {
@@ -2518,7 +2518,7 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                     LIST_COPY_EMAIL_INT32("RTF Sync Body CRC", item->email->rtf_body_crc);
                     break;
                 case 0x1007: // PR_RTF_SYNC_BODY_COUNT
-                    // a count of the *significant* charcters in the rtf body. Doesn't count
+                    // a count of the *significant* characters in the rtf body. Doesn't count
                     // whitespace and other ignorable characters
                     LIST_COPY_EMAIL_INT32("RTF Sync Body character count", item->email->rtf_body_char_count);
                     break;
@@ -3305,8 +3305,8 @@ static pst_id2_tree * pst_build_id2(pst_file *pf, pst_index_ll* list) {
     DEBUG_ENT("pst_build_id2");
 
     if (pst_read_block_size(pf, list->offset, list->size, list->inflated_size, &buf) < list->size) {
-        //an error occured in block read
-        DEBUG_WARN(("block read error occured. offset = %#"PRIx64", size = %#"PRIx64"\n", list->offset, list->size));
+        //an error occurred in block read
+        DEBUG_WARN(("block read error occurred. offset = %#"PRIx64", size = %#"PRIx64"\n", list->offset, list->size));
         if (buf) free(buf);
         DEBUG_RET();
         return NULL;
@@ -3848,7 +3848,7 @@ static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, siz
  * @param type
     @li 0 PST_NO_ENCRYPT, none
     @li 1 PST_COMP_ENCRYPT, simple byte substitution cipher with fixed key
-    @li 2 PST_ENCRYPT, german enigma 3 rotor cipher with fixed key
+    @li 2 PST_ENCRYPT, German enigma 3 rotor cipher with fixed key
  * @return 0 if ok, -1 if error (NULL buffer or unknown encryption type)
  */
 static int pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type) {
@@ -4242,7 +4242,7 @@ int pst_stricmp(char *a, char *b) {
 
 
 static int pst_strincmp(char *a, char *b, size_t x) {
-    // compare upto x chars in string a and b case-insensitively
+    // compare up to x chars in string a and b case-insensitively
     // returns -1 if a < b, 0 if a==b, 1 if a > b
     size_t y = 0;
     while (*a != '\0' && *b != '\0' && y < x && toupper(*a)==toupper(*b)) {
@@ -4359,7 +4359,7 @@ char* pst_rfc2425_datetime_format(const FILETIME* ft, int buflen, char* result) 
     DEBUG_ENT("rfc2425_datetime_format");
     pst_fileTimeToStructTM(ft, &stm);
     if (strftime(result, buflen, "%Y-%m-%dT%H:%M:%SZ", &stm)==0) {
-        DEBUG_INFO(("Problem occured formatting date\n"));
+        DEBUG_INFO(("Problem occurred formatting date\n"));
     }
     DEBUG_RET();
     return result;
@@ -4371,7 +4371,7 @@ char* pst_rfc2445_datetime_format(const FILETIME* ft, int buflen, char* result) 
     DEBUG_ENT("rfc2445_datetime_format");
     pst_fileTimeToStructTM(ft, &stm);
     if (strftime(result, buflen, "%Y%m%dT%H%M%SZ", &stm)==0) {
-        DEBUG_INFO(("Problem occured formatting date\n"));
+        DEBUG_INFO(("Problem occurred formatting date\n"));
     }
     DEBUG_RET();
     return result;
@@ -4384,7 +4384,7 @@ char* pst_rfc2445_datetime_format_now(int buflen, char* result) {
     DEBUG_ENT("rfc2445_datetime_format_now");
     gmtime_r(&t, &stm);
     if (strftime(result, buflen, "%Y%m%dT%H%M%SZ", &stm)==0) {
-        DEBUG_INFO(("Problem occured formatting date\n"));
+        DEBUG_INFO(("Problem occurred formatting date\n"));
     }
     DEBUG_RET();
     return result;
@@ -4446,7 +4446,7 @@ static const char* codepage(int cp, int buflen, char* result) {
  *  @param  item   pointer to the mapi item of interest
  *  @param[in]  buflen  length of the output buffer
  *  @param[out] result  pointer to output buffer, must be at least 30 bytes
- *  @return default character set as a string useable by iconv()
+ *  @return default character set as a string usable by iconv()
  */
 const char*    pst_default_charset(pst_item *item, int buflen, char* result) {
     return (item->body_charset.str)         ? item->body_charset.str :

@@ -1082,7 +1082,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
 
     check_filename(f_name);
     if (!attach_filename) {
-        // generate our own (dummy) filename for the attachement
+        // generate our own (dummy) filename for the attachment
         temp = pst_malloc(strlen(f_name)+15);
         sprintf(temp, "%s-attach%i", f_name, attach_num);
     } else {

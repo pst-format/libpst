@@ -70,7 +70,7 @@ extern "C" {
 #define PST_APP_LABEL_ANNIVERSARY 9
 #define PST_APP_LABEL_PHONE_CALL  10
 
-// define type of recuring event
+// define type of recurring event
 #define PST_APP_RECUR_NONE        0
 #define PST_APP_RECUR_DAILY       1
 #define PST_APP_RECUR_WEEKLY      2
@@ -266,7 +266,7 @@ typedef struct pst_item_email {
     /** mapi element 0x1046, this seems to be the message-id of the rfc822 mail that is being returned */
     pst_string  return_path_address;
     /** mapi element 0x1007 PR_RTF_SYNC_BODY_COUNT,
-     *  a count of the *significant* charcters in the rtf body. Doesn't count
+     *  a count of the *significant* characters in the rtf body. Doesn't count
      *  whitespace and other ignorable characters. */
     int32_t     rtf_body_char_count;
     /** mapi element 0x1006 PR_RTF_SYNC_BODY_CRC */
@@ -679,7 +679,7 @@ typedef struct pst_recurrence {
      *  @li 3 has 5 parameters
      */
     uint32_t    sub_type;
-    /** must be contiguous, not an array to make python interface easier */
+    /** must be contiguous, not an array to make Python interface easier */
     uint32_t    parm1;
     uint32_t    parm2;
     uint32_t    parm3;
@@ -699,7 +699,7 @@ typedef struct pst_recurrence {
     uint32_t    dayofmonth;
     /** month of year for yearly recurrences */
     uint32_t    monthofyear;
-    /** occurence of day for 2nd Tuesday of month, in which case position is 2 */
+    /** occurrence of day for 2nd Tuesday of month, in which case position is 2 */
     uint32_t    position;
     /** number of occurrences, even if recurrence terminates based on date */
     uint32_t    count;
@@ -862,9 +862,9 @@ typedef struct pst_item {
 
 /** Linked list of extended attributes.
  *  This is used to convert mapi_id values in the pst file into
- *  cannonical mapi_id values to be used in this code. This list
+ *  canonical mapi_id values to be used in this code. This list
  *  is kept in sorted order, where the key is the 'map' field.
- *  Some mapi_id values are converted to cannonical mapi_id values
+ *  Some mapi_id values are converted to canonical mapi_id values
  *  (PST_MAP_ATTRIB), and others are converted to a string
  *  (PST_ATTRIB_HEADER).
  */
@@ -928,7 +928,7 @@ typedef struct pst_file {
     uint64_t size;
     /** @li 0 PST_NO_ENCRYPT, none
      *  @li 1 PST_COMP_ENCRYPT, simple byte substitution cipher with fixed key
-     *  @li 2 PST_ENCRYPT, german enigma 3 rotor cipher with fixed key */
+     *  @li 2 PST_ENCRYPT, German enigma 3 rotor cipher with fixed key */
     unsigned char encryption;
     /** index type or file type
      *  @li 0x0e 32 bit pre Outlook 2003
@@ -1110,7 +1110,7 @@ char*           pst_rfc2445_datetime_format_now(int buflen, char* result);
  * @param      item    pointer to the mapi item of interest
  * @param[in]  buflen  length of the output buffer
  * @param[out] result  pointer to output buffer, must be at least 30 bytes
- * @return default character set as a string useable by iconv()
+ * @return default character set as a string usable by iconv()
  */
 const char*     pst_default_charset(pst_item *item, int buflen, char* result);
 

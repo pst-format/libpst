@@ -40,7 +40,7 @@ char* pst_lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
 	unsigned int dict_length = 0;   // the dictionary pointer
 	lzfuheader lzfuhdr;             // the header of the lzfu block
 	unsigned char flags;            // 8 bits of flags (1=2byte block pointer into the dict, 0=1 byte literal)
-	unsigned char flag_mask;        // look at one flag bit each time thru the loop
+	unsigned char flag_mask;        // look at one flag bit each time through the loop
 	uint32_t i;
 	char    *out_buf;
 	uint32_t out_ptr = 0;

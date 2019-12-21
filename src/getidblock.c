@@ -34,7 +34,7 @@ void dumper(uint64_t i_id)
     DEBUG_INFO(("Printing block i_id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize));
     if (binary) {
         if (fwrite(buf, 1, readSize, stdout) != 0) {
-            DIE(("Error occured during writing of buf to stdout\n"));
+            DIE(("Error occurred during writing of buf to stdout\n"));
         }
     } else {
         printf("Block id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize);
@@ -97,7 +97,7 @@ int main(int argc, char* const* argv)
                 binary = 1;
                 break;
             case 'p':
-                // enable procesing of block
+                // enable processing of block
                 process = 1;
                 break;
             default:

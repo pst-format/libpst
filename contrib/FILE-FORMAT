@@ -8,7 +8,7 @@ Basically, we work on two indexes. One index associates an ID with each item, an
 0xC4 - Pointer to Index of all Items in File, associating the first ID [4 bytes]
 0xBC - Pointer to Index of controlling Items in File [4 bytes]
 
-First All Items Index: - constists of a table of offsets pointing to the table of items.
+First All Items Index: - consists of a table of offsets pointing to the table of items.
 ======================
 repeating:
 0x0  - First id in this table   [4 bytes]
@@ -87,7 +87,7 @@ repeats
 0x0  - Item type        [2 bytes] (subject, from, to ...)
 0x02 - Reference type   [2 bytes] (how to interpret the value)
 0x04 - Value            [4 bytes]
-until the alloted size of the record has been read. (The following Block Offset from the Index has been reached)
+until the allotted size of the record has been read. (The following Block Offset from the Index has been reached)
 
 Reference Types: - I don't know if I have interpreted this field correctly. It might have a completely different purpose
 ===============
@@ -154,13 +154,13 @@ Type  Ref Type  Value   Desc
 1035		[REF]	Message ID
 1042		[REF]	In-Reply-To or Parent's Message ID
 1046		[REF]	Return Path
-3001		[REF]	Folder Name? I have seen this value used for the contacts record aswell
+3001		[REF]	Folder Name? I have seen this value used for the contacts record as well
 3007		[REF]	Date.
 3008		[REF]	Date.
 300B		[REF]	binary record header
 35E0		[REF]	binary record found in first item. Contains the reference to "Top of Personal Folder" item
 35E3		[REF]	binary record with a reference to "Deleted Items" item
-35E7		[REF]	binary record with a refernece to "Search Root" item
+35E7		[REF]	binary record with a reference to "Search Root" item
 3602		[REF]	the number of emails stored in a folder
 3603		[REF]	the number of unread emails in a folder
 3613		[REF]	the folder content description
