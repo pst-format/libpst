@@ -53,7 +53,7 @@ dumpblocks_SOURCES  = dumpblocks.c     $(common_header)
 getidblock_SOURCES  = getidblock.c     $(common_header)
 nick2ldif_SOURCES   = nick2ldif.cpp    $(common_header)
 
-readpst_CPPFLAGS    = $(AM_CPPFLAGS) $(GSF_FLAGS)
+readpst_CPPFLAGS    = $(AM_CPPFLAGS) $(GSF_CFLAGS)
 
 lspst_DEPENDENCIES        = libpst.la
 readpst_DEPENDENCIES      = libpst.la

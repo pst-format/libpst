@@ -371,14 +371,7 @@ AC_ARG_ENABLE([profiling],
 AC_MSG_RESULT([$enable_profiling])
 AM_CONDITIONAL(GPROF_PROFILING, [test "$enable_profiling" = "yes"])
 
-gsf_flags="`pkg-config libgsf-1 --cflags`"
-gsf_libs="`pkg-config libgsf-1 --libs`"
-if test "$gsf_flags" = ""; then
-    AC_MSG_ERROR(libgsf not found)
-fi
-
-AC_SUBST(GSF_FLAGS, [$gsf_flags])
-AC_SUBST(GSF_LIBS, [$gsf_libs])
+PKG_CHECK_MODULES([GSF], [libgsf-1])
 
 PKG_CHECK_MODULES([ZLIB], [zlib])
 
