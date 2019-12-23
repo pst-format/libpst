@@ -12,7 +12,7 @@ endif
 
 
 if STATIC_TOOLS
-    PSTLIB = @PST_OBJDIR@/libpst.a
+    PSTLIB = @PST_OBJDIR@/libpst.a @ZLIB_LIBS@ $(SEM_LIBS)
 else
     PSTLIB = libpst.la
 endif
@@ -80,7 +80,7 @@ else
 endif
 
 libpst_la_SOURCES     = $(common_source) $(common_header)
-libpst_la_LIBADD      = $(LTLIBICONV)
+libpst_la_LIBADD      = $(LTLIBICONV) @ZLIB_LIBS@ $(SEM_LIBS)
 
 EXTRA_DIST =
 if !NEED_XGETOPT
@@ -92,7 +92,7 @@ INCLUDES= -I$(srcdir)/.. $(all_includes)
 
 # the library search path.
 lspst_LDADD       = $(all_libraries) $(PSTLIB) $(LTLIBICONV) @ZLIB_LIBS@
-readpst_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) $(REGEXLIB) $(GSF_LIBS) @ZLIB_LIBS@
+readpst_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) $(REGEXLIB) $(GSF_LIBS) @ZLIB_LIBS@ $(SEM_LIBS)
 pst2ldif_LDADD    = $(all_libraries) $(PSTLIB) $(LTLIBICONV) @ZLIB_LIBS@
 pst2dii_LDADD     = $(all_libraries) $(PSTLIB) $(LTLIBICONV) -lgd @ZLIB_LIBS@
 deltasearch_LDADD = $(all_libraries) $(PSTLIB) $(LTLIBICONV) @ZLIB_LIBS@
