@@ -178,8 +178,29 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 
 
 %changelog
+* Sun Jan 12 2020 Carl Byington <carl@five-ten-sg.com> 0.6.74-1
+- Paul Wise - many changes for debian:
+- Add missing linking with zlib and libpthread/librt
+- Use PKG_CHECK_MODULES to find the gsf-1 library
+- Fix usage of indefinite articles
+- Fix a number of spelling mistakes
+- Use plain make when building from Mercurial
+- Add operator and quotes to the AX_PYTHON_DEVEL parameter
+- Remove files copied in by autotools
+- Add AM_GNU_GETTEXT macros
+- Rename configure.in to configure.ac
+- add extern "C" to header for use with C++ code
+
+* Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.72-5
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
+
 * Thu Jul 25 2019 Carl Byington <carl@five-ten-sg.com> 0.6.73-1
 - Tim Dufrane - fix segfault in pst_close()
+
+* Sat Jun 08 2019 Leigh Scott <leigh123linux@googlemail.com> - 0.6.72-4
+- Add configure option for boost-python
+- Remove all old fedora conditionals
+- Update spec file to comply with packaging guidelines
 
 * Fri Jun 07 2019 Carl Byington <carl@five-ten-sg.com> 0.6.72-4
 - fixes for Python 3

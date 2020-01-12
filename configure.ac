@@ -1,5 +1,5 @@
 AC_PREREQ(2.60)
-AC_INIT(libpst,0.6.73,carl@five-ten-sg.com)
+AC_INIT(libpst,0.6.74,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([src/libpst.c])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -21,7 +21,7 @@ AC_USE_SYSTEM_EXTENSIONS
 #  6. libtool will build libpst.so.x.y.z where the SONAME is libpst.so.x
 #     and x=current-age, y=age, z=revision
 
-libpst_version_info='5:15:1'
+libpst_version_info='5:16:1'
 AC_SUBST(LIBPST_VERSION_INFO, [$libpst_version_info])
 libpst_so_major='4'
 AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
@@ -55,6 +55,7 @@ AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
 # 0.6.68    libpst.so.4     libpst.so.4.1.13
 # 0.6.69    libpst.so.4     libpst.so.4.1.14
 # 0.6.73    libpst.so.4     libpst.so.4.1.15
+# 0.6.74    libpst.so.4     libpst.so.4.1.16
 
 
 
@@ -205,7 +206,7 @@ AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([chdir getcwd memchr memmove memset regcomp strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol get_current_dir_name])
 AM_GNU_GETTEXT
-AM_GNU_GETTEXT_VERSION([0.19.1])
+AM_GNU_GETTEXT_VERSION([0.17])
 AM_ICONV
 if test "$am_cv_func_iconv" != "yes"; then
     AC_MSG_ERROR([libpst requires iconv which is missing])
@@ -335,7 +336,7 @@ if test "$enable_python" = "yes"; then
     PYTHON_VERSION=`echo $ax_python_bin | cut -c7-`
 
     # find the flags for that version
-    AX_PYTHON_DEVEL([>= '$PYTHON_VERSION'])
+    AX_PYTHON_DEVEL([$PYTHON_VERSION])
 
     # do we have Boost Python?
     AX_BOOST_PYTHON

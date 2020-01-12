@@ -9,7 +9,7 @@ all:
 	autoheader
 	automake --add-missing
 	autoconf
-	./configure >/dev/null
+	./configure
 	rm -rf html.internal
 	doxygen
 	tar cfz libpst.html.tar.gz html.internal
