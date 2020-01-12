@@ -3,18 +3,21 @@ Name:               @PACKAGE@
 Version:            @VERSION@
 Release:            1%{?dist}
 License:            GPLv2+
-Source:             http://www.five-ten-sg.com/%{name}/packages/%{name}-%{version}.tar.gz
 URL:                http://www.five-ten-sg.com/%{name}/
-Requires:           ImageMagick libgsf
-Requires:           %{name}-libs = %{version}-%{release}
+Source:             %{url}/packages/%{name}-%{version}.tar.gz
+
 BuildRequires:      libtool gcc-c++
-BuildRequires:      ImageMagick gd-devel zlib-devel boost-devel libgsf-devel
+BuildRequires:      ImageMagick gd-devel zlib-devel boost-devel libgsf-devel gettext-devel
+
 %if 0%{?fedora} > 27
 BuildRequires:      python3 python3-devel boost-python3 boost-python3-devel
 Requires:           boost-python3
 %else
 BuildRequires:      python-devel
 %endif
+
+Requires:           ImageMagick%{?_isa} libgsf gettext
+Requires:           %{name}-libs%{?_isa} = %{version}-%{release}
 
 %{!?python_sitelib:  %global python_sitelib  %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
@@ -45,7 +48,7 @@ Provides: %{name}-python = %{version}-%{release}
 Requires:           python
 %endif
 Summary:            Python bindings for libpst
-Requires:           %{name}-libs = %{version}-%{release}
+Requires:           %{name}-libs%{?_isa} = %{version}-%{release}
 
 %if 0%{?fedora} >= 20
 %global __provides_exclude_from %{?__provides_exclude_from:%__provides_exclude_from|}^%{python_sitearch}/_.*\.so$
@@ -69,7 +72,7 @@ from Python code.
 %package devel
 Summary:            Library links and header files for libpst application development
 Requires:           pkgconfig
-Requires:           %{name}-libs = %{version}-%{release}
+Requires:           %{name}-libs%{?_isa} = %{version}-%{release}
 
 %description devel
 The libpst-devel package contains the library links and header files
@@ -102,8 +105,9 @@ libpst utilities.
 
 
 %build
-autoreconf -v -f -i
-%configure --enable-libpst-shared
+autoreconf -fiv
+%configure --enable-libpst-shared \
+           --with-boost-python=boost_python%{python3_version_nodots}
 %if 0%{?fedora} > 27
 %make_build
 %else
@@ -118,23 +122,21 @@ make %{?_smp_mflags}
 rm -rf $RPM_BUILD_ROOT
 make DESTDIR=$RPM_BUILD_ROOT install
 %endif
-rm $RPM_BUILD_ROOT%{_libdir}/libpst.la
-rm $RPM_BUILD_ROOT%{_libdir}/libpst.a
-mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/doc/%{name}
+#Remove libtool archives.
+find %{buildroot} -name '*.la' -or -name '*.a' | xargs rm -f
+mv %{buildroot}%{_datadir}/doc/%{name}-%{version} %{buildroot}%{_datadir}/doc/%{name}
 
 
 %ldconfig_scriptlets libs
 
 
 %files
-%defattr(-,root,root,-)
 %{_bindir}/*
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 
 
 %files libs
-%defattr(-,root,root,-)
 %{_libdir}/libpst.so.*
 %doc COPYING
 
@@ -147,7 +149,6 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 %exclude %{python3_sitearch}/*.la
 %else
 %files python
-%defattr(-,root,root,-)
 %{python_sitearch}/_*.so
 %exclude %{python_sitearch}/*.a
 %exclude %{python_sitearch}/*.la
@@ -155,19 +156,16 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 
 
 %files devel
-%defattr(-,root,root,-)
 %{_libdir}/libpst.so
 %{_includedir}/%{name}-@LIBPST_SO_MAJOR@/
 %{_libdir}/pkgconfig/libpst.pc
 
 
 %files devel-doc
-%defattr(-,root,root,-)
 %{_datadir}/doc/%{name}/devel/
 
 
 %files doc
-%defattr(-,root,root,-)
 %dir %{_datadir}/doc/%{name}/
 %{_datadir}/doc/%{name}/*.html
 %{_datadir}/doc/%{name}/AUTHORS
@@ -191,6 +189,9 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - Rename configure.in to configure.ac
 - add extern "C" to header for use with C++ code
 
+* Mon Aug 19 2019 Miro Hrončok <mhroncok@redhat.com> - 0.6.72-6
+- Rebuilt for Python 3.8
+
 * Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.72-5
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
@@ -201,9 +202,6 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version} $RPM_BUILD_ROOT%{_datadir}/
 - Add configure option for boost-python
 - Remove all old fedora conditionals
 - Update spec file to comply with packaging guidelines
-
-* Fri Jun 07 2019 Carl Byington <carl@five-ten-sg.com> 0.6.72-4
-- fixes for Python 3
 
 * Fri Feb 01 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.72-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
