@@ -149,13 +149,9 @@ mv %{buildroot}%{_datadir}/doc/%{name}-%{version} %{buildroot}%{_datadir}/doc/%{
 %files -n python3-%{name}
 %defattr(-,root,root,-)
 %{python3_sitearch}/_*.so
-%exclude %{python3_sitearch}/*.a
-%exclude %{python3_sitearch}/*.la
 %else
 %files python
 %{python_sitearch}/_*.so
-%exclude %{python_sitearch}/*.a
-%exclude %{python_sitearch}/*.la
 %endif
 
 
