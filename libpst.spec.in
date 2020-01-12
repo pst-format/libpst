@@ -127,8 +127,12 @@ find %{buildroot} -name '*.la' -or -name '*.a' | xargs rm -f
 mv %{buildroot}%{_datadir}/doc/%{name}-%{version} %{buildroot}%{_datadir}/doc/%{name}
 
 
+%if 0%{?fedora} > 27
 %ldconfig_scriptlets libs
-
+%else
+%post libs -p /sbin/ldconfig
+%postun libs -p /sbin/ldconfig
+%endif
 
 %files
 %{_bindir}/*
