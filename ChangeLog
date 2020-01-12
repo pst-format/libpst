@@ -1,4 +1,9 @@
+LibPST 0.6.74 (2020-01-12)
+===============================
+    *  Paul Wise - many changes for Debian.
+
 LibPST 0.6.73 (2019-07-25)
+===============================
     * Tim Dufrane - fix segfault in pst_close()
 
 LibPST 0.6.72 (2018-08-01)
