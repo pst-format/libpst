@@ -1,5 +1,5 @@
 AC_PREREQ(2.60)
-AC_INIT(libpst,0.6.74,carl@five-ten-sg.com)
+AC_INIT(libpst,0.6.75,carl@five-ten-sg.com)
 AC_CONFIG_SRCDIR([src/libpst.c])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -21,7 +21,7 @@ AC_USE_SYSTEM_EXTENSIONS
 #  6. libtool will build libpst.so.x.y.z where the SONAME is libpst.so.x
 #     and x=current-age, y=age, z=revision
 
-libpst_version_info='5:16:1'
+libpst_version_info='5:17:1'
 AC_SUBST(LIBPST_VERSION_INFO, [$libpst_version_info])
 libpst_so_major='4'
 AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
@@ -56,6 +56,7 @@ AC_SUBST(LIBPST_SO_MAJOR, [$libpst_so_major])
 # 0.6.69    libpst.so.4     libpst.so.4.1.14
 # 0.6.73    libpst.so.4     libpst.so.4.1.15
 # 0.6.74    libpst.so.4     libpst.so.4.1.16
+# 0.6.75    libpst.so.4     libpst.so.4.1.17
 
 
 

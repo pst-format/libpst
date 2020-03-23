@@ -2015,7 +2015,7 @@ void write_vcard(FILE* f_output, pst_item* item, pst_item_contact* contact, char
 
     write_extra_categories(f_output, item);
 
-    fprintf(f_output, "VERSION: 3.0\n");
+    fprintf(f_output, "VERSION:3.0\n");
     fprintf(f_output, "END:VCARD\n\n");
     if (result) free(result);
     DEBUG_RET();

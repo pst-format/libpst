@@ -1,3 +1,7 @@
+LibPST 0.6.75 (2020-03-22)
+===============================
+    *  Markus Schnalke - fix from Debian for vcard version format.
+
 LibPST 0.6.74 (2020-01-12)
 ===============================
     *  Paul Wise - many changes for Debian.
