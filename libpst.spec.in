@@ -179,6 +179,9 @@ mv %{buildroot}%{_datadir}/doc/%{name}-%{version} %{buildroot}%{_datadir}/doc/%{
 * Sun Mar 22 2020 Carl Byington <carl@five-ten-sg.com> 0.6.75-1
 - Markus Schnalke - fix from Debian for vcard version format.
 
+* Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.74-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
+
 * Sun Jan 12 2020 Carl Byington <carl@five-ten-sg.com> 0.6.74-1
 - Paul Wise - many changes for debian:
 - Add missing linking with zlib and libpthread/librt
