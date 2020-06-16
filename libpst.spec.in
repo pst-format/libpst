@@ -9,6 +9,9 @@ Source:             %{url}/packages/%{name}-%{version}.tar.gz
 BuildRequires:      libtool gcc-c++
 BuildRequires:      ImageMagick gd-devel zlib-devel boost-devel libgsf-devel gettext-devel
 
+%if "%{?dist}" == ".el8"
+    %define fedora 32
+%endif
 %if 0%{?fedora} > 27
 BuildRequires:      python3 python3-devel boost-python3 boost-python3-devel
 Requires:           boost-python3
@@ -19,9 +22,14 @@ BuildRequires:      python-devel
 Requires:           ImageMagick%{?_isa} libgsf gettext
 Requires:           %{name}-libs%{?_isa} = %{version}-%{release}
 
-%{!?python_sitelib:  %global python_sitelib  %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
-%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
-
+%if "%{?dist}" == ".el8"
+    %define __python /usr/bin/python3
+    %{!?python_sitelib:  %global python_sitelib  %(python3 -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+    %{!?python_sitearch: %global python_sitearch %(python3 -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+%else
+    %{!?python_sitelib:  %global python_sitelib  %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+    %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+%endif
 
 %description
 The Libpst utilities include readpst which can convert email messages
@@ -628,4 +636,3 @@ mv %{buildroot}%{_datadir}/doc/%{name}-%{version} %{buildroot}%{_datadir}/doc/%{
 
 * Sun Feb 19 2006 Carl Byington <carl@five-ten-sg.com> - 0.5.3
 - initial spec file using autoconf and http://www.fedora.us/docs/rpm-packaging-guidelines.html
-
