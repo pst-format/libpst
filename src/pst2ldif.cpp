@@ -15,10 +15,8 @@ using namespace std;
 #include <vector>
 #include <string>
 
-extern "C" {
-    #include "define.h"
-    #include "lzfu.h"
-}
+#include "define.h"
+#include "lzfu.h"
 
 void       usage(void);
 void       version(void);

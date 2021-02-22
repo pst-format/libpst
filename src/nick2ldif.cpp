@@ -8,9 +8,7 @@ https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 
 #include <iostream>
 
-extern "C" {
-    #include "define.h"
-}
+#include "define.h"
 
 char *ldap_base  = NULL;
 char *ldap_org	 = NULL;

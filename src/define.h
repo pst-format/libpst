@@ -60,6 +60,10 @@
 #ifdef _WIN32
     #include <direct.h>
 
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+
     #define D_MKDIR(x) mkdir(x)
     #define chdir      _chdir
     #define strcasecmp _stricmp
@@ -83,10 +87,20 @@
     int __cdecl _fseeki64(FILE *, __int64, int);
     __int64 __cdecl _ftelli64(FILE *);
 
+    #ifdef __cplusplus
+    }
+    #endif
+
     #ifdef __MINGW32__
         #include <getopt.h>
     #else
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
         #include "XGetopt.h"
+        #ifdef __cplusplus
+        }
+        #endif
     #endif
     #include <process.h>
     #undef gmtime_r
@@ -102,7 +116,15 @@
     #ifdef HAVE_UNISTD_H
         #include <unistd.h>
     #else
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+
         #include "XGetopt.h"
+
+        #ifdef __cplusplus
+        }
+        #endif
     #endif
     #define D_MKDIR(x) mkdir(x, PERM_DIRS)
 #endif
@@ -131,6 +153,9 @@
     #include <semaphore.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void  pst_debug_lock();
 void  pst_debug_unlock();
@@ -257,5 +282,9 @@ void *pst_realloc(void *ptr, size_t size);
 #define PST_LE_GET_INT8(p) (*(int8_t const *)(p))
 
 #define MAXDATEFMTLEN 40
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif //DEFINEH_H

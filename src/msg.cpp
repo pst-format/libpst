@@ -1,7 +1,5 @@
-extern "C" {
-    #include "define.h"
-    #include "msg.h"
-}
+#include "define.h"
+#include "msg.h"
 
 #include <gsf/gsf-utils.h>
 

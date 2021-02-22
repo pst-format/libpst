@@ -4,6 +4,9 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Variable-length buffers
 struct pst_varbuf {
@@ -25,5 +28,8 @@ size_t     pst_vb_utf16to8(pst_vbuf *dest, const char *inbuf, int iblen);
 size_t     pst_vb_utf8to8bit(pst_vbuf *dest, const char *inbuf, int iblen, const char* charset);
 size_t     pst_vb_8bit2utf8(pst_vbuf *dest, const char *inbuf, int iblen, const char* charset);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

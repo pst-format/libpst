@@ -1,6 +1,4 @@
-extern "C" {
-	#include "define.h"
-};
+#include "define.h"
 
 #include <fcntl.h>
 #include <iostream>

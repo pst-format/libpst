@@ -13,10 +13,8 @@ Based on readpst.c by David Smith
 
 using namespace std;
 
-extern "C" {
-    #include "define.h"
-    #include "lzfu.h"
-}
+#include "define.h"
+#include "lzfu.h"
 
 struct file_ll {
     string  name;
