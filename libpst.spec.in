@@ -1,3 +1,17 @@
+%if "%{?dist}" == ".el8"
+    %define fedora 32
+%endif
+
+%if 0%{?fedora} > 27 || 0%{?rhel} >= 9
+%global use_python3 1
+%define __python %{__python3}
+%endif
+
+%if 0%{?rhel} >= 9
+%global with_dii 0
+%else
+%global with_dii 1
+%endif
 Summary:            Utilities to convert Outlook .pst files to other formats
 Name:               @PACKAGE@
 Version:            @VERSION@
@@ -6,37 +20,45 @@ License:            GPLv2+
 URL:                http://www.five-ten-sg.com/%{name}/
 Source:             %{url}/packages/%{name}-%{version}.tar.gz
 
+BuildRequires:      make
 BuildRequires:      libtool gcc-c++
-BuildRequires:      ImageMagick gd-devel zlib-devel boost-devel libgsf-devel gettext-devel
+BuildRequires:      gd-devel zlib-devel boost-devel libgsf-devel gettext-devel
 
-%if "%{?dist}" == ".el8"
-    %define fedora 32
+%if 0%{with_dii}
+BuildRequires:      ImageMagick
 %endif
-%if 0%{?fedora} > 27
+
+%if 0%{?use_python3}
 BuildRequires:      python3 python3-devel boost-python3 boost-python3-devel
 Requires:           boost-python3
 %else
 BuildRequires:      python-devel
 %endif
 
-Requires:           ImageMagick%{?_isa} libgsf gettext
+Requires:           libgsf gettext
 Requires:           %{name}-libs%{?_isa} = %{version}-%{release}
 
-%if "%{?dist}" == ".el8"
-    %define __python /usr/bin/python3
-    %{!?python_sitelib:  %global python_sitelib  %(python3 -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
-    %{!?python_sitearch: %global python_sitearch %(python3 -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
-%else
-    %{!?python_sitelib:  %global python_sitelib  %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
-    %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+%if 0%{with_dii}
+Requires:           ImageMagick%{?_isa}
 %endif
 
+%{!?python_sitelib:  %global python_sitelib  %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+
+
+%if 0%{with_dii}
 %description
 The Libpst utilities include readpst which can convert email messages
 to both mbox and MH mailbox formats, pst2ldif which can convert the
 contacts to .ldif format for import into ldap databases, and pst2dii
 which can convert email messages to the DII load file format used by
 Summation.
+%else
+%description
+The Libpst utilities include readpst which can convert email messages
+to both mbox and MH mailbox formats, pst2ldif which can convert the
+contacts to .ldif format for import into ldap databases.
+%endif
 
 
 %package libs
@@ -47,7 +69,7 @@ The libpst-libs package contains the shared library used by the pst
 utilities.
 
 
-%if 0%{?fedora} > 27
+%if 0%{?use_python3}
 %package -n python3-%{name}
 Requires:           python3
 Provides: %{name}-python = %{version}-%{release}
@@ -58,7 +80,7 @@ Requires:           python
 Summary:            Python bindings for libpst
 Requires:           %{name}-libs%{?_isa} = %{version}-%{release}
 
-%if 0%{?fedora} >= 20
+%if 0%{?fedora} >= 20 || 0%{?rhel} >= 9
 %global __provides_exclude_from %{?__provides_exclude_from:%__provides_exclude_from|}^%{python_sitearch}/_.*\.so$
 %else
 %{?filter_setup:
@@ -68,7 +90,7 @@ Requires:           %{name}-libs%{?_isa} = %{version}-%{release}
 %endif
 
 
-%if 0%{?fedora} > 27
+%if 0%{?use_python3}
 %description -n python3-%{name}
 %else
 %description python
@@ -115,8 +137,13 @@ libpst utilities.
 %build
 autoreconf -fiv
 %configure --enable-libpst-shared \
+%if 0%{with_dii}
+           --enable-dii \
+%else
+           --disable-dii \
+%endif
            --with-boost-python=boost_python%{python3_version_nodots}
-%if 0%{?fedora} > 27
+%if 0%{?use_python3}
 %make_build
 %else
 make %{?_smp_mflags}
@@ -124,7 +151,7 @@ make %{?_smp_mflags}
 
 
 %install
-%if 0%{?fedora} > 27
+%if 0%{?use_python3}
 %make_install
 %else
 rm -rf $RPM_BUILD_ROOT
@@ -134,8 +161,12 @@ make DESTDIR=$RPM_BUILD_ROOT install
 find %{buildroot} -name '*.la' -or -name '*.a' | xargs rm -f
 mv %{buildroot}%{_datadir}/doc/%{name}-%{version} %{buildroot}%{_datadir}/doc/%{name}
 
+# Remove pst2dii man page, when it's not built
+%if !0%{with_dii}
+rm %{buildroot}%{_mandir}/man1/pst2dii.1*
+%endif
 
-%if 0%{?fedora} > 27
+%if 0%{?use_python3}
 %ldconfig_scriptlets libs
 %else
 %post libs -p /sbin/ldconfig
@@ -153,7 +184,7 @@ mv %{buildroot}%{_datadir}/doc/%{name}-%{version} %{buildroot}%{_datadir}/doc/%{
 %doc COPYING
 
 
-%if 0%{?fedora} > 27
+%if 0%{?use_python3}
 %files -n python3-%{name}
 %defattr(-,root,root,-)
 %{python3_sitearch}/_*.so
@@ -184,6 +215,34 @@ mv %{buildroot}%{_datadir}/doc/%{name}-%{version} %{buildroot}%{_datadir}/doc/%{
 
 
 %changelog
+* Sat Mar 27 2021 Carl Byington <carl@five-ten-sg.com> 0.6.76-1
+- Stuart C. Naifeh - fix rfc2231 encoding when saving messages to
+  both .eml and .msg formats.
+
+* Tue Feb 02 2021 Milan Crha <mcrha@redhat.com> - 0.6.75-9
+- Resolves: #1913613 (Disable DII (and ImageMagic dependency) for RHEL 9)
+
+* Tue Jan 26 2021 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.75-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
+* Fri Jan 22 2021 Jonathan Wakely <jwakely@redhat.com> - 0.6.75-7
+- Rebuilt for Boost 1.75
+
+* Tue Jul 28 2020 Merlin Mathesius <mmathesi@redhat.com> - 0.6.75-6
+- FTBFS fix: %%{__python} must now be explicitly defined
+
+* Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 0.6.75-5
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
+
+* Thu Jul 16 2020 Merlin Mathesius <mmathesi@redhat.com> - 0.6.75-4
+- Cleanup conditionals for using python3
+
+* Fri May 29 2020 Jonathan Wakely <jwakely@redhat.com> - 0.6.75-3
+- Rebuilt for Boost 1.73
+
+* Tue May 26 2020 Miro Hrončok <mhroncok@redhat.com> - 0.6.75-2
+- Rebuilt for Python 3.9
+
 * Sun Mar 22 2020 Carl Byington <carl@five-ten-sg.com> 0.6.75-1
 - Markus Schnalke - fix from Debian for vcard version format.
 

@@ -1179,6 +1179,41 @@ char *quote_string(char *inp) {
     return res;
 }
 
+/** Convert inp to rfc2231 encoding of string
+ *
+ *  @param inp   pointer to the string of interest
+ *  @return      pointer to converted string -- caller must free
+ */
+char *rfc2231_string(char *inp) {
+    int needs = 0;
+    const int8_t *x = (int8_t *)inp;
+    while (*x) {
+        if (*x <= 32) needs++;
+        x++;
+    }
+    int n = strlen(inp) + 2*needs + 15;
+    char *buffer = pst_malloc(n);
+    strcpy(buffer, "utf-8''");
+    x = (int8_t *)inp;
+    const uint8_t *y = (uint8_t *)inp;
+    uint8_t *z = (uint8_t *)buffer;
+    z += strlen(buffer);    // skip the utf8 prefix
+    while (*y) {
+        if (*x <= 32) {
+            *(z++) = (uint8_t)'%';
+            snprintf(z, 3, "%2x", *y);
+            z += 2;
+        }
+        else {
+            *(z++) = *y;
+        }
+        x++;
+        y++;
+    }
+    *z = '\0';
+    return buffer;
+}
+
 void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst)
 {
     DEBUG_ENT("write_inline_attachment");
@@ -1210,8 +1245,10 @@ void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boun
         // use the long filename, converted to proper encoding if needed.
         // it is already utf8
         char *escaped = quote_string(attach->filename2.str);
-        pst_rfc2231(&attach->filename2);
-        fprintf(f_output, "Content-Disposition: attachment; \n        filename*=%s;\n", attach->filename2.str);
+        // encode long filename as rfc2231 without modifying original -- we may still need the original long filename
+        char *rfc2231 = rfc2231_string(attach->filename2.str);
+        fprintf(f_output, "Content-Disposition: attachment; \n        filename*=%s;\n", rfc2231);
+        free (rfc2231);
         // Also include the (escaped) utf8 filename in the 'filename' header directly - this is not strictly valid
         // (since this header should be ASCII) but is almost always handled correctly (and in fact this is the only
         // way to get MS Outlook to correctly read a UTF8 filename, AFAICT, which is why we're doing it).
