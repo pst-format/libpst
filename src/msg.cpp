@@ -1,16 +1,17 @@
 extern "C" {
     #include "define.h"
     #include "msg.h"
-    #include <gsf/gsf-utils.h>
-
-    #include <gsf/gsf-input-stdio.h>
-    #include <gsf/gsf-infile.h>
-    #include <gsf/gsf-infile-stdio.h>
-
-    #include <gsf/gsf-output-stdio.h>
-    #include <gsf/gsf-outfile.h>
-    #include <gsf/gsf-outfile-msole.h>
 }
+
+#include <gsf/gsf-utils.h>
+
+#include <gsf/gsf-input-stdio.h>
+#include <gsf/gsf-infile.h>
+#include <gsf/gsf-infile-stdio.h>
+
+#include <gsf/gsf-output-stdio.h>
+#include <gsf/gsf-outfile.h>
+#include <gsf/gsf-outfile-msole.h>
 
 #include <list>
 #include <vector>

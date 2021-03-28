@@ -218,6 +218,7 @@ rm %{buildroot}%{_mandir}/man1/pst2dii.1*
 * Sat Mar 27 2021 Carl Byington <carl@five-ten-sg.com> 0.6.76-1
 - Stuart C. Naifeh - fix rfc2231 encoding when saving messages to
   both .eml and .msg formats.
+- fix template issue to build with gcc 11
 
 * Tue Feb 02 2021 Milan Crha <mcrha@redhat.com> - 0.6.75-9
 - Resolves: #1913613 (Disable DII (and ImageMagic dependency) for RHEL 9)
