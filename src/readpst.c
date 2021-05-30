@@ -1624,6 +1624,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int curre
     DEBUG_ENT("write_normal_email");
 
     pst_convert_utf8_null(item, &item->email->header);
+    DEBUG_INFO(("PST headers\n%s\n", item->email->header.str));
+    DEBUG_INFO(("Extra MIME headers\n%s\n", *extra_mime_headers));
     headers = valid_headers(item->email->header.str) ? item->email->header.str :
               valid_headers(*extra_mime_headers)     ? *extra_mime_headers     :
               NULL;
