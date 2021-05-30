@@ -1308,8 +1308,10 @@ int  header_match(char *header, char*field) {
     if (strncasecmp(header, field, n) == 0) return 1;   // tag:{space}
     if ((field[n-1] == ' ') && (strncasecmp(header, field, n-1) == 0)) {
         char *crlftab = "\r\n\t";
+        char *crlfspc = "\r\n ";
         DEBUG_INFO(("Possible wrapped header = %s\n", header));
         if (strncasecmp(header+n-1, crlftab, 3) == 0) return 1; // tag:{cr}{lf}{tab}
+        if (strncasecmp(header+n-1, crlfspc, 3) == 0) return 1; // tag:{cr}{lf}{space}
     }
     return 0;
 }
