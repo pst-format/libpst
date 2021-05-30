@@ -1316,6 +1316,65 @@ int  header_match(char *header, char*field) {
     return 0;
 }
 
+// https://en.wikipedia.org/wiki/Email#Message_header
+// https://www.rfc-editor.org/rfc/rfc5322.html
+// https://www.iana.org/assignments/message-headers/message-headers.xhtml
+int  header_is_reasonable(char *header)
+{
+    char *c;
+#define C *c
+
+    // The header must not be NULL
+    if (header) c = header;
+    else return 0;
+
+    // usually the header field name starts with upper-case: A-Z
+    if (C >= 'A' && C <= 'Z') c++;
+    else return 0;
+
+    while(1) {
+        // most header field names use a limited set of characters: - 0-9 A-Z a-z
+        if (
+            (C >= 'A' && C <= 'Z') ||
+            (C >= 'a' && C <= 'z') ||
+            (C >= '0' && C <= '9') ||
+            (C == '-')
+           ) {
+            c++;
+        // the header field name is then terminated with a colon
+        } else if (C == ':') {
+          c++;
+          goto parse_header_field_value;
+        // other characters are an indicator of an invalid header
+        } else {
+          return 0;
+        }
+    }
+
+parse_header_field_value:
+    while(1) {
+        // header field values are printable US-ASCII plus space/tab
+        if (
+            (C >= 33 && C <= 126) ||
+            (C == ' ' || C == '\t')
+           ) {
+            c++;
+        // the header field value is then terminated with CRLF
+        } else if (C == '\r' && *(c+1) == '\n') {
+            c += 2;
+            // the value could continue to the next line though
+            if (C == ' ' || C == '\t') c++;
+            else return 1;
+        // other characters are an indicator of an invalid header
+        } else {
+          return 0;
+        }
+    }
+
+#undef C
+
+}
+
 int  valid_headers(char *header)
 {
     // headers are sometimes really bogus - they seem to be fragments of the
@@ -1336,6 +1395,7 @@ int  valid_headers(char *header)
         if (header_match(header, "X-ASG-Debug-ID: "               )) return 1;
         if (header_match(header, "X-Barracuda-URL: "              )) return 1;
         if (header_match(header, "X-x: "                          )) return 1;
+        if (header_is_reasonable(header)) return 1;
         if (strlen(header) > 2) {
             DEBUG_INFO(("Ignore bogus headers = %s\n", header));
         }
