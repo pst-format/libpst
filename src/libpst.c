@@ -394,10 +394,13 @@ int pst_open(pst_file *pf, const char *name, const char *charset) {
 
 int  pst_reopen(pst_file *pf) {
     char *cwd;
+    FILE *fp;
     cwd = pst_getcwd();
     if (cwd == NULL)                       return -1;
     if (chdir(pf->cwd))                    goto err;
-    if (!freopen(pf->fname, "rb", pf->fp)) goto err;
+    fp = freopen(pf->fname, "rb", pf->fp);
+    if (!fp) goto err;
+    else pf->fp = fp;
     if (chdir(cwd))                        goto err;
     free(cwd);
     return 0;
