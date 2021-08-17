@@ -2276,7 +2276,7 @@ void write_appointment(FILE* f_output, pst_item* item)
                 for (i=0; i<7; i++) {
                     int bit = 1 << i;
                     if (bit & rdata->bydaymask) {
-                        char temp[40];
+                        char temp[49];
                         snprintf(temp, sizeof(temp), "%s%s%s", byday, (empty) ? ";BYDAY=" : ";", days[i]);
                         strcpy(byday, temp);
                         empty = 0;

@@ -59,7 +59,7 @@ int main(int argc, char* const* argv) {
 		char *m = e+1;
 		while (*m == ' ') m++;
 		if (*m != '\0') {
-			char cn[1000], givenName[1000], sn[1000];
+			char cn[LINE_SIZE], givenName[LINE_SIZE], sn[LINE_SIZE];
 			snprintf(cn, sizeof(cn), "%s", f);
             char *ff = strchr(f, ' ');
             if (ff) {
