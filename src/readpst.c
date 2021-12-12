@@ -1179,6 +1179,39 @@ char *quote_string(char *inp) {
     return res;
 }
 
+/*
+ * RFC 2231 says:
+ *   attribute-char := <any (US-ASCII) CHAR except SPACE, CTLs,
+ *                   "*", "'", "%", or tspecials>
+ * Equivalent, but clearer from RFC 5987:
+ *   attr-char     = ALPHA / DIGIT
+ *                   / "!" / "#" / "$" / "&" / "+" / "-" / "."
+ *                   / "^" / "_" / "`" / "|" / "~"
+ */
+static int is_attribute_char(int8_t x) {
+    if ((x >= 'A' && x <= 'Z') ||
+        (x >= 'a' && x <= 'z') ||
+        (x >= '0' && x <= '9')) {
+           return 1;
+    }
+    switch(x) {
+        case '!':
+        case '#':
+        case '$':
+        case '&':
+        case '+':
+        case '-':
+        case '.':
+        case '^':
+        case '_':
+        case '`':
+        case '|':
+        case '~':
+            return 1;
+    }
+    return 0;
+}
+
 /** Convert inp to rfc2231 encoding of string
  *
  *  @param inp   pointer to the string of interest
@@ -1188,7 +1221,7 @@ char *rfc2231_string(char *inp) {
     int needs = 0;
     const int8_t *x = (int8_t *)inp;
     while (*x) {
-        if (*x <= 32) needs++;
+        if (!is_attribute_char(*x)) needs++;
         x++;
     }
     int n = strlen(inp) + 2*needs + 15;
@@ -1199,7 +1232,7 @@ char *rfc2231_string(char *inp) {
     uint8_t *z = (uint8_t *)buffer;
     z += strlen(buffer);    // skip the utf8 prefix
     while (*y) {
-        if (*x <= 32) {
+        if (!is_attribute_char(*x)) {
             *(z++) = (uint8_t)'%';
             snprintf(z, 3, "%2x", *y);
             z += 2;
