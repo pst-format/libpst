@@ -59,7 +59,7 @@ void      find_rfc822_headers(char** extra_mime_headers);
 void      write_body_part(FILE* f_output, pst_string *body, char *mime, char *charset, char *boundary, pst_file* pst);
 void      write_schedule_part_data(FILE* f_output, pst_item* item, const char* sender, const char* method);
 void      write_schedule_part(FILE* f_output, pst_item* item, const char* sender, const char* boundary);
-void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, int embedding, char** extra_mime_headers);
+void      write_normal_email(FILE* f_output, char f_name[], pst_item* item, int current_mode, int mode_MH, pst_file* pst, int save_rtf, int embedding, char** extra_mime_headers);
 void      write_vcard(FILE* f_output, pst_item *item, pst_item_contact* contact, char comment[]);
 int       write_extra_categories(FILE* f_output, pst_item* item);
 void      write_journal(FILE* f_output, pst_item* item);
@@ -1605,7 +1605,7 @@ void write_schedule_part(FILE* f_output, pst_item* item, const char* sender, con
 }
 
 
-void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode, int mode_MH, pst_file* pst, int save_rtf, int embedding, char** extra_mime_headers)
+void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int current_mode, int mode_MH, pst_file* pst, int save_rtf, int embedding, char** extra_mime_headers)
 {
     char boundary[60];
     char altboundary[66];
@@ -1920,7 +1920,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int mode,
             }
             else if (attach->data.data || attach->i_id) {
                 if (acceptable_ext(attach)) {
-                    if (mode == MODE_SEPARATE && !mode_MH)
+                    if (current_mode == MODE_SEPARATE && !mode_MH)
                         write_separate_attachment(f_name, attach, ++attach_num, pst);
                     else
                         write_inline_attachment(f_output, attach, boundary, pst);
