@@ -4,7 +4,7 @@
         <title>Packages</title>
 
         <para>The various source and binary packages are available at <ulink
-        url="http://www.five-ten-sg.com/@PACKAGE@/packages/">http://www.five-ten-sg.com/@PACKAGE@/packages/</ulink>.
+        url="https://github.com/pst-format/@PACKAGE@/releases">https://github.com/pst-format/@PACKAGE@/releases</ulink>.
         The most recent documentation is available at <ulink
         url="http://www.five-ten-sg.com/@PACKAGE@/">http://www.five-ten-sg.com/@PACKAGE@/</ulink>.
         The most recent developer documentation for the shared library is available at <ulink
