@@ -12,7 +12,7 @@
         </para>
 
         <para>A <ulink
-        url="http://www.selenic.com/mercurial/wiki/">Mercurial</ulink> source
+        url="https://git-scm.com/">Git</ulink> source
         code repository for this project is available at <ulink
         url="http://hg.five-ten-sg.com/@PACKAGE@/">http://hg.five-ten-sg.com/@PACKAGE@/</ulink>.
         </para>
