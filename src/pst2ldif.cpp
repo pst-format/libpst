@@ -2,7 +2,7 @@
 
 Copyright (c) 2004 Carl Byington - 510 Software Group, released under
 the GPL version 2 or any later version at your choice available at
-http://www.fsf.org/licenses/gpl.txt
+https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 
 Based on readpst.c by David Smith
 

@@ -3870,7 +3870,7 @@ static int pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type
 
     } else if (type == PST_ENCRYPT) {
         // The following code was based on the information at
-        // http://www.passcape.com/outlook_passwords.htm
+        // https://www.passcape.com/outlook_passwords
         uint16_t salt = (uint16_t) (((i_id & 0x00000000ffff0000) >> 16) ^ (i_id & 0x000000000000ffff));
         x = 0;
         while (x < size) {

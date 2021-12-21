@@ -77,7 +77,7 @@ uninstall:
 	-rm -f $(DESTDIR)$(PREFIX)/share/man/man1/readpst{,log}.1
 
 # stolen from ESR's Software Release Practices HOWTO available at:
-# http://en.tldp.org/HOWTO/Software-Release-Practice-HOWTO/distpractice.html
+# https://tldp.org/HOWTO/Software-Release-Practice-HOWTO/distpractice.html
 MANIFEST: Makefile
 	@ls $(DISTFILES) | sed s:^:libpst-$(VERSION)/: >MANIFEST
 tarball libpst-$(VERSION).tar.gz: MANIFEST $(DISTFILES)

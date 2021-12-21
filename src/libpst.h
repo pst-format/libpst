@@ -662,7 +662,7 @@ typedef struct pst_item_journal {
 
 
 /** This contains the recurrence data separated into fields.
-    http://www.geocities.com/cainrandom/dev/MAPIRecurrence.html
+    https://web.archive.org/web/20091026194513/http://geocities.com/cainrandom/dev/MAPIRecurrence.html
 */
 typedef struct pst_recurrence {
     /** 0x30043004 */

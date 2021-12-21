@@ -454,7 +454,7 @@ LibPST 0.6.5 (2008-01-22)
       of type 0xb have length 4, so these are all 32 bits in the file.
       Libpst treats them all as 16 bits, but at least we are consistent.
     * More fields decoded - for example, see
-      <http://msdn2.microsoft.com/en-us/library/aa454925.aspx>
+      <https://docs.microsoft.com/office/client-developer/outlook/mapi/pidtagipmoutboxentryid-canonical-property>
       We should be able to use that data for much more complete decoding.
     * Move the rpm group to Applications/Productivity consistent with
       Evolution.

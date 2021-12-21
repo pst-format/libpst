@@ -695,4 +695,4 @@ rm %{buildroot}%{_mandir}/man1/pst2dii.1*
 - merge changes from Joe Nahmias version
 
 * Sun Feb 19 2006 Carl Byington <carl@five-ten-sg.com> - 0.5.3
-- initial spec file using autoconf and http://www.fedora.us/docs/rpm-packaging-guidelines.html
+- initial spec file using autoconf and https://docs.fedoraproject.org/en-US/packaging-guidelines/

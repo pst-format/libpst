@@ -29,7 +29,7 @@
         uint32_t  dwHighDateTime;
     } FILETIME;
     // According to Jan Wolter, sys/param.h is the most portable source of endian
-    // information on UNIX systems. see http://www.unixpapa.com/incnote/byteorder.html
+    // information on UNIX systems. see https://www.unixpapa.com/incnote/byteorder.html
     #include <sys/param.h>
 #else
     #include <windows.h>

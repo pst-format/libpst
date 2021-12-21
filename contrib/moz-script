@@ -3,7 +3,7 @@
 # Helper script to convert to Mozilla mail format
 # Author: David Binard <binard@users.sf.net>
 
-# Taken from:  <http://sourceforge.net/tracker/index.php?func=detail&aid=938792&group_id=18756&atid=318756>
+# Taken from:  <https://sourceforge.net/p/ol2mbox/patches/4/>
 # Note: this assumes readpst was run with the -r
 # (recursive) option.
 
