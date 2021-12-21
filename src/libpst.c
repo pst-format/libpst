@@ -23,7 +23,7 @@
 #define INDEX_TYPE32            0x0E
 #define INDEX_TYPE32A           0x0F    // unknown, but assumed to be similar for now
 #define INDEX_TYPE64            0x17
-#define INDEX_TYPE64A           0x15    // http://sourceforge.net/projects/libpff/
+#define INDEX_TYPE64A           0x15    // https://github.com/libyal/libpff
 #define INDEX_TYPE4K            0x24
 #define INDEX_TYPE_OFFSET       (int64_t)0x0A
 
