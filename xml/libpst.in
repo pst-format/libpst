@@ -14,7 +14,7 @@
         <para>A <ulink
         url="https://git-scm.com/">Git</ulink> source
         code repository for this project is available at <ulink
-        url="http://hg.five-ten-sg.com/@PACKAGE@/">http://hg.five-ten-sg.com/@PACKAGE@/</ulink>.
+        url="https://github.com/pst-format/PACKAGE@.git">https://github.com/pst-format/PACKAGE@.git</ulink>.
         </para>
 
         <para>This version can now convert both 32 bit Outlook files (pre 2003), and the

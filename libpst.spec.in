@@ -17,7 +17,7 @@ Name:               @PACKAGE@
 Version:            @VERSION@
 Release:            1%{?dist}
 License:            GPLv2+
-URL:                http://www.five-ten-sg.com/%{name}/
+URL:                https://github.com/pst-format/%{name}/
 Source:             %{url}/packages/%{name}-%{version}.tar.gz
 
 BuildRequires:      make
