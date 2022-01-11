@@ -338,7 +338,7 @@ if test "$enable_python" = "yes"; then
     PYTHON_VERSION=`echo $ax_python_bin | cut -c7-`
 
     # find the flags for that version
-    AX_PYTHON_DEVEL([$PYTHON_VERSION])
+    AX_PYTHON_DEVEL([>= '$PYTHON_VERSION'])
 
     # do we have Boost Python?
     AX_BOOST_PYTHON
