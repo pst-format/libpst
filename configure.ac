@@ -385,7 +385,6 @@ AC_OUTPUT(                  \
     Makefile                \
     html/Makefile           \
     libpst.pc               \
-    libpst.spec             \
     man/Makefile            \
     src/Makefile            \
     src/pst2dii.cpp         \
