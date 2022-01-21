@@ -1383,8 +1383,11 @@ int  valid_headers(char *header)
     // there are surely others. the problem is - given an arbitrary character
     // string, is it a valid (or even reasonable) set of rfc822 headers?
     if (header) {
+        if (header_match(header, "Content-Language: "             )) return 1;
         if (header_match(header, "Content-Type: "                 )) return 1;
+        if (header_match(header, "DKIM-Signature: "               )) return 1;
         if (header_match(header, "Date: "                         )) return 1;
+        if (header_match(header, "Delivered-To: "                 )) return 1;
         if (header_match(header, "From: "                         )) return 1;
         if (header_match(header, "MIME-Version: "                 )) return 1;
         if (header_match(header, "Microsoft Mail Internet Headers")) return 1;
@@ -1392,6 +1395,7 @@ int  valid_headers(char *header)
         if (header_match(header, "Return-Path: "                  )) return 1;
         if (header_match(header, "Subject: "                      )) return 1;
         if (header_match(header, "To: "                           )) return 1;
+        if (header_match(header, "User-Agent: "                   )) return 1;
         if (header_match(header, "X-ASG-Debug-ID: "               )) return 1;
         if (header_match(header, "X-Barracuda-URL: "              )) return 1;
         if (header_match(header, "X-x: "                          )) return 1;
