@@ -175,7 +175,7 @@ AC_CHECK_HEADER([unistd.h],
     )
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([ctype.h dirent.h errno.h fcntl.h inttypes.h limits.h regex.h semaphore.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h sys/param.h sys/shm.h sys/stat.h sys/types.h time.h unistd.h wchar.h])
+AC_CHECK_HEADERS([ctype.h dirent.h errno.h fcntl.h inttypes.h limits.h regex.h semaphore.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h sys/param.h sys/ipc.h sys/shm.h sys/stat.h sys/types.h time.h unistd.h wchar.h])
 save_libs="$LIBS" ; LIBS=""
 AC_SEARCH_LIBS([sem_init], [pthread rt], [SEM_LIBS="$LIBS"], [AC_MSG_ERROR([sem_init missing])])
 AC_SUBST([SEM_LIBS])

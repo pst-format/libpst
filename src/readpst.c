@@ -590,7 +590,7 @@ int main(int argc, char* const* argv) {
     child_processes = (pid_t *)pst_malloc(sizeof(pid_t) * max_children);
     memset(child_processes, 0, sizeof(pid_t) * max_children);
 
-#ifdef HAVE_SEMAPHORE_H
+#if defined(HAVE_SEMAPHORE_H) && defined(HAVE_SYS_IPC_H) && defined(HAVE_SYS_SHM_H)
     if (max_children) {
         shared_memory_id = shmget(IPC_PRIVATE, sizeof(sem_t)*2, 0777);
         if (shared_memory_id >= 0) {
