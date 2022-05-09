@@ -126,7 +126,7 @@ void pst_debug_hexdumper(FILE *out, const char *buf, size_t size, int cols, int 
     if (cols == -1) cols = NUM_COL;
     fprintf(out, "\n");
     while (off < size) {
-        fprintf(out, "%06d %.*s%06" PRIx64 "\t:", getpid(), le*4, indent, (int64_t)(off+delta));
+        fprintf(out, "%06d %.*s%06zx\t:", getpid(), le*4, indent, off+delta);
         toff = off;
         while (count < cols && off < size) {
             fprintf(out, "%02hhx ", (unsigned char)buf[off]);
@@ -169,7 +169,7 @@ void pst_debug_close(void) {
 void *pst_malloc(size_t size) {
     void *mem = malloc(size);
     if (!mem) {
-        fprintf(stderr, "pst_malloc: Out Of memory [req: %ld]\n", (long)size);
+        fprintf(stderr, "pst_malloc: Out Of memory [req: %zd]\n", size);
         exit(1);
     }
     return mem;
@@ -179,7 +179,7 @@ void *pst_malloc(size_t size) {
 void *pst_realloc(void *ptr, size_t size) {
     void *mem = realloc(ptr, size);
     if (!mem) {
-        fprintf(stderr, "pst_realloc: Out Of memory [req: %ld]\n", (long)size);
+        fprintf(stderr, "pst_realloc: Out Of memory [req: %zd]\n", size);
         exit(1);
     }
     return mem;

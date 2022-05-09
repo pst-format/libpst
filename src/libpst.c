@@ -313,7 +313,7 @@ static char *pst_getcwd(void) {
 
 
 int pst_open(pst_file *pf, const char *name, const char *charset) {
-    int32_t sig;
+    uint32_t sig;
 
     pst_unicode_init();
 
@@ -341,8 +341,8 @@ int pst_open(pst_file *pf, const char *name, const char *charset) {
         return -1;
     }
     LE32_CPU(sig);
-    DEBUG_INFO(("sig = %X\n", sig));
-    if (sig != (int32_t)PST_SIGNATURE) {
+    DEBUG_INFO(("sig = %" PRIX32 "\n", sig));
+    if (sig != (uint32_t)PST_SIGNATURE) {
         (void)fclose(pf->fp);
         DEBUG_WARN(("not a PST file that I know. Closing with error\n"));
         DEBUG_RET();
@@ -351,7 +351,7 @@ int pst_open(pst_file *pf, const char *name, const char *charset) {
 
     // read index type
     (void)pst_getAtPos(pf, INDEX_TYPE_OFFSET, &(pf->ind_type), sizeof(pf->ind_type));
-    DEBUG_INFO(("index_type = %i\n", pf->ind_type));
+    DEBUG_INFO(("index_type = %hhu\n", pf->ind_type));
     switch (pf->ind_type) {
         case INDEX_TYPE32 :
         case INDEX_TYPE32A :
@@ -373,7 +373,7 @@ int pst_open(pst_file *pf, const char *name, const char *charset) {
 
     // read encryption setting
     (void)pst_getAtPos(pf, ENC_TYPE, &(pf->encryption), sizeof(pf->encryption));
-    DEBUG_INFO(("encrypt = %i\n", pf->encryption));
+    DEBUG_INFO(("encrypt = %hhu\n", pf->encryption));
 
     pf->index2_back  = pst_getIntAtPos(pf, SECOND_BACK);
     pf->index2       = pst_getIntAtPos(pf, SECOND_POINTER);
@@ -741,7 +741,7 @@ int pst_load_extended_attributes(pst_file *pf) {
 
     DEBUG_INFO(("look through d_id 0x61 list of mapi objects\n"));
     for (x=0; x < list->count_elements; x++) {
-        DEBUG_INFO(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
+        DEBUG_INFO(("#%" PRId32 " - mapi-id: %#" PRIx32 " type: %#" PRIx32 " length: %#zx\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
         if (list->elements[x]->data) {
             DEBUG_HEXDUMPC(list->elements[x]->data, list->elements[x]->size, 0x10);
         }
@@ -786,9 +786,9 @@ int pst_load_extended_attributes(pst_file *pf) {
                 memcpy(wt, &(headerbuffer[xattrib.extended+sizeof(tint)]), (size_t)tint);
                 ptr->data = pst_wide_to_single(wt, (size_t)tint);
                 free(wt);
-                DEBUG_INFO(("Mapped attribute %#" PRIx32 " to %s\n", ptr->map, ptr->data));
+                DEBUG_INFO(("Mapped attribute %#" PRIx32 " to %s\n", ptr->map, (char*)ptr->data));
             } else {
-                DEBUG_INFO(("Cannot read outside of buffer [%i !< %i]\n", xattrib.extended, hsize));
+                DEBUG_INFO(("Cannot read outside of buffer [%" PRIu32 " !< %zu]\n", xattrib.extended, hsize));
                 err = 1;
             }
             ptr->mytype = PST_MAP_HEADER;
@@ -1039,7 +1039,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
     char *buf = NULL, *bptr;
 
     DEBUG_ENT("pst_build_id_ptr");
-    DEBUG_INFO(("offset %#" PRIx64 " depth %i linku1 %#" PRIx64 " start %#" PRIx64 " end %#" PRIx64 "\n", offset, depth, linku1, start_val, end_val));
+    DEBUG_INFO(("offset %#" PRIx64 " depth %" PRIi32 " linku1 %#" PRIx64 " start %#" PRIx64 " end %#" PRIx64 "\n", (uint64_t) offset, depth, linku1, start_val, end_val));
     if (end_val <= start_val) {
         DEBUG_WARN(("The end value is BEFORE the start value. This function will quit. Soz. [start:%#" PRIx64 ", end:%#" PRIx64 "]\n", start_val, end_val));
         DEBUG_RET();
@@ -1047,7 +1047,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
     }
     DEBUG_INFO(("Reading index block\n"));
     if (pst_read_block_size(pf, offset, BLOCK_SIZE, BLOCK_SIZE, &buf) < BLOCK_SIZE) {
-        DEBUG_WARN(("Failed to read %i bytes\n", BLOCK_SIZE));
+        DEBUG_WARN(("Failed to read %zu bytes\n", BLOCK_SIZE));
         if (buf) free(buf);
         DEBUG_RET();
         return -1;
@@ -1062,7 +1062,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
         count_max = (int32_t)(unsigned)(buf[MAX_COUNT_OFFSET]);
     }
     if (item_count > count_max) {
-        DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, count_max));
+        DEBUG_WARN(("Item count %" PRIi32 " too large, max is %" PRIi32 "\n", item_count, count_max));
         if (buf) free(buf);
         DEBUG_RET();
         return -1;
@@ -1075,7 +1075,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
         return -1;
     }
     int entry_size = (int32_t)(unsigned)(buf[ENTRY_SIZE_OFFSET]);
-    DEBUG_INFO(("count %#" PRIx64 " max %#" PRIx64 " size %#" PRIx64 "\n", item_count, count_max, entry_size));
+    DEBUG_INFO(("count %" PRIi32 " max %" PRIi32 " size %i\n", item_count, count_max, entry_size));
     if (buf[LEVEL_INDICATOR_OFFSET] == '\0') {
         // this node contains leaf pointers
         x = 0;
@@ -1084,7 +1084,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
             bptr += entry_size;
             x++;
             if (index.id == 0) break;
-            DEBUG_INFO(("[%i]%i Item [id = %#" PRIx64 ", offset = %#" PRIx64 ", u1 = %#x, size = %i(%#x)]\n",
+            DEBUG_INFO(("[%" PRIi32 "]%" PRIi32 " Item [id = %#" PRIx64 ", offset = %#" PRIx64 ", u1 = %" PRIi32 ", size = %" PRIu16 "(%#" PRIx16 ")]\n",
                         depth, x, index.id, index.offset, index.u1, index.size, index.size));
             // if (index.id & 0x02) DEBUG_INFO(("two-bit set!!\n"));
             if ((index.id >= end_val) || (index.id < old)) {
@@ -1119,7 +1119,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
             else {
                 table2.start = end_val;
             }
-            DEBUG_INFO(("[%i] %i Index Table [start id = %#" PRIx64 ", u1 = %#" PRIx64 ", offset = %#" PRIx64 ", end id = %#" PRIx64 "]\n",
+            DEBUG_INFO(("[%" PRIi32 "] %" PRIi32 " Index Table [start id = %#" PRIx64 ", u1 = %#" PRIx64 ", offset = %#" PRIx64 ", end id = %#" PRIx64 "]\n",
                         depth, x, table.start, table.u1, table.offset, table2.start));
             if ((table.start >= end_val) || (table.start < old)) {
                 DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
@@ -1150,7 +1150,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
     char *buf = NULL, *bptr;
 
     DEBUG_ENT("pst_build_desc_ptr");
-    DEBUG_INFO(("offset %#" PRIx64 " depth %i linku1 %#" PRIx64 " start %#" PRIx64 " end %#" PRIx64 "\n", offset, depth, linku1, start_val, end_val));
+    DEBUG_INFO(("offset %#" PRIx64 " depth %" PRIi32 " linku1 %#" PRIx64 " start %#" PRIx64 " end %#" PRIx64 "\n", (uint64_t)offset, depth, linku1, start_val, end_val));
     if (end_val <= start_val) {
         DEBUG_WARN(("The end value is BEFORE the start value. This function will quit. Soz. [start:%#" PRIx64 ", end:%#" PRIx64 "]\n", start_val, end_val));
         DEBUG_RET();
@@ -1158,7 +1158,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
     }
     DEBUG_INFO(("Reading desc block\n"));
     if (pst_read_block_size(pf, offset, DESC_BLOCK_SIZE, DESC_BLOCK_SIZE, &buf) < DESC_BLOCK_SIZE) {
-        DEBUG_WARN(("Failed to read %i bytes\n", DESC_BLOCK_SIZE));
+        DEBUG_WARN(("Failed to read %zu bytes\n", DESC_BLOCK_SIZE));
         if (buf) free(buf);
         DEBUG_RET();
         return -1;
@@ -1183,7 +1183,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
         // this node contains leaf pointers
         DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, entry_size);
         if (item_count > count_max) {
-            DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, count_max));
+            DEBUG_WARN(("Item count %" PRIi32 " too large, max is %" PRIi32 "\n", item_count, count_max));
             if (buf) free(buf);
             DEBUG_RET();
             return -1;
@@ -1191,8 +1191,8 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
         for (x=0; x<item_count; x++) {
             pst_decode_desc(pf, &desc_rec, bptr);
             bptr += entry_size;
-            DEBUG_INFO(("[%i] Item(%#x) = [d_id = %#" PRIx64 ", desc_id = %#" PRIx64 ", tree_id = %#" PRIx64 ", parent_d_id = %#x]\n",
-                        depth, x, desc_rec.d_id, desc_rec.desc_id, desc_rec.tree_id, desc_rec.parent_d_id));
+            DEBUG_INFO(("[%" PRIi32 "] Item(%#x) = [d_id = %#" PRIx64 ", desc_id = %#" PRIx64 ", tree_id = %#" PRIx64 ", parent_d_id = %#" PRIx32 "]\n",
+                        depth, (unsigned int)x, desc_rec.d_id, desc_rec.desc_id, desc_rec.tree_id, desc_rec.parent_d_id));
             if ((desc_rec.d_id >= end_val) || (desc_rec.d_id < old)) {
                 DEBUG_WARN(("This item isn't right. Must be corruption, or I got it wrong!\n"));
                 DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, 16);
@@ -1201,7 +1201,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
                 return -1;
             }
             old = desc_rec.d_id;
-            DEBUG_INFO(("New Record %#" PRIx64 " with parent %#x\n", desc_rec.d_id, desc_rec.parent_d_id));
+            DEBUG_INFO(("New Record %#" PRIx64 " with parent %#" PRIx32 "\n", desc_rec.d_id, desc_rec.parent_d_id));
             {
                 pst_desc_tree *d_ptr = (pst_desc_tree*) pst_malloc(sizeof(pst_desc_tree));
                 d_ptr->d_id        = desc_rec.d_id;
@@ -1215,7 +1215,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
         // this node contains node pointers
         DEBUG_HEXDUMPC(buf, DESC_BLOCK_SIZE, entry_size);
         if (item_count > count_max) {
-            DEBUG_WARN(("Item count %i too large, max is %i\n", item_count, count_max));
+            DEBUG_WARN(("Item count %" PRIi32 " too large, max is %" PRIi32 "\n", item_count, count_max));
             if (buf) free(buf);
             DEBUG_RET();
             return -1;
@@ -1230,7 +1230,7 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
             else {
                 table2.start = end_val;
             }
-            DEBUG_INFO(("[%i] %i Descriptor Table [start id = %#" PRIx64 ", u1 = %#" PRIx64 ", offset = %#" PRIx64 ", end id = %#" PRIx64 "]\n",
+            DEBUG_INFO(("[%" PRIi32 "] %i Descriptor Table [start id = %#" PRIx64 ", u1 = %#" PRIx64 ", offset = %#" PRIx64 ", end id = %#" PRIx64 "]\n",
                         depth, x, table.start, table.u1, table.offset, table2.start));
             if ((table.start >= end_val) || (table.start < old)) {
                 DEBUG_WARN(("This table isn't right. Must be corruption, or I got it wrong!\n"));
@@ -1524,7 +1524,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     LE16_CPU(block_hdr.index_offset);
     LE16_CPU(block_hdr.type);
     LE32_CPU(block_hdr.offset);
-    DEBUG_INFO(("block header (index_offset=%#hx, type=%#hx, offset=%#hx)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
+    DEBUG_INFO(("block header (index_offset=%#" PRIx16 ", type=%#" PRIx16 ", offset=%#" PRIx32 ")\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
 
     if (block_hdr.index_offset == (uint16_t)0x0101) { //type 3
         size_t i;
@@ -1550,7 +1550,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         LE16_CPU(block_hdr.index_offset);
         LE16_CPU(block_hdr.type);
         LE32_CPU(block_hdr.offset);
-        DEBUG_INFO(("block header (index_offset=%#hx, type=%#hx, offset=%#hx)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
+        DEBUG_INFO(("block header (index_offset=%#" PRIx16 ", type=%#" PRIx16 ", offset=%#" PRIx32 ")\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
     }
     else {
         // setup the subblock descriptors, but we only have one block
@@ -1565,7 +1565,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         block_type = 1;
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, block_hdr.offset, &block_offset1)) {
-            DEBUG_WARN(("internal error (bc.b5 offset %#x) in reading block id %#" PRIx64 "\n", block_hdr.offset, block_id));
+            DEBUG_WARN(("internal error (bc.b5 offset %#" PRIx32 ") in reading block id %#" PRIx64 "\n", block_hdr.offset, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1574,17 +1574,17 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         LE16_CPU(table_rec.type);
         LE16_CPU(table_rec.ref_type);
         LE32_CPU(table_rec.value);
-        DEBUG_INFO(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
+        DEBUG_INFO(("table_rec (type=%#" PRIx16 ", ref_type=%#" PRIx16 ", value=%#" PRIx32 ")\n", table_rec.type, table_rec.ref_type, table_rec.value));
 
         if ((table_rec.type != (uint16_t)0x02B5) || (table_rec.ref_type != 6)) {
-            DEBUG_WARN(("Unknown second block constant - %#hx %#hx for id %#" PRIx64 "\n", table_rec.type, table_rec.ref_type, block_id));
+            DEBUG_WARN(("Unknown second block constant - %#" PRIx16 " %#" PRIx16 " for id %#" PRIx64 "\n", table_rec.type, table_rec.ref_type, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
         }
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset2)) {
-            DEBUG_WARN(("internal error (bc.b5.desc offset %#x) in reading block id %#" PRIx64 "\n", table_rec.value, block_id));
+            DEBUG_WARN(("internal error (bc.b5.desc offset %#" PRIx32 ") in reading block id %#" PRIx64 "\n", table_rec.value, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1598,7 +1598,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         block_type = 2;
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, block_hdr.offset, &block_offset3)) {
-            DEBUG_WARN(("internal error (7c.7c offset %#x) in reading block id %#" PRIx64 "\n", block_hdr.offset, block_id));
+            DEBUG_WARN(("internal error (7c.7c offset %#" PRIx32 ") in reading block id %#" PRIx64 "\n", block_hdr.offset, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1628,7 +1628,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         num_mapi_elements = (int32_t)(unsigned)seven_c_blk.item_count;
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, seven_c_blk.b_five_offset, &block_offset4)) {
-            DEBUG_WARN(("internal error (7c.b5 offset %#x) in reading block id %#" PRIx64 "\n", seven_c_blk.b_five_offset, block_id));
+            DEBUG_WARN(("internal error (7c.b5 offset %#" PRIx32 ") in reading block id %#" PRIx64 "\n", seven_c_blk.b_five_offset, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1637,10 +1637,10 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         LE16_CPU(table_rec.type);
         LE16_CPU(table_rec.ref_type);
         LE32_CPU(table_rec.value);
-        DEBUG_INFO(("table_rec (type=%#hx, ref_type=%#hx, value=%#x)\n", table_rec.type, table_rec.ref_type, table_rec.value));
+        DEBUG_INFO(("table_rec (type=%#" PRIx16 ", ref_type=%#" PRIx16 ", value=%#" PRIx32 ")\n", table_rec.type, table_rec.ref_type, table_rec.value));
 
         if (table_rec.type != (uint16_t)0x04B5) { // different constant than a type 1 record
-            DEBUG_WARN(("Unknown second block constant - %#hx for id %#" PRIx64 "\n", table_rec.type, block_id));
+            DEBUG_WARN(("Unknown second block constant - %#" PRIx16 " for id %#" PRIx64 "\n", table_rec.type, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
@@ -1648,7 +1648,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
         if (table_rec.value > 0) {
             if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset5)) {
-                DEBUG_WARN(("internal error (7c.b5.desc offset %#x) in reading block id %#" PRIx64 "\n", table_rec.value, block_id));
+                DEBUG_WARN(("internal error (7c.b5.desc offset %#" PRIx32 ") in reading block id %#" PRIx64 "\n", table_rec.value, block_id));
                 freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
                 DEBUG_RET();
                 return NULL;
@@ -1658,7 +1658,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
             num_mapi_objects = (block_offset5.to - block_offset5.from) / (4 + table_rec.ref_type);
 
             if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, seven_c_blk.ind2_offset, &block_offset6)) {
-                DEBUG_WARN(("internal error (7c.ind2 offset %#x) in reading block id %#" PRIx64 "\n", seven_c_blk.ind2_offset, block_id));
+                DEBUG_WARN(("internal error (7c.ind2 offset %#" PRIx32 ") in reading block id %#" PRIx64 "\n", seven_c_blk.ind2_offset, block_id));
                 freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
                 DEBUG_RET();
                 return NULL;
@@ -1670,7 +1670,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         else {
             num_mapi_objects = 0;
         }
-        DEBUG_INFO(("7cec block index2 pointer %#x and end %#x\n", ind2_ptr, ind2_end));
+        DEBUG_INFO(("7cec block index2 pointer %p and end %p\n", (void*)ind2_ptr, (void*)ind2_end));
     }
     else {
         DEBUG_WARN(("ERROR: Unknown block constant - %#hx for id %#" PRIx64 "\n", block_hdr.type, block_id));
@@ -1679,7 +1679,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         return NULL;
     }
 
-    DEBUG_INFO(("found %i mapi objects each with %i mapi elements\n", num_mapi_objects, num_mapi_elements));
+    DEBUG_INFO(("found %" PRIi32 " mapi objects each with %" PRIi32 " mapi elements\n", num_mapi_objects, num_mapi_elements));
     for (count_mapi_objects=0; count_mapi_objects<num_mapi_objects; count_mapi_objects++) {
         // put another mapi object on the linked list
         mo_ptr = (pst_mapi_object*) pst_malloc(sizeof(pst_mapi_object));
@@ -1693,7 +1693,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         mo_ptr->count_objects   = (int32_t)num_mapi_objects; // each record will have a record of the total number of records
         for (x=0; x<num_mapi_elements; x++) mo_ptr->elements[x] = NULL;
 
-        DEBUG_INFO(("going to read %i mapi elements for mapi object %i\n", num_mapi_elements, count_mapi_objects));
+        DEBUG_INFO(("going to read %" PRIi32 " mapi elements for mapi object %" PRIi32 "\n", num_mapi_elements, count_mapi_objects));
 
         fr_ptr = list_start;    // initialize fr_ptr to the start of the list.
         x = 0;                  // x almost tracks count_mapi_elements, but see 'continue' statement below
@@ -1712,7 +1712,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 LE16_CPU(table2_rec.ref_type);
                 LE16_CPU(table2_rec.type);
                 LE16_CPU(table2_rec.ind2_off);
-                DEBUG_INFO(("reading element %i (type=%#x, ref_type=%#x, offset=%#x, size=%#x)\n",
+                DEBUG_INFO(("reading element %" PRIi32 " (type=%#" PRIx16 ", ref_type=%#" PRIx16 ", offset=%#" PRIx16 ", size=%#" PRIx8 ")\n",
                     x, table2_rec.type, table2_rec.ref_type, table2_rec.ind2_off, table2_rec.size));
 
                 // table_rec and table2_rec are arranged differently, so assign the values across
@@ -1732,7 +1732,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                     //LE32_CPU(table_rec.value);    // done later, some may be order invariant
                 }
                 else {
-                    DEBUG_WARN (("Trying to read outside buffer, buffer size %#x, offset %#x, data size %#x\n",
+                    DEBUG_WARN (("Trying to read outside buffer, buffer size %#zx, offset %#tx, data size %#" PRIx8 "\n",
                                 read_size, ind2_end-ind2_ptr+table2_rec.ind2_off, table2_rec.size));
                 }
                 fr_ptr += sizeof(table2_rec);
@@ -1743,7 +1743,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 DEBUG_RET();
                 return NULL;
             }
-            DEBUG_INFO(("reading element %i (type=%#x, ref_type=%#x, value=%#x)\n",
+            DEBUG_INFO(("reading element %" PRIi32 " (type=%#" PRIx16 ", ref_type=%#" PRIx16 ", value=%#" PRIx32 ")\n",
                 x, table_rec.type, table_rec.ref_type, table_rec.value));
 
             if (!mo_ptr->elements[x]) {
@@ -1757,9 +1757,9 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
             if (mapptr && (mapptr->map == table_rec.type)) {
                 if (mapptr->mytype == PST_MAP_ATTRIB) {
                     mo_ptr->elements[x]->mapi_id = *((uint32_t*)mapptr->data);
-                    DEBUG_INFO(("Mapped attrib %#x to %#x\n", table_rec.type, mo_ptr->elements[x]->mapi_id));
+                    DEBUG_INFO(("Mapped attrib %#" PRIx16 " to %#" PRIx32 "\n", table_rec.type, mo_ptr->elements[x]->mapi_id));
                 } else if (mapptr->mytype == PST_MAP_HEADER) {
-                    DEBUG_INFO(("Internet Header mapping found %#" PRIx32 " to %s\n", table_rec.type, mapptr->data));
+                    DEBUG_INFO(("Internet Header mapping found %#" PRIx16 " to %s\n", table_rec.type, (char*)mapptr->data));
                     mo_ptr->elements[x]->mapi_id = (uint32_t)PST_ATTRIB_HEADER;
                     mo_ptr->elements[x]->extra   = mapptr->data;
                 }
@@ -1829,14 +1829,14 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 }
                 else if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset7)) {
                     if ((table_rec.value & 0xf) == (uint32_t)0xf) {
-                        DEBUG_WARN(("failed to get block offset for table_rec.value of %#x to be read later.\n", table_rec.value));
+                        DEBUG_WARN(("failed to get block offset for table_rec.value of %#" PRIx32 " to be read later.\n", table_rec.value));
                         mo_ptr->elements[x]->size = 0;
                         mo_ptr->elements[x]->data = NULL;
                         mo_ptr->elements[x]->type = table_rec.value;
                     }
                     else {
                         if (table_rec.value) {
-                            DEBUG_WARN(("failed to get block offset for table_rec.value of %#x\n", table_rec.value));
+                            DEBUG_WARN(("failed to get block offset for table_rec.value of %#" PRIx32 "\n", table_rec.value));
                         }
                         mo_ptr->count_elements --; //we will be skipping a row
                         continue;
@@ -1856,7 +1856,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                     LE32_CPU(type_d_rec->id);
                     mo_ptr->elements[x]->size = pst_ff_getID2block(pf, type_d_rec->id, i2_head, &(mo_ptr->elements[x]->data));
                     if (!mo_ptr->elements[x]->size){
-                        DEBUG_WARN(("not able to read the ID2 data. Setting to be read later. %#x\n", type_d_rec->id));
+                        DEBUG_WARN(("not able to read the ID2 data. Setting to be read later. %#" PRIx32 "\n", type_d_rec->id));
                         mo_ptr->elements[x]->type = type_d_rec->id;    // fetch before freeing data, alias pointer
                         free(mo_ptr->elements[x]->data);
                         mo_ptr->elements[x]->data = NULL;
@@ -1890,16 +1890,16 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 }
                 if (mo_ptr->elements[x]->type == 0) mo_ptr->elements[x]->type = table_rec.ref_type;
             } else {
-                DEBUG_WARN(("ERROR Unknown ref_type %#hx\n", table_rec.ref_type));
+                DEBUG_WARN(("ERROR Unknown ref_type %#" PRIx16 "\n", table_rec.ref_type));
             }
             x++;
         }
-        DEBUG_INFO(("increasing ind2_ptr by %i [%#x] bytes. Was %#x, Now %#x\n", rec_size, rec_size, ind2_ptr, ind2_ptr+rec_size));
+        DEBUG_INFO(("increasing ind2_ptr by %" PRIi32 " [%#" PRIx32 "] bytes. Was %p, Now %p\n", rec_size, rec_size, (void*)ind2_ptr, (void*)(ind2_ptr+rec_size)));
         ind2_ptr += rec_size;
         // ind2 rows do not get split between blocks. See PST spec, 2.3.4.4 "Row Matrix".
         if (ind2_ptr + rec_size > ind2_block_start + ind2_max_block_size) {
             ind2_block_start += ind2_max_block_size;
-            DEBUG_INFO(("advancing ind2_ptr to next block. Was %#x, Now %#x\n", ind2_ptr, ind2_block_start));
+            DEBUG_INFO(("advancing ind2_ptr to next block. Was %p, Now %p\n", (void*)ind2_ptr, (void*)ind2_block_start));
             ind2_ptr = ind2_block_start;
         }
     }
@@ -1983,7 +1983,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
 #define LIST_COPY_INT16(label, targ) {                          \
     LIST_COPY_INT16_N(targ);                                    \
-    DEBUG_INFO((label" - %i %#x\n", (int)targ, (int)targ));     \
+    DEBUG_INFO((label" - %" PRIi16 " %#" PRIx16 "\n", targ, (uint16_t)(targ)));     \
 }
 
 #define LIST_COPY_INT32_N(targ) {                                           \
@@ -1997,7 +1997,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
 
 #define LIST_COPY_INT32(label, targ) {                          \
     LIST_COPY_INT32_N(targ);                                    \
-    DEBUG_INFO((label" - %i %#x\n", (int)targ, (int)targ));     \
+    DEBUG_INFO((label" - %" PRIi32 " %#" PRIx32 "\n", targ, (uint32_t)(targ)));     \
 }
 
 #define LIST_COPY_EMAIL_INT32(label, targ) {                    \
@@ -2024,10 +2024,10 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     char *tlabels[] = {__VA_ARGS__};                            \
     LIST_COPY_INT32_N(targ);                                    \
     targ += delta;                                              \
-    DEBUG_INFO((label" - %s [%i]\n",                            \
+    DEBUG_INFO((label" - %s [%" PRIi32 "]\n",                            \
         (((int)targ < 0) || ((int)targ >= count))               \
             ? "**invalid"                                       \
-            : tlabels[(int)targ], (int)targ));                  \
+            : tlabels[(int)targ], targ));                  \
 }
 
 #define LIST_COPY_EMAIL_ENUM(label, targ, delta, count, ...) {  \
@@ -2044,10 +2044,10 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     char *tlabels[] = {__VA_ARGS__};                            \
     LIST_COPY_INT16_N(targ);                                    \
     targ += delta;                                              \
-    DEBUG_INFO((label" - %s [%i]\n",                            \
+    DEBUG_INFO((label" - %s [%" PRIi16 "]\n",                            \
         (((int)targ < 0) || ((int)targ >= count))               \
             ? "**invalid"                                       \
-            : tlabels[(int)targ], (int)targ));                  \
+            : tlabels[(int)targ], targ));                  \
 }
 
 #define LIST_COPY_CONTACT_ENUM16(label, targ, delta, count, ...) {  \
@@ -2059,7 +2059,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
     LIST_COPY(targ, (pst_entryid*));                            \
     LE32_CPU(targ->u1);                                         \
     LE32_CPU(targ->id);                                         \
-    DEBUG_INFO((label" u1=%#x, id=%#x\n", targ->u1, targ->id)); \
+    DEBUG_INFO((label" u1=%#" PRIx32 ", id=%#" PRIx32 "\n", targ->u1, targ->id)); \
 }
 
 #define LIST_COPY_EMAIL_ENTRYID(label, targ) {                  \
@@ -2195,7 +2195,7 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
         for (x=0; x<list->count_elements; x++) {
             int32_t t;
             uint32_t ut;
-            DEBUG_INFO(("#%d - mapi-id: %#x type: %#x length: %#x\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
+            DEBUG_INFO(("#%" PRId32 " - mapi-id: %#" PRIx32 " type: %#" PRIx32 " length: %#zx\n", x, list->elements[x]->mapi_id, list->elements[x]->type, list->elements[x]->size));
 
             switch (list->elements[x]->mapi_id) {
                 case PST_ATTRIB_HEADER: // CUSTOM attribute for saying the Extra Headers
@@ -2296,7 +2296,7 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                             item->type = PST_TYPE_TASK;
                         else
                             item->type = PST_TYPE_OTHER;
-                        DEBUG_INFO(("Message class %s [%" PRIi32 "] \n", item->ascii_type, item->type));
+                        DEBUG_INFO(("Message class %s [%i] \n", item->ascii_type, item->type));
                     }
                     else {
                         DEBUG_WARN(("What does this mean?\n"));
@@ -2630,7 +2630,7 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                     else
                         item->type = PST_TYPE_OTHER;
 
-                    DEBUG_INFO(("Container class %s [%" PRIi32 "]\n", item->ascii_type, item->type));
+                    DEBUG_INFO(("Container class %s [%i]\n", item->ascii_type, item->type));
                     break;
                 case 0x3617: // PR_ASSOC_CONTENT_COUNT
                     // associated content are items that are attached to this folder
@@ -2638,7 +2638,7 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                     LIST_COPY_FOLDER_INT32("Associated Content count", item->folder->assoc_count);
                     break;
                 case 0x3701: // PR_ATTACH_DATA_OBJ binary data of attachment
-                    DEBUG_INFO(("Binary Data [Size %i]\n", list->elements[x]->size));
+                    DEBUG_INFO(("Binary Data [Size %zu]\n", list->elements[x]->size));
                     NULL_CHECK(attach);
                     if (!list->elements[x]->data) { //special case
                         attach->id2_val = list->elements[x]->type;
@@ -3122,102 +3122,102 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                     break;
                 default:
                     if (list->elements[x]->type == (uint32_t)0x0002) {
-                        DEBUG_WARN(("Unknown type %#x 16bit int = %hi\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " 16bit int = %" PRIi16 "\n", list->elements[x]->mapi_id,
                             *(int16_t*)list->elements[x]->data));
 
                     } else if (list->elements[x]->type == (uint32_t)0x0003) {
-                        DEBUG_WARN(("Unknown type %#x 32bit int = %i\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " 32bit int = %" PRIi32 "\n", list->elements[x]->mapi_id,
                             *(int32_t*)list->elements[x]->data));
 
                     } else if (list->elements[x]->type == (uint32_t)0x0004) {
-                        DEBUG_WARN(("Unknown type %#x 4-byte floating [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " 4-byte floating [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x0005) {
-                        DEBUG_WARN(("Unknown type %#x double floating [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " double floating [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x0006) {
-                        DEBUG_WARN(("Unknown type %#x signed 64bit int = %" PRIi64 "\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " signed 64bit int = %" PRIi64 "\n", list->elements[x]->mapi_id,
                             *(int64_t*)list->elements[x]->data));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x0007) {
-                        DEBUG_WARN(("Unknown type %#x application time [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " application time [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x000a) {
-                        DEBUG_WARN(("Unknown type %#x 32bit error value = %i\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " 32bit error value = %" PRIi32 "\n", list->elements[x]->mapi_id,
                             *(int32_t*)list->elements[x]->data));
 
                     } else if (list->elements[x]->type == (uint32_t)0x000b) {
-                        DEBUG_WARN(("Unknown type %#x 16bit boolean = %s [%hi]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " 16bit boolean = %s [%" PRIi16 "]\n", list->elements[x]->mapi_id,
                             (*((int16_t*)list->elements[x]->data)!=0?"True":"False"),
                             *((int16_t*)list->elements[x]->data)));
 
                     } else if (list->elements[x]->type == (uint32_t)0x000d) {
-                        DEBUG_WARN(("Unknown type %#x Embedded object [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Embedded object [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x0014) {
-                        DEBUG_WARN(("Unknown type %#x signed 64bit int = %" PRIi64 "\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " signed 64bit int = %" PRIi64 "\n", list->elements[x]->mapi_id,
                             *(int64_t*)list->elements[x]->data));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x001e) {
-                        DEBUG_WARN(("Unknown type %#x String Data = \"%s\"\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " String Data = \"%s\"\n", list->elements[x]->mapi_id,
                             list->elements[x]->data));
 
                     } else if (list->elements[x]->type == (uint32_t)0x001f) {
-                        DEBUG_WARN(("Unknown type %#x Unicode String Data [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Unicode String Data [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x0040) {
-                        DEBUG_WARN(("Unknown type %#x Date = \"%s\"\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Date = \"%s\"\n", list->elements[x]->mapi_id,
                             pst_fileTimeToAscii((FILETIME*)list->elements[x]->data, time_buffer)));
 
                     } else if (list->elements[x]->type == (uint32_t)0x0048) {
-                        DEBUG_WARN(("Unknown type %#x OLE GUID [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " OLE GUID [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x0102) {
-                        DEBUG_WARN(("Unknown type %#x Binary Data [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Binary Data [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x1003) {
-                        DEBUG_WARN(("Unknown type %#x Array of 32 bit values [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Array of 32 bit values [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x1014) {
-                        DEBUG_WARN(("Unknown type %#x Array of 64 bit values [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Array of 64 bit values [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x101e) {
-                        DEBUG_WARN(("Unknown type %#x Array of Strings [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Array of Strings [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x101f) {
-                        DEBUG_WARN(("Unknown type %#x Array of Unicode Strings [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Array of Unicode Strings [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x1102) {
-                        DEBUG_WARN(("Unknown type %#x Array of binary data blobs [size = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Array of binary data blobs [size = %#zx]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else {
-                        DEBUG_WARN(("Unknown type %#x Not Printable [%#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#" PRIx32 " Not Printable [%#" PRIx32 "]\n", list->elements[x]->mapi_id,
                             list->elements[x]->type));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
                     }
@@ -3322,24 +3322,24 @@ static pst_id2_tree * pst_build_id2(pst_file *pf, pst_index_ll* list) {
     LE16_CPU(block_head.count);
 
     if (block_head.type != (uint16_t)0x0002) { // some sort of constant?
-        DEBUG_WARN(("Unknown constant [%#hx] at start of id2 values [offset %#" PRIx64 "].\n", block_head.type, list->offset));
+        DEBUG_WARN(("Unknown constant [%#" PRIx16 "] at start of id2 values [offset %#" PRIx64 "].\n", block_head.type, list->offset));
         if (buf) free(buf);
         DEBUG_RET();
         return NULL;
     }
 
-    DEBUG_INFO(("ID %#" PRIx64 " is likely to be a description record. Count is %i (offset %#" PRIx64 ")\n",
+    DEBUG_INFO(("ID %#" PRIx64 " is likely to be a description record. Count is %" PRIu16 " (offset %#" PRIx64 ")\n",
             list->i_id, block_head.count, list->offset));
     x = 0;
     b_ptr = buf + ((pf->do_read64) ? 0x08 : 0x04);
     while (x < block_head.count) {
         b_ptr += pst_decode_assoc(pf, &id2_rec, b_ptr);
-        DEBUG_INFO(("id2 = %#x, id = %#" PRIx64 ", child id = %#" PRIx64 "\n", id2_rec.id2, id2_rec.id, id2_rec.child_id));
+        DEBUG_INFO(("id2 = %#" PRIx32 ", id = %#" PRIx64 ", child id = %#" PRIx64 "\n", id2_rec.id2, id2_rec.id, id2_rec.child_id));
         if ((i_ptr = pst_getID(pf, id2_rec.id)) == NULL) {
             DEBUG_WARN(("%#" PRIx64 " - Not Found\n", id2_rec.id));
         } else {
-            DEBUG_INFO(("%#" PRIx64 " - Offset %#" PRIx64 ", u1 %#" PRIx64 ", Size %" PRIi64 "(%#" PRIx64 ")\n",
-                         i_ptr->i_id, i_ptr->offset, i_ptr->u1, i_ptr->size, i_ptr->inflated_size));
+            DEBUG_INFO(("%#" PRIx64 " - Offset %#" PRIx64 ", u1 %#" PRIx64 ", Size %" PRIu64 "(%#" PRIx64 ")\n",
+                         i_ptr->i_id, i_ptr->offset, (uint64_t)(i_ptr->u1), i_ptr->size, i_ptr->inflated_size));
             // add it to the tree
             i2_ptr = (pst_id2_tree*) pst_malloc(sizeof(pst_id2_tree));
             i2_ptr->id2   = id2_rec.id2;
@@ -3611,7 +3611,7 @@ static int pst_getBlockOffsetPointer(pst_file *pf, pst_id2_tree *i2_head, pst_su
     }
     else if ((offset & 0xf) == (uint32_t)0xf) {
         // external index reference
-        DEBUG_WARN(("Found id2 %#x value. Will follow it\n", offset));
+        DEBUG_WARN(("Found id2 %#" PRIx32 " value. Will follow it\n", offset));
         size = pst_ff_getID2block(pf, offset, i2_head, &(p->from));
         if (size) {
             p->to = p->from + size;
@@ -3626,7 +3626,7 @@ static int pst_getBlockOffsetPointer(pst_file *pf, pst_id2_tree *i2_head, pst_su
         }
     }
     else {
-        DEBUG_WARN(("Found internal %#x value.\n", offset));
+        DEBUG_WARN(("Found internal %#" PRIx32 " value.\n", offset));
         // internal index reference
         size_t subindex  = offset >> 16;
         if (pf->do_read64 == 2) {
@@ -3655,7 +3655,7 @@ static int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, ui
     uint32_t of1 = offset >> 4;
     DEBUG_ENT("pst_getBlockOffset");
     if (!p || !buf || !i_offset || low || (i_offset+2+of1+sizeof(*p) > read_size)) {
-        DEBUG_WARN(("p is NULL or buf is NULL or offset is 0 or offset has low bits or beyond read size (%p, %p, %#x, %i, %i)\n", p, buf, offset, read_size, i_offset));
+        DEBUG_WARN(("p is NULL or buf is NULL or offset is 0 or offset has low bits or beyond read size (%p, %p, %#" PRIx32 ", %zu, %" PRIu32 ")\n", (void*)p, (void*)buf, offset, read_size, i_offset));
         DEBUG_RET();
         return 0;
     }
@@ -3663,7 +3663,7 @@ static int pst_getBlockOffset(char *buf, size_t read_size, uint32_t i_offset, ui
     memcpy(&(p->to), &(buf[(i_offset+2)+of1+sizeof(p->from)]), sizeof(p->to));
     LE16_CPU(p->from);
     LE16_CPU(p->to);
-    DEBUG_WARN(("get block offset finds from=%i(%#x), to=%i(%#x)\n", p->from, p->from, p->to, p->to));
+    DEBUG_WARN(("get block offset finds from=%" PRIu16 "(%#" PRIx16 "), to=%" PRIu16 "(%#" PRIx16 ")\n", p->from, p->from, p->to, p->to));
     if (p->from > p->to || p->to > read_size) {
         DEBUG_WARN(("get block offset bad range\n"));
         DEBUG_RET();
@@ -3755,7 +3755,7 @@ static pst_desc_tree* pst_getDptr(pst_file *pf, uint64_t d_id) {
 static void pst_printDptr(pst_file *pf, pst_desc_tree *ptr) {
     DEBUG_ENT("pst_printDptr");
     while (ptr) {
-        DEBUG_INFO(("%#" PRIx64 " [%i] desc=%#" PRIx64 ", assoc tree=%#" PRIx64 "\n", ptr->d_id, ptr->no_child,
+        DEBUG_INFO(("%#" PRIx64 " [%" PRIi32 "] desc=%#" PRIx64 ", assoc tree=%#" PRIx64 "\n", ptr->d_id, ptr->no_child,
                     (ptr->desc       ? ptr->desc->i_id       : (uint64_t)0),
                     (ptr->assoc_tree ? ptr->assoc_tree->i_id : (uint64_t)0)));
         if (ptr->child) {
@@ -3790,7 +3790,7 @@ static void pst_printID2ptr(pst_id2_tree *ptr) {
 static size_t pst_read_raw_block_size(pst_file *pf, int64_t offset, size_t size, char **buf) {
     size_t rsize;
     DEBUG_ENT("pst_read_raw_block_size");
-    DEBUG_INFO(("Reading raw block from %#" PRIx64 ", %x bytes\n", offset, size));
+    DEBUG_INFO(("Reading raw block from %#" PRIx64 ", %#zx bytes\n", (uint64_t)offset, size));
 
     if (*buf) {
         DEBUG_INFO(("Freeing old memory\n"));
@@ -3800,9 +3800,9 @@ static size_t pst_read_raw_block_size(pst_file *pf, int64_t offset, size_t size,
 
     rsize = pst_getAtPos(pf, offset, *buf, size);
     if (rsize != size) {
-        DEBUG_WARN(("Didn't read all the data. fread returned less [%i instead of %i]\n", rsize, size));
+        DEBUG_WARN(("Didn't read all the data. fread returned less [%zu instead of %zu]\n", rsize, size));
         if (feof(pf->fp)) {
-            DEBUG_WARN(("We tried to read past the end of the file at [offset %#" PRIx64 ", size %#x]\n", offset, size));
+            DEBUG_WARN(("We tried to read past the end of the file at [offset %#" PRIx64 ", size %#zx]\n", (uint64_t)offset, size));
         } else if (ferror(pf->fp)) {
             DEBUG_WARN(("Error is set on file stream.\n"));
         } else {
@@ -3816,7 +3816,7 @@ static size_t pst_read_raw_block_size(pst_file *pf, int64_t offset, size_t size,
 
 static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, size_t inflated_size, char **buf) {
     DEBUG_ENT("pst_read_block_size");
-    DEBUG_INFO(("Reading block from %#" PRIx64 ", %x bytes, %x inflated\n", offset, size, inflated_size));
+    DEBUG_INFO(("Reading block from %#" PRIx64 ", %#zx bytes, %#zx inflated\n", (uint64_t)offset, size, inflated_size));
     if (inflated_size <= size) {
         // Not deflated.
         size_t ret = pst_read_raw_block_size(pf, offset, size, buf);
@@ -3826,7 +3826,7 @@ static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, siz
     // We need to read the raw block and inflate it.
     char *zbuf = NULL;
     if (pst_read_raw_block_size(pf, offset, size, &zbuf) != size) {
-        DEBUG_WARN(("Failed to read %i bytes\n", size));
+        DEBUG_WARN(("Failed to read %zu bytes\n", size));
         if (zbuf) free(zbuf);
         DEBUG_RET();
         return -1;
@@ -3834,7 +3834,7 @@ static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, siz
     *buf = (char *) pst_malloc(inflated_size);
     size_t result_size = inflated_size;
     if (uncompress((Bytef *) *buf, &result_size, (Bytef *) zbuf, size) != Z_OK || result_size != inflated_size) {
-        DEBUG_WARN(("Failed to uncompress %i bytes to %i bytes, got %i\n", size, inflated_size, result_size));
+        DEBUG_WARN(("Failed to uncompress %zu bytes to %zu bytes, got %zu\n", size, inflated_size, result_size));
         if (zbuf) free(zbuf);
         DEBUG_RET();
         return -1;
@@ -3894,7 +3894,7 @@ static int pst_decrypt(uint64_t i_id, char *buf, size_t size, unsigned char type
         }
 
     } else {
-        DEBUG_WARN(("Unknown encryption: %i. Cannot decrypt\n", type));
+        DEBUG_WARN(("Unknown encryption: %hhu. Cannot decrypt\n", type));
         DEBUG_RET();
         return -1;
     }
@@ -3965,8 +3965,8 @@ static size_t pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size) {
 //      p->size      = size;
 //      p->readcount = 1;
 //  }
-//  DEBUG_INFO(("pst file old offset %#" PRIx64 " old size %#x read count %i offset %#" PRIx64 " size %#x\n",
-//              p->offset, p->size, p->readcount, pos, size));
+//  DEBUG_INFO(("pst file old offset %#" PRIx64 " old size %#zx read count %i offset %" PRIi64 " size %#zx\n",
+//              (uint64_t)(p->offset), p->size, p->readcount, (uint64_t)pos, size));
 
     if (fseeko(pf->fp, pos, SEEK_SET) == -1) {
         DEBUG_RET();
@@ -4019,7 +4019,7 @@ static size_t pst_ff_getIDblock(pst_file *pf, uint64_t i_id, char** buf) {
         DEBUG_RET();
         return 0;
     }
-    DEBUG_INFO(("id = %#" PRIx64 ", record size = %#x, offset = %#x\n", i_id, rec->size, rec->offset));
+    DEBUG_INFO(("id = %#" PRIx64 ", record size = %#" PRIx64 ", offset = %#" PRIx64 "\n", i_id, rec->size, rec->offset));
     rsize = pst_read_block_size(pf, rec->offset, rec->size, rec->inflated_size, buf);
     DEBUG_RET();
     return rsize;
@@ -4101,7 +4101,7 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size
     LE16_CPU(block_hdr.index_offset);
     LE16_CPU(block_hdr.type);
     LE32_CPU(block_hdr.offset);
-    DEBUG_INFO(("block header (index_offset=%#hx, type=%#hx, offset=%#x)\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
+    DEBUG_INFO(("block header (index_offset=%#" PRIx16 ", type=%#" PRIx16 ", offset=%#" PRIx32 ")\n", block_hdr.index_offset, block_hdr.type, block_hdr.offset));
 
     count = block_hdr.type;
     b_ptr = buf3 + 8;
@@ -4132,7 +4132,7 @@ static size_t pst_ff_compile_ID(pst_file *pf, uint64_t i_id, pst_holder *h, size
         b_ptr += pst_decode_type3(pf, &table3_rec, b_ptr);
         z = pst_ff_getIDblock_dec(pf, table3_rec.id, &buf2);
         if (!z) {
-            DEBUG_WARN(("call to getIDblock returned zero %i\n", z));
+            DEBUG_WARN(("call to getIDblock returned zero %zu\n", z));
             if (buf2) free(buf2);
             free(buf3);
             DEBUG_RET();
@@ -4163,7 +4163,7 @@ static size_t pst_append_holder(pst_holder *h, size_t size, char **buf, size_t z
     // raw append to a buffer
     if (h->buf) {
         *(h->buf) = pst_realloc(*(h->buf), size+z+1);
-        DEBUG_INFO(("appending read data of size %i onto main buffer from pos %i\n", z, size));
+        DEBUG_INFO(("appending read data of size %zu onto main buffer from pos %zu\n", z, size));
         memcpy(*(h->buf)+size, *buf, z);
 
     // base64 encoding to a file
@@ -4187,14 +4187,14 @@ static size_t pst_append_holder(pst_holder *h, size_t size, char **buf, size_t z
         // encode this chunk
         t = pst_base64_encode_multiple(*buf, z, &h->base64_line_count);
         if (t) {
-            DEBUG_INFO(("writing %i bytes to file as base64 [%i]. Currently %i\n", z, strlen(t), size));
+            DEBUG_INFO(("writing %zu bytes to file as base64 [%zu]. Currently %zu\n", z, strlen(t), size));
             (void)pst_fwrite(t, (size_t)1, strlen(t), h->fp);
             free(t);    // caught by valgrind
         }
 
     // raw append to a file
     } else if (h->fp) {
-        DEBUG_INFO(("writing %i bytes to file. Currently %i\n", z, size));
+        DEBUG_INFO(("writing %zu bytes to file. Currently %zu\n", z, size));
         (void)pst_fwrite(*buf, (size_t)1, z, h->fp);
 
     // null output
@@ -4482,7 +4482,7 @@ void pst_rfc2231(pst_string *str) {
     while (*y) {
         if (*x <= 32) {
             *(z++) = (uint8_t)'%';
-            snprintf(z, 3, "%2x", *y);
+            snprintf(z, 3, "%2" PRIx8, *y);
             z += 2;
         }
         else {

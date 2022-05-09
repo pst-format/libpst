@@ -61,7 +61,7 @@ static void convert_8bit(pst_string &str, const char *charset) {
 static void empty_property(GsfOutfile *out, uint32_t tag);
 static void empty_property(GsfOutfile *out, uint32_t tag) {
     vector<char> n(50);
-    snprintf(&n[0], n.size(), "__substg1.0_%08X", tag);
+    snprintf(&n[0], n.size(), "__substg1.0_%08" PRIX32, tag);
     GsfOutput* dst = gsf_outfile_new_child(out, &n[0], false);
     gsf_output_close(dst);
     g_object_unref(G_OBJECT(dst));
@@ -74,7 +74,7 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
     size_t term = ((tag & 0x0000ffff) == 0x001e) ? 1 :
                   ((tag & 0x0000ffff) == 0x001f) ? 2 : 0;  // null terminator
     vector<char> n(50);
-    snprintf(&n[0], n.size(), "__substg1.0_%08X", tag);
+    snprintf(&n[0], n.size(), "__substg1.0_%08" PRIX32, tag);
     GsfOutput* dst = gsf_outfile_new_child(out, &n[0], false);
     gsf_output_write(dst, size, (const guint8*)contents);
     if (term) {
@@ -97,7 +97,7 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILE *fp);
 static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILE *fp) {
     vector<char> n(50);
-    snprintf(&n[0], n.size(), "__substg1.0_%08X", tag);
+    snprintf(&n[0], n.size(), "__substg1.0_%08" PRIX32, tag);
     GsfOutput* dst = gsf_outfile_new_child(out, &n[0], false);
 
     size_t size = 0;
@@ -293,7 +293,7 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
     {
         vector<char> n(50);
         {
-            snprintf(&n[0], n.size(), "__recip_version1.0_#%08X", top_head.recipient_count);
+            snprintf(&n[0], n.size(), "__recip_version1.0_#%08" PRIX32, top_head.recipient_count);
             GsfOutput  *output = gsf_outfile_new_child(out, &n[0], true);
             {
                 int v = 1;  // to
@@ -316,7 +316,7 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
             }
         }
         if (email.cc_address.str) {
-            snprintf(&n[0], n.size(), "__recip_version1.0_#%08X", top_head.recipient_count);
+            snprintf(&n[0], n.size(), "__recip_version1.0_#%08" PRIX32, top_head.recipient_count);
             GsfOutput  *output = gsf_outfile_new_child(out, &n[0], true);
             {
                 int v = 2;  // cc
@@ -335,7 +335,7 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
             }
         }
         if (email.bcc_address.str) {
-            snprintf(&n[0], n.size(), "__recip_version1.0_#%08X", top_head.recipient_count);
+            snprintf(&n[0], n.size(), "__recip_version1.0_#%08" PRIX32, top_head.recipient_count);
             GsfOutput  *output = gsf_outfile_new_child(out, &n[0], true);
             {
                 int v = 3;  // bcc
@@ -362,7 +362,7 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
         }
         else if (a->data.data || a->i_id) {
             vector<char> n(50);
-            snprintf(&n[0], n.size(), "__attach_version1.0_#%08X", top_head.attachment_count);
+            snprintf(&n[0], n.size(), "__attach_version1.0_#%08" PRIX32, top_head.attachment_count);
             GsfOutput  *output = gsf_outfile_new_child(out, &n[0], true);
             {
                 FILE *fp = fopen("temp_file_attachment", "w+b");

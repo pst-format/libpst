@@ -31,13 +31,13 @@ void dumper(uint64_t i_id)
         DIE(("Error loading block\n"));
     }
 
-    DEBUG_INFO(("Printing block i_id %#" PRIx64 ", size %#" PRIx64 "\n", i_id, (uint64_t)readSize));
+    DEBUG_INFO(("Printing block i_id %#" PRIx64 ", size %#zx\n", i_id, readSize));
     if (binary) {
         if (fwrite(buf, 1, readSize, stdout) != 0) {
             DIE(("Error occurred during writing of buf to stdout\n"));
         }
     } else {
-        printf("Block id %#" PRIx64 ", size %#" PRIx64 "\n", i_id, (uint64_t)readSize);
+        printf("Block id %#" PRIx64 ", size %#zx\n", i_id, readSize);
         pst_debug_hexdumper(stdout, buf, readSize, 0x10, 0);
     }
     if (buf) free(buf);
@@ -68,7 +68,7 @@ void dump_desc(pst_desc_tree *ptr, pst_desc_tree *parent)
 {
     while (ptr) {
         uint64_t parent_d_id = (parent) ? parent->d_id : 0;
-        printf("Descriptor block d_id %#" PRIx64 " parent d_id %#" PRIx64 " children %i desc.i_id=%#" PRIx64 ", assoc tree.i_id=%#" PRIx64 "\n",
+        printf("Descriptor block d_id %#" PRIx64 " parent d_id %#" PRIx64 " children %" PRIi32 " desc.i_id=%#" PRIx64 ", assoc tree.i_id=%#" PRIx64 "\n",
             ptr->d_id, parent_d_id, ptr->no_child,
             (ptr->desc       ? ptr->desc->i_id       : (uint64_t)0),
             (ptr->assoc_tree ? ptr->assoc_tree->i_id : (uint64_t)0));

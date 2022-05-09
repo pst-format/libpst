@@ -12,7 +12,6 @@
 #define OUTPUT_TEMPLATE "%s.%s"
 #define OUTPUT_KMAIL_DIR_TEMPLATE ".%s.directory"
 #define KMAIL_INDEX "../.%s.index"
-#define SEP_MAIL_FILE_TEMPLATE "%i%s"
 
 // max size of the c_time char*. It will store the date of the email
 #define C_TIME_SIZE 500
@@ -888,7 +887,7 @@ void mk_separate_dir(char *dir) {
         if (y == 0)
             snprintf(dir_name, dirsize, "%s", dir);
         else
-            snprintf(dir_name, dirsize, "%s" SEP_MAIL_FILE_TEMPLATE, dir, y, ""); // enough for 9 digits allocated above
+            snprintf(dir_name, dirsize, "%s%i%s", dir, y, ""); // enough for 9 digits allocated above
 
         check_filename(dir_name);
         DEBUG_INFO(("about to try creating %s\n", dir_name));
@@ -953,7 +952,7 @@ void mk_separate_file(struct file_ll *f, int32_t t, char *extension, int openit)
     if (f->item_count > 999999999) { // bigger than nine 9's
         DIE(("mk_separate_file: The number of emails in this folder has become too high to handle\n"));
     }
-    sprintf(f->name[t], SEP_MAIL_FILE_TEMPLATE, f->item_count, extension);
+    sprintf(f->name[t], "%" PRIi32 "%s", f->item_count, extension);
     check_filename(f->name[t]);
     if (openit) {
         if (!(f->output[t] = fopen(f->name[t], "w"))) {
@@ -1065,7 +1064,7 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
     char *attach_filename = (attach->filename2.str) ? attach->filename2.str
                                                     : attach->filename1.str;
     DEBUG_ENT("write_separate_attachment");
-    DEBUG_INFO(("Attachment %s Size is %#" PRIx64 ", data = %#" PRIxPTR ", id %#" PRIx64 "\n", attach_filename, (uint64_t)attach->data.size, attach->data.data, attach->i_id));
+    DEBUG_INFO(("Attachment %s Size is %#zx, data = %p, id %#" PRIx64 "\n", attach_filename, attach->data.size, (void*)attach->data.data, attach->i_id));
 
     if (!attach->data.data) {
         // make sure we can fetch data from the id
@@ -1134,7 +1133,7 @@ void write_embedded_message(FILE* f_output, pst_item_attach* attach, char *bound
     // a reference to an internal Outlook COM class.
     //      Log the skipped item and continue on.
     if (!item) {
-        DEBUG_WARN(("write_embedded_message: pst_parse_item was unable to parse the embedded message in attachment ID %llu", attach->i_id));
+        DEBUG_WARN(("write_embedded_message: pst_parse_item was unable to parse the embedded message in attachment ID %" PRIu64, attach->i_id));
     } else {
         if (!item->email) {
             DEBUG_WARN(("write_embedded_message: pst_parse_item returned type %d, not an email message", item->type));
@@ -1231,7 +1230,7 @@ char *rfc2231_string(char *inp) {
     while (*y) {
         if (!is_attribute_char(*x)) {
             *(z++) = (uint8_t)'%';
-            snprintf(z, 3, "%2x", *y);
+            snprintf(z, 3, "%2" PRIx8, *y);
             z += 2;
         }
         else {
@@ -1247,7 +1246,7 @@ char *rfc2231_string(char *inp) {
 void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst)
 {
     DEBUG_ENT("write_inline_attachment");
-    DEBUG_INFO(("Attachment Size is %#" PRIx64 ", data = %#" PRIxPTR ", id %#" PRIx64 "\n", (uint64_t)attach->data.size, attach->data.data, attach->i_id));
+    DEBUG_INFO(("Attachment Size is %#zx, data = %p, id %#" PRIx64 "\n", attach->data.size, (void*)attach->data.data, attach->i_id));
 
     if (!attach->data.data) {
         // make sure we can fetch data from the id
@@ -1497,7 +1496,7 @@ int  test_base64(char *body, size_t len)
     DEBUG_ENT("test_base64");
     while (len--) {
         if ((*b < 32) && (*b != 9) && (*b != 10)) {
-            DEBUG_INFO(("found base64 byte %d\n", (int)*b));
+            DEBUG_INFO(("found base64 byte %" PRId8 "\n", *b));
             DEBUG_HEXDUMPC(body, strlen(body), 0x10);
             b64 = 1;
             break;
@@ -2272,12 +2271,12 @@ void write_appointment(FILE* f_output, pst_item* item)
             const char* days[]  = {"SU", "MO", "TU", "WE", "TH", "FR", "SA"};
             pst_recurrence *rdata = pst_convert_recurrence(appointment);
             fprintf(f_output, "RRULE:FREQ=%s", rules[rdata->type]);
-            if (rdata->count)       fprintf(f_output, ";COUNT=%u",      rdata->count);
+            if (rdata->count)       fprintf(f_output, ";COUNT=%" PRIu32,      rdata->count);
             if ((rdata->interval != 1) &&
-                (rdata->interval))  fprintf(f_output, ";INTERVAL=%u",   rdata->interval);
-            if (rdata->dayofmonth)  fprintf(f_output, ";BYMONTHDAY=%d", rdata->dayofmonth);
-            if (rdata->monthofyear) fprintf(f_output, ";BYMONTH=%d",    rdata->monthofyear);
-            if (rdata->position)    fprintf(f_output, ";BYSETPOS=%d",   rdata->position);
+                (rdata->interval))  fprintf(f_output, ";INTERVAL=%" PRIu32,   rdata->interval);
+            if (rdata->dayofmonth)  fprintf(f_output, ";BYMONTHDAY=%" PRIu32, rdata->dayofmonth);
+            if (rdata->monthofyear) fprintf(f_output, ";BYMONTH=%" PRIu32,    rdata->monthofyear);
+            if (rdata->position)    fprintf(f_output, ";BYSETPOS=%" PRIu32,   rdata->position);
             if (rdata->bydaymask) {
                 char byday[40];
                 int  empty = 1;
@@ -2335,7 +2334,7 @@ void write_appointment(FILE* f_output, pst_item* item)
         // ignore bogus alarms
         if (appointment->alarm && (appointment->alarm_minutes >= 0) && (appointment->alarm_minutes < 1440)) {
             fprintf(f_output, "BEGIN:VALARM\n");
-            fprintf(f_output, "TRIGGER:-PT%dM\n", appointment->alarm_minutes);
+            fprintf(f_output, "TRIGGER:-PT%" PRId32 "M\n", appointment->alarm_minutes);
             fprintf(f_output, "ACTION:DISPLAY\n");
             fprintf(f_output, "DESCRIPTION:Reminder\n");
             fprintf(f_output, "END:VALARM\n");
@@ -2444,7 +2443,7 @@ void close_enter_dir(struct file_ll *f)
                 f->dname, f->item_count, f->skip_count, f->stored_count));
     if (output_mode != OUTPUT_QUIET) {
         pst_debug_lock();
-            printf("\t\"%s\" - %i items done, %i items skipped.\n", f->dname, f->item_count, f->skip_count);
+            printf("\t\"%s\" - %" PRIi32 " items done, %" PRIi32 " items skipped.\n", f->dname, f->item_count, f->skip_count);
             fflush(stdout);
         pst_debug_unlock();
     }
@@ -2472,7 +2471,7 @@ void close_enter_dir(struct file_ll *f)
     else if (mode == MODE_RECURSE) {
         if (mode_thunder) {
             FILE *type_file = fopen(".size", "w");
-            fprintf(type_file, "%i %i\n", f->item_count, f->stored_count);
+            fprintf(type_file, "%" PRIi32 " %" PRIi32 "\n", f->item_count, f->stored_count);
             fclose(type_file);
         }
         close_recurse_dir();

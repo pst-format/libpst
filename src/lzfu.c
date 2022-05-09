@@ -57,10 +57,10 @@ char* pst_lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
 	LE32_CPU(lzfuhdr.cbRawSize);
 	LE32_CPU(lzfuhdr.dwMagic);
 	LE32_CPU(lzfuhdr.dwCRC);
-	//printf("total size: %d\n", lzfuhdr.cbSize+4);
-	//printf("raw size  : %d\n", lzfuhdr.cbRawSize);
+	//printf("total size: %" PRIu32 "\n", lzfuhdr.cbSize+4);
+	//printf("raw size  : %" PRIu32 "\n", lzfuhdr.cbRawSize);
 	//printf("compressed: %s\n", (lzfuhdr.dwMagic == LZFU_COMPRESSED ? "yes" : "no"));
-	//printf("CRC       : %#x\n", lzfuhdr.dwCRC);
+	//printf("CRC       : %#" PRIx32 "\n", lzfuhdr.dwCRC);
 	//printf("\n");
 	out_size = lzfuhdr.cbRawSize;
 	out_buf  = (char*)pst_malloc(out_size);

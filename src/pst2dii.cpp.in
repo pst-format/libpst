@@ -608,7 +608,7 @@ static void process(pst_item *outeritem, file_ll *parent, pst_desc_tree *d_ptr)
     for (; d_ptr; d_ptr = d_ptr->next) {
         if (d_ptr->desc) {
             item = pst_parse_item(&pstfile, d_ptr, NULL);
-            DEBUG_INFO(("item pointer is %p\n", item));
+            DEBUG_INFO(("item pointer is %p\n", (void*)item));
             if (item) {
                 if (item->folder && item->file_as.str && d_ptr->child )  {
                     //if this is a non-empty folder, we want to recurse into it

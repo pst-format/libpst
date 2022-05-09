@@ -67,7 +67,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr, struct options o)
             DEBUG_INFO(("Desc Email ID %" PRIx64 " [d_ptr->d_id = %" PRIx64 "]\n", d_ptr->desc->i_id, d_ptr->d_id));
 
             item = pst_parse_item(&pstfile, d_ptr, NULL);
-            DEBUG_INFO(("About to process item @ %p.\n", item));
+            DEBUG_INFO(("About to process item @ %p.\n", (void*)item));
             if (item) {
                 if (item->message_store) {
                     // there should only be one message_store, and we have already done it
