@@ -1583,7 +1583,7 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
         }
 
         if (pst_getBlockOffsetPointer(pf, i2_head, &subblocks, table_rec.value, &block_offset2)) {
-            DEBUG_WARN(("internal error (bc.b5.desc offset #x) in reading block id %#"PRIx64"\n", table_rec.value, block_id));
+            DEBUG_WARN(("internal error (bc.b5.desc offset %#x) in reading block id %#"PRIx64"\n", table_rec.value, block_id));
             freeall(&subblocks, &block_offset1, &block_offset2, &block_offset3, &block_offset4, &block_offset5, &block_offset6, &block_offset7);
             DEBUG_RET();
             return NULL;
