@@ -23,7 +23,7 @@ struct options {
 
 void canonicalize_filename(char *fname);
 void debug_print(char *fmt, ...);
-void usage(char *prog_name);
+void usage(char *prog_name, char *defaultfmtdate);
 void version();
 
 // global settings
@@ -179,14 +179,14 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr, struct options o)
 }
 
 
-void usage(char *prog_name) {
+void usage(char *prog_name, char *defaultfmtdate) {
 	DEBUG_ENT("usage");
 	version();
 	printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
 	printf("OPTIONS:\n");
     printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readlog to print it\n");
 	printf("\t-l\t- Print the date, CC and BCC fields of emails too (by default only the From and Subject)\n");
-	printf("\t-f <date_format> \t- Select the date format in ctime format (by default \"%%F %%T\")\n");
+	printf("\t-f <date_format> \t- Select the date format in ctime format (by default \"%s\")\n", defaultfmtdate);
 	printf("\t-h\t- Help. This screen\n");
 	printf("\t-V\t- Version. Display program version\n");
 	DEBUG_RET();
@@ -230,7 +230,7 @@ int main(int argc, char* const* argv) {
 				o.long_format = 1;
 				break;
 			case 'h':
-				usage(argv[0]);
+				usage(argv[0], defaultfmtdate);
 				exit(0);
 				break;
 			case 'V':
@@ -238,7 +238,7 @@ int main(int argc, char* const* argv) {
 				exit(0);
 				break;
 			default:
-				usage(argv[0]);
+				usage(argv[0], defaultfmtdate);
 				exit(1);
 				break;
 		}
@@ -252,7 +252,7 @@ int main(int argc, char* const* argv) {
     DEBUG_ENT("main");
 
 	if (argc <= optind) {
-		usage(argv[0]);
+		usage(argv[0], defaultfmtdate);
 		exit(2);
 	}
 
