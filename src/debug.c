@@ -50,7 +50,7 @@ void pst_debug_init(const char* fname, void* output_mutex) {
     if (debug_fp) pst_debug_close();
     if (!fname) return;
     if ((debug_fp = fopen(fname, "wb")) == NULL) {
-        fprintf(stderr, "Opening of file %s failed\n", fname);
+        fprintf(stderr, "Opening of file %s failed: %d: %s\n", fname, errno, strerror(errno));
         exit(1);
     }
 }
