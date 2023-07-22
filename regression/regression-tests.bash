@@ -106,7 +106,7 @@ function dopst()
 
 pushd ..
 make || exit
-popd
+popd || exit
 
 rm -rf output* *.err *.log
 
