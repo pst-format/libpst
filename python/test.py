@@ -30,7 +30,7 @@ for i in range(1, len(sys.argv)):
                     if (em.messageid.str):
                         print "message id is <%s>" % (em.messageid.str)
                     subj = item.subject
-                    rtf  = em.rtf_compressed
+                    rtf = em.rtf_compressed
                     if rtf and (len(rtf) > 0):
                         print "rtf compressed size", len(rtf)
                     if (subj and subj.str):
@@ -47,8 +47,8 @@ for i in range(1, len(sys.argv)):
                     att = None
                     while (att):
                         attid = att.i_id
-                        att1  = att.filename1
-                        att2  = att.filename2
+                        att1 = att.filename1
+                        att2 = att.filename2
                         msg = "attachment id %d file name short '%s' long '%s'"
                         print msg % (attid, att1.str, att2.str)
                         if (1):
