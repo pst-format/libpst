@@ -27,13 +27,13 @@ for i in range(1,len(sys.argv)):
                         print "message arrived at %s" % (pst.pst_rfc2425_datetime_format(ft))
                     if (em.messageid.str):
                         print "message id is <%s>" % (em.messageid.str)
-                    subj = item.subject;
-                    rtf  = em.rtf_compressed;
+                    subj = item.subject
+                    rtf  = em.rtf_compressed
                     if rtf and (len(rtf) > 0): print "rtf compressed size", len(rtf)
                     if (subj and subj.str):
-                        was = subj.is_utf8;
+                        was = subj.is_utf8
                         pst.pst_convert_utf8(item, subj)
-                        now = subj.is_utf8;
+                        now = subj.is_utf8
                         if (was != now):
                             print "subject was converted to utf8"
                         print "subject is %s" % (subj.str)
