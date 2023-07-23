@@ -9,7 +9,7 @@
 
 
 if [ "$#" != 1 ]; then
-	echo "Usage: `basename "$0"` <folder>"
+	echo "Usage: $(basename "$0") <folder>"
 	exit 1
 fi
 
@@ -20,7 +20,7 @@ process_dir() {
 			mv "$item" "$item.sbd"
 			touch "$item"
 			process_dir "$item.sbd"
-		elif [ "`basename \"$item\"`" = mbox ]; then
+		elif [ "$(basename "$item")" = mbox ]; then
 			mv "$item" "${item%%.sbd/mbox}"
 		else
 			echo ERROR: invalid item "$item"
