@@ -6,7 +6,7 @@ else
     NO_UNDEFINED =
 endif
 
-pythonlibdir            = $(libdir)/@PYTHON_VERSION@/site-packages
+pythonlibdir            = $(PYTHON_SITE_PKG)
 pythonlib_LTLIBRARIES   = _libpst.la
 _libpst_la_LDFLAGS      = -module $(NO_UNDEFINED) -avoid-version
 _libpst_la_SOURCES      = python-libpst.cpp
