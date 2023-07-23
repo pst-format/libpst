@@ -6,7 +6,7 @@ ft.dwLowDateTime = 0
 ft.dwHighDateTime = 1
 
 
-for i in range(1,len(sys.argv)):
+for i in range(1, len(sys.argv)):
     print "try file %s" % (sys.argv[i])
     pst = _libpst.pst(sys.argv[i], "")
     topf = pst.pst_getTopOfFolders()
