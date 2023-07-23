@@ -15,7 +15,7 @@ for i in range(1, len(sys.argv)):
     print pst.pst_rfc2445_datetime_format(ft)
 
     while (topf):
-        #print "topf d_id is %d\n" % (topf.d_id)
+        print "topf d_id is %d\n" % (topf.d_id)
         item = pst.pst_parse_item(topf, None)
         if (item):
             if (item.type == 1):
@@ -41,8 +41,8 @@ for i in range(1, len(sys.argv)):
                             print "subject was converted to utf8"
                         print "subject is %s" % (subj.str)
                     body = item.body
-                    #if (body.str):
-                    #    print "message body is %s" % (body.str)
+                    if (body.str):
+                        print "message body is %s" % (body.str)
                     att = item.attach
                     att = None
                     while (att):
