@@ -44,7 +44,6 @@ for i in range(1, len(sys.argv)):
                     if body.str:
                         print("message body is %s" % (body.str))
                     att = item.attach
-                    att = None
                     while att:
                         attid = att.i_id
                         att1 = att.filename1
