@@ -6,8 +6,8 @@ function consistency()
     # check source and xml documentation for consistency
     (
         cd ..   # back to top level of project
-        f1=/tmp/f1$$
-        f2=/tmp/f2$$
+        f1=f1
+        f2=f2
         trap 'rm -f $f1 $f2' 0 INT TERM QUIT
         grep 'case 0x' src/libpst.c   | awk '{print $2}' | tr A-Z a-z | sed -e 's/://g'             | sort >$f1
         grep '^0x'     xml/libpst.in  | awk '{print $1}' | (for i in {1..19}; do read a; done; cat) | sort >$f2
