@@ -71,4 +71,3 @@ for i in range(1, len(sys.argv)):
             pst.pst_freeItem(item)
         topf = pst.pst_getNextDptr(topf)
     print "done"
-
