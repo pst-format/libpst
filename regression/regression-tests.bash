@@ -22,13 +22,13 @@ function dodii()
     n="$1"
     fn="$2"
     ba=$(basename "$fn" .pst)
-    size=$(stat -c %s $fn)
-    rm -rf output$n
-    if [ 0 -eq "${#val[@]}" ] || [ $size -lt 10000000 ]; then
-        echo $fn
-        mkdir output$n
+    size=$(stat -c %s "$fn")
+    rm -rf "output$n"
+    if [ 0 -eq "${#val[@]}" ] || [ "$size" -lt 10000000 ]; then
+        echo "$fn"
+        mkdir "output$n"
         font="$(fc-match --format '%{file}' 'Liberation Mono')"
-        "${val[@]}" ../src/pst2dii -f "$font" -B "bates-" -o output$n -O $ba.mydii -d $fn.log $fn >$fn.dii.err 2>&1
+        "${val[@]}" ../src/pst2dii -f "$font" -B "bates-" -o "output$n" -O "$ba.mydii" -d "$fn.log" "$fn" > "$fn.dii.err" 2>&1
     fi
 }
 
@@ -38,12 +38,12 @@ function doldif()
     n="$1"
     fn="$2"
     ba=$(basename "$fn" .pst)
-    size=$(stat -c %s $fn)
-    rm -rf output$n
-    if [ 0 -eq "${#val[@]}" ] || [ $size -lt 10000000 ]; then
-        echo $fn
-        mkdir output$n
-        "${val[@]}" ../src/pst2ldif -d $ba.ldif.log -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' $fn >$ba.ldif.err 2>&1
+    size=$(stat -c %s "$fn")
+    rm -rf "output$n"
+    if [ 0 -eq "${#val[@]}" ] || [ "$size" -lt 10000000 ]; then
+        echo "$fn"
+        mkdir "output$n"
+        "${val[@]}" ../src/pst2ldif -d "$ba.ldif.log" -b 'o=ams-cc.com, c=US' -c 'inetOrgPerson' "$fn" > "$ba.ldif.err" 2>&1
     fi
 }
 
@@ -53,18 +53,18 @@ function dopst()
     n="$1"
     fn="$2"
     ba=$(basename "$fn" .pst)
-    size=$(stat -c %s $fn)
+    size=$(stat -c %s "$fn")
     jobs=()
     [ "${#val[@]}" -gt 0 ] && jobs=(-j 0)
-    rm -rf output$n
-    if [ 0 -eq "${#val[@]}" ] || [ $size -lt 100000000 ]; then
-        echo $fn
-        mkdir output$n
+    rm -rf "output$n"
+    if [ 0 -eq "${#val[@]}" ] || [ "$size" -lt 100000000 ]; then
+        echo "$fn"
+        mkdir "output$n"
         if [ "$regression" == "yes" ]; then
-            "${val[@]}" ../src/readpst "${jobs[@]}" -te -r -cv -o output$n $fn >$ba.err 2>&1
+            "${val[@]}" ../src/readpst "${jobs[@]}" -te -r -cv -o "output$n" "$fn" > "$ba.err" 2>&1
         else
             ## only email and include deleted items, have a deleted items folder with multiple item types
-            #"${val[@]}" ../src/readpst "${jobs[@]}" -te -r -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #"${val[@]}" ../src/readpst "${jobs[@]}" -te -r -D -cv -o "output$n" -d "$ba.log" "$fn" > "$ba.err" 2>&1
 
             ## normal recursive dump
             char='BIG-5'
@@ -74,27 +74,27 @@ function dopst()
             utf=(-8)
 
             ## normal mode
-            #echo "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -cv -o output$n -d $ba.log $fn
-            #     "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #echo "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -cv -o "output$n" -d "$ba.log" "$fn"
+            #     "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -cv -o "output$n" -d "$ba.log" "$fn" > "$ba.err" 2>&1
 
             ## kmail mode
-            #echo "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -k -cv -o output$n -d $ba.log $fn
-            #     "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -k -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #echo "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -k -cv -o "output$n" -d "$ba.log" "$fn"
+            #     "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -k -cv -o "output$n" -d "$ba.log" "$fn" > "$ba.err" 2>&1
 
             ## recursive mode
-            echo "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -r -cv -o output$n -d $ba.log $fn
-                 "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -r -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            echo "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -r -cv -o "output$n" -d "$ba.log" "$fn"
+                 "${val[@]}" ../src/readpst "${utf[@]}" "${acc[@]}" -C $char -j 0 -r -cv -o "output$n" -d "$ba.log" "$fn" > "$ba.err" 2>&1
 
             ## separate mode with filename extensions and .msg files
-            #echo "${val[@]}" ../src/readpst "${jobs[@]}"     -r -m -D -cv -o output$n -d $ba.log $fn
-            #     "${val[@]}" ../src/readpst "${jobs[@]}"     -r -m -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #echo "${val[@]}" ../src/readpst "${jobs[@]}"     -r -m -D -cv -o "output$n" -d "$ba.log" "$fn"
+            #     "${val[@]}" ../src/readpst "${jobs[@]}"     -r -m -D -cv -o "output$n" -d "$ba.log" "$fn" > "$ba.err" 2>&1
 
             ## separate mode where we decode all attachments to binary files
-            #echo "${val[@]}" ../src/readpst "${jobs[@]}"     -r -S -D -cv -o output$n -d $ba.log $fn
-            #     "${val[@]}" ../src/readpst "${jobs[@]}"     -r -S -D -cv -o output$n -d $ba.log $fn >$ba.err 2>&1
+            #echo "${val[@]}" ../src/readpst "${jobs[@]}"     -r -S -D -cv -o "output$n" -d "$ba.log" "$fn"
+            #     "${val[@]}" ../src/readpst "${jobs[@]}"     -r -S -D -cv -o "output$n" -d "$ba.log" "$fn" > "$ba.err" 2>&1
 
             ## testing idblock
-            #../src/getidblock -p $fn 0 >$ba.fulldump
+            #../src/getidblock -p "$fn" 0 > "$ba.fulldump"
         fi
     fi
 }
