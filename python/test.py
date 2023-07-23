@@ -1,4 +1,5 @@
-import _libpst, sys
+import sys
+import _libpst
 
 ft = _libpst.FILETIME()
 ft.dwLowDateTime = 0
