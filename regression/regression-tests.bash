@@ -10,7 +10,7 @@ function consistency()
         f2=f2
         trap 'rm -f $f1 $f2' 0 INT TERM QUIT
         grep 'case 0x' src/libpst.c   | awk '{print $2}' | tr A-F a-f | sed -e 's/://g'             | sort >$f1
-        grep '^0x'     xml/libpst.in  | awk '{print $1}' | (for i in {1..19}; do read a; done; cat) | sort >$f2
+        grep '^0x'     xml/libpst.in  | awk '{print $1}' | (for i in {1..19}; do read -r a; done; cat) | sort >$f2
         diff $f1 $f2
         less $f1
         ls -al $f1 $f2
@@ -159,7 +159,7 @@ $func  31 Journal_Archives_08_29_2010.pst
 
 if [ "$regression" == "yes" ]; then
     (
-        (for i in output*; do find $i -type f; done) | while read a; do
+        (for i in output*; do find "$i" -type f; done) | while read -r a; do
             grep -v iamunique "$a"
             rm -f "$a"
         done
