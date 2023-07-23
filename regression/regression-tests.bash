@@ -108,7 +108,7 @@ pushd ..
 make || exit
 popd || exit
 
-rm -rf output* *.err *.log
+rm -rf output* ./*.err ./*.log
 
 v=(valgrind --leak-check=full)
 val=()
@@ -155,7 +155,7 @@ $func  29 pstsample2.pst        # embedded image in rtf data
 $func  30 pstsample3.pst        # exports of rtf and html
 $func  31 Journal_Archives_08_29_2010.pst
 
-[ "${#val[@]}" -gt 0 ] && grep 'lost:' *err | grep -v 'lost: 0 '
+[ "${#val[@]}" -gt 0 ] && grep 'lost:' ./*err | grep -v 'lost: 0 '
 
 if [ "$regression" == "yes" ]; then
     (
