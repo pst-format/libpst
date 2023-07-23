@@ -4600,7 +4600,7 @@ pst_recurrence* pst_convert_recurrence(pst_item_appointment* appt)
         if (i   <= s) { r->type             = PST_LE_GET_UINT8(p+i) - 0x0a;  i += 2; }
         if (i+4 <= s) { r->sub_type         = PST_LE_GET_UINT32(p+i);        i += 4; }
         if (r->sub_type <= 3) {
-            int n = m[r->sub_type]; // number of parms for this sub_type
+            int n = m[r->sub_type]; // number of params for this sub_type
             int j = 0;
             for (j=0; j<n; j++) {
                 if (i+4 <= s) { *(&r->parm1 + j) = PST_LE_GET_UINT32(p+i);   i += 4; }
