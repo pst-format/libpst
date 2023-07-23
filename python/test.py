@@ -21,15 +21,18 @@ for i in range(1,len(sys.argv)):
             if (item.type == 1):
                 em = item.email
                 if (em):
-                    print "default charset %s" % (pst.pst_default_charset(item))
+                    charset = pst.pst_default_charset(item)
+                    print "default charset %s" % (default_charset)
                     ft = em.arrival_date
                     if (ft):
-                        print "message arrived at %s" % (pst.pst_rfc2425_datetime_format(ft))
+                        ft = pst.pst_rfc2425_datetime_format(ft)
+                        print "message arrived at %s" % (ft)
                     if (em.messageid.str):
                         print "message id is <%s>" % (em.messageid.str)
                     subj = item.subject
                     rtf  = em.rtf_compressed
-                    if rtf and (len(rtf) > 0): print "rtf compressed size", len(rtf)
+                    if rtf and (len(rtf) > 0):
+                        print "rtf compressed size", len(rtf)
                     if (subj and subj.str):
                         was = subj.is_utf8
                         pst.pst_convert_utf8(item, subj)
@@ -46,7 +49,8 @@ for i in range(1,len(sys.argv)):
                         attid = att.i_id
                         att1  = att.filename1
                         att2  = att.filename2
-                        print "attachment id %d file name short '%s' long '%s'" % (attid, att1.str, att2.str)
+                        msg = "attachment id %d file name short '%s' long '%s'"
+                        print msg % (attid, att1.str, att2.str)
                         if (1):
                             attdata = pst.pst_attach_to_mem(att)
                             if (attdata):
