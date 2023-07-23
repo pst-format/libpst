@@ -21,7 +21,7 @@ for i in range(1, len(sys.argv)):
             if (item.type == 1):
                 em = item.email
                 if (em):
-                    charset = pst.pst_default_charset(item)
+                    default_charset = pst.pst_default_charset(item)
                     print "default charset %s" % (default_charset)
                     ft = em.arrival_date
                     if (ft):
