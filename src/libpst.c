@@ -398,7 +398,8 @@ int  pst_reopen(pst_file *pf) {
     cwd = pst_getcwd();
     if (cwd == NULL)                       return -1;
     if (chdir(pf->cwd))                    goto err;
-    fp = freopen(pf->fname, "rb", pf->fp);
+    fclose(pf->fp);
+    fp = fopen(pf->fname, "rb");
     if (!fp) goto err;
     else pf->fp = fp;
     if (chdir(cwd))                        goto err;
