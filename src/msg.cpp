@@ -367,6 +367,7 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
             {
                 FILE *fp = fopen("temp_file_attachment", "w+b");
                 if (fp) {
+                    unlink("temp_file_attachment");
                     pst_attach_to_file(pst, a, fp); // data is now in the file
                     fseek(fp, 0, SEEK_SET);
                     property_list prop_list;
