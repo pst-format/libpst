@@ -418,9 +418,6 @@ int main(int argc, char* const* argv) {
     char *temp = NULL;               //temporary char pointer
     prog_name = argv[0];
 
-    time_t now = time(NULL);
-    srand((unsigned)now);
-
     if (regcomp(&meta_charset_pattern, "<meta[^>]*content=\"[^>]*charset=([^>\";]*)[\";]", REG_ICASE | REG_EXTENDED)) {
         printf("cannot compile regex pattern to find content charset in html bodies\n");
         exit(3);
@@ -1662,7 +1659,7 @@ void write_schedule_part(FILE* f_output, pst_item* item, const char* sender, con
     fprintf(f_output, "\n");
 
     // attachment appointment request
-    snprintf(fname, sizeof(fname), "i%i.ics", rand());
+    snprintf(fname, sizeof(fname), "i%" PRIu64 ".ics", item->block_id);
     fprintf(f_output, "\n--%s\n", boundary);
     fprintf(f_output, "Content-Type: %s; charset=\"%s\"; name=\"%s\"\n", "text/calendar", "utf-8", fname);
     fprintf(f_output, "Content-Disposition: attachment; filename=\"%s\"\n\n", fname);
@@ -1726,7 +1723,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int curre
         c_time = "Thu Jan 1 00:00:00 1970";
 
     // create our MIME boundaries here.
-    snprintf(boundary, sizeof(boundary), "--boundary-LibPST-iamunique-%i_-_-", rand());
+    snprintf(boundary, sizeof(boundary), "--boundary-LibPST-iamunique-%" PRIu64 "_-_-", item->block_id);
     snprintf(altboundary, sizeof(altboundary), "alt-%s", boundary);
 
     // we will always look at the headers to discover some stuff
