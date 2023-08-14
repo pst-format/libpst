@@ -2197,7 +2197,14 @@ void write_journal(FILE* f_output, pst_item* item)
     pst_convert_utf8_null(item, &item->body);
 
     fprintf(f_output, "BEGIN:VJOURNAL\n");
-    fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now(sizeof(time_buffer), time_buffer));
+    // FIXME: use the attendee/owner critical change property for DTSTAMP
+    // https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxcical/4b93e7b6-142e-4f0c-ac08-1505a6fa0199
+    // https://learn.microsoft.com/en-us/office/client-developer/outlook/mapi/pidlidattendeecriticalchange-canonical-property
+    // https://learn.microsoft.com/en-us/office/client-developer/outlook/mapi/pidlidownercriticalchange-canonical-property
+    if (item->create_date)
+        fprintf(f_output, "DTSTAMP:%s\n",                 pst_rfc2445_datetime_format(item->create_date, sizeof(time_buffer), time_buffer));
+    else
+        fprintf(f_output, "DTSTAMP:%s\n",                 pst_rfc2445_datetime_format_now(sizeof(time_buffer), time_buffer));
     if (item->create_date)
         fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date, sizeof(time_buffer), time_buffer));
     if (item->modify_date)
@@ -2226,7 +2233,14 @@ void write_appointment(FILE* f_output, pst_item* item)
     pst_convert_utf8_null(item, &appointment->location);
 
     fprintf(f_output, "UID:%#"PRIx64"\n", item->block_id);
-    fprintf(f_output, "DTSTAMP:%s\n",                     pst_rfc2445_datetime_format_now(sizeof(time_buffer), time_buffer));
+    // FIXME: use the attendee/owner critical change property for DTSTAMP
+    // https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxcical/4b93e7b6-142e-4f0c-ac08-1505a6fa0199
+    // https://learn.microsoft.com/en-us/office/client-developer/outlook/mapi/pidlidattendeecriticalchange-canonical-property
+    // https://learn.microsoft.com/en-us/office/client-developer/outlook/mapi/pidlidownercriticalchange-canonical-property
+    if (item->create_date)
+        fprintf(f_output, "DTSTAMP:%s\n",                 pst_rfc2445_datetime_format(item->create_date, sizeof(time_buffer), time_buffer));
+    else
+        fprintf(f_output, "DTSTAMP:%s\n",                 pst_rfc2445_datetime_format_now(sizeof(time_buffer), time_buffer));
     if (item->create_date)
         fprintf(f_output, "CREATED:%s\n",                 pst_rfc2445_datetime_format(item->create_date, sizeof(time_buffer), time_buffer));
     if (item->modify_date)
