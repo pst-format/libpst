@@ -1680,7 +1680,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int curre
     int  sender_known = 0;
     char *temp = NULL;
     time_t em_time;
-    char *c_time;
+    char *c_time = NULL;
     char *headers = NULL;
     int has_from, has_subject, has_to, has_cc, has_date, has_msgid;
     has_from = has_subject = has_to = has_cc = has_date = has_msgid = 0;
@@ -1717,9 +1717,8 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int curre
         c_time = ctime(&em_time);
         if (c_time)
             c_time[strlen(c_time)-1] = '\0'; //remove end \n
-        else
-            c_time = "Thu Jan 1 00:00:00 1970";
-    } else
+    }
+    if (!c_time)
         c_time = "Thu Jan 1 00:00:00 1970";
 
     // create our MIME boundaries here.
