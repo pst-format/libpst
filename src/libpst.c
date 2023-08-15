@@ -3197,7 +3197,7 @@ static int pst_process(uint64_t block_id, pst_mapi_object *list, pst_item *item,
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
                     } else if (list->elements[x]->type == (uint32_t)0x1014) {
-                        DEBUG_WARN(("Unknown type %#x Array of 64 bit values [siize = %#x]\n", list->elements[x]->mapi_id,
+                        DEBUG_WARN(("Unknown type %#x Array of 64 bit values [size = %#x]\n", list->elements[x]->mapi_id,
                             list->elements[x]->size));
                         DEBUG_HEXDUMP(list->elements[x]->data, list->elements[x]->size);
 
