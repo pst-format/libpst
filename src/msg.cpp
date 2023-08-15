@@ -18,7 +18,8 @@
 using namespace std;
 
 struct property {
-    uint32_t  tag;
+    uint16_t  type;
+    uint16_t  id;
     uint32_t  flags;
     uint32_t  length; // or value
     uint32_t  reserved;
@@ -58,23 +59,23 @@ static void convert_8bit(pst_string &str, const char *charset) {
 }
 
 
-static void empty_property(GsfOutfile *out, uint32_t tag);
-static void empty_property(GsfOutfile *out, uint32_t tag) {
+static void empty_property(GsfOutfile *out, uint16_t id, uint16_t type);
+static void empty_property(GsfOutfile *out, uint16_t id, uint16_t type) {
     vector<char> n(50);
-    snprintf(&n[0], n.size(), "__substg1.0_%08" PRIX32, tag);
+    snprintf(&n[0], n.size(), "__substg1.0_%04" PRIX32 "%04" PRIX32, id, type);
     GsfOutput* dst = gsf_outfile_new_child(out, &n[0], false);
     gsf_output_close(dst);
     g_object_unref(G_OBJECT(dst));
 }
 
 
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char *contents, size_t size);
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char *contents, size_t size) {
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, const char *contents, size_t size);
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, const char *contents, size_t size) {
     if (!contents) return;
-    size_t term = ((tag & 0x0000ffff) == 0x001e) ? 1 :
-                  ((tag & 0x0000ffff) == 0x001f) ? 2 : 0;  // null terminator
+    size_t term = (type == 0x001e) ? 1 :
+                  (type == 0x001f) ? 2 : 0;  // null terminator
     vector<char> n(50);
-    snprintf(&n[0], n.size(), "__substg1.0_%08" PRIX32, tag);
+    snprintf(&n[0], n.size(), "__substg1.0_%04" PRIX32 "%04" PRIX32, id, type);
     GsfOutput* dst = gsf_outfile_new_child(out, &n[0], false);
     gsf_output_write(dst, size, (const guint8*)contents);
     if (term) {
@@ -86,7 +87,8 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
     g_object_unref(G_OBJECT(dst));
 
     property p;
-    p.tag      = tag;
+    p.id       = id;
+    p.type     = type;
     p.flags    = 0x6;   // make all the properties writable
     p.length   = size;
     p.reserved = 0;
@@ -94,10 +96,10 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 }
 
 
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILE *fp);
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, FILE *fp) {
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, FILE *fp);
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, FILE *fp) {
     vector<char> n(50);
-    snprintf(&n[0], n.size(), "__substg1.0_%08" PRIX32, tag);
+    snprintf(&n[0], n.size(), "__substg1.0_%04" PRIX32 "%04" PRIX32, id, type);
     GsfOutput* dst = gsf_outfile_new_child(out, &n[0], false);
 
     size_t size = 0;
@@ -114,7 +116,8 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
     g_object_unref(G_OBJECT(dst));
 
     property p;
-    p.tag      = tag;
+    p.id       = id;
+    p.type     = type;
     p.flags    = 0x6;   // make all the properties writable
     p.length   = size;
     p.reserved = 0;
@@ -122,33 +125,33 @@ static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, 
 }
 
 
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents);
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents) {
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, const char* charset, pst_string &contents);
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, const char* charset, pst_string &contents) {
     if (contents.str) {
         convert_8bit(contents, charset);
-        string_property(out, prop, tag, contents.str, strlen(contents.str));
+        string_property(out, prop, id, type, contents.str, strlen(contents.str));
     }
 }
 
 
-static void strin0_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents);
-static void strin0_property(GsfOutfile *out, property_list &prop, uint32_t tag, const char* charset, pst_string &contents) {
+static void strin0_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, const char* charset, pst_string &contents);
+static void strin0_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, const char* charset, pst_string &contents) {
     if (contents.str) {
         convert_8bit(contents, charset);
-        string_property(out, prop, tag, contents.str, strlen(contents.str)+1);
+        string_property(out, prop, id, type, contents.str, strlen(contents.str)+1);
     }
 }
 
 
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const string &contents);
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, const string &contents) {
-    string_property(out, prop, tag, contents.c_str(), contents.size());
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, const string &contents);
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, const string &contents) {
+    string_property(out, prop, id, type, contents.c_str(), contents.size());
 }
 
 
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, pst_binary &contents);
-static void string_property(GsfOutfile *out, property_list &prop, uint32_t tag, pst_binary &contents) {
-    if (contents.size) string_property(out, prop, tag, contents.data, contents.size);
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, pst_binary &contents);
+static void string_property(GsfOutfile *out, property_list &prop, uint16_t id, uint16_t type, pst_binary &contents) {
+    if (contents.size) string_property(out, prop, id, type, contents.data, contents.size);
 }
 
 
@@ -165,10 +168,11 @@ static void write_properties(GsfOutfile *out, property_list &prop, const guint8*
 }
 
 
-static void int_property(property_list &prop_list, uint32_t tag, uint32_t flags, uint32_t value);
-static void int_property(property_list &prop_list, uint32_t tag, uint32_t flags, uint32_t value) {
+static void int_property(property_list &prop_list, uint16_t id, uint16_t type, uint32_t flags, uint32_t value);
+static void int_property(property_list &prop_list, uint16_t id, uint16_t type, uint32_t flags, uint32_t value) {
     property p;
-    p.tag      = tag;
+    p.id       = id;
+    p.type     = type;
     p.flags    = flags;
     p.length   = value;
     p.reserved = 0;
@@ -176,11 +180,12 @@ static void int_property(property_list &prop_list, uint32_t tag, uint32_t flags,
 }
 
 
-static void i64_property(property_list &prop_list, uint32_t tag, uint32_t flags, FILETIME *value);
-static void i64_property(property_list &prop_list, uint32_t tag, uint32_t flags, FILETIME *value) {
+static void i64_property(property_list &prop_list, uint16_t id, uint16_t type, uint32_t flags, FILETIME *value);
+static void i64_property(property_list &prop_list, uint16_t id, uint16_t type, uint32_t flags, FILETIME *value) {
     if (value) {
         property p;
-        p.tag      = tag;
+        p.id       = id;
+        p.type     = type;
         p.flags    = flags;
         p.length   = value->dwLowDateTime;
         p.reserved = value->dwHighDateTime;
@@ -189,9 +194,9 @@ static void i64_property(property_list &prop_list, uint32_t tag, uint32_t flags,
 }
 
 
-static void nzi_property(property_list &prop_list, uint32_t tag, uint32_t flags, uint32_t value);
-static void nzi_property(property_list &prop_list, uint32_t tag, uint32_t flags, uint32_t value) {
-    if (value) int_property(prop_list, tag, flags, value);
+static void nzi_property(property_list &prop_list, uint16_t id, uint16_t type, uint32_t flags, uint32_t value);
+static void nzi_property(property_list &prop_list, uint16_t id, uint16_t type, uint32_t flags, uint32_t value) {
+    if (value) int_property(prop_list, id, type, flags, value);
 }
 
 
@@ -241,52 +246,52 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
     output = GSF_OUTPUT(outfile);
     property_list prop_list;
 
-    int_property(prop_list, 0x00170003, 0x6, email.importance);
-    nzi_property(prop_list, 0x0023000B, 0x6, email.delivery_report);
-    nzi_property(prop_list, 0x00260003, 0x6, email.priority);
-    nzi_property(prop_list, 0x0029000B, 0x6, email.read_receipt);
-    nzi_property(prop_list, 0x002E0003, 0x6, email.original_sensitivity);
-    nzi_property(prop_list, 0x00360003, 0x6, email.sensitivity);
-    nzi_property(prop_list, 0x0C17000B, 0x6, email.reply_requested);
-    nzi_property(prop_list, 0x0E01000B, 0x6, email.delete_after_submit);
-    int_property(prop_list, 0x0E070003, 0x6, item->flags);
-    i64_property(prop_list, 0x00390040, 0x6, email.sent_date);
+    int_property(prop_list, 0x0017, 0x0003, 0x6, email.importance);
+    nzi_property(prop_list, 0x0023, 0x000B, 0x6, email.delivery_report);
+    nzi_property(prop_list, 0x0026, 0x0003, 0x6, email.priority);
+    nzi_property(prop_list, 0x0029, 0x000B, 0x6, email.read_receipt);
+    nzi_property(prop_list, 0x002E, 0x0003, 0x6, email.original_sensitivity);
+    nzi_property(prop_list, 0x0036, 0x0003, 0x6, email.sensitivity);
+    nzi_property(prop_list, 0x0C17, 0x000B, 0x6, email.reply_requested);
+    nzi_property(prop_list, 0x0E01, 0x000B, 0x6, email.delete_after_submit);
+    int_property(prop_list, 0x0E07, 0x0003, 0x6, item->flags);
+    i64_property(prop_list, 0x0039, 0x0040, 0x6, email.sent_date);
     GsfOutfile *out = GSF_OUTFILE (output);
-    string_property(out, prop_list, 0x001A001E, item->ascii_type);
-    string_property(out, prop_list, 0x0037001E, body_charset, item->subject);
-    strin0_property(out, prop_list, 0x003B0102, body_charset, email.outlook_sender);
-    string_property(out, prop_list, 0x003D001E, string(""));
-    string_property(out, prop_list, 0x0040001E, body_charset, email.outlook_received_name1);
-    string_property(out, prop_list, 0x0042001E, body_charset, email.outlook_sender_name);
-    string_property(out, prop_list, 0x0044001E, body_charset, email.outlook_recipient_name);
-    string_property(out, prop_list, 0x0050001E, body_charset, email.reply_to);
-    strin0_property(out, prop_list, 0x00510102, body_charset, email.outlook_recipient);
-    strin0_property(out, prop_list, 0x00520102, body_charset, email.outlook_recipient2);
-    string_property(out, prop_list, 0x0064001E, body_charset, email.sender_access);
-    string_property(out, prop_list, 0x0065001E, body_charset, email.sender_address);
-    string_property(out, prop_list, 0x0070001E, body_charset, email.processed_subject);
-    string_property(out, prop_list, 0x00710102,               email.conversation_index);
-    string_property(out, prop_list, 0x0072001E, body_charset, email.original_bcc);
-    string_property(out, prop_list, 0x0073001E, body_charset, email.original_cc);
-    string_property(out, prop_list, 0x0074001E, body_charset, email.original_to);
-    string_property(out, prop_list, 0x0075001E, body_charset, email.recip_access);
-    string_property(out, prop_list, 0x0076001E, body_charset, email.recip_address);
-    string_property(out, prop_list, 0x0077001E, body_charset, email.recip2_access);
-    string_property(out, prop_list, 0x0078001E, body_charset, email.recip2_address);
-    string_property(out, prop_list, 0x007D001E, body_charset, email.header);
-    string_property(out, prop_list, 0x0C1A001E, body_charset, email.outlook_sender_name2);
-    strin0_property(out, prop_list, 0x0C1D0102, body_charset, email.outlook_sender2);
-    string_property(out, prop_list, 0x0C1E001E, body_charset, email.sender2_access);
-    string_property(out, prop_list, 0x0C1F001E, body_charset, email.sender2_address);
-    string_property(out, prop_list, 0x0E02001E, body_charset, email.bcc_address);
-    string_property(out, prop_list, 0x0E03001E, body_charset, email.cc_address);
-    string_property(out, prop_list, 0x0E04001E, body_charset, email.sentto_address);
-    string_property(out, prop_list, 0x0E1D001E, body_charset, email.outlook_normalized_subject);
-    string_property(out, prop_list, 0x1000001E, body_charset, item->body);
-    string_property(out, prop_list, 0x1013001E, body_charset, email.htmlbody);
-    string_property(out, prop_list, 0x1035001E, body_charset, email.messageid);
-    string_property(out, prop_list, 0x1042001E, body_charset, email.in_reply_to);
-    string_property(out, prop_list, 0x1046001E, body_charset, email.return_path_address);
+    string_property(out, prop_list, 0x001A, 0x001E, item->ascii_type);
+    string_property(out, prop_list, 0x0037, 0x001E, body_charset, item->subject);
+    strin0_property(out, prop_list, 0x003B, 0x0102, body_charset, email.outlook_sender);
+    string_property(out, prop_list, 0x003D, 0x001E, string(""));
+    string_property(out, prop_list, 0x0040, 0x001E, body_charset, email.outlook_received_name1);
+    string_property(out, prop_list, 0x0042, 0x001E, body_charset, email.outlook_sender_name);
+    string_property(out, prop_list, 0x0044, 0x001E, body_charset, email.outlook_recipient_name);
+    string_property(out, prop_list, 0x0050, 0x001E, body_charset, email.reply_to);
+    strin0_property(out, prop_list, 0x0051, 0x0102, body_charset, email.outlook_recipient);
+    strin0_property(out, prop_list, 0x0052, 0x0102, body_charset, email.outlook_recipient2);
+    string_property(out, prop_list, 0x0064, 0x001E, body_charset, email.sender_access);
+    string_property(out, prop_list, 0x0065, 0x001E, body_charset, email.sender_address);
+    string_property(out, prop_list, 0x0070, 0x001E, body_charset, email.processed_subject);
+    string_property(out, prop_list, 0x0071, 0x0102,               email.conversation_index);
+    string_property(out, prop_list, 0x0072, 0x001E, body_charset, email.original_bcc);
+    string_property(out, prop_list, 0x0073, 0x001E, body_charset, email.original_cc);
+    string_property(out, prop_list, 0x0074, 0x001E, body_charset, email.original_to);
+    string_property(out, prop_list, 0x0075, 0x001E, body_charset, email.recip_access);
+    string_property(out, prop_list, 0x0076, 0x001E, body_charset, email.recip_address);
+    string_property(out, prop_list, 0x0077, 0x001E, body_charset, email.recip2_access);
+    string_property(out, prop_list, 0x0078, 0x001E, body_charset, email.recip2_address);
+    string_property(out, prop_list, 0x007D, 0x001E, body_charset, email.header);
+    string_property(out, prop_list, 0x0C1A, 0x001E, body_charset, email.outlook_sender_name2);
+    strin0_property(out, prop_list, 0x0C1D, 0x0102, body_charset, email.outlook_sender2);
+    string_property(out, prop_list, 0x0C1E, 0x001E, body_charset, email.sender2_access);
+    string_property(out, prop_list, 0x0C1F, 0x001E, body_charset, email.sender2_address);
+    string_property(out, prop_list, 0x0E02, 0x001E, body_charset, email.bcc_address);
+    string_property(out, prop_list, 0x0E03, 0x001E, body_charset, email.cc_address);
+    string_property(out, prop_list, 0x0E04, 0x001E, body_charset, email.sentto_address);
+    string_property(out, prop_list, 0x0E1D, 0x001E, body_charset, email.outlook_normalized_subject);
+    string_property(out, prop_list, 0x1000, 0x001E, body_charset, item->body);
+    string_property(out, prop_list, 0x1013, 0x001E, body_charset, email.htmlbody);
+    string_property(out, prop_list, 0x1035, 0x001E, body_charset, email.messageid);
+    string_property(out, prop_list, 0x1042, 0x001E, body_charset, email.in_reply_to);
+    string_property(out, prop_list, 0x1046, 0x001E, body_charset, email.return_path_address);
     // any property over 0x8000 needs entries in the __nameid to make them
     // either string named or numerical named properties.
 
@@ -298,16 +303,16 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
             {
                 int v = 1;  // to
                 property_list prop_list;
-                int_property(prop_list, 0x0C150003, 0x6, v);                        // PidTagRecipientType
-                int_property(prop_list, 0x30000003, 0x6, top_head.recipient_count); // PR_ROWID
+                int_property(prop_list, 0x0C15, 0x0003, 0x6, v);                        // PidTagRecipientType
+                int_property(prop_list, 0x3000, 0x0003, 0x6, top_head.recipient_count); // PR_ROWID
                 GsfOutfile *out = GSF_OUTFILE (output);
-                string_property(out, prop_list, 0x3001001E, body_charset, item->file_as);
+                string_property(out, prop_list, 0x3001, 0x001E, body_charset, item->file_as);
                 if (item->contact) {
-                    string_property(out, prop_list, 0x3002001E, body_charset, item->contact->address1_transport);
-                    string_property(out, prop_list, 0x3003001E, body_charset, item->contact->address1);
-                    string_property(out, prop_list, 0x5ff6001E, body_charset, item->contact->address1);
+                    string_property(out, prop_list, 0x3002, 0x001E, body_charset, item->contact->address1_transport);
+                    string_property(out, prop_list, 0x3003, 0x001E, body_charset, item->contact->address1);
+                    string_property(out, prop_list, 0x5ff6, 0x001E, body_charset, item->contact->address1);
                 }
-                strin0_property(out, prop_list, 0x300B0102, body_charset, email.outlook_search_key);
+                strin0_property(out, prop_list, 0x300B, 0x0102, body_charset, email.outlook_search_key);
                 write_properties(out, prop_list, (const guint8*)&top_head, 8);  // convenient 8 bytes of reserved zeros
                 gsf_output_close(output);
                 g_object_unref(G_OBJECT(output));
@@ -321,12 +326,12 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
             {
                 int v = 2;  // cc
                 property_list prop_list;
-                int_property(prop_list, 0x0C150003, 0x6, v);                        // PidTagRecipientType
-                int_property(prop_list, 0x30000003, 0x6, top_head.recipient_count); // PR_ROWID
+                int_property(prop_list, 0x0C15, 0x0003, 0x6, v);                        // PidTagRecipientType
+                int_property(prop_list, 0x3000, 0x0003, 0x6, top_head.recipient_count); // PR_ROWID
                 GsfOutfile *out = GSF_OUTFILE (output);
-                string_property(out, prop_list, 0x3001001E, body_charset, email.cc_address);
-                string_property(out, prop_list, 0x3003001E, body_charset, email.cc_address);
-                string_property(out, prop_list, 0x5ff6001E, body_charset, email.cc_address);
+                string_property(out, prop_list, 0x3001, 0x001E, body_charset, email.cc_address);
+                string_property(out, prop_list, 0x3003, 0x001E, body_charset, email.cc_address);
+                string_property(out, prop_list, 0x5ff6, 0x001E, body_charset, email.cc_address);
                 write_properties(out, prop_list, (const guint8*)&top_head, 8);  // convenient 8 bytes of reserved zeros
                 gsf_output_close(output);
                 g_object_unref(G_OBJECT(output));
@@ -340,12 +345,12 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
             {
                 int v = 3;  // bcc
                 property_list prop_list;
-                int_property(prop_list, 0x0C150003, 0x6, v);                        // PidTagRecipientType
-                int_property(prop_list, 0x30000003, 0x6, top_head.recipient_count); // PR_ROWID
+                int_property(prop_list, 0x0C15, 0x0003, 0x6, v);                        // PidTagRecipientType
+                int_property(prop_list, 0x3000, 0x0003, 0x6, top_head.recipient_count); // PR_ROWID
                 GsfOutfile *out = GSF_OUTFILE (output);
-                string_property(out, prop_list, 0x3001001E, body_charset, email.bcc_address);
-                string_property(out, prop_list, 0x3003001E, body_charset, email.bcc_address);
-                string_property(out, prop_list, 0x5ff6001E, body_charset, email.bcc_address);
+                string_property(out, prop_list, 0x3001, 0x001E, body_charset, email.bcc_address);
+                string_property(out, prop_list, 0x3003, 0x001E, body_charset, email.bcc_address);
+                string_property(out, prop_list, 0x5ff6, 0x001E, body_charset, email.bcc_address);
                 write_properties(out, prop_list, (const guint8*)&top_head, 8);  // convenient 8 bytes of reserved zeros
                 gsf_output_close(output);
                 g_object_unref(G_OBJECT(output));
@@ -371,30 +376,30 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
                     pst_attach_to_file(pst, a, fp); // data is now in the file
                     fseek(fp, 0, SEEK_SET);
                     property_list prop_list;
-                    int_property(prop_list, 0x0E210003, 0x2, top_head.attachment_count);    // MAPI_ATTACH_NUM
-                    int_property(prop_list, 0x0FF40003, 0x2, 2);            // PR_ACCESS read
-                    int_property(prop_list, 0x0FF70003, 0x2, 0);            // PR_ACCESS_LEVEL read only
-                    int_property(prop_list, 0x0FFE0003, 0x2, 7);            // PR_OBJECT_TYPE attachment
-                    int_property(prop_list, 0x37050003, 0x7, 1);            // PR_ATTACH_METHOD by value
-                    int_property(prop_list, 0x370B0003, 0x7, a->position);  // PR_RENDERING_POSITION
-                    int_property(prop_list, 0x37100003, 0x6, a->sequence);  // PR_ATTACH_MIME_SEQUENCE
+                    int_property(prop_list, 0x0E21, 0x0003, 0x2, top_head.attachment_count);    // MAPI_ATTACH_NUM
+                    int_property(prop_list, 0x0FF4, 0x0003, 0x2, 2);            // PR_ACCESS read
+                    int_property(prop_list, 0x0FF7, 0x0003, 0x2, 0);            // PR_ACCESS_LEVEL read only
+                    int_property(prop_list, 0x0FFE, 0x0003, 0x2, 7);            // PR_OBJECT_TYPE attachment
+                    int_property(prop_list, 0x3705, 0x0003, 0x7, 1);            // PR_ATTACH_METHOD by value
+                    int_property(prop_list, 0x370B, 0x0003, 0x7, a->position);  // PR_RENDERING_POSITION
+                    int_property(prop_list, 0x3710, 0x0003, 0x6, a->sequence);  // PR_ATTACH_MIME_SEQUENCE
                     GsfOutfile *out = GSF_OUTFILE (output);
-                    string_property(out, prop_list, 0x0FF90102, item->record_key);
-                    string_property(out, prop_list, 0x37010102, fp);
+                    string_property(out, prop_list, 0x0FF9, 0x0102, item->record_key);
+                    string_property(out, prop_list, 0x3701, 0x0102, fp);
                     if (a->filename2.str) {
                         // have long file name
-                        string_property(out, prop_list, 0x3707001E, body_charset, a->filename2);
+                        string_property(out, prop_list, 0x3707, 0x001E, body_charset, a->filename2);
                     }
                     else if (a->filename1.str) {
                         // have short file name
-                        string_property(out, prop_list, 0x3704001E, body_charset, a->filename1);
+                        string_property(out, prop_list, 0x3704, 0x001E, body_charset, a->filename1);
                     }
                     else {
                         // make up a name
                         const char *n = "inline";
-                        string_property(out, prop_list, 0x3704001E, n, strlen(n));
+                        string_property(out, prop_list, 0x3704, 0x001E, n, strlen(n));
                     }
-                    string_property(out, prop_list, 0x370E001E, body_charset, a->mimetype);
+                    string_property(out, prop_list, 0x370E, 0x001E, body_charset, a->mimetype);
                     write_properties(out, prop_list, (const guint8*)&top_head, 8);  // convenient 8 bytes of reserved zeros
                     gsf_output_close(output);
                     g_object_unref(G_OBJECT(output));
@@ -413,9 +418,9 @@ void write_msg_email(char *fname, pst_item* item, pst_file* pst) {
         GsfOutput  *output = gsf_outfile_new_child(out, "__nameid_version1.0", true);
         {
             GsfOutfile *out = GSF_OUTFILE (output);
-            empty_property(out, 0x00020102);
-            empty_property(out, 0x00030102);
-            empty_property(out, 0x00040102);
+            empty_property(out, 0x0002, 0x0102);
+            empty_property(out, 0x0003, 0x0102);
+            empty_property(out, 0x0004, 0x0102);
             gsf_output_close(output);
             g_object_unref(G_OBJECT(output));
         }
