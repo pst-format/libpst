@@ -56,7 +56,7 @@ int main(int argc, char* const* argv)
         pst_index_ll *ptr = &pstfile.i_table[i];
         size_t c = pst_ff_getIDblock_dec(&pstfile, ptr->i_id, &buf);
         if (c) {
-            snprintf(outname, OUT_BUF, "%#"PRIx64, ptr->i_id);
+            snprintf(outname, OUT_BUF, "%#" PRIx64, ptr->i_id);
             if ((fp = fopen(outname, "wb")) == NULL) {
                 printf("Failed to open file %s\n", outname);
                 continue;
@@ -64,7 +64,7 @@ int main(int argc, char* const* argv)
             pst_fwrite(buf, 1, c, fp);
             fclose(fp);
         } else {
-            printf("Failed to read block i_id %#"PRIx64"\n", ptr->i_id);
+            printf("Failed to read block i_id %#" PRIx64 "\n", ptr->i_id);
         }
     }
     pst_close(&pstfile);

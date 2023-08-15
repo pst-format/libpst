@@ -25,25 +25,25 @@ void dumper(uint64_t i_id)
     size_t readSize;
     pst_desc_tree *ptr;
 
-    DEBUG_INFO(("\n\n\nLooking at block index1 id %#"PRIx64"\n", i_id));
+    DEBUG_INFO(("\n\n\nLooking at block index1 id %#" PRIx64 "\n", i_id));
 
     if ((readSize = pst_ff_getIDblock_dec(&pstfile, i_id, &buf)) <= 0 || buf == 0) {
         DIE(("Error loading block\n"));
     }
 
-    DEBUG_INFO(("Printing block i_id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize));
+    DEBUG_INFO(("Printing block i_id %#" PRIx64 ", size %#" PRIx64 "\n", i_id, (uint64_t)readSize));
     if (binary) {
         if (fwrite(buf, 1, readSize, stdout) != 0) {
             DIE(("Error occurred during writing of buf to stdout\n"));
         }
     } else {
-        printf("Block id %#"PRIx64", size %#"PRIx64"\n", i_id, (uint64_t)readSize);
+        printf("Block id %#" PRIx64 ", size %#" PRIx64 "\n", i_id, (uint64_t)readSize);
         pst_debug_hexdumper(stdout, buf, readSize, 0x10, 0);
     }
     if (buf) free(buf);
 
     if (process) {
-        DEBUG_INFO(("Parsing block id %#"PRIx64"\n", i_id));
+        DEBUG_INFO(("Parsing block id %#" PRIx64 "\n", i_id));
         ptr = pstfile.d_head;
         while (ptr) {
             if (ptr->assoc_tree && ptr->assoc_tree->i_id == i_id)
@@ -68,7 +68,7 @@ void dump_desc(pst_desc_tree *ptr, pst_desc_tree *parent)
 {
     while (ptr) {
         uint64_t parent_d_id = (parent) ? parent->d_id : 0;
-        printf("Descriptor block d_id %#"PRIx64" parent d_id %#"PRIx64" children %i desc.i_id=%#"PRIx64", assoc tree.i_id=%#"PRIx64"\n",
+        printf("Descriptor block d_id %#" PRIx64 " parent d_id %#" PRIx64 " children %i desc.i_id=%#" PRIx64 ", assoc tree.i_id=%#" PRIx64 "\n",
             ptr->d_id, parent_d_id, ptr->no_child,
             (ptr->desc       ? ptr->desc->i_id       : (uint64_t)0),
             (ptr->assoc_tree ? ptr->assoc_tree->i_id : (uint64_t)0));

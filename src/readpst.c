@@ -252,7 +252,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
             DEBUG_WARN(("ERROR item's desc record is NULL\n"));
             continue;
         }
-        DEBUG_INFO(("Desc Email ID %#"PRIx64" [d_ptr->d_id = %#"PRIx64"]\n", d_ptr->desc->i_id, d_ptr->d_id));
+        DEBUG_INFO(("Desc Email ID %#" PRIx64 " [d_ptr->d_id = %#" PRIx64 "]\n", d_ptr->desc->i_id, d_ptr->d_id));
 
         item = pst_parse_item(&pstfile, d_ptr, NULL);
         DEBUG_INFO(("About to process item\n"));
@@ -1065,13 +1065,13 @@ void write_separate_attachment(char f_name[], pst_item_attach* attach, int attac
     char *attach_filename = (attach->filename2.str) ? attach->filename2.str
                                                     : attach->filename1.str;
     DEBUG_ENT("write_separate_attachment");
-    DEBUG_INFO(("Attachment %s Size is %#"PRIx64", data = %#"PRIxPTR", id %#"PRIx64"\n", attach_filename, (uint64_t)attach->data.size, attach->data.data, attach->i_id));
+    DEBUG_INFO(("Attachment %s Size is %#" PRIx64 ", data = %#" PRIxPTR ", id %#" PRIx64 "\n", attach_filename, (uint64_t)attach->data.size, attach->data.data, attach->i_id));
 
     if (!attach->data.data) {
         // make sure we can fetch data from the id
         pst_index_ll *ptr = pst_getID(pst, attach->i_id);
         if (!ptr) {
-            DEBUG_WARN(("Couldn't find i_id %#"PRIx64". Cannot save attachment to file\n", attach->i_id));
+            DEBUG_WARN(("Couldn't find i_id %#" PRIx64 ". Cannot save attachment to file\n", attach->i_id));
             DEBUG_RET();
             return;
         }
@@ -1247,7 +1247,7 @@ char *rfc2231_string(char *inp) {
 void write_inline_attachment(FILE* f_output, pst_item_attach* attach, char *boundary, pst_file* pst)
 {
     DEBUG_ENT("write_inline_attachment");
-    DEBUG_INFO(("Attachment Size is %#"PRIx64", data = %#"PRIxPTR", id %#"PRIx64"\n", (uint64_t)attach->data.size, attach->data.data, attach->i_id));
+    DEBUG_INFO(("Attachment Size is %#" PRIx64 ", data = %#" PRIxPTR ", id %#" PRIx64 "\n", (uint64_t)attach->data.size, attach->data.data, attach->i_id));
 
     if (!attach->data.data) {
         // make sure we can fetch data from the id
@@ -2231,7 +2231,7 @@ void write_appointment(FILE* f_output, pst_item* item)
     pst_convert_utf8_null(item, &item->body);
     pst_convert_utf8_null(item, &appointment->location);
 
-    fprintf(f_output, "UID:%#"PRIx64"\n", item->block_id);
+    fprintf(f_output, "UID:%#" PRIx64 "\n", item->block_id);
     // FIXME: use the attendee/owner critical change property for DTSTAMP
     // https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxcical/4b93e7b6-142e-4f0c-ac08-1505a6fa0199
     // https://learn.microsoft.com/en-us/office/client-developer/outlook/mapi/pidlidattendeecriticalchange-canonical-property

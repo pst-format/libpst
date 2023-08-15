@@ -126,7 +126,7 @@ void pst_debug_hexdumper(FILE *out, const char *buf, size_t size, int cols, int 
     if (cols == -1) cols = NUM_COL;
     fprintf(out, "\n");
     while (off < size) {
-        fprintf(out, "%06d %.*s%06"PRIx64"\t:", getpid(), le*4, indent, (int64_t)(off+delta));
+        fprintf(out, "%06d %.*s%06" PRIx64 "\t:", getpid(), le*4, indent, (int64_t)(off+delta));
         toff = off;
         while (count < cols && off < size) {
             fprintf(out, "%02hhx ", (unsigned char)buf[off]);
