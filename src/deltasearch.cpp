@@ -48,7 +48,7 @@ int main(int argc, char* const* argv) {
 	int   d = atoi(argv[2]);
 	string search(argv[3]);
 	printf("using file %s with delta %d looking for %s\n", argv[1], d, argv[3]);
-	if (fd) {
+	if (fd >= 0) {
 		struct stat st;
 		fstat(fd, &st);
 		off_t size = st.st_size;
