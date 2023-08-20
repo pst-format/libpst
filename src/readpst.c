@@ -1225,11 +1225,11 @@ char *rfc2231_string(char *inp) {
     strcpy(buffer, "utf-8''");
     x = (int8_t *)inp;
     const uint8_t *y = (uint8_t *)inp;
-    uint8_t *z = (uint8_t *)buffer;
+    char *z = buffer;
     z += strlen(buffer);    // skip the utf8 prefix
     while (*y) {
         if (!is_attribute_char(*x)) {
-            *(z++) = (uint8_t)'%';
+            *(z++) = '%';
             snprintf(z, 3, "%2" PRIx8, *y);
             z += 2;
         }
