@@ -2373,8 +2373,12 @@ void create_enter_dir(struct file_ll* f, pst_item *item)
         }
         if (mode_thunder) {
             FILE *type_file = fopen(".type", "w");
-            fprintf(type_file, "%d\n", item->type);
-            fclose(type_file);
+            if (type_file) {
+                fprintf(type_file, "%d\n", item->type);
+                fclose(type_file);
+            } else {
+                DEBUG_WARN(("could not write .type file: %d\n", item->type));
+            }
         }
     } else if (mode == MODE_SEPARATE) {
         // do similar stuff to recurse here.
@@ -2471,8 +2475,12 @@ void close_enter_dir(struct file_ll *f)
     else if (mode == MODE_RECURSE) {
         if (mode_thunder) {
             FILE *type_file = fopen(".size", "w");
-            fprintf(type_file, "%" PRIi32 " %" PRIi32 "\n", f->item_count, f->stored_count);
-            fclose(type_file);
+            if (type_file) {
+                fprintf(type_file, "%" PRIi32 " %" PRIi32 "\n", f->item_count, f->stored_count);
+                fclose(type_file);
+            } else {
+                DEBUG_WARN(("could not write .size file: %" PRIi32 " %" PRIi32 "\n", f->item_count, f->stored_count));
+            }
         }
         close_recurse_dir();
     } else if (mode == MODE_SEPARATE)
