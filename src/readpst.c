@@ -2261,6 +2261,8 @@ void write_appointment(FILE* f_output, pst_item* item)
             case PST_FREEBUSY_FREE:
                 // mark as transparent and as confirmed
                 fprintf(f_output, "TRANSP:TRANSPARENT\n");
+                fprintf(f_output, "STATUS:CONFIRMED\n");
+                break;
             case PST_FREEBUSY_BUSY:
             case PST_FREEBUSY_OUT_OF_OFFICE:
                 fprintf(f_output, "STATUS:CONFIRMED\n");
