@@ -52,14 +52,31 @@ int main(int argc, char* const* argv) {
 		struct stat st;
 		fstat(fd, &st);
 		off_t size = st.st_size;
-		vector <char> buf(size);
-		size_t s = read(fd, &buf[0], size);
-		pst_debug_hexdumper(stdout, &buf[0], s, 16, 0);
-		printf("\n\n dump decrypted data \n");
-		for (off_t i=0; i<size; i++) {
-			buf[i] = comp_enc[(unsigned char)buf[i]];
+		if (!size) {
+			fprintf(stderr, "File %s is empty\n", argv[1]);
+			close(fd);
+			return 1;
 		}
-		pst_debug_hexdumper(stdout, &buf[0], s, 16, 0);
+		vector <char> buf(size);
+		ssize_t s = read(fd, &buf[0], size);
+		if (s > 0) {
+			if (s != size)
+				fprintf(stderr, "Only read %zd of %lld bytes from %s\n", s, (long long int)size, argv[1]);
+			pst_debug_hexdumper(stdout, &buf[0], s, 16, 0);
+			printf("\n\n dump decrypted data \n");
+			for (off_t i=0; i<size; i++) {
+				buf[i] = comp_enc[(unsigned char)buf[i]];
+			}
+			pst_debug_hexdumper(stdout, &buf[0], s, 16, 0);
+		} else if (s == 0) {
+			fprintf(stderr, "File %s read is empty\n", argv[1]);
+			close(fd);
+			return 1;
+		} else {
+			fprintf(stderr, "Failed to read %lld bytes from %s\n", (long long int)size, argv[1]);
+			close(fd);
+			return 1;
+		}
 		close(fd);
 	}
 	return 0;
