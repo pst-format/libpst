@@ -138,8 +138,8 @@ int		optind = 0; 	// global argv index
 
 int getopt(int argc, char* const* argv, char *optstring)
 {
-  static char *next = NULL;
-  char c, *cp;
+	static char *next = NULL;
+	char c, *cp;
 	if (optind == 0)
 		next = NULL;
 

@@ -49,7 +49,7 @@ char* pst_lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
 	uint32_t in_size;
 
 	memcpy(dict, LZFU_INITDICT, LZFU_INITLENGTH);
-    memset(dict + LZFU_INITLENGTH, 0, sizeof(dict) - LZFU_INITLENGTH);
+	memset(dict + LZFU_INITLENGTH, 0, sizeof(dict) - LZFU_INITLENGTH);
 	dict_length = LZFU_INITLENGTH;
 
 	memcpy(&lzfuhdr, rtfcomp, sizeof(lzfuhdr));
@@ -115,6 +115,6 @@ char* pst_lzfu_decompress(char* rtfcomp, uint32_t compsize, size_t *size) {
 			flag_mask <<= 1;
 		}
 	}
-    *size = out_ptr;
+	*size = out_ptr;
 	return out_buf;
 }

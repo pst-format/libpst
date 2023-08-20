@@ -180,30 +180,30 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr, struct options o)
 
 
 void usage(char *prog_name, char *defaultfmtdate) {
-	DEBUG_ENT("usage");
-	version();
-	printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
-	printf("OPTIONS:\n");
+    DEBUG_ENT("usage");
+    version();
+    printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
+    printf("OPTIONS:\n");
     printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readlog to print it\n");
-	printf("\t-l\t- Print the date, CC and BCC fields of emails too (by default only the From and Subject)\n");
-	printf("\t-f <date_format> \t- Select the date format in ctime format (by default \"%s\")\n", defaultfmtdate);
-	printf("\t-h\t- Help. This screen\n");
-	printf("\t-V\t- Version. Display program version\n");
-	DEBUG_RET();
+    printf("\t-l\t- Print the date, CC and BCC fields of emails too (by default only the From and Subject)\n");
+    printf("\t-f <date_format> \t- Select the date format in ctime format (by default \"%s\")\n", defaultfmtdate);
+    printf("\t-h\t- Help. This screen\n");
+    printf("\t-V\t- Version. Display program version\n");
+    DEBUG_RET();
 }
 
 
 void version() {
-	DEBUG_ENT("version");
-	printf("lspst / LibPST v%s\n", VERSION);
+    DEBUG_ENT("version");
+    printf("lspst / LibPST v%s\n", VERSION);
 #if BYTE_ORDER == BIG_ENDIAN
-	printf("Big Endian implementation being used.\n");
+    printf("Big Endian implementation being used.\n");
 #elif BYTE_ORDER == LITTLE_ENDIAN
-	printf("Little Endian implementation being used.\n");
+    printf("Little Endian implementation being used.\n");
 #else
-#  error "Byte order not supported by this library"
+#   error "Byte order not supported by this library"
 #endif
-	 DEBUG_RET();
+    DEBUG_RET();
 }
 
 
@@ -218,31 +218,31 @@ int main(int argc, char* const* argv) {
     char *defaultfmtdate = "%F %T";
     o.date_format = defaultfmtdate;
 
-	while ((c = getopt(argc, argv, "d:f:lhV"))!= -1) {
-		switch (c) {
-			case 'd':
-				d_log = optarg;
-				break;
-			case 'f':
-				o.date_format = optarg;
-				break;
-			case 'l':
-				o.long_format = 1;
-				break;
-			case 'h':
-				usage(argv[0], defaultfmtdate);
-				exit(0);
-				break;
-			case 'V':
-				version();
-				exit(0);
-				break;
-			default:
-				usage(argv[0], defaultfmtdate);
-				exit(1);
-				break;
-		}
-	}
+    while ((c = getopt(argc, argv, "d:f:lhV"))!= -1) {
+        switch (c) {
+            case 'd':
+                d_log = optarg;
+            break;
+            case 'f':
+                o.date_format = optarg;
+            break;
+            case 'l':
+                o.long_format = 1;
+            break;
+            case 'h':
+                usage(argv[0], defaultfmtdate);
+                exit(0);
+            break;
+            case 'V':
+                version();
+                exit(0);
+            break;
+            default:
+                usage(argv[0], defaultfmtdate);
+                exit(1);
+            break;
+        }
+    }
 
     #ifdef DEBUG_ALL
         // force a log file
@@ -251,10 +251,10 @@ int main(int argc, char* const* argv) {
     DEBUG_INIT(d_log, NULL);
     DEBUG_ENT("main");
 
-	if (argc <= optind) {
-		usage(argv[0], defaultfmtdate);
-		exit(2);
-	}
+    if (argc <= optind) {
+        usage(argv[0], defaultfmtdate);
+        exit(2);
+    }
 
     // Open PST file
     if (pst_open(&pstfile, argv[optind], NULL)) DIE(("Error opening File\n"));

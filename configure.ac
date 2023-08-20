@@ -302,7 +302,7 @@ AC_ARG_ENABLE([static-tools],
 AC_MSG_RESULT([$enable_static_tools])
 AM_CONDITIONAL(STATIC_TOOLS, [test "$enable_static_tools" = "yes"])
 if test "$enable_static_tools" = "yes"; then
-	enable_static="yes"
+    enable_static="yes"
 fi
 
 
@@ -329,7 +329,7 @@ AC_ARG_ENABLE([python],
 AC_MSG_RESULT([$enable_python])
 AM_CONDITIONAL(PYTHON_INTERFACE, [test "$enable_python" = "yes"])
 if test "$enable_python" = "yes"; then
-	enable_shared="yes"
+    enable_shared="yes"
     # get the version of installed python
     AX_PYTHON
     if test "$ax_python_bin" = "no"; then

@@ -41,13 +41,13 @@ unsigned char comp_enc [] =
 
 int main(int argc, char* const* argv) {
 	if (argc < 4) {
-        printf("usage: %s filename.pst integer-delta search-string\n", argv[0]);
+		printf("usage: %s filename.pst integer-delta search-string\n", argv[0]);
 		return 0;
 	}
 	int  fd = open(argv[1], O_RDONLY);
 	int   d = atoi(argv[2]);
 	string search(argv[3]);
-    printf("using file %s with delta %d looking for %s\n", argv[1], d, argv[3]);
+	printf("using file %s with delta %d looking for %s\n", argv[1], d, argv[3]);
 	if (fd) {
 		struct stat st;
 		fstat(fd, &st);
@@ -55,7 +55,7 @@ int main(int argc, char* const* argv) {
 		vector <char> buf(size);
 		size_t s = read(fd, &buf[0], size);
 		pst_debug_hexdumper(stdout, &buf[0], s, 16, 0);
-        printf("\n\n dump decrypted data \n");
+		printf("\n\n dump decrypted data \n");
 		for (off_t i=0; i<size; i++) {
 			buf[i] = comp_enc[(unsigned char)buf[i]];
 		}

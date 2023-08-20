@@ -19,8 +19,8 @@
 
         <para>This version can now convert both 32 bit Outlook files (pre 2003), and the
         64 bit Outlook 2003 pst files. Utilities are supplied to convert email messages
-    	to both mbox and MH mailbox formats, and to DII load file format for use with
-    	many of the <ulink url="http://www.ctsummation.com">CT Summation</ulink> products.
+        to both mbox and MH mailbox formats, and to DII load file format for use with
+        many of the <ulink url="http://www.ctsummation.com">CT Summation</ulink> products.
         Contacts can be converted to a simple list, to vcard format, or to ldif format
         for import to an LDAP server.
         </para>
