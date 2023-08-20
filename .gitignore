@@ -24,6 +24,13 @@ Makefile.in
 /po/
 /intl/
 
+/conftest.i
+/confdefs.h
+/conftest.c
+/conftest.cpp
+/conftest.err
+/conftest.er1
+
 /man/*.1
 /man/*.5
 /html/*.html
