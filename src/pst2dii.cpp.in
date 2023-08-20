@@ -470,13 +470,13 @@ static void write_normal_email(file_ll &f, pst_item* item, pst_file* pst)
     string mycc   = extract_header(soh, "Cc");
     string mybcc  = extract_header(soh, "Bcc");
     if (myfrom.empty()) write_simple("FROM", item->email->outlook_sender_name.str, item->email->sender_address.str);
-    else                write_simple("FROM", myfrom);
+    else                write_simple("FROM", std::move(myfrom));
     if (myto.empty())   write_simple("TO",   item->email->sentto_address.str,      item->email->recip_address.str);
-    else                write_simple("TO", myto);
+    else                write_simple("TO", std::move(myto));
     if (mycc.empty())   write_simple("CC",   item->email->cc_address.str);
-    else                write_simple("CC", mycc);
+    else                write_simple("CC", std::move(mycc));
     if (mybcc.empty())  write_simple("BCC",  item->email->bcc_address.str);
-    else                write_simple("BCC", mybcc);
+    else                write_simple("BCC", std::move(mybcc));
     if (item->email->sent_date) {
         time_t t = pst_fileTimeToUnixTime(item->email->sent_date);
         char c_time[C_TIME_SIZE];
