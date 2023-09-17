@@ -287,7 +287,7 @@ int main(int argc, char* const* argv) {
     d_ptr = pst_getTopOfFolders(&pstfile, item);
     if (!d_ptr) DIE(("Top of folders record not found. Cannot continue\n"));
 
-    process(item, d_ptr->child, o);    // do the childred of TOPF
+    process(item, d_ptr->child, o);    // do the children of TOPF
     pst_freeItem(item);
     pst_close(&pstfile);
 
