@@ -271,6 +271,7 @@ int main(int argc, char* const* argv) {
     d_ptr = pstfile.d_head; // first record is main record
     item  = pst_parse_item(&pstfile, d_ptr, NULL);
     if (!item || !item->message_store) {
+        if (item) pst_freeItem(item);
         pst_close(&pstfile);
         DEBUG_RET();
         DIE(("Could not get root record\n"));
@@ -291,6 +292,7 @@ int main(int argc, char* const* argv) {
 
     d_ptr = pst_getTopOfFolders(&pstfile, item);
     if (!d_ptr) {
+        pst_freeItem(item);
         pst_close(&pstfile);
         DIE(("Top of folders record not found. Cannot continue\n"));
     }
