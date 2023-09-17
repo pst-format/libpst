@@ -72,6 +72,7 @@ int main(int argc, char* const* argv)
             printf("Failed to read block i_id %#" PRIx64 "\n", ptr->i_id);
         }
     }
+    free(outname);
     pst_close(&pstfile);
     DEBUG_RET();
     DEBUG_CLOSE();
