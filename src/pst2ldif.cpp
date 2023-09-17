@@ -671,6 +671,7 @@ int main(int argc, char* const* argv) {
     process(d_ptr->child);  // do the children of TOPF
     pst_close(&pstfile);
     DEBUG_RET();
+    DEBUG_CLOSE();
     free_strings(all_strings);
     return 0;
 }

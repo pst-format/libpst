@@ -102,6 +102,7 @@ int main(int argc, char* const* argv)
                 break;
             default:
                 usage();
+                DEBUG_CLOSE();
                 exit(EXIT_FAILURE);
         }
     }
@@ -109,6 +110,7 @@ int main(int argc, char* const* argv)
     if (optind + 1 >= argc) {
         // no more items on the cmd
         usage();
+        DEBUG_CLOSE();
         exit(EXIT_FAILURE);
     }
     fname = argv[optind];
@@ -142,6 +144,7 @@ int main(int argc, char* const* argv)
     }
 
     DEBUG_RET();
+    DEBUG_CLOSE();
     return 0;
 }
 

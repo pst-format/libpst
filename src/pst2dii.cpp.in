@@ -725,5 +725,6 @@ int main(int argc, char* const* argv)
         fclose(dii_file);
     }
     DEBUG_RET();
+    DEBUG_CLOSE();
     return 0;
 }

@@ -661,6 +661,7 @@ int main(int argc, char* const* argv) {
     pst_freeItem(item);
     pst_close(&pstfile);
     DEBUG_RET();
+    DEBUG_CLOSE();
 
 #ifdef HAVE_SEMAPHORE_H
     if (global_children) {

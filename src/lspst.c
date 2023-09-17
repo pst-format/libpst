@@ -253,6 +253,7 @@ int main(int argc, char* const* argv) {
 
     if (argc <= optind) {
         usage(argv[0], defaultfmtdate);
+        DEBUG_CLOSE();
         exit(2);
     }
 
@@ -292,6 +293,7 @@ int main(int argc, char* const* argv) {
     pst_close(&pstfile);
 
     DEBUG_RET();
+    DEBUG_CLOSE();
     return 0;
 }
 

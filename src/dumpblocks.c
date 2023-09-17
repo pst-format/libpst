@@ -35,18 +35,21 @@ int main(int argc, char* const* argv)
     printf("Opening file %s\n", file);
     if (pst_open(&pstfile, file, NULL)) {
         printf("Failed to open file %s\n", file);
+        DEBUG_CLOSE();
         exit(1);
     }
 
     printf("Reading Indexes\n");
     if (pst_load_index(&pstfile)) {
         printf("Failed to load indexes in file %s\n", argv[1]);
+        DEBUG_CLOSE();
         exit(1);
     }
 
     if (outdir != NULL)
         if (chdir(outdir)) {
             printf("Failed to change into directory %s\n", outdir);
+            DEBUG_CLOSE();
             exit(1);
         }
 
@@ -69,5 +72,6 @@ int main(int argc, char* const* argv)
     }
     pst_close(&pstfile);
     DEBUG_RET();
+    DEBUG_CLOSE();
     return 0;
 }

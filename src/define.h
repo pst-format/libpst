@@ -174,6 +174,9 @@ void  pst_debug_close();
 void* pst_malloc(size_t size);
 void *pst_realloc(void *ptr, size_t size);
 
+#define DEBUG_INIT(fname,mutex) {pst_debug_init(fname,mutex);}
+#define DEBUG_CLOSE()           {pst_debug_close();}
+
 #define MESSAGEPRINT1(...) pst_debug(1, __LINE__, __FILE__,  __VA_ARGS__)
 #define MESSAGEPRINT2(...) pst_debug(2, __LINE__, __FILE__,  __VA_ARGS__)
 #define MESSAGEPRINT3(...) pst_debug(3, __LINE__, __FILE__,  __VA_ARGS__)
@@ -188,6 +191,7 @@ void *pst_realloc(void *ptr, size_t size);
 
 #define DIE(x) {            \
     WARN(x);                \
+    DEBUG_CLOSE();            \
     exit(EXIT_FAILURE);     \
 }
 
@@ -208,8 +212,6 @@ void *pst_realloc(void *ptr, size_t size);
       pst_debug_func_ret(1);                     \
     }
 
-#define DEBUG_INIT(fname,mutex) {pst_debug_init(fname,mutex);}
-#define DEBUG_CLOSE()           {pst_debug_close();}
 #define RET_DERROR(res, ret_val, x) if (res) { DIE(x);}
 
 
