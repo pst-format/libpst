@@ -184,7 +184,7 @@ void usage(char *prog_name, char *defaultfmtdate) {
     version();
     printf("Usage: %s [OPTIONS] {PST FILENAME}\n", prog_name);
     printf("OPTIONS:\n");
-    printf("\t-d <filename> \t- Debug to file. This is a binary log. Use readlog to print it\n");
+    printf("\t-d <filename> \t- Debug to file.\n");
     printf("\t-l\t- Print the date, CC and BCC fields of emails too (by default only the From and Subject)\n");
     printf("\t-f <date_format> \t- Select the date format in ctime format (by default \"%s\")\n", defaultfmtdate);
     printf("\t-h\t- Help. This screen\n");
