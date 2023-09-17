@@ -637,12 +637,14 @@ int main(int argc, char* const* argv) {
     d_ptr = pstfile.d_head; // first record is main record
     item  = (pst_item*)pst_parse_item(&pstfile, d_ptr, NULL);
     if (!item || !item->message_store) {
+        pst_close(&pstfile);
         DEBUG_RET();
         DIE(("main: Could not get root record\n"));
     }
 
     d_ptr = pst_getTopOfFolders(&pstfile, item);
     if (!d_ptr) {
+        pst_close(&pstfile);
         DEBUG_RET();
         DIE(("Top of folders record not found. Cannot continue\n"));
     }

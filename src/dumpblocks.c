@@ -42,6 +42,7 @@ int main(int argc, char* const* argv)
     printf("Reading Indexes\n");
     if (pst_load_index(&pstfile)) {
         printf("Failed to load indexes in file %s\n", argv[1]);
+        pst_close(&pstfile);
         DEBUG_CLOSE();
         exit(1);
     }
@@ -49,6 +50,7 @@ int main(int argc, char* const* argv)
     if (outdir != NULL)
         if (chdir(outdir)) {
             printf("Failed to change into directory %s\n", outdir);
+            pst_close(&pstfile);
             DEBUG_CLOSE();
             exit(1);
         }

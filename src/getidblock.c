@@ -125,6 +125,7 @@ int main(int argc, char* const* argv)
 
     DEBUG_INFO(("Loading Index\n"));
     if (pst_load_index(&pstfile) != 0) {
+        pst_close(&pstfile);
         DIE(("Error loading file index\n"));
     }
 

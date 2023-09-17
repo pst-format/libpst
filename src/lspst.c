@@ -261,13 +261,17 @@ int main(int argc, char* const* argv) {
     if (pst_open(&pstfile, argv[optind], NULL)) DIE(("Error opening File\n"));
 
     // Load PST index
-    if (pst_load_index(&pstfile)) DIE(("Index Error\n"));
+    if (pst_load_index(&pstfile)) {
+        pst_close(&pstfile);
+        DIE(("Index Error\n"));
+    }
 
     pst_load_extended_attributes(&pstfile);
 
     d_ptr = pstfile.d_head; // first record is main record
     item  = pst_parse_item(&pstfile, d_ptr, NULL);
     if (!item || !item->message_store) {
+        pst_close(&pstfile);
         DEBUG_RET();
         DIE(("Could not get root record\n"));
     }
@@ -286,7 +290,10 @@ int main(int argc, char* const* argv) {
     }
 
     d_ptr = pst_getTopOfFolders(&pstfile, item);
-    if (!d_ptr) DIE(("Top of folders record not found. Cannot continue\n"));
+    if (!d_ptr) {
+        pst_close(&pstfile);
+        DIE(("Top of folders record not found. Cannot continue\n"));
+    }
 
     process(item, d_ptr->child, o);    // do the children of TOPF
     pst_freeItem(item);
