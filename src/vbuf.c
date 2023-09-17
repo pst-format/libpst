@@ -94,8 +94,8 @@ static size_t sbcs_conversion(pst_vbuf *dest, const char *inbuf, int iblen, icon
 }
 
 
-static void pst_unicode_close();
-static void pst_unicode_close()
+void pst_unicode_close();
+void pst_unicode_close()
 {
     iconv_close(i16to8);
     if (target_open_from) iconv_close(i8totarget);

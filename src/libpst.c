@@ -413,6 +413,7 @@ err:
 
 int pst_close(pst_file *pf) {
     DEBUG_ENT("pst_close");
+    pst_unicode_close();
     if (!pf) {
         DEBUG_RET();
         return 0;
