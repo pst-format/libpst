@@ -669,6 +669,7 @@ int main(int argc, char* const* argv) {
         shmdt(global_children);
     }
 #endif
+    free(child_processes);
 
     regfree(&meta_charset_pattern);
     return 0;
