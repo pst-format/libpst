@@ -1866,10 +1866,8 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                 if (table_rec.ref_type == (uint16_t)0x1f) {
                     // there is more to do for the type 0x1f unicode strings
                     size_t rc;
-                    static pst_vbuf *utf16buf = NULL;
-                    static pst_vbuf *utf8buf  = NULL;
-                    if (!utf16buf) utf16buf = pst_vballoc((size_t)1024);
-                    if (!utf8buf)  utf8buf  = pst_vballoc((size_t)1024);
+                    pst_vbuf *utf16buf = pst_vballoc((size_t)1024);
+                    pst_vbuf *utf8buf  = pst_vballoc((size_t)1024);
 
                     //need UTF-16 zero-termination
                     pst_vbset(utf16buf, mo_ptr->elements[x]->data, mo_ptr->elements[x]->size);
@@ -1888,6 +1886,10 @@ static pst_mapi_object* pst_parse_block(pst_file *pf, uint64_t block_id, pst_id2
                     }
                     DEBUG_INFO(("Iconv out:\n"));
                     DEBUG_HEXDUMPC(mo_ptr->elements[x]->data, mo_ptr->elements[x]->size, 0x10);
+                    free(utf8buf->buf);
+                    free(utf8buf);
+                    free(utf16buf->buf);
+                    free(utf16buf);
                 }
                 if (mo_ptr->elements[x]->type == 0) mo_ptr->elements[x]->type = table_rec.ref_type;
             } else {
