@@ -3835,9 +3835,9 @@ static size_t pst_read_block_size(pst_file *pf, int64_t offset, size_t size, siz
         return -1;
     }
     *buf = (char *) pst_malloc(inflated_size);
-    size_t result_size = inflated_size;
-    if (uncompress((Bytef *) *buf, &result_size, (Bytef *) zbuf, size) != Z_OK || result_size != inflated_size) {
-        DEBUG_WARN(("Failed to uncompress %zu bytes to %zu bytes, got %zu\n", size, inflated_size, result_size));
+    uLongf result_size = inflated_size;
+    if (uncompress((Bytef *) *buf, &result_size, (Bytef *) zbuf, size) != Z_OK || ((size_t) result_size) != inflated_size) {
+        DEBUG_WARN(("Failed to uncompress %zu bytes to %zu bytes, got %zu\n", size, inflated_size, (size_t) result_size));
         if (zbuf) free(zbuf);
         DEBUG_RET();
         return -1;
