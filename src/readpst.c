@@ -25,7 +25,6 @@ struct file_ll {
     int32_t skip_count;
 };
 
-int       grim_reaper();
 pid_t     try_fork(char* folder);
 void      process(pst_item *outeritem, pst_desc_tree *d_ptr);
 void      write_email_body(FILE *f, char *body);
@@ -151,7 +150,7 @@ sem_t*      output_mutex    = NULL;
 #endif
 
 
-int grim_reaper(int waitall)
+static int grim_reaper(int waitall)
 {
     int available = 0;
 #ifdef HAVE_FORK
