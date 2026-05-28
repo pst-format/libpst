@@ -21,6 +21,9 @@ Makefile.in
 /ltmain.sh
 /missing
 /m4/*.m4
+!/m4/ax_python.m4
+!/m4/ax_python_devel.m4
+!/m4/ax_boost_python.m4
 /po/
 /intl/
 
