@@ -31,6 +31,7 @@ void      write_email_body(FILE *f, char *body);
 void      removeCR(char *c);
 void      usage();
 void      version();
+uint32_t  password_crc(const char *pass);
 void      mk_kmail_dir(char* fname);
 int       close_kmail_dir();
 void      mk_recurse_dir(char* dir);
@@ -142,6 +143,10 @@ int         max_children  = 0;      // based on number of cpus and command line 
 int         max_child_specified = 0;// have command line arg -j
 int         active_children;        // number of children of this process, cannot be larger than max_children
 pid_t*      child_processes;        // setup by main(), and at the start of new child process
+
+int         check_password = 0; // -p
+char*       check_password_value = NULL;
+int         has_password = 0;   // -P
 
 #ifdef HAVE_SEMAPHORE_H
 int         shared_memory_id;
@@ -422,7 +427,7 @@ int main(int argc, char* const* argv) {
     }
 
     // command-line option handling
-    while ((c = getopt(argc, argv, "a:bC:c:Dd:emhj:kMo:qrSt:uVwL:8"))!= -1) {
+    while ((c = getopt(argc, argv, "a:bC:c:Dd:emhj:kMo:p:PqrSt:uVwL:8"))!= -1) {
         switch (c) {
         case 'a':
             if (optarg) {
@@ -505,6 +510,18 @@ int main(int argc, char* const* argv) {
             break;
         case 'o':
             output_dir = optarg;
+            break;
+        case 'p':
+            if (optarg) {
+                check_password = 1;
+                check_password_value = optarg;
+            } else {
+                usage();
+                exit(0);
+            }
+            break;
+        case 'P':
+            has_password = 1;
             break;
         case 'q':
             output_mode = OUTPUT_QUIET;
@@ -634,6 +651,38 @@ int main(int argc, char* const* argv) {
         DIE(("Could not get root record\n"));
     }
 
+    if (has_password) {
+        if (item->message_store->pwd_chksum) {
+            printf("PST is password protected\n");
+            pst_freeItem(item);
+            pst_close(&pstfile);
+
+            return 0;
+        }
+
+        printf("PST is not password protected\n");
+        pst_freeItem(item);
+        pst_close(&pstfile);
+
+        return 3;
+    }
+
+    if (check_password) {
+        if (password_crc(check_password_value) == (uint32_t)item->message_store->pwd_chksum) {
+            printf("Password matches\n");
+            pst_freeItem(item);
+            pst_close(&pstfile);
+
+            return 0;
+        }
+
+        printf("Password does not match\n");
+        pst_freeItem(item);
+        pst_close(&pstfile);
+
+        return 3;
+    }
+
     // default the file_as to the same as the main filename if it doesn't exist
     if (!item->file_as.str) {
         if (!(temp = strrchr(fname, '/')))
@@ -715,6 +764,26 @@ void removeCR (char *c) {
 }
 
 
+uint32_t password_crc(const char *pass) {
+    uint32_t table[256], crc = 0;
+    int i, j;
+
+    for (i = 0; i < 256; i++) {
+        uint32_t c = (uint32_t)i;
+        for (j = 0; j < 8; j++)
+            c = (c & 1) ? ((c >> 1) ^ 0xEDB88320U) : (c >> 1);
+        table[i] = c;
+    }
+
+    while (*pass) {
+        crc = (crc >> 8) ^ table[(crc ^ (unsigned char)*pass) & 0xff];
+        pass++;
+    }
+    
+    return crc;
+}
+
+
 void usage() {
     DEBUG_ENT("usage");
     version();
@@ -736,6 +805,8 @@ void usage() {
     printf("\t-k\t- KMail. Output in kmail format\n");
     printf("\t-m\t- As with -e, but write .msg files also\n");
     printf("\t-o <dirname>\t- Output directory to write files to. CWD is changed *after* opening pst file\n");
+    printf("\t-p <password>\t- Check given password against PST and exit\n");
+    printf("\t-P\t- Check if PST has a password set and exit\n");
     printf("\t-q\t- Quiet. Only print error messages\n");
     printf("\t-r\t- Recursive. Output in a recursive format\n");
     printf("\t-t[eajc]\t- Set the output type list. e = email, a = attachment, j = journal, c = contact\n");
