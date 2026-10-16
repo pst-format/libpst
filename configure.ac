@@ -388,6 +388,7 @@ AC_OUTPUT(                  \
     man/Makefile            \
     src/Makefile            \
     src/pst2dii.cpp         \
+    tests/Makefile          \
     python/Makefile         \
     xml/Makefile            \
     xml/libpst              \

@@ -1,0 +1,9 @@
+# Known, unrelated valgrind reports, so that the readpst tests only fail on
+# the memory errors they are looking for.
+
+{
+   close_enter_dir-stat-unchecked
+   # close_enter_dir() reads st.st_size without checking that stat() succeeded
+   Memcheck:Cond
+   fun:close_enter_dir
+}

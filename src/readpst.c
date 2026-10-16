@@ -1686,6 +1686,7 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int curre
     time_t em_time;
     char *c_time = NULL;
     char *headers = NULL;
+    int set_extra_mime_headers = 0;
     int has_from, has_subject, has_to, has_cc, has_date, has_msgid;
     has_from = has_subject = has_to = has_cc = has_date = has_msgid = 0;
     DEBUG_ENT("write_normal_email");
@@ -1741,7 +1742,10 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int curre
             // pointer to all the embedded MIME headers.
             // we use these to find the actual rfc822 headers for embedded message/rfc822 mime parts
             // but only for the outermost message
-            if (!*extra_mime_headers) *extra_mime_headers = temp+2;
+            if (!*extra_mime_headers) {
+                *extra_mime_headers = temp+2;
+                set_extra_mime_headers = 1;
+            }
             DEBUG_INFO(("Found extra mime headers\n%s\n", temp+2));
         }
 
@@ -1998,6 +2002,13 @@ void write_normal_email(FILE* f_output, char f_name[], pst_item* item, int curre
     }
 
     fprintf(f_output, "\n--%s--\n\n", boundary);
+
+    // If we set extra_mime_headers above, it points into our own
+    // item->email->header. When we are an embedded message (no enclosing
+    // message had headers), write_embedded_message() frees our item as soon
+    // as we return, so do not leave the caller holding a pointer into freed
+    // memory for its next embedded message.
+    if (set_extra_mime_headers) *extra_mime_headers = NULL;
     DEBUG_RET();
 }
 
