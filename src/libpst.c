@@ -3971,11 +3971,38 @@ static size_t pst_getAtPos(pst_file *pf, int64_t pos, void* buf, size_t size) {
 //  DEBUG_INFO(("pst file old offset %#" PRIx64 " old size %#zx read count %i offset %" PRIi64 " size %#zx\n",
 //              (uint64_t)(p->offset), p->size, p->readcount, (uint64_t)pos, size));
 
+#ifdef HAVE_PREAD
+    // Read with pread() rather than fseeko()+fread(). readpst forks child
+    // processes, and until a child calls pst_reopen() its pf->fp shares one
+    // open file description (and so one file offset) with the parent. Closing
+    // or flushing a stdio read stream may lseek() that shared offset (musl
+    // fclose() and fflush(), and glibc freopen() since 2.29, which
+    // pst_reopen() used before it switched to fclose()+fopen()). That seek
+    // can land between the parent's seek and read, so the parent reads the
+    // wrong bytes and silently skips items. pread() neither uses nor moves the
+    // file offset, and since stdio never buffers anything from this stream
+    // there is no unread data for a close or flush to seek back over.
+    {
+        int fd = fileno(pf->fp);
+        rc = 0;
+        while (rc < size) {
+            ssize_t r = pread(fd, (char*)buf + rc, size - rc, (off_t)(pos + rc));
+            if (r < 0) {
+                if (errno == EINTR) continue;
+                DEBUG_WARN(("pread failed at offset %#" PRIx64 ": %s\n", (uint64_t)(pos + rc), strerror(errno)));
+                break;
+            }
+            if (r == 0) break;  // end of file
+            rc += (size_t)r;
+        }
+    }
+#else
     if (fseeko(pf->fp, pos, SEEK_SET) == -1) {
         DEBUG_RET();
         return 0;
     }
     rc = fread(buf, (size_t)1, size, pf->fp);
+#endif
     DEBUG_RET();
     return rc;
 }

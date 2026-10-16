@@ -20,6 +20,7 @@ Makefile.in
 /libtool
 /ltmain.sh
 /missing
+/test-driver
 /m4/*.m4
 /po/
 /intl/
@@ -56,3 +57,6 @@ Makefile.in
 /libpst.html.tar.gz
 /libpst.pc
 /libpst-[0-9].[0-9].[0-9][0-9].tar.gz
+
+/tests/*.log
+/tests/*.trs

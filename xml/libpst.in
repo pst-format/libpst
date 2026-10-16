@@ -264,6 +264,18 @@
             </para>
         </refsect1>
 
+        <refsect1 id='readpst.exit.1'>
+            <title>Exit Status</title>
+            <para>
+                0 if the pst file was processed and every item was read.
+                1 or 2 if the pst file or its index could not be opened or read.
+                3 if the pst file was processed, but some items could not be read and
+                are missing from the output; each such item is reported on stderr.
+                The "items skipped" counts printed for each folder also include items
+                that were deliberately not extracted, such as types excluded with -t.
+            </para>
+        </refsect1>
+
         <refsect1 id='readpst.author.1'>
             <title>Author</title>
             <para>

@@ -206,7 +206,7 @@ if test "$cross_compiling" != "yes"; then
 fi
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([chdir getcwd memchr memmove memset regcomp strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol get_current_dir_name])
+AC_CHECK_FUNCS([chdir getcwd memchr memmove memset regcomp strcasecmp strncasecmp strchr strdup strerror strpbrk strrchr strstr strtol get_current_dir_name pread])
 AM_GNU_GETTEXT
 AM_GNU_GETTEXT_VERSION([0.17])
 AM_ICONV
@@ -388,6 +388,7 @@ AC_OUTPUT(                  \
     man/Makefile            \
     src/Makefile            \
     src/pst2dii.cpp         \
+    tests/Makefile          \
     python/Makefile         \
     xml/Makefile            \
     xml/libpst              \

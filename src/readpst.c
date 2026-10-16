@@ -141,7 +141,11 @@ int         number_processors = 1;  // number of cpus we have
 int         max_children  = 0;      // based on number of cpus and command line args
 int         max_child_specified = 0;// have command line arg -j
 int         active_children;        // number of children of this process, cannot be larger than max_children
+int         item_errors   = 0;      // items this process (or its children) failed to read, they are missing from the output
 pid_t*      child_processes;        // setup by main(), and at the start of new child process
+
+// exit status when the pst file was processed, but some items could not be read
+#define     EXIT_ITEM_ERRORS 3
 
 #ifdef HAVE_SEMAPHORE_H
 int         shared_memory_id;
@@ -177,8 +181,13 @@ static int grim_reaper(int waitall)
                     //printf("Process %d terminated with signal %d\n", child, sig);
                     //fflush(stdout);
                 }
-                if (status != 0) {
-                    exit(status);
+                if (WIFEXITED(status) && (WEXITSTATUS(status) == EXIT_ITEM_ERRORS)) {
+                    // the child finished, but could not read some items
+                    item_errors++;
+                }
+                else if (status != 0) {
+                    // pass on the child's exit code, not the raw wait status
+                    exit((WIFEXITED(status)) ? WEXITSTATUS(status) : 1);
                 }
                 // this has terminated, remove it from the list
                 for (j=i; j<active_children-1; j++) {
@@ -214,6 +223,7 @@ pid_t try_fork(char *folder)
         else if (child == 0) {
             // fork worked, and we are the child, reinitialize *our* list of children
             active_children = 0;
+            item_errors     = 0;
             memset(child_processes, 0, sizeof(pid_t) * max_children);
             pst_reopen(&pstfile);   // close and reopen the pst file to get an independent file position pointer
         }
@@ -257,7 +267,12 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
 
         if (!item) {
             ff.skip_count++;
-            DEBUG_INFO(("A NULL item was seen\n"));
+            item_errors++;
+            DEBUG_WARN(("A NULL item was seen\n"));
+            pst_debug_lock();
+                fprintf(stderr, "Error: could not read item %#" PRIx64 " in folder \"%s\", it was not extracted\n", d_ptr->d_id, ff.dname);
+                fflush(stderr);
+            pst_debug_unlock();
             continue;
         }
 
@@ -290,7 +305,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                         // all I am doing here is waiting for my children to exit
                         sem_post(global_children);
                         grim_reaper(1); // wait for all my child processes to exit
-                        exit(0);        // really exit
+                        exit((item_errors) ? EXIT_ITEM_ERRORS : 0);  // really exit
                     }
 #endif
 #endif
@@ -349,7 +364,7 @@ void process(pst_item *outeritem, pst_desc_tree *d_ptr)
                             // all I am doing here is waiting for my children to exit
                             sem_post(global_children);
                             grim_reaper(1); // wait for all my child processes to exit - there should not be any
-                            exit(0);        // really exit
+                            exit((item_errors) ? EXIT_ITEM_ERRORS : 0);  // really exit
                         }
 #endif
 #endif
@@ -676,6 +691,10 @@ int main(int argc, char* const* argv) {
     free(child_processes);
 
     regfree(&meta_charset_pattern);
+    if (item_errors) {
+        fprintf(stderr, "Error: some items could not be read and are missing from the output\n");
+        return EXIT_ITEM_ERRORS;
+    }
     return 0;
 }
 
