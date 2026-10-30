@@ -1082,7 +1082,7 @@ static int pst_build_id_ptr(pst_file *pf, int64_t offset, int32_t depth, uint64_
     }
     int entry_size = (int32_t)(unsigned)(buf[ENTRY_SIZE_OFFSET]);
     DEBUG_INFO(("count %" PRIi32 " max %" PRIi32 " size %i\n", item_count, count_max, entry_size));
-    if (entry_size <= 0 || (int64_t)item_count * entry_size > read_size) {
+    if (entry_size <= 0 || (int64_t)item_count * entry_size > (int64_t)BLOCK_SIZE) {
         DEBUG_WARN(("item_count * entry_size exceeds block size\n"));
         if (buf) free(buf);
         DEBUG_RET();
@@ -1191,8 +1191,8 @@ static int pst_build_desc_ptr (pst_file *pf, int64_t offset, int32_t depth, uint
         return -1;
     }
     int32_t entry_size = (int32_t)(unsigned)(buf[ENTRY_SIZE_OFFSET]);
-    if (entry_size <= 0) {
-        DEBUG_WARN(("Invalid entry_size %i\n", entry_size));
+    if (entry_size <= 0 || (int64_t)item_count * entry_size > (int64_t)DESC_BLOCK_SIZE) {
+        DEBUG_WARN(("Invalid entry_size %i or item_count * entry_size exceeds block size\n", entry_size));
         if (buf) free(buf);
         DEBUG_RET();
         return -1;
